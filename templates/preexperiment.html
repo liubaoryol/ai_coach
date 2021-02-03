@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Demographic Survey{% endblock %}
+
+{% block header %}
+  <h1>Demographic Survey</h1>
+{% endblock %}
+
+{% block content %}
+<br>
+  <form method="post">
+    <label for="age">Age</label>
+    <input name="age" id="age" value="{{ answers['age'] }}" required>
+    <br>
+    <label for="gender">Gender</label>
+    <input name="gender" id="gender" value="{{ answers['gender'] }}" required>
+    <br>
+    <p>How often do you play video games?</p>
+    <input type="radio" id="never" name="frequency" value="never" {{ answers['never'] }} required>
+    <label for="never">Never</label>
+    <br>
+    <input type="radio" id="peryear" name="frequency" value="peryear" {{ answers['peryear'] }}>
+    <label for="peryear">A few times a year</label>
+    <br>
+    <input type="radio" id="permonth" name="frequency" value="permonth" {{ answers['permonth'] }}>
+    <label for="permonth">A few times a month</label>
+    <br>
+    <input type="radio" id="perweek" name="frequency" value="perweek" {{ answers['perweek'] }}>
+    <label for="perweek">A few times every week</label>
+    <br>
+    <input type="radio" id="daily" name="frequency" value="daily" {{ answers['daily'] }}>
+    <label for="daily">On a daily basis</label>
+    <br>
+    <p>Open-ended comments (optional)</p>
+    <textarea id="opencomment" name="opencomment" rows="4" cols="50">{{ answers['precomment'] }}</textarea>
+    <br>
+    <br>
+    <input type="submit" value="Submit">
+  </form>
+{% endblock %}

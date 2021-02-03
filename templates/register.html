@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="userid">User ID</label>
+    <input name="userid" id="userid" required>
+    <input type="submit" value="Register">
+  </form>
+  <div style="height:200px; overflow-y: scroll;">
+    <table>
+      <tr>
+        <th>User ID</th>
+        <th>E-mail</th>
+      </tr>
+      {% for usr in userlist %}
+      <tr>
+        <td>{{ usr['userid'] }}</td>
+        <td>{{ usr['email'] }}</td>
+      </tr>
+      {% endfor %}
+    </table> 
+  </div>
+  <form method="post">
+    <label for="delid">User ID</label>
+    <input name="delid" id="delid" required>
+    <input type="submit" value="Delete">
+  </form>
+  
+{% endblock %}

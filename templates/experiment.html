@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block title %}Experiment{% endblock %}
+
+{% block header %}
+  <h1>Experiment 1</h1>
+{% endblock %}
+
+{% block content %}
+    <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function() {
+          // Connect to the Socket.IO server.
+          var socket = io();
+
+          socket.on('connect', function() {
+              socket.emit('my_echo', {data: 'I\'m connected!'});
+          });
+
+          var grid_x, grid_y;
+          socket.on('init_canvas', function(msg) {
+              grid_x = msg.grid_x;
+              grid_y = msg.grid_y;
+              ctx.clearRect(0, 0, cnvs.width, cnvs.height);
+              draw_start_button();
+          });
+
+          socket.on('my_response', function(msg, cb) {
+              $('#log').text($('<div/>').text('Received #' + msg.count + ': ' + msg.data).html());
+              if (cb) {
+                  cb();
+              }
+          });
+
+          var ping_start_time;
+          socket.on('my_pong', function() {
+                var latency = (new Date).getTime() - ping_start_time;
+                $('#ping-pong').text(Math.round(10 * latency) / 10);
+            });
+
+          $('form#ping').submit(function(event) {
+              ping_start_time = (new Date).getTime();
+              socket.emit('my_ping');
+              return false;
+          });
+
+          $('form#echo').submit(function(event) {
+              socket.emit('my_echo', {data: $('#emit_data').val()});
+              return false;
+          });
+
+          var cnvs = document.getElementById("myCanvas");
+          var ctx = cnvs.getContext("2d");
+          cnvs.addEventListener('keydown', doKeyDown, true);
+          cnvs.addEventListener('click', onClick, true);
+          function doKeyDown(e){
+            if (app_running == 1){
+              socket.emit('keydown_event', {data: e.keyCode});
+            }
+            // alert(e.keyCode);
+          }            
+          var app_running = 0;
+          function onClick(event){
+            if (app_running == 0) {               
+              var x_m = event.clientX - cnvs.getBoundingClientRect().left;
+              var y_m = event.clientY - cnvs.getBoundingClientRect().top;
+              var x_center = cnvs.width / 2;
+              var y_center = cnvs.height / 2;
+              if (x_m > x_center - 100 && x_m < x_center + 100 && y_m > y_center - 30 && y_m < y_center + 30) {
+                socket.emit('run_experiment', {data: {{ cur_user }} });
+                console.log("Run");
+              }
+            }
+          }
+
+          function conv_x(fX) {
+            return Math.round(fX / grid_x * cnvs.width)
+          }
+          function conv_y(fY) {
+            return Math.round(fY / grid_y * cnvs.height)
+          }
+          function draw_grid_line() {
+            ctx.strokeStyle = "black";
+            for (i = 1; i < grid_x; i++) {
+              ctx.beginPath();
+              ctx.moveTo(conv_x(i), 0);
+              ctx.lineTo(conv_x(i), cnvs.height);
+              ctx.stroke();
+            }
+            for (i = 1; i < grid_y; i++) {
+              ctx.beginPath();
+              ctx.moveTo(0, conv_y(i));
+              ctx.lineTo(cnvs.width, conv_y(i));
+              ctx.stroke();
+            }
+          }
+
+          function draw_start_button() {
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            var x_center = cnvs.width / 2;
+            var y_center = cnvs.height / 2;
+            ctx.moveTo(x_center - 100, y_center - 30);
+            ctx.lineTo(x_center + 100, y_center - 30);
+            ctx.lineTo(x_center + 100, y_center + 30);
+            ctx.lineTo(x_center - 100, y_center + 30);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.textAlign = "center";
+            ctx.font = "bold 20px arial"
+            ctx.fillText("Click To Start", x_center, y_center);
+          }
+
+
+          socket.on('draw_canvas', function(json_msg) {
+              console.log("draw draw");
+              app_running = 1;
+              var scene_obj = JSON.parse(json_msg);
+              ctx.clearRect(0, 0, cnvs.width, cnvs.height);
+              draw_grid_line();
+              for (iii in scene_obj.objects) {
+                ctx.fillStyle = scene_obj.objects[iii].color;
+                if (scene_obj.objects[iii].type == "rectangle") {
+                  var x_corner = conv_x(scene_obj.objects[iii].x);
+                  var y_corner = conv_y(scene_obj.objects[iii].y);
+                  var wdth = conv_x(scene_obj.objects[iii].w);
+                  var hght = conv_y(scene_obj.objects[iii].h);
+                  ctx.fillRect(x_corner, y_corner, wdth, hght);
+                }
+                else if (scene_obj.objects[iii].type == "circle") {
+                  var x_center = conv_x(scene_obj.objects[iii].x);
+                  var y_center = conv_y(scene_obj.objects[iii].y);
+                  var radius = conv_x(scene_obj.objects[iii].r);
+                  ctx.beginPath();
+                  ctx.arc(x_center, y_center, radius, 0, 2 * Math.PI);
+                  ctx.fill();
+                }
+                else if (scene_obj.objects[iii].type == "polygon") {
+                  ctx.beginPath();
+                  var x_cur = conv_x(scene_obj.objects[iii].coord[0]);
+                  var y_cur = conv_y(scene_obj.objects[iii].coord[1]);
+                  ctx.moveTo(x_cur, y_cur);
+                  for (jjj = 1; jjj < (scene_obj.objects[iii].coord.length) / 2; jjj++){
+                    x_cur = conv_x(scene_obj.objects[iii].coord[jjj * 2]);
+                    y_cur = conv_y(scene_obj.objects[iii].coord[jjj * 2 + 1]);
+                    ctx.lineTo(x_cur, y_cur);
+                  }
+                  ctx.closePath();
+                  ctx.fill();
+                }
+                else if (scene_obj.objects[iii].type == "text") {
+                  ctx.textAlign = "center";
+                  ctx.font = "bold 20px arial"
+                  ctx.fillText(scene_obj.objects[iii].content,
+                              conv_x(scene_obj.objects[iii].x),
+                              conv_y(scene_obj.objects[iii].y));
+                }
+                else{
+                  $('#log').text($('<div/>').text('ERROR!!!').html());
+                }
+              }
+            }); 
+
+          socket.on('game_end', function(){
+            if (app_running == 1) {
+              app_running = 0
+              console.log(app_running)
+              ctx.clearRect(0, 0, cnvs.width, cnvs.height);
+              draw_start_button(); 
+            }
+          });
+
+          socket.on('my_json_response', function(json_msg, cb) {
+              var scene_obj = JSON.parse(json_msg);
+              $('#log').text($('<div/>').text(scene_obj.name).html());
+              ctx.clearRect(0, 0, cnvs.width, cnvs.height);
+              
+              for (iii in scene_obj.objects) {
+                ctx.fillStyle = scene_obj.objects[iii].color;
+                if (scene_obj.objects[iii].type == "rectangle") {
+                  var x_corner = scene_obj.objects[iii].x;
+                  var y_corner = scene_obj.objects[iii].y;
+                  var wdth = scene_obj.objects[iii].w;
+                  var hght = scene_obj.objects[iii].h;
+                  ctx.fillRect(x_corner, y_corner, wdth, hght);
+                }
+                else if (scene_obj.objects[iii].type == "circle") {
+                  var x_center = scene_obj.objects[iii].x;
+                  var y_center = scene_obj.objects[iii].y;
+                  var radius = scene_obj.objects[iii].r;
+                  ctx.beginPath();
+                  ctx.arc(x_center, y_center, radius, 0, 2 * Math.PI);
+                  ctx.fill();
+                }
+                else if (scene_obj.objects[iii].type == "polygon") {
+                  ctx.beginPath();
+                  var x_cur = scene_obj.objects[iii].coord[0];
+                  var y_cur = scene_obj.objects[iii].coord[1];
+                  ctx.moveTo(x_cur, y_cur);
+                  for (jjj = 1; jjj < (scene_obj.objects[iii].coord.length) / 2; jjj++){
+                    x_cur = scene_obj.objects[iii].coord[jjj * 2];
+                    y_cur = scene_obj.objects[iii].coord[jjj * 2 + 1];
+                    ctx.lineTo(x_cur, y_cur);
+                  }
+                  ctx.closePath();
+                  ctx.fill();
+                }
+                else if (scene_obj.objects[iii].type == "text") {
+                  ctx.textAlign = "center";
+                  ctx.fillText(scene_obj.objects[iii].content,
+                              scene_obj.objects[iii].x,
+                              scene_obj.objects[iii].y);
+                }
+                else{
+                  $('#log').text($('<div/>').text('ERROR!!!').html());
+                }
+              }
+            });
+
+
+        });
+
+    </script>
+   <!-- <h2>Connection Check</h2>
+    <form id="ping" method="POST" action='#' style="display: inline;">
+        <input type="submit" value="Ping">
+    </form>
+    <b><span id="ping-pong"></span> ms</b>
+    <form id="echo" method="POST" action='#'>
+        <input type="text" name="emit_data" id="emit_data" placeholder="Message" style="width: 300px;" style="display: inline;">
+        <input type="submit" value="Echo" style="display: inline;">
+    </form> -->
+    <br>
+    <div id="log"></div>
+    <canvas id="myCanvas" width="400" height="400" style="border:1px solid #000000;" tabindex='1'>
+    </canvas>
+    <p> Move: left, right, up, down arrows | Pick-up: p | Drop: ; | Remove: o</p>
+    <p> To remove Yellow, both players should enter the Remove key together </p>
+    <br>
+    <h3>Please do not click below hyperlink until you finish the experiment.</h3>
+    <h2><a href="{{ url_for('instruction') }}">Prev</a>    
+      <a href="{{ url_for('survey.inexperiment') }}">Next</a></h2>
+
+{% endblock %}

@@ -1,0 +1,19 @@
+
+<data>
+	<type name="bronze" num_of_agents="1" time_to_clean="1" time_to_grow="-1" />
+	<type name="silver" num_of_agents="1" time_to_clean="2" time_to_grow="-1" />
+	<type name="gold" num_of_agents="2" time_to_clean="0" time_to_grow="-1" />
+	<position type="bronze" x="0" y="0" />
+	<position type="bronze" x="2" y="0" />
+	<position type="bronze" x="2" y="2" />
+	<position type="gold" x="5" y="5" />
+	<position type="gold" x="0" y="6" />
+	<position type="gold" x="0" y="3" />
+	<position type="silver" x="6" y="0" />
+	<position type="silver" x="4" y="2" />
+	<!-- <contamination type="gold" x="0" y="0" num_of_agents="2" time_to_clean="0.2" time_to_grow="-1" />
+	<contamination type="gold" x="6" y="3" num_of_agents="2" time_to_clean="0.2" time_to_grow="-1" />
+	<contamination type="silver" x="5" y="0" num_of_agents="1" time_to_clean="0.4" time_to_grow="-1" />
+	<contamination type="silver" x="1" y="4" num_of_agents="1" time_to_clean="0.4" time_to_grow="-1" />
+	<contamination type="silver" x="1" y="5" num_of_agents="1" time_to_clean="0.4" time_to_grow="-1" /> -->
+</data>
