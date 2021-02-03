@@ -1,4 +1,3 @@
-import numpy as np
 import moving_luggage.constants as const
 from moving_luggage.simulator import simulator
 
@@ -16,9 +15,10 @@ class GUI():
 
         self.env = simulator()
         self.env.set_callback_renderer(self.draw_objs)
+        self.env.set_callback_game_end(self.on_game_end)
 
-        self.step_x = 50
-        self.step_y = 50
+        self.step_x = 30
+        self.step_y = 30
 
         self.step_length = 0.5  # in sec
         self.canvas_items = []
@@ -167,6 +167,10 @@ class GUI():
             item = self.create_circle(
                 a2_pos[0] + 0.5, a2_pos[1] + 1 - mar, mar, "blue")
             self.canvas_items.append(item)
+
+    def on_game_end(self, env_id):
+        self.started = not self.started
+        self.btn_start.config(text="Start")
         
     def callback_start_btn(self):
         self.started = not self.started

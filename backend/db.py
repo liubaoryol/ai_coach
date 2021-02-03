@@ -4,7 +4,7 @@ from flask import current_app, g
 from flask.cli import with_appcontext
 
 
-DATABASE_DIR = './data/tw2020_db'
+DATABASE_DIR = '/data/tw2020_db'
 DATABASE_FILE = os.path.join(DATABASE_DIR, 'teamwork2020.db')
 
 

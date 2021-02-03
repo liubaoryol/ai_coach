@@ -1,4 +1,3 @@
-import moving_luggage
 import os
 from flask import (
     Flask, render_template, session, request, copy_current_request_context,
@@ -17,7 +16,7 @@ import moving_luggage.constants as const
 
 
 eventlet.monkey_patch() 
-TRAJECTORY_DIR = './data/tw2020_trajectory'
+TRAJECTORY_DIR = '/data/tw2020_trajectory'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sseo_teamwork2020'

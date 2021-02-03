@@ -52,6 +52,61 @@ class simulator():
         env[KEY_AGENTS].append(ObjAgent(self.agent1_pos))
         env[KEY_AGENTS].append(ObjAgent(self.agent2_pos))
 
+    def _get_policy_action(self, env, agent):
+        np_bags = env[KEY_BAGS]
+        optimal_actions = []
+        if agent.hold:
+            close_goal = None
+            min_dist = 10000000000
+            for pos in self.goal_pos:
+                dist = abs(agent.coord[0] - pos[0]) + abs(agent.coord[1] - pos[1])
+                if dist < min_dist:
+                    min_dist = dist
+                    close_goal = pos
+            if close_goal is not None:
+                x_diff = close_goal[0] - agent.coord[0]
+                if x_diff < 0:
+                    optimal_actions.append(AgentActions.LEFT)
+                elif x_diff > 0:
+                    optimal_actions.append(AgentActions.RIGHT)
+                    
+                y_diff = close_goal[1] - agent.coord[1]
+                if y_diff < 0:
+                    optimal_actions.append(AgentActions.UP)
+                elif y_diff > 0:
+                    optimal_actions.append(AgentActions.DOWN)
+        else:
+            if np_bags[agent.coord] != 0:
+                optimal_actions.append(AgentActions.HOLD)
+            else:
+                bags_pos = np.argwhere(np_bags)
+                close_bag = None
+                min_dist = 10000000000
+                for pos in bags_pos:
+                    dist = abs(agent.coord[0] - pos[0]) + abs(agent.coord[1] - pos[1])
+                    if dist < min_dist:
+                        min_dist = dist
+                        close_bag = pos
+                if close_bag is not None:
+                    x_diff = close_bag[0] - agent.coord[0]
+                    if x_diff < 0:
+                        optimal_actions.append(AgentActions.LEFT)
+                    elif x_diff > 0:
+                        optimal_actions.append(AgentActions.RIGHT)
+                        
+                    y_diff = close_bag[1] - agent.coord[1]
+                    if y_diff < 0:
+                        optimal_actions.append(AgentActions.UP)
+                    elif y_diff > 0:
+                        optimal_actions.append(AgentActions.DOWN)
+
+        if len(optimal_actions) == 0:
+            optimal_actions.append(AgentActions.STAY)
+
+        action = np.random.choice(optimal_actions)
+
+        return action
+
     def _get_action(self, env):
         action1 = None
         action2 = None
@@ -62,20 +117,28 @@ class simulator():
                 action2 = env[KEY_INPUT][1].pop(0)
          
         if action1 is None:
-            if env[KEY_AGENTS][0].id is not None:
+            agent = env[KEY_AGENTS][0]
+            if agent.id is not None:
                 action1 = AgentActions.STAY
             else:
-                action1 = AgentActions.STAY
+                # action1 = AgentActions.STAY
                 # retrieve policy
-                pass
+                if env[KEY_STEPS] < 2:
+                    action1 = AgentActions.STAY
+                else:
+                    action1 = self._get_policy_action(env, agent)
 
         if action2 is None:
-            if env[KEY_AGENTS][1].id is not None:
+            agent = env[KEY_AGENTS][1]
+            if agent.id is not None:
                 action2 = AgentActions.STAY
             else:
-                action2 = AgentActions.STAY
+                # action2 = AgentActions.STAY
                 # retrieve policy
-                pass
+                if env[KEY_STEPS] < 2:
+                    action2 = AgentActions.STAY
+                else:
+                    action2 = self._get_policy_action(env, agent)
         
         return action1, action2
 
@@ -94,7 +157,6 @@ class simulator():
     
     def _periodic_actions(self, env, env_id):
         if env_id in self.map_id_env:
-            time.sleep(0)
             # processing. timer ...
             action1, action2 = self._get_action(env)
             self._take_simultaneous_step(env, action1, action2)
@@ -103,6 +165,7 @@ class simulator():
             obj_list = self._get_object_list(env)
             if self.cb_renderer:
                 self.cb_renderer(obj_list, env_id)
+            time.sleep(0)
             
             env[KEY_STEPS] += 1
             # is finished

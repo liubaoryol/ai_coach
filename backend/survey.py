@@ -8,7 +8,7 @@ from backend.auth import login_required
 
 
 bp = Blueprint('survey', __name__)
-SURVEY_DIR = './data/tw2020_survey'
+SURVEY_DIR = '/data/tw2020_survey'
 
 
 @bp.route('/preexperiment', methods=('GET', 'POST'))
