@@ -18,10 +18,20 @@
               socket.emit('my_echo', {data: 'I\'m connected!'});
           });
 
+
           var grid_x, grid_y;
-          socket.on('init_canvas', function(msg) {
-              grid_x = msg.grid_x;
-              grid_y = msg.grid_y;
+          function idx2coord(idx) {
+            var x_tmp = idx % grid_x;
+            var y_tmp = Math.floor(idx / grid_x);
+            return [x_tmp, y_tmp];
+          }
+
+          var goals;
+          socket.on('init_canvas', function(json_msg) {
+              var env = JSON.parse(json_msg);
+              grid_x = env.grid_x;
+              grid_y = env.grid_y;
+              goals = env.goals;
               ctx.clearRect(0, 0, cnvs.width, cnvs.height);
               draw_start_button();
           });
@@ -75,10 +85,10 @@
           }
 
           function conv_x(fX) {
-            return Math.round(fX / grid_x * cnvs.width)
+            return Math.round(fX / grid_x * cnvs.width);
           }
           function conv_y(fY) {
-            return Math.round(fY / grid_y * cnvs.height)
+            return Math.round(fY / grid_y * cnvs.height);
           }
           function draw_grid_line() {
             ctx.strokeStyle = "black";
@@ -93,6 +103,15 @@
               ctx.moveTo(0, conv_y(i));
               ctx.lineTo(cnvs.width, conv_y(i));
               ctx.stroke();
+            }
+            ctx.fillStyle = "yellow";
+            for (const idx of goals) {
+              let coord = idx2coord(idx);
+              let x_corner = conv_x(coord[0]);
+              let y_corner = conv_y(coord[1]);
+              let wdth = conv_x(1);
+              let hght = conv_y(1);
+              ctx.fillRect(x_corner, y_corner, wdth, hght);
             }
           }
 
@@ -109,7 +128,7 @@
             ctx.stroke();
 
             ctx.textAlign = "center";
-            ctx.font = "bold 20px arial"
+            ctx.font = "bold 20px arial";
             ctx.fillText("Click To Start", x_center, y_center);
           }
 
@@ -117,49 +136,79 @@
           socket.on('draw_canvas', function(json_msg) {
               console.log("draw draw");
               app_running = 1;
-              var scene_obj = JSON.parse(json_msg);
+              var obj_json = JSON.parse(json_msg);
               ctx.clearRect(0, 0, cnvs.width, cnvs.height);
               draw_grid_line();
-              for (iii in scene_obj.objects) {
-                ctx.fillStyle = scene_obj.objects[iii].color;
-                if (scene_obj.objects[iii].type == "rectangle") {
-                  var x_corner = conv_x(scene_obj.objects[iii].x);
-                  var y_corner = conv_y(scene_obj.objects[iii].y);
-                  var wdth = conv_x(scene_obj.objects[iii].w);
-                  var hght = conv_y(scene_obj.objects[iii].h);
-                  ctx.fillRect(x_corner, y_corner, wdth, hght);
+              let a1_idx = obj_json.a1_pos;
+              let a2_idx = obj_json.a2_pos;
+              let a1_hold = obj_json.a1_hold;
+              let a2_hold = obj_json.a2_hold;
+
+              ctx.fillStyle = "black";
+              const mar = 0.2
+              let overlap_bags = []
+              for (const idx of obj_json.bags) {
+                if (idx == a1_idx || idx == a2_idx) {
+                  overlap_bags.push(idx);
+                } else {
+                  let coord = idx2coord(idx);
+                  let x_c = conv_x(coord[0] + mar);
+                  let y_c = conv_y(coord[1] + mar);
+                  let wdth = conv_x(1 - 2 * mar);
+                  let hght = conv_y(1 - 2 * mar);
+                  ctx.fillRect(x_c, y_c, wdth, hght);
                 }
-                else if (scene_obj.objects[iii].type == "circle") {
-                  var x_center = conv_x(scene_obj.objects[iii].x);
-                  var y_center = conv_y(scene_obj.objects[iii].y);
-                  var radius = conv_x(scene_obj.objects[iii].r);
-                  ctx.beginPath();
-                  ctx.arc(x_center, y_center, radius, 0, 2 * Math.PI);
-                  ctx.fill();
-                }
-                else if (scene_obj.objects[iii].type == "polygon") {
-                  ctx.beginPath();
-                  var x_cur = conv_x(scene_obj.objects[iii].coord[0]);
-                  var y_cur = conv_y(scene_obj.objects[iii].coord[1]);
-                  ctx.moveTo(x_cur, y_cur);
-                  for (jjj = 1; jjj < (scene_obj.objects[iii].coord.length) / 2; jjj++){
-                    x_cur = conv_x(scene_obj.objects[iii].coord[jjj * 2]);
-                    y_cur = conv_y(scene_obj.objects[iii].coord[jjj * 2 + 1]);
-                    ctx.lineTo(x_cur, y_cur);
-                  }
-                  ctx.closePath();
-                  ctx.fill();
-                }
-                else if (scene_obj.objects[iii].type == "text") {
-                  ctx.textAlign = "center";
-                  ctx.font = "bold 20px arial"
-                  ctx.fillText(scene_obj.objects[iii].content,
-                              conv_x(scene_obj.objects[iii].x),
-                              conv_y(scene_obj.objects[iii].y));
-                }
-                else{
-                  $('#log').text($('<div/>').text('ERROR!!!').html());
-                }
+              }
+
+              let a1_pos = idx2coord(a1_idx);
+              let a2_pos = idx2coord(a2_idx);
+
+              if (a1_hold == 1) {
+                ctx.fillStyle = "red";
+                let x_c = conv_x(a1_pos[0] + 0.5);
+                let y_c = conv_y(a1_pos[1] + mar);
+                let rad = conv_x(mar);
+                ctx.beginPath();
+                ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
+                ctx.fill();
+              }
+              if (a2_hold == 1) {
+                ctx.fillStyle = "blue";
+                let x_c = conv_x(a2_pos[0] + 0.5);
+                let y_c = conv_y(a2_pos[1] + 1 - mar);
+                let rad = conv_x(mar);
+                ctx.beginPath();
+                ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
+                ctx.fill();
+              }
+
+              ctx.fillStyle = "black";
+              for (const idx of overlap_bags) {
+                let coord = idx2coord(idx);
+                let x_c = conv_x(coord[0] + mar);
+                let y_c = conv_y(coord[1] + mar);
+                let wdth = conv_x(1 - 2 * mar);
+                let hght = conv_y(1 - 2 * mar);
+                ctx.fillRect(x_c, y_c, wdth, hght);
+              }
+
+              if (a1_hold == 0) {
+                ctx.fillStyle = "red";
+                let x_c = conv_x(a1_pos[0] + 0.5);
+                let y_c = conv_y(a1_pos[1] + mar);
+                let rad = conv_x(mar);
+                ctx.beginPath();
+                ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
+                ctx.fill();
+              }
+              if (a2_hold == 0) {
+                ctx.fillStyle = "blue";
+                let x_c = conv_x(a2_pos[0] + 0.5);
+                let y_c = conv_y(a2_pos[1] + 1 - mar);
+                let rad = conv_x(mar);
+                ctx.beginPath();
+                ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
+                ctx.fill();
               }
             }); 
 
@@ -171,55 +220,6 @@
               draw_start_button(); 
             }
           });
-
-          socket.on('my_json_response', function(json_msg, cb) {
-              var scene_obj = JSON.parse(json_msg);
-              $('#log').text($('<div/>').text(scene_obj.name).html());
-              ctx.clearRect(0, 0, cnvs.width, cnvs.height);
-              
-              for (iii in scene_obj.objects) {
-                ctx.fillStyle = scene_obj.objects[iii].color;
-                if (scene_obj.objects[iii].type == "rectangle") {
-                  var x_corner = scene_obj.objects[iii].x;
-                  var y_corner = scene_obj.objects[iii].y;
-                  var wdth = scene_obj.objects[iii].w;
-                  var hght = scene_obj.objects[iii].h;
-                  ctx.fillRect(x_corner, y_corner, wdth, hght);
-                }
-                else if (scene_obj.objects[iii].type == "circle") {
-                  var x_center = scene_obj.objects[iii].x;
-                  var y_center = scene_obj.objects[iii].y;
-                  var radius = scene_obj.objects[iii].r;
-                  ctx.beginPath();
-                  ctx.arc(x_center, y_center, radius, 0, 2 * Math.PI);
-                  ctx.fill();
-                }
-                else if (scene_obj.objects[iii].type == "polygon") {
-                  ctx.beginPath();
-                  var x_cur = scene_obj.objects[iii].coord[0];
-                  var y_cur = scene_obj.objects[iii].coord[1];
-                  ctx.moveTo(x_cur, y_cur);
-                  for (jjj = 1; jjj < (scene_obj.objects[iii].coord.length) / 2; jjj++){
-                    x_cur = scene_obj.objects[iii].coord[jjj * 2];
-                    y_cur = scene_obj.objects[iii].coord[jjj * 2 + 1];
-                    ctx.lineTo(x_cur, y_cur);
-                  }
-                  ctx.closePath();
-                  ctx.fill();
-                }
-                else if (scene_obj.objects[iii].type == "text") {
-                  ctx.textAlign = "center";
-                  ctx.fillText(scene_obj.objects[iii].content,
-                              scene_obj.objects[iii].x,
-                              scene_obj.objects[iii].y);
-                }
-                else{
-                  $('#log').text($('<div/>').text('ERROR!!!').html());
-                }
-              }
-            });
-
-
         });
 
     </script>
@@ -234,7 +234,7 @@
     </form> -->
     <br>
     <div id="log"></div>
-    <canvas id="myCanvas" width="400" height="400" style="border:1px solid #000000;" tabindex='1'>
+    <canvas id="myCanvas" width="300" height="300" style="border:1px solid #000000;" tabindex='1'>
     </canvas>
     <p> Move: left, right, up, down arrows | Pick-up: p | Drop: ; | Remove: o</p>
     <p> To remove Yellow, both players should enter the Remove key together </p>

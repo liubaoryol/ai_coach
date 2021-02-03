@@ -1,3 +1,4 @@
+import moving_luggage
 import os
 from flask import (
     Flask, render_template, session, request, copy_current_request_context,
@@ -7,15 +8,15 @@ from flask_socketio import (
     SocketIO, emit, join_room, leave_room, close_room, rooms, disconnect
 )
 import json
-import tw_app
 import eventlet
-import auth
-import db
-import survey
+import backend.auth as auth
+import backend.db as db
+import backend.survey as survey
+from moving_luggage.simulator import simulator
+import moving_luggage.constants as const
+
 
 eventlet.monkey_patch() 
-
-# TRAJECTORY_DIR = '/data/tw2020_trajectory'
 TRAJECTORY_DIR = './data/tw2020_trajectory'
 
 app = Flask(__name__)
@@ -23,18 +24,17 @@ app.config['SECRET_KEY'] = 'sseo_teamwork2020'
 
 app.register_blueprint(auth.bp)
 app.register_blueprint(survey.bp)
-
 app.add_url_rule('/', endpoint='consent')
+
 db.init_app(app)
-
-socketio = SocketIO(app, async_mode="eventlet")
-teamwork_app = tw_app.CAppTeamwork(
-    "initial_data.xml", tw_app.POLICY_RANDOM, log_dir=TRAJECTORY_DIR)
-
 if not os.path.exists(db.DATABASE_DIR):
     os.makedirs(db.DATABASE_DIR)
 
-current_user = None
+socketio = SocketIO(app, async_mode="eventlet")
+game_core = simulator(log_dir=TRAJECTORY_DIR)
+
+AGENT1_ID = 0
+AGENT2_ID = 1
 
 
 def init_db():
@@ -66,99 +66,77 @@ def instruction():
 
 
 ##### socketio methods
-def update_html_canvas(obj_list, cur_user):
-    x = {"objects": obj_list}
-    y = json.dumps(x)
-    socketio.emit('draw_canvas', y, room=cur_user)
+def update_html_canvas(objs, room_id):
+    objs_json = json.dumps(objs)
+    socketio.emit('draw_canvas', objs_json, room=room_id)
 
 
-def on_game_end():
-    global current_user
-    current_user = None
-    socketio.emit('game_end')
+def on_game_end(room_id):
+    socketio.emit('game_end', room=room_id)
 
 
 @socketio.on('run_experiment')
 def run_experiment(msg):
-    print("RUN")
-    if teamwork_app.run_on_web(update_html_canvas, on_game_end, request.sid, msg["data"]):
-        global current_user
-        current_user = request.sid
-    else:
-        session['receive_count'] = session.get('receive_count', 0) + 1
-        if current_user == request.sid:
-            emit('my_response', {'data': "It is already running.", 'count': session['receive_count']})
-        else:
-            emit('my_response', {'data': "Running by another user currently ", 'count': session['receive_count']})
+    env_id = request.sid
+
+    game_core.set_callback_renderer(update_html_canvas)
+    game_core.set_callback_game_end(on_game_end)
+    game_core.add_new_env(env_id, 25)
+    game_core.connect_agent_id(env_id, AGENT1_ID)
+    game_core.set_user_name(env_id, msg['data'])
+    game_core.run_game(env_id)
 
 
 @socketio.on('keydown_event')
 def on_key_down(msg):
-    global current_user
-    if current_user != request.sid:
-        session['receive_count'] = session.get('receive_count', 0) + 1
-        emit('my_response', {'data': "Running by another user currently", 'count': session['receive_count']})
-        return
+    env_id = request.sid
+
+    agent_id = None
+    action = None
 
     key_code = msg["data"]
-    key_name = None
-    if key_code == 37:
-        key_name = "Left"
-    elif key_code == 39:
-        key_name = "Right"
-    elif key_code == 38:
-        key_name = "Up"
-    elif key_code == 40:
-        key_name = "Down"
-    elif key_code == 65:
-        key_name = "a"
-    elif key_code == 68:
-        key_name = "d"
-    elif key_code == 87:
-        key_name = "w"
-    elif key_code == 83:
-        key_name = "s"
-    elif key_code == 80:
-        key_name = "p"
-    elif key_code == 84:
-        key_name = "t"
-    elif key_code == 79:
-        key_name = "o"
-    elif key_code == 82:
-        key_name = "r"
-    elif key_code == 186:
-        key_name = "semicolon"
-    elif key_code == 70:
-        key_name = "f"
-    
-    class keyevent():
-        keysym: str = None
-    
-    ke = keyevent()
-    ke.keysym = key_name
+    if key_code == 37:  # Left
+        agent_id = AGENT1_ID
+        action = const.AgentActions.LEFT
+    elif key_code == 39:  # Right
+        agent_id = AGENT1_ID
+        action = const.AgentActions.RIGHT
+    elif key_code == 38:  # Up
+        agent_id = AGENT1_ID
+        action = const.AgentActions.UP
+    elif key_code == 40:  # Down
+        agent_id = AGENT1_ID
+        action = const.AgentActions.DOWN
+    elif key_code == 80:  # p
+        agent_id = AGENT1_ID
+        action = const.AgentActions.HOLD
+    elif key_code == 65:  # a
+        agent_id = AGENT2_ID
+        action = const.AgentActions.LEFT
+    elif key_code == 68:  # d
+        agent_id = AGENT2_ID
+        action = const.AgentActions.RIGHT
+    elif key_code == 87:  # w
+        agent_id = AGENT2_ID
+        action = const.AgentActions.UP
+    elif key_code == 83:  # s
+        agent_id = AGENT2_ID
+        action = const.AgentActions.DOWN
+    elif key_code == 84:  # t
+        agent_id = AGENT2_ID
+        action = const.AgentActions.HOLD
 
-    teamwork_app.gui_key_cb(ke)
+    if agent_id is not None and action is not None:
+        game_core.action_input(env_id, agent_id, action)
 
 
-@socketio.on('my_echo' )
+@socketio.on('my_echo')
 def test_message(message):
     print(message['data'])
-    if message['data'] == 'test_json':
-        x = {
-            "name": "test_json_object",
-            "objects": [
-                {"type": "rectangle", "color": "blue", "x": 50, "y": 60, "w": 30, "h": 10},
-                {"type": "circle", "color": "red", "x": 100, "y": 100, "r": 10},
-                {"type": "polygon", "color": "green", "coord": (200, 200, 230, 200, 215, 170)},
-                {"type": "text",  "color": "black", "content": "BLAH", "x": 100, "y": 100},
-            ]
-        }
-
-        y = json.dumps(x)
-        emit('my_json_response', y)
-    else:
-        session['receive_count'] = session.get('receive_count', 0) + 1
-        emit('my_response', {'data': message['data'], 'count': session['receive_count']})
+    session['receive_count'] = session.get('receive_count', 0) + 1
+    emit(
+        'my_response',
+        {'data': message['data'], 'count': session['receive_count']})
 
 
 @socketio.on('disconnect_request')
@@ -183,19 +161,24 @@ def ping_pong():
 
 @socketio.on('connect')
 def initial_canvas():
-    grid_x, grid_y = teamwork_app.get_grid_size()
-    emit('init_canvas', {'grid_x': grid_x, 'grid_y': grid_y})
+    env_dict = {
+        'grid_x': game_core.grid_x, 'grid_y': game_core.grid_y, 'goals': []}
+
+    def coord2idx(coord):
+        return coord[1] * game_core.grid_x + coord[0]
+
+    for pos in game_core.goal_pos:
+        env_dict['goals'].append(coord2idx(pos))
+
+    env_json = json.dumps(env_dict)
+    emit('init_canvas', env_json)
 
 
 @socketio.on('disconnect')
 def test_disconnect():
     print('Client disconnected', request.sid)
-    global current_user
-    if current_user == request.sid:
-        teamwork_app.end_application()
-        current_user = None
+    game_core.finish_game(request.sid)
   
 
 if __name__ == '__main__':
-
     socketio.run(app)

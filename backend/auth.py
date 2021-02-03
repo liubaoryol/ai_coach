@@ -3,10 +3,12 @@ import os
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
-from db import get_db, query_db
+from backend.db import get_db, query_db
 bp = Blueprint('auth', __name__)
 
+
 ADMIN_ID = 'register1234'
+
 
 @bp.before_app_request
 def load_logged_in_user():
@@ -16,6 +18,7 @@ def load_logged_in_user():
         g.user = None
     else:
         g.user = user_id
+
 
 def login_required(view):
     @functools.wraps(view)
@@ -27,6 +30,7 @@ def login_required(view):
 
     return wrapped_view
 
+
 def admin_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -37,24 +41,6 @@ def admin_required(view):
 
     return wrapped_view
 
-def write_id(uid):
-    file_name = "users.txt"
-
-    with open(file_name, 'a', newline='') as txtfile:
-        txtfile.write(uid)
-        txtfile.write("\n")
-
-def query_id():
-    file_name = "users.txt"
-    ids = ['ddd']
-    if not os.path.exists(file_name):
-        return ids
-
-    with open(file_name, newline='') as txtfile:
-        rows = txtfile.readlines()
-        for row in rows:
-            ids.append(row.rstrip())
-    return ids
 
 @bp.route('/', methods=('GET', 'POST'))
 def consent():
@@ -80,6 +66,7 @@ def consent():
         flash(error)
  
     return render_template('consent.html')
+
 
 @bp.route('/register', methods=('GET', 'POST'))
 @admin_required
