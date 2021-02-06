@@ -14,7 +14,7 @@ class simulator():
         self.grid_y = NUM_Y_GRID
         self.lock_key_queue = Lock()
         # step length
-        self.step_length = 500  # msec
+        self.step_length = 1000  # msec
         self.cb_renderer = None
         self.log_dir = log_dir
         self.max_steps = 300 * 1000 / self.step_length  # default: 5 min
@@ -154,12 +154,34 @@ class simulator():
         
         env = self.map_id_env[env_id]
         self._periodic_actions(env, env_id)
+
+    def take_a_step_and_get_objs(self, env_id, a_id, action):
+        if env_id not in self.map_id_env:
+            return
+
+        self.action_input(env_id, a_id, action)
+        env = self.map_id_env[env_id]
+        action1, action2 = self._get_action(env)
+        self._take_simultaneous_step(env, action1, action2)
+        env[KEY_STEPS] += 1
+
+        # is finished
+        if np.sum(env[KEY_BAGS]) == 0 or env[KEY_STEPS] > self.max_steps:
+            self.finish_game(env_id)
+            return None
+        return self._get_object_list(env)
     
     def _periodic_actions(self, env, env_id):
         if env_id in self.map_id_env:
             # processing. timer ...
             action1, action2 = self._get_action(env)
             self._take_simultaneous_step(env, action1, action2)
+            env[KEY_STEPS] += 1
+
+            # is finished
+            if np.sum(env[KEY_BAGS]) == 0 or env[KEY_STEPS] > self.max_steps:
+                self.finish_game(env_id)
+                return
 
             # update scene
             obj_list = self._get_object_list(env)
@@ -167,20 +189,15 @@ class simulator():
                 self.cb_renderer(obj_list, env_id)
             time.sleep(0)
             
-            env[KEY_STEPS] += 1
-            # is finished
-            if np.sum(env[KEY_BAGS]) == 0 or env[KEY_STEPS] > self.max_steps:
-                self.finish_game(env_id)
-            else:
-                # sec, msec = divmod(time.time() * 1000, 1000)
-                # time_stamp = '%s.%03d' % (
-                #     time.strftime('%Y-%m-%d_%H_%M_%S', time.gmtime(sec)), msec)
-                # print("action excuted: " + time_stamp)
-                env[KEY_TIMER] = Timer(
-                    self.step_length / 1000,
-                    self._periodic_actions,
-                    [env, env_id])
-                env[KEY_TIMER].start()
+            # sec, msec = divmod(time.time() * 1000, 1000)
+            # time_stamp = '%s.%03d' % (
+            #     time.strftime('%Y-%m-%d_%H_%M_%S', time.gmtime(sec)), msec)
+            # print("action excuted: " + time_stamp)
+            env[KEY_TIMER] = Timer(
+                self.step_length / 1000,
+                self._periodic_actions,
+                [env, env_id])
+            env[KEY_TIMER].start()
 
     def finish_game(self, env_id):
         if env_id in self.map_id_env:
@@ -188,7 +205,8 @@ class simulator():
             # may need to check the current thread and the timer thread
             # are the same to avoid timer.cancel() being called
             # inside the timer thread itself.
-            env[KEY_TIMER].cancel()
+            if env[KEY_TIMER] is not None:
+                env[KEY_TIMER].cancel()
 
             if self.cb_game_end:
                 self.cb_game_end(env_id)

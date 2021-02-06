@@ -83,50 +83,64 @@ def run_experiment(msg):
     game_core.add_new_env(env_id, 25)
     game_core.connect_agent_id(env_id, AGENT1_ID)
     game_core.set_user_name(env_id, msg['data'])
-    game_core.run_game(env_id)
+    # game_core.run_game(env_id)
+
+    obj_list = game_core.take_a_step_and_get_objs(
+        env_id, AGENT1_ID, const.AgentActions.STAY)
+    if obj_list is not None:
+        update_html_canvas(obj_list, env_id)
 
 
 @socketio.on('keydown_event')
 def on_key_down(msg):
     env_id = request.sid
 
-    agent_id = None
-    action = None
+    agent_id = AGENT1_ID
+    action = const.AgentActions.STAY
 
     key_code = msg["data"]
-    if key_code == 37:  # Left
+    if key_code == "ArrowLeft":  # Left
         agent_id = AGENT1_ID
         action = const.AgentActions.LEFT
-    elif key_code == 39:  # Right
+    elif key_code == "ArrowRight":  # Right
         agent_id = AGENT1_ID
         action = const.AgentActions.RIGHT
-    elif key_code == 38:  # Up
+    elif key_code == "ArrowUp":  # Up
         agent_id = AGENT1_ID
         action = const.AgentActions.UP
-    elif key_code == 40:  # Down
+    elif key_code == "ArrowDown":  # Down
         agent_id = AGENT1_ID
         action = const.AgentActions.DOWN
-    elif key_code == 80:  # p
+    elif key_code == "p":  # p
         agent_id = AGENT1_ID
         action = const.AgentActions.HOLD
-    elif key_code == 65:  # a
+    elif key_code == "o":  # o
+        agent_id = AGENT1_ID
+        action = const.AgentActions.STAY
+    elif key_code == "a":  # a
         agent_id = AGENT2_ID
         action = const.AgentActions.LEFT
-    elif key_code == 68:  # d
+    elif key_code == "d":  # d
         agent_id = AGENT2_ID
         action = const.AgentActions.RIGHT
-    elif key_code == 87:  # w
+    elif key_code == "w":  # w
         agent_id = AGENT2_ID
         action = const.AgentActions.UP
-    elif key_code == 83:  # s
+    elif key_code == "s":  # s
         agent_id = AGENT2_ID
         action = const.AgentActions.DOWN
-    elif key_code == 84:  # t
+    elif key_code == "t":  # t
         agent_id = AGENT2_ID
         action = const.AgentActions.HOLD
+    elif key_code == "y":  # y
+        agent_id = AGENT2_ID
+        action = const.AgentActions.STAY
 
-    if agent_id is not None and action is not None:
-        game_core.action_input(env_id, agent_id, action)
+    # if agent_id is None and action is not None:
+        # game_core.action_input(env_id, agent_id, action)
+    obj_list = game_core.take_a_step_and_get_objs(env_id, agent_id, action)
+    if obj_list is not None:
+        update_html_canvas(obj_list, env_id)
 
 
 @socketio.on('my_echo')
