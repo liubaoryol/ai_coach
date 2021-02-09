@@ -80,9 +80,6 @@
               clearInterval(count_down);
               document.getElementById("timer").innerHTML = 0;
               socket.emit('keydown_event', {data: cur_key});
-              // reset key
-              cur_key = "None"
-              document.getElementById("keyname").innerHTML = cur_key;
           }
 
           function onClick(event){
@@ -157,7 +154,7 @@
           }
           var timer_start;
           var count_down;
-          const action_duration = 1000;
+          const action_duration = 2000;
           socket.on('draw_canvas', function(json_msg) {
               // console.log("draw draw");
               app_running = 1;
@@ -236,6 +233,9 @@
                 ctx.fill();
               }
 
+              // reset key
+              cur_key = "None"
+              document.getElementById("keyname").innerHTML = cur_key;
               // once all elements are drawn, set timer.
               timer_start = Date.now();
               // console.log(timer_start)

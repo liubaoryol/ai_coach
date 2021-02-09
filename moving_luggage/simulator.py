@@ -14,7 +14,7 @@ class simulator():
         self.grid_y = NUM_Y_GRID
         self.lock_key_queue = Lock()
         # step length
-        self.step_length = 1000  # msec
+        self.step_length = 500  # msec
         self.cb_renderer = None
         self.log_dir = log_dir
         self.max_steps = 300 * 1000 / self.step_length  # default: 5 min
