@@ -4,9 +4,10 @@ import time
 from moving_luggage.constants import *
 from moving_luggage.transition import transition
 from moving_luggage.objects import ObjAgent
+from moving_luggage.policies import get_dqn_policy
 
 
-class simulator():
+class Simulator():
     def __init__(self, log_dir='.'):
         self.map_id_env = {}
 
@@ -16,6 +17,7 @@ class simulator():
         # step length
         self.step_length = 500  # msec
         self.cb_renderer = None
+        self.cb_game_end = None
         self.log_dir = log_dir
         self.max_steps = 300 * 1000 / self.step_length  # default: 5 min
 
@@ -24,19 +26,8 @@ class simulator():
         self.agent1_pos = (self.grid_x - 1, mid - 1)
         self.agent2_pos = (self.grid_x - 1, mid + 2)
 
-    def add_new_env(self, env_id, num_bag):
-        if env_id in self.map_id_env:
-            raise RuntimeError("already have the same eid")
-            return
-
-        self.map_id_env[env_id] = {
-            KEY_BAGS: np.zeros((self.grid_x, self.grid_y)),
-            KEY_AGENTS: [],
-            KEY_INPUT: [[], []],
-            KEY_TIMER: None,
-            KEY_USERNAME: "",
-            KEY_STEPS: 0}
-        env = self.map_id_env[env_id]
+    def generate_init_bags(self, num_bag):
+        np_bags = np.zeros((self.grid_x, self.grid_y))
 
         num_grid = (self.grid_x - 1) * self.grid_y
         bag_indices = np.random.choice(num_grid, num_bag, replace=False)
@@ -47,7 +38,23 @@ class simulator():
         
         # add bags
         for idx in range(num_bag):
-            env[KEY_BAGS][to_coord(bag_indices[idx])] = 1
+            np_bags[to_coord(bag_indices[idx])] = 1
+
+        return np_bags
+
+    def add_new_env(self, env_id, num_bag):
+        if env_id in self.map_id_env:
+            raise RuntimeError("already have the same eid")
+            return
+
+        self.map_id_env[env_id] = {
+            KEY_BAGS: self.generate_init_bags(num_bag),
+            KEY_AGENTS: [],
+            KEY_INPUT: [[], []],
+            KEY_TIMER: None,
+            KEY_USERNAME: "",
+            KEY_STEPS: 0}
+        env = self.map_id_env[env_id]
 
         env[KEY_AGENTS].append(ObjAgent(self.agent1_pos))
         env[KEY_AGENTS].append(ObjAgent(self.agent2_pos))
@@ -123,10 +130,7 @@ class simulator():
             else:
                 # action1 = AgentActions.STAY
                 # retrieve policy
-                if env[KEY_STEPS] < 2:
-                    action1 = AgentActions.STAY
-                else:
-                    action1 = self._get_policy_action(env, agent)
+                action1 = get_dqn_policy(env, 0, LATENT_HEAVY_BAGS)
 
         if action2 is None:
             agent = env[KEY_AGENTS][1]
@@ -135,10 +139,11 @@ class simulator():
             else:
                 # action2 = AgentActions.STAY
                 # retrieve policy
-                if env[KEY_STEPS] < 2:
-                    action2 = AgentActions.STAY
-                else:
-                    action2 = self._get_policy_action(env, agent)
+                action2 = get_dqn_policy(env, 1, LATENT_HEAVY_BAGS)
+                # if env[KEY_STEPS] < 2:
+                #     action2 = AgentActions.STAY
+                # else:
+                #     action2 = self._get_policy_action(env, agent)
         
         return action1, action2
 
