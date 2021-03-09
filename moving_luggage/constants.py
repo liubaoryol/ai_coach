@@ -14,6 +14,9 @@ KEY_A2_POS = 'a2_pos'
 KEY_A1_HOLD = 'a1_hold'
 KEY_A2_HOLD = 'a2_hold'
 
+LATENT_HEAVY_BAGS = 0
+LATENT_LIGHT_BAGS = 1
+
 class AgentActions(Enum):
     STAY = 0
     UP = 1

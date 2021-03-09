@@ -1,5 +1,5 @@
 import moving_luggage.constants as const
-from moving_luggage.simulator import simulator
+from moving_luggage.simulator import Simulator
 
 import tkinter
 
@@ -13,7 +13,7 @@ class GUI():
         self.gui.title("Moving luggage")
         self.gui.protocol("WM_DELETE_WINDOW", self.on_quit)
 
-        self.env = simulator()
+        self.env = Simulator()
         self.env.set_callback_renderer(self.draw_objs)
         self.env.set_callback_game_end(self.on_game_end)
 

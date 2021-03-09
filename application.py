@@ -11,7 +11,7 @@ import eventlet
 import backend.auth as auth
 import backend.db as db
 import backend.survey as survey
-from moving_luggage.simulator import simulator
+from moving_luggage.simulator import Simulator
 import moving_luggage.constants as const
 
 
@@ -30,7 +30,7 @@ if not os.path.exists(db.DATABASE_DIR):
     os.makedirs(db.DATABASE_DIR)
 
 socketio = SocketIO(app, async_mode="eventlet")
-game_core = simulator(log_dir=TRAJECTORY_DIR)
+game_core = Simulator(log_dir=TRAJECTORY_DIR)
 
 AGENT1_ID = 0
 AGENT2_ID = 1
