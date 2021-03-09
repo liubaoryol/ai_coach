@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     env = make_vec_env(lambda: env, n_envs=1)
     model = DQN(MlpPolicy, env, verbose=1)
-    model.learn(total_timesteps=5000000)
+    model.learn(total_timesteps=50000)
     model.save("deepq_movingluggage_light")
 
     # del model
