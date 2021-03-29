@@ -1,5 +1,6 @@
 import moving_luggage.constants as const
 from moving_luggage.simulator import Simulator
+from moving_luggage.hand_policies import get_qlearn_numpy_policy
 
 import tkinter
 
@@ -16,6 +17,9 @@ class GUI():
         self.env = Simulator()
         self.env.set_callback_renderer(self.draw_objs)
         self.env.set_callback_game_end(self.on_game_end)
+        self.env.set_callback_policy(
+            lambda env, i_a, model: get_qlearn_numpy_policy(
+                env, i_a, model, self.env.goal_pos))
 
         self.step_x = 30
         self.step_y = 30
@@ -176,7 +180,9 @@ class GUI():
         self.started = not self.started
         if self.started:
             self.btn_start.config(text="Stop")
-            self.env.add_new_env(ENV_ID, 25)  # add env
+            self.env.add_new_env(
+                ENV_ID,
+                int(const.NUM_X_GRID * const.NUM_Y_GRID / 4))  # add env
             self.env.connect_agent_id(ENV_ID, AGENT1_ID)  # connect agent 1
             # self.env.connect_agent_id(ENV_ID, 0)  # connect agent 2
             self.env.run_game(ENV_ID)

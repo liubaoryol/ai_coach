@@ -4,7 +4,8 @@ import time
 from moving_luggage.constants import *
 from moving_luggage.transition import transition
 from moving_luggage.objects import ObjAgent
-from moving_luggage.policies import get_dqn_policy
+# from moving_luggage.policies import get_dqn_policy
+# from moving_luggage.hand_policies import get_qlearn_policy
 
 
 class Simulator():
@@ -18,6 +19,7 @@ class Simulator():
         self.step_length = 500  # msec
         self.cb_renderer = None
         self.cb_game_end = None
+        self.cb_get_policy_action = None
         self.log_dir = log_dir
         self.max_steps = 300 * 1000 / self.step_length  # default: 5 min
 
@@ -25,6 +27,9 @@ class Simulator():
         self.goal_pos = [(self.grid_x - 1, mid), (self.grid_x - 1, mid + 1)]
         self.agent1_pos = (self.grid_x - 1, mid - 1)
         self.agent2_pos = (self.grid_x - 1, mid + 2)
+
+    def set_max_step(self, max_step):
+        self.max_steps = max_step
 
     def generate_init_bags(self, num_bag):
         np_bags = np.zeros((self.grid_x, self.grid_y))
@@ -130,7 +135,19 @@ class Simulator():
             else:
                 # action1 = AgentActions.STAY
                 # retrieve policy
-                action1 = get_dqn_policy(env, 0, LATENT_HEAVY_BAGS)
+                # action1 = get_dqn_policy(env, 0, LATENT_HEAVY_BAGS)
+
+                # if env[KEY_STEPS] < 2:
+                #     action1 = AgentActions.STAY
+                # else:
+                #     action1 = self._get_policy_action(env, agent)
+                if self.cb_get_policy_action:
+                    action1 = self.cb_get_policy_action(
+                        env, 0, LATENT_LIGHT_BAGS)
+                else:
+                    action1 = AgentActions.STAY
+                # action1 = get_qlearn_policy(
+                #     env, 0, LATENT_LIGHT_BAGS, self.goal_pos)
 
         if action2 is None:
             agent = env[KEY_AGENTS][1]
@@ -139,11 +156,14 @@ class Simulator():
             else:
                 # action2 = AgentActions.STAY
                 # retrieve policy
-                action2 = get_dqn_policy(env, 1, LATENT_HEAVY_BAGS)
-                # if env[KEY_STEPS] < 2:
-                #     action2 = AgentActions.STAY
-                # else:
-                #     action2 = self._get_policy_action(env, agent)
+                # action2 = get_dqn_policy(env, 1, LATENT_HEAVY_BAGS)
+                if self.cb_get_policy_action:
+                    action2 = self.cb_get_policy_action(
+                        env, 1, LATENT_LIGHT_BAGS)
+                else:
+                    action2 = AgentActions.STAY
+                # action2 = get_qlearn_policy(
+                #     env, 1, LATENT_LIGHT_BAGS, self.goal_pos)
         
         return action1, action2
 
@@ -152,6 +172,9 @@ class Simulator():
 
     def set_callback_game_end(self, cb_game_end):
         self.cb_game_end = cb_game_end 
+
+    def set_callback_policy(self, callback_policy):
+        self.cb_get_policy_action = callback_policy 
 
     def run_game(self, env_id):
         if env_id not in self.map_id_env:
@@ -168,31 +191,36 @@ class Simulator():
         env = self.map_id_env[env_id]
         action1, action2 = self._get_action(env)
         self._take_simultaneous_step(env, action1, action2)
-        env[KEY_STEPS] += 1
 
         # is finished
-        if np.sum(env[KEY_BAGS]) == 0 or env[KEY_STEPS] > self.max_steps:
+        if self.is_finished(env_id):
             self.finish_game(env_id)
             return None
         return self._get_object_list(env)
+
+    def is_finished(self, env_id):
+        if env_id not in self.map_id_env:
+            return True  # already finished
+
+        env = self.map_id_env[env_id]
+        return np.sum(env[KEY_BAGS]) == 0 or env[KEY_STEPS] > self.max_steps
     
     def _periodic_actions(self, env, env_id):
         if env_id in self.map_id_env:
             # processing. timer ...
             action1, action2 = self._get_action(env)
             self._take_simultaneous_step(env, action1, action2)
-            env[KEY_STEPS] += 1
-
-            # is finished
-            if np.sum(env[KEY_BAGS]) == 0 or env[KEY_STEPS] > self.max_steps:
-                self.finish_game(env_id)
-                return
 
             # update scene
             obj_list = self._get_object_list(env)
             if self.cb_renderer:
                 self.cb_renderer(obj_list, env_id)
             time.sleep(0)
+
+            # is finished
+            if self.is_finished(env_id):
+                self.finish_game(env_id)
+                return
             
             # sec, msec = divmod(time.time() * 1000, 1000)
             # time_stamp = '%s.%03d' % (
@@ -280,6 +308,7 @@ class Simulator():
         agent1.hold = a1_h
         agent2.hold = a2_h
         env[KEY_BAGS] = np_bags_n
+        env[KEY_STEPS] += 1
 
     def _get_object_list(self, env):
         np_bags = env[KEY_BAGS]

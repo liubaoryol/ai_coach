@@ -3,9 +3,9 @@ import gym
 from gym import spaces
 
 from moving_luggage.constants import (
-    AgentActions, KEY_AGENTS, KEY_BAGS, LATENT_HEAVY_BAGS, LATENT_LIGHT_BAGS)
+    AgentActions, KEY_AGENTS, KEY_BAGS, LATENT_HEAVY_BAGS, LATENT_LIGHT_BAGS, NUM_X_GRID, NUM_Y_GRID)
 from moving_luggage.simulator import Simulator
-from policy.impl_utils import conv_to_np_env
+from policy.policy_utils import conv_to_np_env
 
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.deepq.policies import MlpPolicy
@@ -34,7 +34,7 @@ class MovingLuggageEnv(gym.Env):
 
     def reset(self):
         self.game.finish_game(self.env_id)
-        self.game.add_new_env(self.env_id, 25)
+        self.game.add_new_env(self.env_id, int(NUM_X_GRID * NUM_Y_GRID / 4))
 
         env = self.game.map_id_env[self.env_id]
         np_env = conv_to_np_env(
@@ -42,7 +42,6 @@ class MovingLuggageEnv(gym.Env):
 
         return np_env
 
-    
     def step(self, joint_action):
         env = self.game.map_id_env[self.env_id]
         action1 = joint_action % len(AgentActions)
@@ -83,8 +82,9 @@ class MovingLuggageEnv(gym.Env):
 
         done = bool(n_bags == 0)
         info = {}
+
         return np_env, reward, done, info
-        
+
     def render(self, mode='console'):
         if mode != 'console':
             raise RuntimeError("Not implemented")

@@ -13,6 +13,7 @@ import backend.db as db
 import backend.survey as survey
 from moving_luggage.simulator import Simulator
 import moving_luggage.constants as const
+from moving_luggage.hand_policies import get_qlearn_numpy_policy
 
 
 eventlet.monkey_patch() 
@@ -80,7 +81,11 @@ def run_experiment(msg):
 
     game_core.set_callback_renderer(update_html_canvas)
     game_core.set_callback_game_end(on_game_end)
-    game_core.add_new_env(env_id, 25)
+    game_core.set_callback_policy(
+        lambda env, i_a, model: get_qlearn_numpy_policy(
+            env, i_a, model, game_core.goal_pos))
+
+    game_core.add_new_env(env_id, int(const.NUM_X_GRID * const.NUM_Y_GRID / 4))
     game_core.connect_agent_id(env_id, AGENT1_ID)
     game_core.set_user_name(env_id, msg['data'])
     # game_core.run_game(env_id)
