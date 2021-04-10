@@ -1,4 +1,3 @@
-from tkinter.constants import ON
 import numpy as np
 import heapq
 

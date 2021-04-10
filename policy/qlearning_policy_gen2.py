@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     mdp_env = MDPMovingLuggage_V2()
 
-    NUM_TRAIN = 10000
+    NUM_TRAIN = 100000
     qlearn_a1 = QLearningAgent_Numpy(
         mdp_env=mdp_env,
         num_training=NUM_TRAIN, epsilon=-1, beta=1, alpha=0.05, gamma=0.99)
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     #     qlearn_a2.weights = w_heavy_a2
 
     env_id = 0
-    game.set_max_step(10000)
+    game.set_max_step(3000)
     for i in range(NUM_TRAIN):
         game.finish_game(env_id)
         game.add_new_env(env_id, int(NUM_X_GRID * NUM_Y_GRID / 4))
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # with open('light_a2_q_table.pickle', 'wb') as f:
     #     pickle.dump(qlearn_a2.np_q_values, f, pickle.HIGHEST_PROTOCOL)
 
-    with open('heavy_a1_q_table.pickle', 'wb') as f:
+    with open('heavy_a1_q_table2.pickle', 'wb') as f:
         pickle.dump(qlearn_a1.np_q_values, f, pickle.HIGHEST_PROTOCOL)
-    with open('heavy_a2_q_table.pickle', 'wb') as f:
+    with open('heavy_a2_q_table2.pickle', 'wb') as f:
         pickle.dump(qlearn_a2.np_q_values, f, pickle.HIGHEST_PROTOCOL)

@@ -1,8 +1,8 @@
 from enum import Enum
 
 
-NUM_X_GRID = 10
-NUM_Y_GRID = 10
+NUM_X_GRID = 6
+NUM_Y_GRID = 6
 KEY_BAGS = 'bags'
 KEY_AGENTS = 'agents'
 KEY_INPUT = 'input'

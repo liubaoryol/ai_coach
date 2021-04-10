@@ -1,4 +1,3 @@
-from tkinter.constants import BOTH
 import numpy as np
 import pickle
 

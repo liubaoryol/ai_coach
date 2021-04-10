@@ -143,7 +143,7 @@ class Simulator():
                 #     action1 = self._get_policy_action(env, agent)
                 if self.cb_get_policy_action:
                     action1 = self.cb_get_policy_action(
-                        env, 0, LATENT_LIGHT_BAGS)
+                        env, 0, LATENT_HEAVY_BAGS)
                 else:
                     action1 = AgentActions.STAY
                 # action1 = get_qlearn_policy(
@@ -159,7 +159,7 @@ class Simulator():
                 # action2 = get_dqn_policy(env, 1, LATENT_HEAVY_BAGS)
                 if self.cb_get_policy_action:
                     action2 = self.cb_get_policy_action(
-                        env, 1, LATENT_LIGHT_BAGS)
+                        env, 1, LATENT_HEAVY_BAGS)
                 else:
                     action2 = AgentActions.STAY
                 # action2 = get_qlearn_policy(

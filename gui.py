@@ -183,7 +183,7 @@ class GUI():
             self.env.add_new_env(
                 ENV_ID,
                 int(const.NUM_X_GRID * const.NUM_Y_GRID / 4))  # add env
-            self.env.connect_agent_id(ENV_ID, AGENT1_ID)  # connect agent 1
+            # self.env.connect_agent_id(ENV_ID, AGENT1_ID)  # connect agent 1
             # self.env.connect_agent_id(ENV_ID, 0)  # connect agent 2
             self.env.run_game(ENV_ID)
         else:
