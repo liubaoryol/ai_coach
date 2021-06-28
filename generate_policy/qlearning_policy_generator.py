@@ -4,10 +4,9 @@ import pickle
 from moving_luggage.constants import (
     AgentActions, KEY_AGENTS, KEY_BAGS, NUM_X_GRID, NUM_Y_GRID)
 from moving_luggage.simulator import Simulator
-from policy.policy_utils import (
-    BOTH_HOLD, DIST_AGENT, DIST_GOAL,
+from generate_policy.policy_utils import (
     extract_qlearn_features_indv, get_indv_actions_for_qlearn)
-from policy.qlearning import ApproximateQAgent
+from generate_policy.qlearning import ApproximateQAgent
 
 
 if __name__ == "__main__":

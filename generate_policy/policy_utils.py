@@ -1,7 +1,6 @@
 import numpy as np
 import heapq
 
-from typing_extensions import final
 from moving_luggage.constants import AgentActions
 
 
@@ -724,3 +723,56 @@ def get_feature_state_indv_v2(state, agent_idx, goals):
         int(dict_features[DIR_AGENT]), int(dict_features[DIST_AGENT]),
         int(dict_features[DIR_TARGET]), int(dict_features[DIR_GOAL]),
         int(dict_features[ON_BAG]), int(dict_features[HOLDING]))
+
+
+if __name__ == "__main__":
+    # A* search
+    grid_x = 10
+    grid_y = 10
+    mid = int(grid_y / 2 - 1)
+    goal_pos = [(grid_x - 1, mid), (grid_x - 1, mid + 1)] 
+    agent_pos = (2, 5)
+    np_bags = np.zeros((grid_x, grid_y))
+
+    num_grid = (grid_x - 1) * grid_y
+    bag_indices = np.random.choice(
+        num_grid, int(grid_x * grid_y / 4), replace=False)
+    def to_coord(idx):
+        x = idx % (grid_x - 1)
+        y = idx / (grid_x - 1)
+        return (int(x), int(y))
+    
+    # add bags
+    for idx in bag_indices:
+        np_bags[to_coord(idx)] = 1
+
+    # print(np_bags)
+    for row in np_bags:
+        str_row = ""
+        for idx in row:
+            if idx == 0:
+                str_row += ". "
+            else:
+                str_row += "@ "
+        print(str_row)
+
+    dist, path = get_astar_distance(
+        np_bags, agent_pos, goal_pos, hueristic=manhattan_distance)
+    
+    np_path = np.array(np_bags)
+    for coord in path:
+        np_path[coord] = -1
+    # print(np_path)
+    print(dist)
+    for row in np_path:
+        str_row = ""
+        for idx in row:
+            if idx == 0:
+                str_row += ". "
+            elif idx == 1:
+                str_row += "@ "
+            else:
+                str_row += "/ "
+        print(str_row)
+
+    

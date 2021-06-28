@@ -4,9 +4,9 @@ import pickle
 from moving_luggage.constants import (
     AgentActions, KEY_AGENTS, KEY_BAGS, NUM_X_GRID, NUM_Y_GRID)
 from moving_luggage.simulator import Simulator
-from policy.policy_utils import get_feature_state_indv_v2
-from policy.qlearning_numpy import QLearningAgent_Numpy
-from policy.mdp_moving import MDPMovingLuggage_V2
+from generate_policy.policy_utils import get_feature_state_indv_v2
+from generate_policy.qlearning_numpy import QLearningAgent_Numpy
+from generate_policy.mdp_moving import MDPMovingLuggage_V2
 
 
 if __name__ == "__main__":
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     mdp_env = MDPMovingLuggage_V2()
 
-    NUM_TRAIN = 100000
+    NUM_TRAIN = 30000
     qlearn_a1 = QLearningAgent_Numpy(
         mdp_env=mdp_env,
         num_training=NUM_TRAIN, epsilon=-1, beta=1, alpha=0.05, gamma=0.99)
@@ -74,12 +74,13 @@ if __name__ == "__main__":
         mdp_env=mdp_env,
         num_training=NUM_TRAIN, epsilon=-1, beta=1, alpha=0.05, gamma=0.99)
 
-    # with open('heavy_a1.pickle', 'rb') as f:
+    # with open('moving_luggage/policies/heavy_a1.pickle', 'rb') as f:
     #     w_heavy_a1 = pickle.load(f)
     #     qlearn_a1.weights = w_heavy_a1
-    # with open('heavy_a2.pickle', 'rb') as f:
+    # with open('moving_luggage/policies/heavy_a2.pickle', 'rb') as f:
     #     w_heavy_a2 = pickle.load(f)
     #     qlearn_a2.weights = w_heavy_a2
+    TRAIN_LIGHT = True
 
     env_id = 0
     game.set_max_step(3000)
@@ -125,11 +126,12 @@ if __name__ == "__main__":
 
             a1_state_n = get_feature_state_indv_v2(s_nxt, 0, game.goal_pos)
             a2_state_n = get_feature_state_indv_v2(s_nxt, 1, game.goal_pos)
-
-            # reward_a1 = reward_light(s_cur, action1, s_nxt, 0)
-            # reward_a2 = reward_light(s_cur, action2, s_nxt, 1)
-            reward_a1 = reward_heavy(s_cur, action1, s_nxt, 0)
-            reward_a2 = reward_heavy(s_cur, action2, s_nxt, 1)
+            if TRAIN_LIGHT:
+                reward_a1 = reward_light(s_cur, action1, s_nxt, 0)
+                reward_a2 = reward_light(s_cur, action2, s_nxt, 1)
+            else:
+                reward_a1 = reward_heavy(s_cur, action1, s_nxt, 0)
+                reward_a2 = reward_heavy(s_cur, action2, s_nxt, 1)
             qlearn_a1.observeTransition(
                 a1_state, action1, a1_state_n, reward_a1)
             qlearn_a2.observeTransition(
@@ -143,13 +145,13 @@ if __name__ == "__main__":
                 qlearn_a1.episodeRewards, qlearn_a2.episodeRewards))
         # if qlearn_a1.episodeRewards > 45 and qlearn_a2.episodeRewards > 45:
         #     break
-
-    # with open('light_a1_q_table.pickle', 'wb') as f:
-    #     pickle.dump(qlearn_a1.np_q_values, f, pickle.HIGHEST_PROTOCOL)
-    # with open('light_a2_q_table.pickle', 'wb') as f:
-    #     pickle.dump(qlearn_a2.np_q_values, f, pickle.HIGHEST_PROTOCOL)
-
-    with open('heavy_a1_q_table2.pickle', 'wb') as f:
-        pickle.dump(qlearn_a1.np_q_values, f, pickle.HIGHEST_PROTOCOL)
-    with open('heavy_a2_q_table2.pickle', 'wb') as f:
-        pickle.dump(qlearn_a2.np_q_values, f, pickle.HIGHEST_PROTOCOL)
+    if TRAIN_LIGHT:
+        with open('moving_luggage/policies/light_a1_q_table2.pickle', 'wb') as f:
+            pickle.dump(qlearn_a1.np_q_values, f, pickle.HIGHEST_PROTOCOL)
+        with open('moving_luggage/policies/light_a2_q_table2.pickle', 'wb') as f:
+            pickle.dump(qlearn_a2.np_q_values, f, pickle.HIGHEST_PROTOCOL)
+    else:
+        with open('moving_luggage/policies/heavy_a1_q_table2.pickle', 'wb') as f:
+            pickle.dump(qlearn_a1.np_q_values, f, pickle.HIGHEST_PROTOCOL)
+        with open('moving_luggage/policies/heavy_a2_q_table2.pickle', 'wb') as f:
+            pickle.dump(qlearn_a2.np_q_values, f, pickle.HIGHEST_PROTOCOL)

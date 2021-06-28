@@ -3,12 +3,12 @@ import time
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, url_for
 )
+from backend.constants import SURVEY_DIR
 from backend.db import get_db, query_db
 from backend.auth import login_required
 
 
 bp = Blueprint('survey', __name__)
-SURVEY_DIR = '/data/tw2020_survey'
 
 
 @bp.route('/preexperiment', methods=('GET', 'POST'))

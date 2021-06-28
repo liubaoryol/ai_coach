@@ -221,7 +221,7 @@ class QLearningAgent(CReinforcement):
             else:
                 action = self.computeActionFromQValues(state)
         else:
-            action = self.getStochasticPolicy(state, self.beta)
+            action = self.getRandomActionFromSoftmaxQ(state, self.beta)
 
         self.doAction(state, action)
         return action
@@ -245,7 +245,7 @@ class QLearningAgent(CReinforcement):
     def getValue(self, state):
         return self.computeValueFromQValues(state)
 
-    def getStochasticPolicy(self, state, scalar=1):
+    def getRandomActionFromSoftmaxQ(self, state, scalar=1):
         actions = self.getLegalActions(state)
         if len(actions) == 0:
             return None

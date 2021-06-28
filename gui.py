@@ -1,7 +1,7 @@
 import moving_luggage.constants as const
 from moving_luggage.simulator import Simulator
-from moving_luggage.hand_policies import get_qlearn_numpy_policy
-
+from moving_luggage.hand_policies import get_qlearn_numpy_policy_action
+from generate_policy.mdp_moving import MDPMovingLuggage_V2
 import tkinter
 
 ENV_ID = 0
@@ -17,9 +17,10 @@ class GUI():
         self.env = Simulator()
         self.env.set_callback_renderer(self.draw_objs)
         self.env.set_callback_game_end(self.on_game_end)
+        mdp_env = MDPMovingLuggage_V2()
         self.env.set_callback_policy(
-            lambda env, i_a, model: get_qlearn_numpy_policy(
-                env, i_a, model, self.env.goal_pos))
+            lambda env, i_a, model: get_qlearn_numpy_policy_action(
+                env, i_a, model, self.env.goal_pos, beta=3, mdp_env=mdp_env))
 
         self.step_x = 30
         self.step_y = 30
@@ -183,8 +184,10 @@ class GUI():
             self.env.add_new_env(
                 ENV_ID,
                 int(const.NUM_X_GRID * const.NUM_Y_GRID / 4))  # add env
-            # self.env.connect_agent_id(ENV_ID, AGENT1_ID)  # connect agent 1
-            # self.env.connect_agent_id(ENV_ID, 0)  # connect agent 2
+            # self.env.connect_agent_id(ENV_ID, 0, AGENT1_ID)  # connect agent1
+            # self.env.connect_agent_id(ENV_ID, 1, AGENT2_ID)  # connect agent2
+            self.env.set_agent_latent(ENV_ID, 0, const.LATENT_LIGHT_BAGS)
+            self.env.set_agent_latent(ENV_ID, 1, const.LATENT_LIGHT_BAGS)
             self.env.run_game(ENV_ID)
         else:
             self.btn_start.config(text="Start")

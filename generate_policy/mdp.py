@@ -7,8 +7,8 @@ from typing import Optional
 import numpy as np
 import scipy.special as sc
 
-from policy.mdp_utils import StateSpace, ActionSpace
-from policy.mdp_utils import NpStateSpace, NpActionSpace
+from generate_policy.mdp_utils import StateSpace, ActionSpace
+from generate_policy.mdp_utils import NpStateSpace, NpActionSpace
 
 
 class MDP:
@@ -58,6 +58,8 @@ class MDP:
           self.dict_factored_statespace.get(idx).num_states)
     self.num_states = np.prod(self.list_num_states)
     logging.info("num_states= %d" % (self.num_states, ))
+    print("num_states= " + str(self.num_states) + \
+            ", list_num_states= " + str(self.list_num_states))
 
     # Create mapping from state to state index.
     # Mapping takes state value as inputs and outputs a scalar state index.
@@ -107,6 +109,8 @@ class MDP:
     self.num_actions = np.prod(self.list_num_actions)
     logging.info("num_actions= %d" % (self.num_actions, ))
 
+    print("num_actions= " + str(self.num_actions) +\
+            ", list_num_actions= " + str(self.list_num_actions))
     # Create mapping from action to action index.
     # Mapping takes action value as inputs and outputs a scalar action index.
     np_list_idx = np.arange(self.num_actions, dtype=np.int32)

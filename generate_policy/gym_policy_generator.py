@@ -5,7 +5,7 @@ from gym import spaces
 from moving_luggage.constants import (
     AgentActions, KEY_AGENTS, KEY_BAGS, LATENT_HEAVY_BAGS, LATENT_LIGHT_BAGS, NUM_X_GRID, NUM_Y_GRID)
 from moving_luggage.simulator import Simulator
-from policy.policy_utils import conv_to_np_env
+from generate_policy.policy_utils import conv_to_np_env
 
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.deepq.policies import MlpPolicy

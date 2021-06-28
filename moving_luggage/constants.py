@@ -1,8 +1,8 @@
 from enum import Enum
 
 
-NUM_X_GRID = 6
-NUM_Y_GRID = 6
+NUM_X_GRID = 8
+NUM_Y_GRID = 8
 KEY_BAGS = 'bags'
 KEY_AGENTS = 'agents'
 KEY_INPUT = 'input'
@@ -16,6 +16,7 @@ KEY_A2_HOLD = 'a2_hold'
 
 LATENT_HEAVY_BAGS = 0
 LATENT_LIGHT_BAGS = 1
+UNKNOWN_LATENT = None
 
 class AgentActions(Enum):
     STAY = 0

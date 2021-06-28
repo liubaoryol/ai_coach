@@ -1,23 +1,23 @@
 import os
 from flask import (
-    Flask, render_template, session, request, copy_current_request_context,
-    has_request_context, has_app_context, url_for, redirect, flash, g
+    Flask, render_template, session, request, copy_current_request_context, g
 )
-from flask_socketio import (
-    SocketIO, emit, join_room, leave_room, close_room, rooms, disconnect
-)
+from flask_socketio import SocketIO, emit, disconnect
 import json
 import eventlet
+from backend.constants import TRAJECTORY_DIR
 import backend.auth as auth
 import backend.db as db
 import backend.survey as survey
+# box pushing domain
 from moving_luggage.simulator import Simulator
 import moving_luggage.constants as const
-from moving_luggage.hand_policies import get_qlearn_numpy_policy
+from moving_luggage.hand_policies import get_qlearn_numpy_policy_action
 
 
 eventlet.monkey_patch() 
-TRAJECTORY_DIR = '/data/tw2020_trajectory'
+
+# TRAJECTORY_DIR = './data/tw2020_trajectory'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sseo_teamwork2020'
@@ -46,11 +46,6 @@ def init_db():
 
 
 ##### pages
-@app.route('/hello')
-def hello():
-    return 'Hello, World!'
-
-
 @app.route('/experiment')
 @auth.login_required
 def experiment():
@@ -82,11 +77,11 @@ def run_experiment(msg):
     game_core.set_callback_renderer(update_html_canvas)
     game_core.set_callback_game_end(on_game_end)
     game_core.set_callback_policy(
-        lambda env, i_a, model: get_qlearn_numpy_policy(
+        lambda env, i_a, model: get_qlearn_numpy_policy_action(
             env, i_a, model, game_core.goal_pos))
-
     game_core.add_new_env(env_id, int(const.NUM_X_GRID * const.NUM_Y_GRID / 4))
-    game_core.connect_agent_id(env_id, AGENT1_ID)
+    game_core.connect_agent_id(env_id, 0, AGENT1_ID)
+    game_core.set_agent_latent(env_id, 1, const.LATENT_LIGHT_BAGS)
     game_core.set_user_name(env_id, msg['data'])
     # game_core.run_game(env_id)
 

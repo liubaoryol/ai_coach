@@ -1,10 +1,9 @@
 import sqlite3
 import os
-from flask import current_app, g
-from flask.cli import with_appcontext
+from flask import g
+from backend.constants import DATABASE_DIR
 
 
-DATABASE_DIR = '/data/tw2020_db'
 DATABASE_FILE = os.path.join(DATABASE_DIR, 'teamwork2020.db')
 
 

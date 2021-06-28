@@ -1,6 +1,6 @@
 import numpy as np
-from policy.mdp import MDP
-from policy.mdp_utils import (
+from generate_policy.mdp import MDP
+from generate_policy.mdp_utils import (
     StateSpace, ActionSpace)
 from moving_luggage.constants import (
     NUM_X_GRID, NUM_Y_GRID, AgentActions)

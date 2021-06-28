@@ -1,0 +1,5 @@
+{
+    "trajectorypath": "./data/tw2020_trajectory",
+    "surveypath": "./data/tw2020_survey",
+    "dbpath": "./data/tw2020_db"
+}

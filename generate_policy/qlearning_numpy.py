@@ -1,7 +1,7 @@
 from os import stat
 import random
 import numpy as np
-from policy.qlearning import CReinforcement
+from generate_policy.qlearning import CReinforcement
 
 
 class QLearningAgent_Numpy(CReinforcement):
@@ -63,7 +63,7 @@ class QLearningAgent_Numpy(CReinforcement):
             else:
                 action = self.computeActionFromQValues(state)
         else:
-            action = self.getStochasticPolicy(state, self.beta)
+            action = self.getRandomActionFromSoftmaxQ(state, self.beta)
 
         self.doAction(state, action)
         return action
@@ -89,12 +89,22 @@ class QLearningAgent_Numpy(CReinforcement):
     def getValue(self, state):
         return self.computeValueFromQValues(state)
 
-    def getStochasticPolicy(self, state, scalar=1):
+    def getRandomActionFromSoftmaxQ(self, state, scalar=1):
         state_idx = self.mdp_env.np_state_to_idx[state]
         np_q = np.array(self.np_q_values[state_idx, :])
+        np_q = np_q - np.min(np_q)
         np_q = np.exp(scalar * np_q)
         # sum_q = np.sum(np_q)
         # np_q = np_q / sum_q
         action_idx = random.choices(
             range(self.mdp_env.num_actions), weights=np_q.tolist())[0]
         return self.mdp_env.np_idx_to_action[action_idx]
+
+    def getStochasticPolicy(self, scalar=1):
+        # np_q = np.array(self.np_q_values[state_idx, :])
+        np_q = self.np_q_values - np.min(self.np_q_values, axis=1)[:, np.newaxis]
+        np_q = np.exp(scalar * np_q)
+        sum_q = np.sum(np_q, axis=1)
+        np_q = np_q / sum_q[:, np.newaxis]
+         
+        return np_q

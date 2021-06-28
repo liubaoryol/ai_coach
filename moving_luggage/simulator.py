@@ -28,6 +28,9 @@ class Simulator():
         self.agent1_pos = (self.grid_x - 1, mid - 1)
         self.agent2_pos = (self.grid_x - 1, mid + 2)
 
+        self.agent1_latent = LATENT_LIGHT_BAGS
+        self.agent2_latent = LATENT_LIGHT_BAGS
+
     def set_max_step(self, max_step):
         self.max_steps = max_step
 
@@ -63,6 +66,19 @@ class Simulator():
 
         env[KEY_AGENTS].append(ObjAgent(self.agent1_pos))
         env[KEY_AGENTS].append(ObjAgent(self.agent2_pos))
+
+    def set_agent_latent(self, env_id, idx_agent, latent):
+        if env_id not in self.map_id_env:
+            return False
+        
+        env = self.map_id_env[env_id]
+        agent = env[KEY_AGENTS][idx_agent]
+
+        if agent.id is not None:
+            return False
+        else:
+            agent.latent = latent
+            return True
 
     def _get_policy_action(self, env, agent):
         np_bags = env[KEY_BAGS]
@@ -143,7 +159,7 @@ class Simulator():
                 #     action1 = self._get_policy_action(env, agent)
                 if self.cb_get_policy_action:
                     action1 = self.cb_get_policy_action(
-                        env, 0, LATENT_HEAVY_BAGS)
+                        env, 0, agent.latent)
                 else:
                     action1 = AgentActions.STAY
                 # action1 = get_qlearn_policy(
@@ -159,7 +175,7 @@ class Simulator():
                 # action2 = get_dqn_policy(env, 1, LATENT_HEAVY_BAGS)
                 if self.cb_get_policy_action:
                     action2 = self.cb_get_policy_action(
-                        env, 1, LATENT_HEAVY_BAGS)
+                        env, 1, agent.latent)
                 else:
                     action2 = AgentActions.STAY
                 # action2 = get_qlearn_policy(
@@ -181,10 +197,27 @@ class Simulator():
             return
         
         env = self.map_id_env[env_id]
+        if (
+            ((env[KEY_AGENTS][0].id is None) and
+            (env[KEY_AGENTS][0].latent == UNKNOWN_LATENT)) or
+            ((env[KEY_AGENTS][1].id is None) and
+            (env[KEY_AGENTS][1].latent == UNKNOWN_LATENT))
+            ):
+            return
+        
         self._periodic_actions(env, env_id)
 
     def take_a_step_and_get_objs(self, env_id, a_id, action):
         if env_id not in self.map_id_env:
+            return
+
+        env = self.map_id_env[env_id]
+        if (
+            ((env[KEY_AGENTS][0].id is None) and
+            (env[KEY_AGENTS][0].latent == UNKNOWN_LATENT)) or
+            ((env[KEY_AGENTS][1].id is None) and
+            (env[KEY_AGENTS][1].latent == UNKNOWN_LATENT))
+            ):
             return
 
         self.action_input(env_id, a_id, action)
@@ -251,20 +284,17 @@ class Simulator():
         env = self.map_id_env[env_id]
         env[KEY_USERNAME] = user_name
          
-    def connect_agent_id(self, env_id, agent_id):
+    def connect_agent_id(self, env_id, idx_agent, agent_id):
         if env_id not in self.map_id_env:
             return False
         
         env = self.map_id_env[env_id]
-
-        if env[KEY_AGENTS][0].id is None:
-            env[KEY_AGENTS][0].id = agent_id
-            return True
-        elif env[KEY_AGENTS][1].id is None:
-            env[KEY_AGENTS][1].id = agent_id
+        agent = env[KEY_AGENTS][idx_agent]
+        if agent.id is None:
+            agent.id = agent_id
+            agent.latent = UNKNOWN_LATENT
             return True
         else:
-            # both agents are already taken
             return False
 
     def _get_agent_idx_by_id(self, env, aid):
