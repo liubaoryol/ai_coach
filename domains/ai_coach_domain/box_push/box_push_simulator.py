@@ -1,7 +1,7 @@
 from typing import Hashable, Mapping
 import numpy as np
-from domains.interface.simulator import Simulator
-from domains.box_push.box_push_helper import EventType, transition
+from ai_coach_domain.simulator import Simulator
+from ai_coach_domain.box_push.box_push_helper import EventType, transition
 
 
 class BoxPushSimulator(Simulator):
@@ -86,7 +86,7 @@ class BoxPushSimulator(Simulator):
         self.a1_key = event_type
       else:
         self.a1_latent = value
-    else:  # agent == BoxPushSimulator.AGENT2
+    elif agent == BoxPushSimulator.AGENT2:
       if event_type != EventType.SET_LATENT:
         self.a2_key = event_type
       else:

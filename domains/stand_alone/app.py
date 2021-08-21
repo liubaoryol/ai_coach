@@ -1,7 +1,7 @@
 from typing import Hashable, Tuple
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
-from domains.interface.simulator import Simulator
+from ai_coach_domain.simulator import Simulator
 
 
 class AppInterface():

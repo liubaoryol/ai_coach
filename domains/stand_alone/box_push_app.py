@@ -1,7 +1,7 @@
 from typing import Hashable, Tuple
-from domains.interface.gui import AppInterface
-from domains.box_push.box_push_simulator import BoxPushSimulator
-from domains.box_push.box_push_helper import EventType
+from stand_alone.app import AppInterface
+from ai_coach_domain.box_push import BoxPushSimulator
+from ai_coach_domain.box_push import EventType
 
 
 class BoxPushApp(AppInterface):

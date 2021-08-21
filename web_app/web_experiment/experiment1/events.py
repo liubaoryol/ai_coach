@@ -1,11 +1,12 @@
+from typing import Mapping, Hashable
 import json
 from flask import session, request, copy_current_request_context
 from flask_socketio import emit, disconnect
 from web_experiment import socketio
-from domains.box_push.box_push_simulator import BoxPushSimulator
+from ai_coach_domain.box_push import BoxPushSimulator, EventType
 # import game
 
-g_map_id_2_game = {}
+g_map_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator]
 
 
 @socketio.on('connect', namespace='/experiment1')
@@ -15,11 +16,11 @@ def initial_canvas():
   goals = [BoxPushSimulator.GOAL]
   env_dict = {'grid_x': GRID_X, 'grid_y': GRID_Y, 'goals': []}
 
-  def coord2idx(coord):
-    return coord[1] * GRID_X + coord[0]
+  # def coord2idx(coord):
+  #   return coord[1] * GRID_X + coord[0]
 
   for pos in goals:
-    env_dict['goals'].append(coord2idx(pos))
+    env_dict['goals'].append(pos)
 
   env_json = json.dumps(env_dict)
   emit('init_canvas', env_json)
@@ -94,19 +95,22 @@ def on_key_down(msg):
 
   key_code = msg["data"]
   if key_code == "ArrowLeft":  # Left
-    action = "Left"
+    action = EventType.LEFT
   elif key_code == "ArrowRight":  # Right
-    action = "Right"
+    action = EventType.RIGHT
   elif key_code == "ArrowUp":  # Up
-    action = "Up"
+    action = EventType.UP
   elif key_code == "ArrowDown":  # Down
-    action = "Down"
+    action = EventType.DOWN
   elif key_code == "p":  # p
-    action = "p"
-  elif key_code == "o":  # o
-    action = "o"
-
-  action
-  list_update = None  # TODO: get a function return
-  if list_update is not None:
-    update_html_canvas(list_update, env_id)
+    action = EventType.HOLD
+  # elif key_code == "o":  # o
+  #   action = "o"
+  global g_map_id_2_game
+  game = g_map_id_2_game[env_id]
+  game.event_input(BoxPushSimulator.AGENT1, action, None)
+  map_agent2action = game.get_action()
+  game.take_a_step(map_agent2action)
+  dict_update = game.get_changed_objects()
+  if dict_update is not None:
+    update_html_canvas(dict_update, env_id)
