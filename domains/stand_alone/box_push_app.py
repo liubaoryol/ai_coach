@@ -31,14 +31,22 @@ class BoxPushApp(AppInterface):
     elif key_sym == "Down":
       agent_id = BoxPushSimulator.AGENT1
       action = EventType.DOWN
+    elif key_sym == "p":
+      agent_id = BoxPushSimulator.AGENT1
+      action = EventType.HOLD
 
     return (agent_id, action, None)
 
   def _conv_mouse_to_agent_event(
       self, is_left: bool,
       cursor_pos: Tuple[float, float]) -> Tuple[Hashable, Hashable, Hashable]:
+    # find the target hit by the cursor
+    # self.canvas_width
+    # self.canvas_height
 
-    return (BoxPushSimulator.AGENT1, EventType.SET_LATENT, None)
+    latent = 0
+
+    return (BoxPushSimulator.AGENT1, EventType.SET_LATENT, latent)
 
   def _update_canvas_scene(self):
     data = self.game.get_env_info()
@@ -52,9 +60,10 @@ class BoxPushApp(AppInterface):
 
     self.canvas.delete("all")
     for box in boxes:
-      self.create_rectangle(box[0] * x_unit, box[1] * y_unit,
-                            (box[0] + 1) * x_unit, (box[1] + 1) * y_unit,
-                            "black")
+      if box is not None:
+        self.create_rectangle(box[0] * x_unit, box[1] * y_unit,
+                              (box[0] + 1) * x_unit, (box[1] + 1) * y_unit,
+                              "black")
     a1_color = "blue"
     if a1_hold:
       a1_color = "dark slate blue"
@@ -73,6 +82,12 @@ class BoxPushApp(AppInterface):
   def _init_game(self):
     GAME_ENV_ID = 0
     self.game = BoxPushSimulator(GAME_ENV_ID)
+
+  def _on_game_end(self):
+    self.game.reset_game()
+    self._update_canvas_scene()
+    self._update_canvas_overlay()
+    self._on_start_btn_clicked()
 
 
 if __name__ == "__main__":

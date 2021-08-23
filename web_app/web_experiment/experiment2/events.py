@@ -3,8 +3,10 @@ from flask import session, request, copy_current_request_context
 from flask_socketio import emit, disconnect
 from web_experiment import socketio
 
+EXP2_NAMESPACE = '/experiment2'
 
-@socketio.on('connect', namespace='/experiment2')
+
+@socketio.on('connect', namespace=EXP2_NAMESPACE)
 def initial_canvas():
   GRID_X = 5
   GRID_Y = 5
@@ -21,7 +23,7 @@ def initial_canvas():
   emit('init_canvas', env_json)
 
 
-@socketio.on('my_echo', namespace='/experiment2')
+@socketio.on('my_echo', namespace=EXP2_NAMESPACE)
 def test_message(message):
   print(message['data'])
   session['receive_count'] = session.get('receive_count', 0) + 1
@@ -31,7 +33,7 @@ def test_message(message):
   })
 
 
-@socketio.on('disconnect_request', namespace='/experiment2')
+@socketio.on('disconnect_request', namespace=EXP2_NAMESPACE)
 def disconnect_request():
   @copy_current_request_context
   def can_disconnect():
@@ -48,12 +50,12 @@ def disconnect_request():
        callback=can_disconnect)
 
 
-@socketio.on('my_ping', namespace='/experiment2')
+@socketio.on('my_ping', namespace=EXP2_NAMESPACE)
 def ping_pong():
   emit('my_pong')
 
 
-@socketio.on('disconnect', namespace='/experiment2')
+@socketio.on('disconnect', namespace=EXP2_NAMESPACE)
 def test_disconnect():
   print('Exp2 client disconnected', request.sid)
   # finish current game

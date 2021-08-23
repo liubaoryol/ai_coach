@@ -57,7 +57,6 @@ class BoxPushSimulator(Simulator):
     for item in list_next_env:
       list_prop.append(item[0])
 
-    # Not sure of syntax
     idx_c = np.random.choice(range(len(list_next_env)), 1, p=list_prop)[0]
     _, boxes, a1_pos, a2_pos, a1_h, a2_h = list_next_env[idx_c]
     self.a1_pos = a1_pos
@@ -81,6 +80,9 @@ class BoxPushSimulator(Simulator):
     return 2
 
   def event_input(self, agent: Hashable, event_type: Hashable, value):
+    if (agent is None) or (event_type is None):
+      return
+
     if agent == BoxPushSimulator.AGENT1:
       if event_type != EventType.SET_LATENT:
         self.a1_key = event_type
@@ -93,10 +95,15 @@ class BoxPushSimulator(Simulator):
         self.a2_latent = value
 
   def get_action(self) -> Mapping[Hashable, Hashable]:
-    return {
+    map_a2a = {
         BoxPushSimulator.AGENT1: self.a1_key,
         BoxPushSimulator.AGENT2: self.a2_key
     }
+
+    self.a1_key = None
+    self.a2_key = None
+
+    return map_a2a
 
   def get_env_info(self):
     return {

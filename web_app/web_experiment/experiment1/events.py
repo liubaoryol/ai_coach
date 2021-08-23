@@ -4,12 +4,12 @@ from flask import session, request, copy_current_request_context
 from flask_socketio import emit, disconnect
 from web_experiment import socketio
 from ai_coach_domain.box_push import BoxPushSimulator, EventType
-# import game
 
 g_map_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator]
+EXP1_NAMESPACE = '/experiment1'
 
 
-@socketio.on('connect', namespace='/experiment1')
+@socketio.on('connect', namespace=EXP1_NAMESPACE)
 def initial_canvas():
   GRID_X = BoxPushSimulator.X_GRID
   GRID_Y = BoxPushSimulator.Y_GRID
@@ -26,7 +26,7 @@ def initial_canvas():
   emit('init_canvas', env_json)
 
 
-@socketio.on('my_echo', namespace='/experiment1')
+@socketio.on('my_echo', namespace=EXP1_NAMESPACE)
 def test_message(message):
   print(message['data'])
   session['receive_count'] = session.get('receive_count', 0) + 1
@@ -36,7 +36,7 @@ def test_message(message):
   })
 
 
-@socketio.on('disconnect_request', namespace='/experiment1')
+@socketio.on('disconnect_request', namespace=EXP1_NAMESPACE)
 def disconnect_request():
   @copy_current_request_context
   def can_disconnect():
@@ -53,41 +53,57 @@ def disconnect_request():
        callback=can_disconnect)
 
 
-@socketio.on('my_ping', namespace='/experiment1')
+@socketio.on('my_ping', namespace=EXP1_NAMESPACE)
 def ping_pong():
   emit('my_pong')
 
 
-@socketio.on('disconnect', namespace='/experiment1')
+@socketio.on('disconnect', namespace=EXP1_NAMESPACE)
 def test_disconnect():
-  print('Exp1 client disconnected', request.sid)
+  env_id = request.sid
   # finish current game
+  if env_id in g_map_id_2_game:
+    del g_map_id_2_game[env_id]
+  print('Exp1 client disconnected', env_id)
 
 
 # socketio methods
-def update_html_canvas(objs, room_id):
+def update_html_canvas(objs, room_id, draw_overlay):
   objs_json = json.dumps(objs)
-  socketio.emit('draw_canvas', objs_json, room=room_id)
+  # print(objs_json)
+  if draw_overlay:
+    socketio.emit('draw_canvas_with_overlay',
+                  objs_json,
+                  room=room_id,
+                  namespace=EXP1_NAMESPACE)
+  else:
+    socketio.emit('draw_canvas_without_overlay',
+                  objs_json,
+                  room=room_id,
+                  namespace=EXP1_NAMESPACE)
 
 
 def on_game_end(room_id):
-  socketio.emit('game_end', room=room_id)
+  socketio.emit('game_end', room=room_id, namespace=EXP1_NAMESPACE)
 
 
-@socketio.on('run_experiment', namespace='/experiment1')
+@socketio.on('run_experiment', namespace=EXP1_NAMESPACE)
 def run_experiment(msg):
   env_id = request.sid
 
   # run a game
   global g_map_id_2_game
-  game = g_map_id_2_game[env_id] = BoxPushSimulator(env_id)
+  if env_id not in g_map_id_2_game:
+    g_map_id_2_game[env_id] = BoxPushSimulator(env_id)
 
+  game = g_map_id_2_game[env_id]
   dict_update = game.get_changed_objects()
   if dict_update is not None:
-    update_html_canvas(dict_update, env_id)
+    DRAW_OVERLAY = True
+    update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
 
 
-@socketio.on('keydown_event', namespace='/experiment1')
+@socketio.on('keydown_event', namespace=EXP1_NAMESPACE)
 def on_key_down(msg):
   env_id = request.sid
 
@@ -104,13 +120,36 @@ def on_key_down(msg):
     action = EventType.DOWN
   elif key_code == "p":  # p
     action = EventType.HOLD
-  # elif key_code == "o":  # o
-  #   action = "o"
+  elif key_code == "o":  # p
+    action = EventType.STAY
+
+  if action:
+    # elif key_code == "o":  # o
+    #   action = "o"
+    global g_map_id_2_game
+    game = g_map_id_2_game[env_id]
+    game.event_input(BoxPushSimulator.AGENT1, action, None)
+    map_agent2action = game.get_action()
+    game.take_a_step(map_agent2action)
+
+    if not game.is_finished():
+      dict_update = game.get_changed_objects()
+      if dict_update is not None:
+        DRAW_OVERLAY = True
+        update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
+    else:
+      game.reset_game()
+
+
+@socketio.on('set_latent', namespace=EXP1_NAMESPACE)
+def set_latent(msg):
+  env_id = request.sid
+  latent = msg["data"]
+
   global g_map_id_2_game
   game = g_map_id_2_game[env_id]
-  game.event_input(BoxPushSimulator.AGENT1, action, None)
-  map_agent2action = game.get_action()
-  game.take_a_step(map_agent2action)
+  game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, latent)
   dict_update = game.get_changed_objects()
   if dict_update is not None:
-    update_html_canvas(dict_update, env_id)
+    DONT_DRAW_OVERLAY = False
+    update_html_canvas(dict_update, env_id, DONT_DRAW_OVERLAY)

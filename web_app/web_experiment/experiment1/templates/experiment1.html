@@ -14,6 +14,10 @@
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1.js') }}"></script>
+<script type="text/javascript">
+initImagePath("{{ url_for('exp1.static', filename='robot.png') }}",
+              "{{ url_for('exp1.static', filename='human.png') }}");
+</script>
 
 <h2>Connection Check</h2>
 <form id="ping" method="POST" action='#' style="display: inline;">
@@ -30,10 +34,11 @@
 <br>
 <div id="log"></div>
 <div id="cur-user"> {{ cur_user }}</div>
-<p id="timer">Count down</p>
+<div id="instruction"></div>
 <p id="keyname">Key input</p>
 
 <canvas id="myCanvas" width="300" height="300" style="border:1px solid #000000;" tabindex='1'>
+Your browser does not support the HTML5 canvas tag.
 </canvas>
 
 <p> Move: left, right, up, down arrows | Pick-up: p | Drop: p | Stay: o</p>

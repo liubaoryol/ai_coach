@@ -87,6 +87,8 @@ class AppInterface():
       pass
     else:
       self.game.reset_game()
+      self._update_canvas_scene()
+      self._update_canvas_overlay()
 
     # clean canvas
 
@@ -96,6 +98,10 @@ class AppInterface():
 
     self._started = not self._started
     # change the button text
+    if self._started:
+      self.btn_start.config(text="Pause")
+    else:
+      self.btn_start.config(text="Start")
 
     # run
     if self._event_based:
@@ -142,10 +148,13 @@ class AppInterface():
       action_map = self.game.get_action()
       self.game.take_a_step(action_map)
 
-      # update canvas
-      self._update_canvas_scene()
-      self._update_canvas_overlay()
-      # pop-up for latent?
+      if not self.game.is_finished():
+        # update canvas
+        self._update_canvas_scene()
+        self._update_canvas_overlay()
+        # pop-up for latent?
+      else:
+        self._on_game_end()
     else:
       pass
 
@@ -175,6 +184,9 @@ class AppInterface():
 
   def _init_game(self):
     # self.game = Simulator()
+    pass
+
+  def _on_game_end(self):
     pass
 
   def create_rectangle(self, x_pos_st, y_pos_st, x_pos_ed, y_pos_ed, color):

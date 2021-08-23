@@ -1,7 +1,24 @@
+var img_robot, img_human;
+function initImagePath(src_robot, src_human) {
+  img_robot = new Image();
+  img_robot.src = src_robot;
+  img_human = new Image();
+  img_human.src = src_human;
+  // console.log("init_image");
+}
+
 $(document).ready(function () {
+  // prevent default key event handler
+  window.addEventListener("keydown", function (e) {
+    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
+      e.preventDefault();
+    }
+  }, false);
+
   // Connect to the Socket.IO server.
   var socket = io('http://' + document.domain + ':' + location.port + '/experiment1');
 
+  // test codes for socketio
   socket.on('connect', function () {
     socket.emit('my_echo', { data: 'I\'m connected to exp1!' });
   });
@@ -20,7 +37,6 @@ $(document).ready(function () {
   });
 
 
-
   $('form#ping').submit(function (event) {
     ping_start_time = (new Date).getTime();
     socket.emit('my_ping');
@@ -32,17 +48,12 @@ $(document).ready(function () {
     return false;
   });
 
+  // codes for the experiment
   var app_running = 0;
   var grid_x, grid_y;
   var goals;
   const cnvs = document.getElementById("myCanvas");
   const ctx = cnvs.getContext("2d");
-
-  function idx2coord(idx) {
-    let x_tmp = idx % grid_x;
-    let y_tmp = Math.floor(idx / grid_x);
-    return [x_tmp, y_tmp];
-  }
 
   const half_width = 100;
   const half_height = 30;
@@ -64,13 +75,20 @@ $(document).ready(function () {
     ctx.fillText("Click To Start", x_center, y_center);
   }
 
-  function is_in(x_coord, y_coord) {
+  function is_in_start_btn(x_coord, y_coord) {
     let x_center = cnvs.width / 2;
     let y_center = cnvs.height / 2;
     return ((x_coord > x_center - half_width) &&
       (x_coord < x_center + half_width) &&
       (y_coord > y_center - half_height) &&
       (y_coord < y_center + half_height));
+  }
+
+  function is_in(x_coord, y_coord, x_start, y_start, width, height) {
+    return ((x_coord > x_start) &&
+      (x_coord < x_start + width) &&
+      (y_coord > y_start) &&
+      (y_coord < y_start + height));
   }
 
   socket.on('init_canvas', function (json_msg) {
@@ -84,19 +102,49 @@ $(document).ready(function () {
 
   cnvs.addEventListener('click', onClick, true);
 
-
+  var selecting_latent = 0;
   function onClick(event) {
     // this method should be paired with draw_start_button
+    let x_m = event.clientX - cnvs.getBoundingClientRect().left;
+    let y_m = event.clientY - cnvs.getBoundingClientRect().top;
     if (app_running == 0) {
-      let x_m = event.clientX - cnvs.getBoundingClientRect().left;
-      let y_m = event.clientY - cnvs.getBoundingClientRect().top;
-      if (is_in(x_m, y_m)) {
+      // console.log("onClick");
+      if (is_in_start_btn(x_m, y_m)) {
         let user_id = document.getElementById("cur-user").innerHTML;
         // console.log(user_id);
         socket.emit('run_experiment', { data: user_id });
       }
     } else {
+      if (selecting_latent == 1) {
+        // console.log("Selec latent");
+        const num_box = obj_json.boxes.length;
+        for (let i = 0; i < num_box; i++) {
+          const coord = obj_json.boxes[i];
+          if (coord == null) {
+            continue;
+          }
 
+          let x_s = conv_x(coord[0]);
+          let y_s = conv_y(coord[1]);
+          let wid = conv_x(1);
+          let hei = conv_y(1);
+          if (is_in(x_m, y_m, x_s, y_s, wid, hei)) {
+            socket.emit('set_latent', { data: i });
+          }
+        }
+        const num_goal = goals.length;
+        for (let i = 0; i < num_goal; i++) {
+          const coord = goals[i];
+
+          let x_s = conv_x(coord[0]);
+          let y_s = conv_y(coord[1]);
+          let wid = conv_x(1);
+          let hei = conv_y(1);
+          if (is_in(x_m, y_m, x_s, y_s, wid, hei)) {
+            socket.emit('set_latent', { data: i + num_box });
+          }
+        }
+      }
     }
   }
 
@@ -108,54 +156,58 @@ $(document).ready(function () {
     return Math.round(fY / grid_y * cnvs.height);
   }
 
-  function draw_grid_line() {
-    ctx.fillStyle = "yellow";
-    for (const coord of goals) {
+  var obj_json = null;
+  function draw_goals() {
+    const num_goal = goals.length;
+    // for (const coord of goals) {
+    for (let i = 0; i < num_goal; i++) {
+      const coord = goals[i];
+      ctx.fillStyle = "yellow";
+      if (obj_json != null && obj_json.a1_latent != null) {
+        const num_box = obj_json.boxes.length;
+        if (obj_json.a1_latent == i + num_box) {
+          ctx.fillStyle = "red";
+        }
+      }
+
       let x_corner = conv_x(coord[0]);
       let y_corner = conv_y(coord[1]);
       let wdth = conv_x(1);
       let hght = conv_y(1);
       ctx.fillRect(x_corner, y_corner, wdth, hght);
     }
-
-    // ctx.strokeStyle = "black";
-    // ctx.setLineDash([5, 5]);
-
-    // for (i = 1; i < grid_x; i++) {
-    //   ctx.beginPath();
-    //   ctx.moveTo(conv_x(i), 0);
-    //   ctx.lineTo(conv_x(i), cnvs.height);
-    //   ctx.stroke();
-    // }
-
-    // for (i = 1; i < grid_y; i++) {
-    //   ctx.beginPath();
-    //   ctx.moveTo(0, conv_y(i));
-    //   ctx.lineTo(cnvs.width, conv_y(i));
-    //   ctx.stroke();
-    // }
-    // ctx.setLineDash([]);
   }
 
-  socket.on('draw_canvas', function (json_msg) {
-    // console.log("draw draw");
-    app_running = 1;
-    const obj_json = JSON.parse(json_msg);
+  function draw_objects(json_msg) {
+    obj_json = JSON.parse(json_msg);
     ctx.clearRect(0, 0, cnvs.width, cnvs.height);
-    draw_grid_line();
+    draw_goals();
     const a1_pos = obj_json.a1_pos;
     const a2_pos = obj_json.a2_pos;
     const a1_hold = obj_json.a1_hold;
     const a2_hold = obj_json.a2_hold;
 
-    ctx.fillStyle = "black";
+    // ctx.fillStyle = "black";
     const mar = 0.2;
     let overlap_boxes = [];
     // just non-overlapped boxes
-    for (const coord of obj_json.boxes) {
+    const box_num = obj_json.boxes.length;
+    for (let i = 0; i < box_num; i++) {
+      const coord = obj_json.boxes[i];
+      if (coord == null) {
+        continue;
+      }
+
+      if (obj_json.a1_latent == i) {
+        ctx.fillStyle = "red";
+      }
+      else {
+        ctx.fillStyle = "black";
+      }
+
       if (JSON.stringify(coord) == JSON.stringify(a1_pos) ||
         JSON.stringify(coord) == JSON.stringify(a2_pos)) {
-        overlap_boxes.push(coord);
+        overlap_boxes.push(i);
       } else {
         let x_c = conv_x(coord[0] + mar);
         let y_c = conv_y(coord[1] + mar);
@@ -167,29 +219,32 @@ $(document).ready(function () {
 
     // agent 1 with holding box
     if (a1_hold == 1) {
-      ctx.fillStyle = "red";
-      let x_c = conv_x(a1_pos[0] + 0.5);
-      let y_c = conv_y(a1_pos[1] + mar);
-      let rad = conv_x(mar);
-      ctx.beginPath();
-      ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
-      ctx.fill();
+      let x_d = conv_x(a1_pos[0] + 0.5);
+      let y_d = conv_y(a1_pos[1]);
+      let w_d = conv_x(0.5);
+      let h_d = conv_y(0.7);
+      ctx.drawImage(img_human, x_d, y_d, w_d, h_d);
     }
 
     // agent 2 with holding box
     if (a2_hold == 1) {
-      ctx.fillStyle = "blue";
-      let x_c = conv_x(a2_pos[0] + 0.5);
-      let y_c = conv_y(a2_pos[1] + 1 - mar);
-      let rad = conv_x(mar);
-      ctx.beginPath();
-      ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
-      ctx.fill();
+      let x_d = conv_x(a2_pos[0]);
+      let y_d = conv_y(a2_pos[1] + 0.3);
+      let w_d = conv_x(0.5);
+      let h_d = conv_x(0.7);
+      ctx.drawImage(img_robot, x_d, y_d, w_d, h_d);
     }
 
     // overlapped boxes
-    ctx.fillStyle = "black";
-    for (const coord of overlap_boxes) {
+    for (const idx of overlap_boxes) {
+      const coord = obj_json.boxes[idx];
+      if (obj_json.a1_latent == idx) {
+        ctx.fillStyle = "red";
+      }
+      else {
+        ctx.fillStyle = "black";
+      }
+
       let x_c = conv_x(coord[0] + mar);
       let y_c = conv_y(coord[1] + mar);
       let wdth = conv_x(1 - 2 * mar);
@@ -199,34 +254,79 @@ $(document).ready(function () {
 
     // agent1 without box
     if (a1_hold == 0) {
-      ctx.fillStyle = "red";
-      let x_c = conv_x(a1_pos[0] + 0.5);
-      let y_c = conv_y(a1_pos[1] + mar);
-      let rad = conv_x(mar);
-      ctx.beginPath();
-      ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
-      ctx.fill();
+      let x_d = conv_x(a1_pos[0] + 0.5);
+      let y_d = conv_y(a1_pos[1]);
+      let w_d = conv_x(0.5);
+      let h_d = conv_y(0.7);
+      ctx.drawImage(img_human, x_d, y_d, w_d, h_d);
     }
 
     // agent2 without box
     if (a2_hold == 0) {
-      ctx.fillStyle = "blue";
-      let x_c = conv_x(a2_pos[0] + 0.5);
-      let y_c = conv_y(a2_pos[1] + 1 - mar);
-      let rad = conv_x(mar);
-      ctx.beginPath();
-      ctx.arc(x_c, y_c, rad, 0, 2 * Math.PI);
-      ctx.fill();
+      let x_d = conv_x(a2_pos[0]);
+      let y_d = conv_y(a2_pos[1] + 0.3);
+      let w_d = conv_x(0.5);
+      let h_d = conv_x(0.7);
+      ctx.drawImage(img_robot, x_d, y_d, w_d, h_d);
+    }
+  }
+
+  function draw_overlay() {
+    const num_box = obj_json.boxes.length;
+    const mar = 0.1;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "bold 20px arial";
+    ctx.fillStyle = "black";
+    for (let i = 0; i < num_box; i++) {
+      const coord = obj_json.boxes[i];
+      if (coord == null) {
+        continue;
+      }
+
+      let x_c = conv_x(coord[0] + 0.5);
+      let y_c = conv_y(coord[1] + 0.5);
+      ctx.fillText(i.toString(), x_c, y_c);
     }
 
+    let num_goal = goals.length;
+    for (let i = 0; i < num_goal; i++) {
+      const coord = goals[i];
+
+      let x_c = conv_x(coord[0] + 0.5);
+      let y_c = conv_y(coord[1] + 0.5);
+      const goal_idx = i + num_box;
+      ctx.fillText(goal_idx.toString(), x_c, y_c);
+    }
+  }
+
+  socket.on('draw_canvas_with_overlay', function (json_msg) {
+    // console.log("draw draw");
+    app_running = 1;
+    selecting_latent = 1;
+    ctx.globalAlpha = 0.2;
+    draw_objects(json_msg);
+    ctx.globalAlpha = 1.0;
+    draw_overlay();
+
+    // console.log("draw")
+    // console.log(json_msg)
     // reset key
-    cur_key = "None";
-    document.getElementById("keyname").innerHTML = cur_key;
+    // cur_key = "None";
+    // document.getElementById("keyname").innerHTML = cur_key;
+    document.getElementById("instruction").innerHTML = "Select the target in your mind";
     // once all elements are drawn, set timer.
     // timer_start = Date.now();
     // console.log(timer_start)
     // setTimeout(sendAction, action_duration);
     // count_down = setInterval(countDown, 200);
+  });
+
+  socket.on('draw_canvas_without_overlay', function (json_msg) {
+    selecting_latent = 0;
+    draw_objects(json_msg);
+
+    document.getElementById("instruction").innerHTML = "Take an action.";
   });
 
   function sendAction() {
@@ -238,9 +338,13 @@ $(document).ready(function () {
   cnvs.addEventListener('keydown', doKeyDown, true);
   var cur_key = "None";
   function doKeyDown(e) {
-    if (app_running == 1) {
+    if (app_running == 0) {
+      return;
+    }
+
+    if (selecting_latent == 0) {
       cur_key = e.key;
-      document.getElementById("keyname").innerHTML = e.key;
+      // document.getElementById("keyname").innerHTML = e.key;
       sendAction()
       // socket.emit('keydown_event', {data: e.keyCode});
     }
