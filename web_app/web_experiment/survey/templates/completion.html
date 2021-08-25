@@ -4,20 +4,22 @@
 
 {% block header %}
   <h1>Completed</h1>
+  <div class="explanation">
+  <p>Every step for my experiment is done.</p>
+  <p>Thank you for your participation.</p>
+  <p>Please submit the email by which you will receive $5 Amazon gift card. (optional)</p> 
+  </div>
 {% endblock %}
 
 {% block content %}
-<br>
-<li> Thank you for your participation.</li>
-<br>
-<br>
 <form method="post">
-    <p>Please submit the email by which you will receive $5 Amazon gift card. (optional)</p> 
+  <div class="form-control">
     <label for="email">E-mail</label>
     <input name="email" id="email" value="{{ saved_email }}">
-    <br>
-    <br>
-    <input type="submit" value="Submit">
+  </div>
+  <div class="button-center">
+    <button type="submit" value="submit">Submit</button>
+  </div>
 </form>
   
 {% endblock %}

@@ -1,40 +1,57 @@
 {% extends 'base.html' %}
 
-{% block title %}Demographic Survey{% endblock %}
+{% block title %}Pre-experiment Survey{% endblock %}
 
 {% block header %}
-  <h1>Demographic Survey</h1>
+  <h1>Pre-experiment Survey</h1>
+<div class="explanation">
+<p>Please fill out this pre-experiment survey.</p>
+</div>
 {% endblock %}
 
 {% block content %}
-<br>
   <form method="post">
-    <label for="age">Age</label>
-    <input name="age" id="age" value="{{ answers['age'] }}" required>
-    <br>
+    <div class="form-control">
+      <label for="age">Age</label>
+      <input name="age" id="age" value="{{ answers['age'] }}" required>
+    </div>
+
+    <div class="form-control">
     <label for="gender">Gender</label>
     <input name="gender" id="gender" value="{{ answers['gender'] }}" required>
-    <br>
-    <p>How often do you play video games?</p>
-    <input type="radio" id="never" name="frequency" value="never" {{ answers['never'] }} required>
-    <label for="never">Never</label>
-    <br>
-    <input type="radio" id="peryear" name="frequency" value="peryear" {{ answers['peryear'] }}>
-    <label for="peryear">A few times a year</label>
-    <br>
-    <input type="radio" id="permonth" name="frequency" value="permonth" {{ answers['permonth'] }}>
-    <label for="permonth">A few times a month</label>
-    <br>
-    <input type="radio" id="perweek" name="frequency" value="perweek" {{ answers['perweek'] }}>
-    <label for="perweek">A few times every week</label>
-    <br>
-    <input type="radio" id="daily" name="frequency" value="daily" {{ answers['daily'] }}>
-    <label for="daily">On a daily basis</label>
-    <br>
-    <p>Open-ended comments (optional)</p>
+    </div>
+
+    <div class="form-control">
+    <label for"frequency">How often do you play video games?</label>
+    <label for="never">
+      <input type="radio" id="never" name="frequency" value="never" {{ answers['never'] }} required>
+      Never</input>
+    </label>
+    <label for="peryear">
+      <input type="radio" id="peryear" name="frequency" value="peryear" {{ answers['peryear'] }}>
+      A few times a year</input>
+    </label>
+    <label for="permonth">
+      <input type="radio" id="permonth" name="frequency" value="permonth" {{ answers['permonth'] }}>
+      A few times a month</input>
+    </label>
+    <label for="perweek">
+      <input type="radio" id="perweek" name="frequency" value="perweek" {{ answers['perweek'] }}>
+      A few times every week</input>
+    </label>
+    <label for="daily">
+      <input type="radio" id="daily" name="frequency" value="daily" {{ answers['daily'] }}>
+      On a daily basis</input>
+    </label>
+    </div>
+
+    <div class="form-control">
+    <label for="comments">Open-ended comments (optional)</label>
     <textarea id="opencomment" name="opencomment" rows="4" cols="50">{{ answers['precomment'] }}</textarea>
-    <br>
-    <br>
-    <input type="submit" value="Submit">
+    </div>
+    <div class="button-center">
+      <button type="submit" value="submit">Submit</button>
+    </div>
   </form>
+</div>
 {% endblock %}

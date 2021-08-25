@@ -1,21 +1,33 @@
 {% extends 'base.html' %}
 
-{% block title %}Consent{% endblock %}
+{% block title %}Welcome!{% endblock %}
 
 {% block header %}
 <h1>Welcome!</h1>
+<div class="explanation">
+<p>This is home page of Sangwon's Experiment.</p>
+<p>Please read the consent carefully.</p>
+<p>If you agree to participate in my experiment, please type your ID and click the "I agree" button.</p>
+</div>
 {% endblock %}
 
 {% block content %}
-<iframe src="{{url_for('consent.static', filename='Rice_IRB_Consent_Form.pdf')}}" width="100%" height="500px">
-</iframe>
 <form method="post">
+  <div class="form-control">
+  <iframe src="{{url_for('consent.static', filename='Rice_IRB_Consent_Form.pdf')}}" width="100%" height="500px">
+  </iframe>
+  </div>
+  <div class="form-control">
   <label for="userid">User ID</label>
   <input name="userid" id="userid" required>
-  <br>
+  </div>
+  <div class="form-control">
   <label for="consent">Clicking below indicates that I have read the description of the study and I agree to participate
     in the study.</label>
-  <br><br>
-  <input type="submit" value="I agree">
+  <div class="button-center">
+    <button type="submit" value="submit">I agree</button>
+  </div>
+  </div>
+</div>
 </form>
 {% endblock %}

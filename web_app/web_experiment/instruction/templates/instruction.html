@@ -7,15 +7,23 @@
 {% endblock %}
 
 {% block content %}
-<br>
-<li> In this game, you have to clean all squares with your AI partner.</li>
-<li> You can clean "Grey" and "Brown" squares by yourself but "Yellow" squares require two people to clean. </li>
-<li> The time to clean each type of squares is different: 0.5 sec for "Brown", 1 sec for "Grey", and 0 sec for "Yellow".
-</li>
-<br>
-<div> ... and more instructions ...</div>
-<div> ... video or gif ...</div>
-<h2><a href="{{ url_for('survey.preexperiment') }}">Prev</a>
-  <a href="{{ url_for('exp1.experiment') }}">Next</a>
-</h2>
+<div class="explanation">
+  <li> This experiment consists of two different mini games.</li>
+  <li> Main goal of this experiment is to build human models that supposedly depend on his/her mental model (e.g.
+    objective or situation awareness) </li>
+  <li> ... and more instructions ...</li>
+  <li> ... Tutorial...</li>
+  <li> ... video or gif ...</li>
+</div>
+
+<!-- <div class="button-center">
+<form action="{{ url_for('survey.preexperiment') }}">
+  <button type="submit" value="submit">Prev</button>
+</form>
+</div> -->
+<div class="button-center">
+  <form action="{{ url_for('exp1.experiment') }}">
+    <button type="submit" value="submit">Next</button>
+  </form>
+</div>
 {% endblock %}

@@ -70,7 +70,6 @@ def test_disconnect():
 # socketio methods
 def update_html_canvas(objs, room_id, draw_overlay):
   objs_json = json.dumps(objs)
-  # print(objs_json)
   if draw_overlay:
     socketio.emit('draw_canvas_with_overlay',
                   objs_json,
@@ -90,6 +89,7 @@ def on_game_end(room_id):
 @socketio.on('run_experiment', namespace=EXP1_NAMESPACE)
 def run_experiment(msg):
   env_id = request.sid
+  # print(msg["data"])
 
   # run a game
   global g_map_id_2_game

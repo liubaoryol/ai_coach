@@ -1,10 +1,15 @@
 var img_robot, img_human;
+var user_id;
 function initImagePath(src_robot, src_human) {
   img_robot = new Image();
   img_robot.src = src_robot;
   img_human = new Image();
   img_human.src = src_human;
   // console.log("init_image");
+}
+
+function initCurUser(cur_user) {
+  user_id = cur_user;
 }
 
 $(document).ready(function () {
@@ -61,25 +66,23 @@ $(document).ready(function () {
     ctx.strokeStyle = "black";
     ctx.fillStyle = "black";
     ctx.beginPath();
-    let x_center = cnvs.width / 2;
     let y_center = cnvs.height / 2;
-    ctx.moveTo(x_center - half_width, y_center - half_height);
-    ctx.lineTo(x_center + half_width, y_center - half_height);
-    ctx.lineTo(x_center + half_width, y_center + half_height);
-    ctx.lineTo(x_center - half_width, y_center + half_height);
+    ctx.moveTo(y_center - half_width, y_center - half_height);
+    ctx.lineTo(y_center + half_width, y_center - half_height);
+    ctx.lineTo(y_center + half_width, y_center + half_height);
+    ctx.lineTo(y_center - half_width, y_center + half_height);
     ctx.closePath();
     ctx.stroke();
 
     ctx.textAlign = "center";
     ctx.font = "bold 20px arial";
-    ctx.fillText("Click To Start", x_center, y_center);
+    ctx.fillText("Click To Start", y_center, y_center);
   }
 
   function is_in_start_btn(x_coord, y_coord) {
-    let x_center = cnvs.width / 2;
     let y_center = cnvs.height / 2;
-    return ((x_coord > x_center - half_width) &&
-      (x_coord < x_center + half_width) &&
+    return ((x_coord > y_center - half_width) &&
+      (x_coord < y_center + half_width) &&
       (y_coord > y_center - half_height) &&
       (y_coord < y_center + half_height));
   }
@@ -110,8 +113,6 @@ $(document).ready(function () {
     if (app_running == 0) {
       // console.log("onClick");
       if (is_in_start_btn(x_m, y_m)) {
-        let user_id = document.getElementById("cur-user").innerHTML;
-        // console.log(user_id);
         socket.emit('run_experiment', { data: user_id });
       }
     } else {
@@ -149,7 +150,7 @@ $(document).ready(function () {
   }
 
   function conv_x(fX) {
-    return Math.round(fX / grid_x * cnvs.width);
+    return Math.round(fX / grid_x * cnvs.height);
   }
 
   function conv_y(fY) {

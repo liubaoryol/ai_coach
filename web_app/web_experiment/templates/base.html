@@ -1,10 +1,10 @@
 <!doctype html>
-<title>{% block title %}{% endblock %} - Sangwon</title>
+<title>{% block title %}{% endblock %} - Sangwon's Experiment</title>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <link rel="shortcut icon" type="image/jpg" href="{{ url_for('static', filename='favicon.ico') }}"/>
-<nav>
-    {% block header %}{% endblock %}
-</nav>
+
+{% block header %}{% endblock %}
+
 <section class="content">
   {% for message in get_flashed_messages() %}
     <div class="flash">{{ message }}</div>

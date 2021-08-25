@@ -4,45 +4,72 @@
 
 {% block header %}
   <h1>In-Experiment Survey</h1>
+<div class="explanation">
+<p>Please fill out this in-experiment survey.</p>
+</div>
 {% endblock %}
 
 {% block content %}
 <br>
   <form method="post">
-    <p>Have you successfully maintained the instructed strategy?</p>
-    <input type="radio" id="yes" name="maintained" value="yes" {{ answers['maintainedyes'] }} required>
-    <label for="yes">Yes</label>
-    <br>
-    <input type="radio" id="no" name="maintained" value="no" {{ answers['maintainedno'] }}>
-    <label for="no">No</label>
-    <br>
-    <p>Did you feel your teammate was cooperative?</p>
-    <input type="radio" id="yes" name="cooperative" value="yes" required {{ answers['cooperativeyes'] }}>
-    <label for="yes">Yes</label>
-    <br>
-    <input type="radio" id="no" name="cooperative" value="no" {{ answers['cooperativeno'] }}>
-    <label for="no">No</label>
-    <br>
-    <p>How do you rate the fluency of teamwork between you and your teammate?</p>
+    <div class="form-control">
+      <label for="maintained">
+      Have you successfully maintained the instructed strategy?
+      </label>
+      <label for="yes">
+        <input type="radio" id="yes" name="maintained" value="yes" {{ answers['maintainedyes'] }} required>
+        Yes</input>
+      </label>
+      <label for="no">
+        <input type="radio" id="no" name="maintained" value="no" {{ answers['maintainedno'] }}>
+        No</input>
+      </label>
+    </div>
+    <div class="form-control">
+      <label for="cooperative">
+      Did you feel your teammate was cooperative?
+      </label>
+      <label for="yes">
+      <input type="radio" id="yes" name="cooperative" value="yes" required {{ answers['cooperativeyes'] }}>
+      Yes
+      </input>
+      </label>
+      <label for="no">
+      <input type="radio" id="no" name="cooperative" value="no" {{ answers['cooperativeno'] }}>
+      No</input>
+      </label>
+    </div>
+    <div class="form-control">
+    <label for="fluency">
+    How do you rate the fluency of teamwork between you and your teammate?
+    </label>
+    <label for="one">
     <input type="radio" id="one" name="fluency" value="one" {{ answers['one'] }} required>
-    <label for="one">1: Very poor</label>
-    <br>
+    1: Very poor</input>
+    </label>
+    <label for="two">
     <input type="radio" id="two" name="fluency" value="two" {{ answers['two'] }}>
-    <label for="two">2: Poor</label>
-    <br>
+    2: Poor</input>
+    </label>
+    <label for="three">
     <input type="radio" id="three" name="fluency" value="three" {{ answers['three'] }}>
-    <label for="three">3: Fair</label>
-    <br>
+    3: Fair</input>
+    </label>
+    <label for="four">
     <input type="radio" id="four" name="fluency" value="four" {{ answers['four'] }}>
-    <label for="four">4: Good</label>
-    <br>
+    4: Good</input>
+    </label>
+    <label for="five">
     <input type="radio" id="five" name="fluency" value="five" {{ answers['five'] }}>
-    <label for="five">5: Excellent</label>
-    <br>
-    <p>Open-ended comments (optional)</p>
+    5: Excellent</input>
+    </label>
+    </div>
+    <div class="form-control">
+    <label for="opencomment">Open-ended comments (optional)</label>
     <textarea id="opencomment" name="opencomment" rows="4" cols="50">{{ answers['incomment'] }}</textarea>
-    <br>
-    <br>
-    <input type="submit" value="Submit">
+    </div>
+    <div class="button-center">
+      <button type="submit" value="submit">Submit</button>
+    </div>
   </form>
 {% endblock %}

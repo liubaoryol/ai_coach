@@ -7,4 +7,4 @@ DATABASE = "./data/tw2020_db/tw2020.sqlite"
 SURVEY_PATH = "./data/tw2020_survey"
 TRAJECTORY_PATH = "./data/tw2020_trajectory"
 
-DEBUG = True
+DEBUG = False

@@ -4,6 +4,9 @@
 
 {% block header %}
 <h1>Experiment 2</h1>
+<div class="explanation">
+  <p>The 2nd domain.</p>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -15,33 +18,35 @@
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp2.static', filename='exp2.js') }}"></script>
 
-<h2>Connection Check</h2>
-<form id="ping" method="POST" action='#' style="display: inline;">
-  <input type="submit" value="Ping">
-</form>
+<div class="flash">
+  <h2>Connection Check</h2>
+  <form id="ping" method="POST" action='#' style="display: inline;">
+    <input type="submit" value="Ping">
+  </form>
 
-<b><span id="ping-pong"></span> ms</b>
+  <label id="ping-pong"></label> ms</b>
 
-<form id="echo" method="POST" action='#'>
-  <input type="text" name="emit_data" id="emit_data" placeholder="Message" style="width: 300px;"
-    style="display: inline;">
-  <input type="submit" value="Echo" style="display: inline;">
-</form>
-<br>
-<div id="log"></div>
-<p id="timer">Count down</p>
-<p id="keyname">Key input</p>
+  <form id="echo" method="POST" action='#'>
+    <input type="text" name="emit_data" id="emit_data" placeholder="Message" style="width: 300px;"
+      style="display: inline;">
+    <input type="submit" value="Echo" style="display: inline;">
+  </form>
+  <br>
+  <div id="log"></div>
+</div>
 
 <canvas id="myCanvas" width="300" height="300" style="border:1px solid #000000;" tabindex='1'>
+  Your browser does not support the HTML5 canvas tag.
 </canvas>
 
-<p> Move: left, right, up, down arrows | Pick-up: p | Drop: p | Stay: o</p>
-<p> To remove Yellow, both players should enter the Remove key together </p>
-<br>
-<h3>Please do not click below hyperlink until you finish the experiment.</h3>
-<h2>
-  <a href="{{ url_for('exp1.experiment') }}">Prev</a>
-  <a href="{{ url_for('survey.inexperiment') }}">Next</a>
-</h2>
+<div>
+  <h3>Please do not click "Next" button until you finish the experiment.</h3>
+  <div class="button-center">
+    <form action="{{ url_for('survey.inexperiment') }}">
+      <button type="submit" value="submit">Next</button>
+    </form>
+  </div>
+</div>
+
 
 {% endblock %}

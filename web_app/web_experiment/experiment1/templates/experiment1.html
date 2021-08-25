@@ -4,50 +4,59 @@
 
 {% block header %}
 <h1>Experiment 1</h1>
+<div class="explanation">
+  <p>Please move all the boxes to the goal.</p>
+  <p>You will be asked to provide your next target at the end of each action.</p>
+  <p> Move: left, right, up, down arrows | Pick-up / Drop: p</p>
+  <p> To select the target in your mind, please use mouse cursor.</p>
+</div>
 {% endblock %}
 
 {% block content %}
-<script src="//code.jquery.com/jquery-1.12.4.min.js"
-  integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
   crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1.js') }}"></script>
 <script type="text/javascript">
-initImagePath("{{ url_for('exp1.static', filename='robot.png') }}",
-              "{{ url_for('exp1.static', filename='human.png') }}");
+  initImagePath("{{ url_for('exp1.static', filename='robot.png') }}",
+    "{{ url_for('exp1.static', filename='human.png') }}");
+  initCurUser("{{ cur_user }}");
 </script>
 
-<h2>Connection Check</h2>
-<form id="ping" method="POST" action='#' style="display: inline;">
-  <input type="submit" value="Ping">
-</form>
+<!-- <div class="flash">
+  <h2>Connection Check</h2>
+  <form id="ping" method="POST" action='#' style="display: inline;">
+    <input type="submit" value="Ping">
+  </form>
 
-<b><span id="ping-pong"></span> ms</b>
+  <label id="ping-pong"></label> ms</b>
 
-<form id="echo" method="POST" action='#'>
-  <input type="text" name="emit_data" id="emit_data" placeholder="Message" style="width: 300px;"
-    style="display: inline;">
-  <input type="submit" value="Echo" style="display: inline;">
-</form>
-<br>
-<div id="log"></div>
+  <form id="echo" method="POST" action='#'>
+    <input type="text" name="emit_data" id="emit_data" placeholder="Message" style="width: 300px;"
+      style="display: inline;">
+    <input type="submit" value="Echo" style="display: inline;">
+  </form>
+  <br>
+  <div id="log"></div>
+</div> -->
+<!-- 
 <div id="cur-user"> {{ cur_user }}</div>
 <div id="instruction"></div>
-<p id="keyname">Key input</p>
+<p id="keyname">Key input</p> -->
 
-<canvas id="myCanvas" width="300" height="300" style="border:1px solid #000000;" tabindex='1'>
-Your browser does not support the HTML5 canvas tag.
+<canvas id="myCanvas" width="800" height="500" style="border:1px solid #000000;" tabindex='1'>
+  Your browser does not support the HTML5 canvas tag.
 </canvas>
 
-<p> Move: left, right, up, down arrows | Pick-up: p | Drop: p | Stay: o</p>
-<p> To remove Yellow, both players should enter the Remove key together </p>
-<br>
-<h3>Please do not click below hyperlink until you finish the experiment.</h3>
-<h2>
-  <a href="{{ url_for('instruction.instruction') }}">Prev</a>
-  <a href="{{ url_for('exp2.experiment') }}">Next</a>
-</h2>
+<div>
+  <h3>Please do not click "Next" button until you finish the experiment.</h3>
+  <div class="button-center">
+    <form action="{{ url_for('exp2.experiment') }}">
+      <button type="submit" value="submit">Next</button>
+    </form>
+  </div>
+</div>
 
 {% endblock %}

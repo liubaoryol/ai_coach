@@ -7,5 +7,5 @@ from . import exp2_bp
 @login_required
 def experiment():
   cur_user = g.user
-  print(cur_user)
+  # print(cur_user)
   return render_template('experiment2.html', cur_user=cur_user)
