@@ -45,40 +45,6 @@ $(document).ready(function () {
   const ctx = cnvs.getContext("2d");
 
   /////////////////////////////////////////////////////////////////////////////
-  // test codes for socketio
-  /////////////////////////////////////////////////////////////////////////////
-  {
-    socket.on('connect', function () {
-      socket.emit('my_echo', { data: 'I\'m connected to exp1!' });
-    });
-
-    socket.on('my_response', function (msg, cb) {
-      $('#log').text($('<div/>').text('Received #' + msg.count + ': ' + msg.data).html());
-      if (cb) {
-        cb();
-      }
-    });
-
-    var ping_start_time;
-    socket.on('my_pong', function () {
-      let latency = (new Date).getTime() - ping_start_time;
-      $('#ping-pong').text(Math.round(10 * latency) / 10);
-    });
-
-
-    $('form#ping').submit(function (event) {
-      ping_start_time = (new Date).getTime();
-      socket.emit('my_ping');
-      return false;
-    });
-
-    $('form#echo').submit(function (event) {
-      socket.emit('my_echo', { data: $('#emit_data').val() });
-      return false;
-    });
-  }
-
-  /////////////////////////////////////////////////////////////////////////////
   // UI Objects
   /////////////////////////////////////////////////////////////////////////////
   class DrawingObject {
