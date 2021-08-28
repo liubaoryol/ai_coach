@@ -70,24 +70,17 @@ def test_disconnect():
 # socketio methods
 def update_html_canvas(objs, room_id, draw_overlay):
   objs_json = json.dumps(objs)
-  if draw_overlay:
-    socketio.emit('draw_canvas_with_overlay',
-                  objs_json,
-                  room=room_id,
-                  namespace=EXP1_NAMESPACE)
-  else:
-    socketio.emit('draw_canvas_without_overlay',
-                  objs_json,
-                  room=room_id,
-                  namespace=EXP1_NAMESPACE)
+  str_emit = ('draw_canvas_with_overlay'
+              if draw_overlay else 'draw_canvas_without_overlay')
+  socketio.emit(str_emit, objs_json, room=room_id, namespace=EXP1_NAMESPACE)
 
 
 def on_game_end(room_id):
   socketio.emit('game_end', room=room_id, namespace=EXP1_NAMESPACE)
 
 
-@socketio.on('run_experiment', namespace=EXP1_NAMESPACE)
-def run_experiment(msg):
+@socketio.on('run_game', namespace=EXP1_NAMESPACE)
+def run_game(msg):
   env_id = request.sid
   # print(msg["data"])
 
@@ -103,24 +96,26 @@ def run_experiment(msg):
     update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
 
 
-@socketio.on('keydown_event', namespace=EXP1_NAMESPACE)
+@socketio.on('action_event', namespace=EXP1_NAMESPACE)
 def on_key_down(msg):
   env_id = request.sid
 
   action = None
 
-  key_code = msg["data"]
-  if key_code == "ArrowLeft":  # Left
+  action_name = msg["data"]
+  if action_name == "Left":
     action = EventType.LEFT
-  elif key_code == "ArrowRight":  # Right
+  elif action_name == "Right":
     action = EventType.RIGHT
-  elif key_code == "ArrowUp":  # Up
+  elif action_name == "Up":
     action = EventType.UP
-  elif key_code == "ArrowDown":  # Down
+  elif action_name == "Down":
     action = EventType.DOWN
-  elif key_code == "p":  # p
+  elif action_name == "Hold":
     action = EventType.HOLD
-  elif key_code == "o":  # p
+  elif action_name == "Drop":
+    action = EventType.UNHOLD
+  elif action_name == "Stay":
     action = EventType.STAY
 
   if action:
@@ -139,6 +134,7 @@ def on_key_down(msg):
         update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
     else:
       game.reset_game()
+      on_game_end(env_id)
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)
