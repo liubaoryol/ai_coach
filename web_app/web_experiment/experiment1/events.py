@@ -13,14 +13,7 @@ EXP1_NAMESPACE = '/experiment1'
 def initial_canvas():
   GRID_X = BoxPushSimulator.X_GRID
   GRID_Y = BoxPushSimulator.Y_GRID
-  goals = [BoxPushSimulator.GOAL]
-  env_dict = {'grid_x': GRID_X, 'grid_y': GRID_Y, 'goals': []}
-
-  # def coord2idx(coord):
-  #   return coord[1] * GRID_X + coord[0]
-
-  for pos in goals:
-    env_dict['goals'].append(pos)
+  env_dict = {'grid_x': GRID_X, 'grid_y': GRID_Y}
 
   env_json = json.dumps(env_dict)
   emit('init_canvas', env_json)
@@ -28,7 +21,7 @@ def initial_canvas():
 
 @socketio.on('my_echo', namespace=EXP1_NAMESPACE)
 def test_message(message):
-  print(message['data'])
+  # print(message['data'])
   session['receive_count'] = session.get('receive_count', 0) + 1
   emit('my_response', {
       'data': message['data'],
@@ -82,7 +75,6 @@ def on_game_end(room_id):
 @socketio.on('run_game', namespace=EXP1_NAMESPACE)
 def run_game(msg):
   env_id = request.sid
-  # print(msg["data"])
 
   # run a game
   global g_map_id_2_game
@@ -90,7 +82,7 @@ def run_game(msg):
     g_map_id_2_game[env_id] = BoxPushSimulator(env_id)
 
   game = g_map_id_2_game[env_id]
-  dict_update = game.get_changed_objects()
+  dict_update = game.get_env_info()
   if dict_update is not None:
     DRAW_OVERLAY = True
     update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
@@ -119,8 +111,6 @@ def on_key_down(msg):
     action = EventType.STAY
 
   if action:
-    # elif key_code == "o":  # o
-    #   action = "o"
     global g_map_id_2_game
     game = g_map_id_2_game[env_id]
     game.event_input(BoxPushSimulator.AGENT1, action, None)

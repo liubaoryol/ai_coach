@@ -1,7 +1,7 @@
 from typing import Hashable, Tuple
 from stand_alone.app import AppInterface
 from ai_coach_domain.box_push import BoxPushSimulator
-from ai_coach_domain.box_push import EventType
+from ai_coach_domain.box_push import (EventType, BoxState, conv_box_idx_2_state)
 
 
 class BoxPushApp(AppInterface):
@@ -50,20 +50,69 @@ class BoxPushApp(AppInterface):
 
   def _update_canvas_scene(self):
     data = self.game.get_env_info()
+    box_states = data["box_states"]
     boxes = data["boxes"]
+    drops = data["drops"]
+    goals = data["goals"]
+    walls = data["walls"]
     a1_pos = data["a1_pos"]
     a2_pos = data["a2_pos"]
-    a1_hold = data["a1_hold"]
-    a2_hold = data["a2_hold"]
+    # a1_latent = data["a1_latent"]
+    # a2_latent = data["a2_latent"]
+
     x_unit = int(self.canvas_width / BoxPushSimulator.X_GRID)
     y_unit = int(self.canvas_height / BoxPushSimulator.Y_GRID)
 
-    self.canvas.delete("all")
-    for box in boxes:
+    self.clear_canvas()
+    for coord in boxes:
+      self.create_rectangle(coord[0] * x_unit, coord[1] * y_unit,
+                            (coord[0] + 1) * x_unit, (coord[1] + 1) * y_unit,
+                            "gray")
+
+    for coord in goals:
+      self.create_rectangle(coord[0] * x_unit, coord[1] * y_unit,
+                            (coord[0] + 1) * x_unit, (coord[1] + 1) * y_unit,
+                            "gold")
+
+    for coord in walls:
+      self.create_rectangle(coord[0] * x_unit, coord[1] * y_unit,
+                            (coord[0] + 1) * x_unit, (coord[1] + 1) * y_unit,
+                            "black")
+
+    for coord in drops:
+      self.create_rectangle(coord[0] * x_unit, coord[1] * y_unit,
+                            (coord[0] + 1) * x_unit, (coord[1] + 1) * y_unit,
+                            "gray")
+
+    a1_hold = False
+    a2_hold = False
+    for bidx, sidx in enumerate(box_states):
+      state = conv_box_idx_2_state(sidx, len(drops), len(goals))
+      box = None
+      box_color = "green2"
+      if state[0] == BoxState.Original:
+        box = boxes[bidx]
+      elif state[0] == BoxState.WithAgent1:
+        box = a1_pos
+        a1_hold = True
+        box_color = "green4"
+      elif state[0] == BoxState.WithAgent2:
+        box = a2_pos
+        a2_hold = True
+        box_color = "green4"
+      elif state[0] == BoxState.WithBoth:
+        box = a1_pos
+        a1_hold = True
+        a2_hold = True
+        box_color = "green4"
+      elif state[0] == BoxState.OnDropLoc:
+        box = drops[state[1]]
+
       if box is not None:
         self.create_rectangle(box[0] * x_unit, box[1] * y_unit,
                               (box[0] + 1) * x_unit, (box[1] + 1) * y_unit,
-                              "black")
+                              box_color)
+
     a1_color = "blue"
     if a1_hold:
       a1_color = "dark slate blue"

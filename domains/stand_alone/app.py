@@ -189,6 +189,9 @@ class AppInterface():
   def _on_game_end(self):
     pass
 
+  def clear_canvas(self):
+    self.canvas.delete("all")
+
   def create_rectangle(self, x_pos_st, y_pos_st, x_pos_ed, y_pos_ed, color):
     return self.canvas.create_rectangle(x_pos_st,
                                         y_pos_st,
