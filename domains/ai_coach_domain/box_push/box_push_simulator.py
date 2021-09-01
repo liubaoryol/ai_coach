@@ -84,6 +84,22 @@ class BoxPushSimulator(Simulator):
   def get_num_agents(self):
     return 2
 
+  def get_num_latents(self):
+    '''
+    in the order of each box, each drop, and each goal
+    '''
+    return len(self.boxes) + len(self.drops) + len(self.goals)
+
+  def get_latent_idx(self, type, idx):
+    if type == "box":
+      return idx
+    elif type == "drop":
+      return len(self.boxes) + idx
+    elif type == "goal":
+      return len(self.boxes) + len(self.drops) + idx
+    else:
+      return -1
+
   def event_input(self, agent: Hashable, event_type: Hashable, value):
     if (agent is None) or (event_type is None):
       return

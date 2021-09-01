@@ -85,6 +85,7 @@ def run_game(msg):
   dict_update = game.get_env_info()
   if dict_update is not None:
     DRAW_OVERLAY = True
+    session['action_count'] = 0
     update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
 
 
@@ -111,6 +112,9 @@ def on_key_down(msg):
     action = EventType.STAY
 
   if action:
+    session['action_count'] = session.get('action_count', 0) + 1
+    ASK_LATENT_FREQUENCY = 5
+
     global g_map_id_2_game
     game = g_map_id_2_game[env_id]
     game.event_input(BoxPushSimulator.AGENT1, action, None)
@@ -120,8 +124,9 @@ def on_key_down(msg):
     if not game.is_finished():
       dict_update = game.get_changed_objects()
       if dict_update is not None:
-        DRAW_OVERLAY = True
-        update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
+        draw_overlay = (True if session['action_count'] > ASK_LATENT_FREQUENCY
+                        else False)
+        update_html_canvas(dict_update, env_id, draw_overlay)
     else:
       game.reset_game()
       on_game_end(env_id)
@@ -138,4 +143,5 @@ def set_latent(msg):
   dict_update = game.get_changed_objects()
   if dict_update is not None:
     DONT_DRAW_OVERLAY = False
+    session['action_count'] = 0
     update_html_canvas(dict_update, env_id, DONT_DRAW_OVERLAY)
