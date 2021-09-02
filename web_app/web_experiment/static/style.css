@@ -58,7 +58,6 @@ html {
       box-shadow: 2px 5px 10px rgba(0, 0, 0, 0.5);
   }
 
-
   /* Styling form-control Label */
   .form-control label {
       display: block;
@@ -76,6 +75,7 @@ html {
       padding: 10px;
       display: block;
       width: 95%;
+      margin-bottom: 10px;
   }
 
   /* Styling form-control Radio

@@ -6,7 +6,7 @@ class User(db.Model):
                      unique=True,
                      nullable=False,
                      primary_key=True)
-  email = db.Column(db.String(120), unique=True, default='')
+  email = db.Column(db.String(120), default='')
   admin = db.Column(db.Boolean, nullable=False, default=False)
   pre_exp = db.relationship('PreExperiment',
                             backref='user',
