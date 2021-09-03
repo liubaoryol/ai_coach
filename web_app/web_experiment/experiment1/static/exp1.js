@@ -128,7 +128,12 @@ class ButtonObject extends DrawingObject {
       return false;
     }
 
-    return context.isPointInPath(this.path, x, y);
+    if (this.path != null) {
+      return context.isPointInPath(this.path, x, y);
+    }
+    else {
+      return false;
+    }
   }
 }
 
@@ -575,10 +580,6 @@ class SelectingOverlay extends GameOverlay {
     const half_width = this.width / 2;
     const half_height = this.height / 2;
 
-    // const x_st = this.x_origin - half_width;
-    // const y_st = this.y_origin - half_height;
-
-    // this.path.rect(x_st, y_st, this.width, this.height);
     this.path.arc(this.x_origin, this.y_origin, half_width, 0, 2 * Math.PI);
   }
 }
@@ -681,10 +682,8 @@ $(document).ready(function () {
   var boxes = null;
   var agents = [new Agent("human"), new Agent("robot")];
   var overlays = null;
-  var vibrate_objs = null;
 
-  function set_objects(json_msg) {
-    const obj_json = JSON.parse(json_msg);
+  function set_objects(obj_json) {
     if (obj_json.hasOwnProperty("boxes")) {
       box_origins = [];
       for (const coord of obj_json.boxes) {
@@ -710,21 +709,21 @@ $(document).ready(function () {
       }
     }
 
-    let a1_pos = null;
-    let a2_pos = null;
     if (obj_json.hasOwnProperty("a1_pos")) {
-      a1_pos = obj_json.a1_pos;
+      agents[0].set_coord(obj_json.a1_pos);
     }
 
     if (obj_json.hasOwnProperty("a2_pos")) {
-      a2_pos = obj_json.a2_pos;
+      agents[1].set_coord(obj_json.a2_pos);
     }
 
-    let a1_box = null;
-    let a2_box = null;
     if (obj_json.hasOwnProperty("box_states")) {
       boxes = [];
       const num_obj = obj_json.box_states.length;
+      const a1_pos = agents[0].get_coord();
+      const a2_pos = agents[1].get_coord();
+      let a1_box = null;
+      let a2_box = null;
       for (let i = 0; i < num_obj; i++) {
         const idx = obj_json.box_states[i];
         if (idx == 0) {   // at origin
@@ -753,28 +752,12 @@ $(document).ready(function () {
           boxes.push(new Box(coord[0], coord[1], "goal"));
         }
       }
-    }
-
-    const a1_pos_prev = agents[0].get_coord();
-    const a2_pos_prev = agents[1].get_coord();
-    const a1_box_prev = agents[0].box;
-    const a2_box_prev = agents[1].box;
-
-    agents[0].set_coord(a1_pos);
-    agents[0].box = a1_box;
-    agents[1].set_coord(a2_pos);
-    agents[1].box = a2_box;
-
-    vibrate_objs = [];
-    if (a1_pos_prev == a1_pos && a1_box_prev == a1_box) {
-      vibrate_objs.push(agents[0]);
-    }
-    if (a2_pos_prev == a2_pos && a2_box_prev == a2_box) {
-      vibrate_objs.push(agents[1]);
+      agents[0].box = a1_box;
+      agents[1].box = a2_box;
     }
   }
 
-  function set_overlay(is_selecting_latent, json_msg) {
+  function set_overlay(is_selecting_latent, obj_json) {
     overlays = [];
     let idx = 0
     if (is_selecting_latent) {
@@ -803,7 +786,6 @@ $(document).ready(function () {
       }
     }
     else {
-      const obj_json = JSON.parse(json_msg);
       if (obj_json.hasOwnProperty("a1_latent")) {
         const a1_latent = obj_json.a1_latent;
         if (a1_latent[0] == "box") {
@@ -958,14 +940,14 @@ $(document).ready(function () {
   /////////////////////////////////////////////////////////////////////////////
   var app_running = false;
   var selecting_latent = false;
-  // var x_mouse = -1;
-  // var y_mouse = -1;
+  var x_mouse = -1;
+  var y_mouse = -1;
 
   // click event listener
   cnvs.addEventListener('click', onClick, true);
   function onClick(event) {
-    let x_m = event.clientX - cnvs.getBoundingClientRect().left;
-    let y_m = event.clientY - cnvs.getBoundingClientRect().top;
+    let x_m = event.offsetX;
+    let y_m = event.offsetY;
     if (!app_running) {
       // check if the start button is clicked
       if (btnStart.isPointInObject(ctx, x_m, y_m)) {
@@ -1008,9 +990,8 @@ $(document).ready(function () {
   // mouse move event listner
   cnvs.addEventListener('mousemove', onMouseMove, true);
   function onMouseMove(event) {
-    let x_m = event.clientX - cnvs.getBoundingClientRect().left;
-    let y_m = event.clientY - cnvs.getBoundingClientRect().top;
-    draw_scene(app_running, selecting_latent, x_m, y_m);
+    x_mouse = event.offsetX;
+    y_mouse = event.offsetY;
   }
 
   function disable_ctrl_btn(disable) {
@@ -1027,7 +1008,7 @@ $(document).ready(function () {
     disable_ctrl_btn(true);
     txtInstruction.text = "Instructions for each step will be shown here. Please click the \"Start\" button.";
 
-    draw_scene(app_running, selecting_latent);
+    // draw_scene(app_running, selecting_latent);
   }
 
   // init canvas
@@ -1038,33 +1019,63 @@ $(document).ready(function () {
     reset_game_ui();
   });
 
+
+  var failed_agent = null;
+  let vib_count = 0;
   // latent selection
-  socket.on('draw_canvas_with_overlay', function (json_msg) {
+  socket.on('draw_canvas', function (json_msg) {
     app_running = true;
-    selecting_latent = true;
+    const obj_json = JSON.parse(json_msg);
+
+    if (obj_json.hasOwnProperty("ask_latent")) {
+      selecting_latent = obj_json["ask_latent"];
+    }
+
+    let show_failure = false;
+    if (obj_json.hasOwnProperty("show_failure")) {
+      show_failure = obj_json["show_failure"];
+    }
+
+    let prev_a1_pos;
+    let prev_a2_pos;
+    let prev_a1_box;
+    let prev_a2_box;
+    if (show_failure) {
+      prev_a1_pos = agents[0].get_coord();
+      prev_a1_box = agents[0].box;
+      prev_a2_pos = agents[1].get_coord();
+      prev_a2_box = agents[1].box;
+    }
 
     // set objects & overlays
-    set_objects(json_msg);
-    set_overlay(selecting_latent, json_msg);
+    set_objects(obj_json);
+
+    failed_agent = [];
+    if (show_failure) {
+      const a1_pos = agents[0].get_coord();
+      const a2_pos = agents[1].get_coord();
+      const a1_box = agents[0].box;
+      const a2_box = agents[1].box;
+      if (prev_a1_pos[0] == a1_pos[0] && prev_a1_pos[1] == a1_pos[1] &&
+        prev_a1_box == a1_box) {
+        failed_agent.push(agents[0]);
+      }
+      if (prev_a2_pos[0] == a2_pos[0] && prev_a2_pos[1] == a2_pos[1] &&
+        prev_a2_box == a2_box) {
+        failed_agent.push(agents[1]);
+      }
+    }
+    vib_count = 0;
+
+    set_overlay(selecting_latent, obj_json);
     // ctrl buttons
     disable_ctrl_btn(selecting_latent); // update_hold_btn();
-    txtInstruction.text = "Please select your current destination (target) in your mind.";
-
-    draw_scene(app_running, selecting_latent);
-  });
-
-  // action selection
-  socket.on('draw_canvas_without_overlay', function (json_msg) {
-    app_running = true;
-    selecting_latent = false;
-
-    // set objects & overlays
-    set_objects(json_msg);
-    set_overlay(selecting_latent, json_msg);
-    disable_ctrl_btn(selecting_latent); // update_hold_btn();
-    txtInstruction.text = "Please take an action by clicking a button below.";
-
-    draw_scene(app_running, selecting_latent);
+    if (selecting_latent) {
+      txtInstruction.text = "Please select your current destination (target) in your mind.";
+    }
+    else {
+      txtInstruction.text = "Please take an action by clicking a button below.";
+    }
   });
 
   socket.on('game_end', function () {
@@ -1073,13 +1084,44 @@ $(document).ready(function () {
     }
   });
 
-  // function update_scene() {
-  //   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const perturbations = [-0.1, 0.2, -0.2, 0.2, -0.1];
+  function vibrate_agent_pos(agent, idx) {
+    if (agent.box != null) {
+      const pos = boxes[agent.box].get_coord();
+      const pos_v = [pos[0] + perturbations[idx], pos[1]];
+      boxes[agent.box].set_coord(pos_v);
+    }
+    else {
+      const pos = agent.get_coord();
+      const pos_v = [pos[0] + perturbations[idx], pos[1]];
+      agent.set_coord(pos_v);
+    }
+  }
 
-  //   draw_scene(app_running, selecting_latent);
+  let old_time_stamp = 0;
+  const update_duration = 100;
 
-  //   requestAnimFrame(update_scene);
-  // }
+  function update_scene(timestamp) {
+    const elapsed = timestamp - old_time_stamp;
+
+    if (elapsed > update_duration) {
+      old_time_stamp = timestamp;
+
+      if (failed_agent != null && failed_agent.length > 0) {
+        if (vib_count < perturbations.length) {
+          for (const agt of failed_agent) {
+            vibrate_agent_pos(agt, vib_count);
+          }
+          vib_count++;
+        }
+      }
+      draw_scene(app_running, selecting_latent, x_mouse, y_mouse);
+    }
+
+    requestAnimationFrame(update_scene);
+  }
+
+  requestAnimationFrame(update_scene);
 });
 
 

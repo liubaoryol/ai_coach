@@ -5,8 +5,13 @@ from flask_socketio import emit, disconnect
 from web_experiment import socketio
 from ai_coach_domain.box_push import BoxPushSimulator, EventType
 
-g_map_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator]
+g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator]
 EXP1_NAMESPACE = '/experiment1'
+
+ASK_LATENT = True
+NOT_ASK_LATENT = False
+SHOW_FAILURE = True
+NOT_SHOW_FAILURE = False
 
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)
@@ -55,16 +60,17 @@ def ping_pong():
 def test_disconnect():
   env_id = request.sid
   # finish current game
-  if env_id in g_map_id_2_game:
-    del g_map_id_2_game[env_id]
+  if env_id in g_id_2_game:
+    del g_id_2_game[env_id]
   print('Exp1 client disconnected', env_id)
 
 
 # socketio methods
-def update_html_canvas(objs, room_id, draw_overlay):
+def update_html_canvas(objs, room_id, ask_latent, show_failure):
+  objs["ask_latent"] = ask_latent
+  objs["show_failure"] = show_failure
   objs_json = json.dumps(objs)
-  str_emit = ('draw_canvas_with_overlay'
-              if draw_overlay else 'draw_canvas_without_overlay')
+  str_emit = 'draw_canvas'
   socketio.emit(str_emit, objs_json, room=room_id, namespace=EXP1_NAMESPACE)
 
 
@@ -77,16 +83,15 @@ def run_game(msg):
   env_id = request.sid
 
   # run a game
-  global g_map_id_2_game
-  if env_id not in g_map_id_2_game:
-    g_map_id_2_game[env_id] = BoxPushSimulator(env_id)
+  global g_id_2_game
+  if env_id not in g_id_2_game:
+    g_id_2_game[env_id] = BoxPushSimulator(env_id)
 
-  game = g_map_id_2_game[env_id]
+  game = g_id_2_game[env_id]
   dict_update = game.get_env_info()
   if dict_update is not None:
-    DRAW_OVERLAY = True
     session['action_count'] = 0
-    update_html_canvas(dict_update, env_id, DRAW_OVERLAY)
+    update_html_canvas(dict_update, env_id, ASK_LATENT, NOT_SHOW_FAILURE)
 
 
 @socketio.on('action_event', namespace=EXP1_NAMESPACE)
@@ -115,18 +120,21 @@ def on_key_down(msg):
     session['action_count'] = session.get('action_count', 0) + 1
     ASK_LATENT_FREQUENCY = 5
 
-    global g_map_id_2_game
-    game = g_map_id_2_game[env_id]
+    global g_id_2_game
+    game = g_id_2_game[env_id]
     game.event_input(BoxPushSimulator.AGENT1, action, None)
     map_agent2action = game.get_action()
     game.take_a_step(map_agent2action)
 
     if not game.is_finished():
       dict_update = game.get_changed_objects()
-      if dict_update is not None:
-        draw_overlay = (True if session['action_count'] > ASK_LATENT_FREQUENCY
-                        else False)
-        update_html_canvas(dict_update, env_id, draw_overlay)
+      if dict_update is None:
+        dict_update = {}
+
+      draw_overlay = (True if session['action_count'] >= ASK_LATENT_FREQUENCY
+                      else False)
+      SHOW_FAILURE = True
+      update_html_canvas(dict_update, env_id, draw_overlay, SHOW_FAILURE)
     else:
       game.reset_game()
       on_game_end(env_id)
@@ -137,11 +145,10 @@ def set_latent(msg):
   env_id = request.sid
   latent = msg["data"]
 
-  global g_map_id_2_game
-  game = g_map_id_2_game[env_id]
+  global g_id_2_game
+  game = g_id_2_game[env_id]
   game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, latent)
-  dict_update = game.get_changed_objects()
-  if dict_update is not None:
-    DONT_DRAW_OVERLAY = False
-    session['action_count'] = 0
-    update_html_canvas(dict_update, env_id, DONT_DRAW_OVERLAY)
+
+  dict_update = {}
+  session['action_count'] = 0
+  update_html_canvas(dict_update, env_id, NOT_ASK_LATENT, NOT_SHOW_FAILURE)

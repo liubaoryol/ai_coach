@@ -24,7 +24,8 @@ class BoxPushSimulator(Simulator):
     self.walls = [(X_GRID - 5, Y_GRID - 1 - i)
                   for i in range(5)] + [(X_GRID - 1 - i, Y_GRID - 5)
                                         for i in range(3)]
-    self.drops = [(X_GRID - 4, Y_GRID - 5)]
+    # self.drops = [(X_GRID - 4, Y_GRID - 5)]
+    self.drops = []
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
