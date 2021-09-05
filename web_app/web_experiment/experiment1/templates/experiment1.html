@@ -18,12 +18,20 @@
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1.js') }}"></script>
 <script type="text/javascript">
-  initImagePath("{{ url_for('exp1.static', filename='robot.png') }}",
-    "{{ url_for('exp1.static', filename='human.png') }}");
+  initImagePath(
+    "{{ url_for('exp1.static', filename='robot.svg') }}",
+    "{{ url_for('exp1.static', filename='human.svg') }}",
+    "{{ url_for('exp1.static', filename='box.svg') }}",
+    "{{ url_for('exp1.static', filename='wall.svg') }}",
+    "{{ url_for('exp1.static', filename='goal.svg') }}",
+    "{{ url_for('exp1.static', filename='both_box.svg') }}",
+    "{{ url_for('exp1.static', filename='human_box.svg') }}",
+    "{{ url_for('exp1.static', filename='robot_box.svg') }}",
+  );
   initCurUser("{{ cur_user }}");
 </script>
 
-<canvas id="myCanvas" width="800" height="500" style="border:1px solid #000000;" tabindex='1'>
+<canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 

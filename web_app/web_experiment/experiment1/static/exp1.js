@@ -4,17 +4,35 @@
 // global variables
 ///////////////////////////////////////////////////////////////////////////////
 var img_robot, img_human;
+var img_box, img_wall, img_goal;
+var img_both_box, img_human_box, img_robot_box;
 var user_id;
 var grid_x, grid_y, game_size;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Initialization methods
 ///////////////////////////////////////////////////////////////////////////////
-function initImagePath(src_robot, src_human) {
+function initImagePath(src_robot, src_human, src_box,
+  src_wall, src_goal, src_both_box, src_human_box, src_robot_box) {
   img_robot = new Image();
   img_robot.src = src_robot;
+
   img_human = new Image();
   img_human.src = src_human;
+
+  img_box = new Image();
+  img_box.src = src_box;
+
+  img_wall = new Image();
+  img_wall.src = src_wall;
+  img_goal = new Image();
+  img_goal.src = src_goal;
+  img_both_box = new Image();
+  img_both_box.src = src_both_box;
+  img_human_box = new Image();
+  img_human_box.src = src_human_box;
+  img_robot_box = new Image();
+  img_robot_box.src = src_robot_box;
 }
 
 function initCurUser(cur_user) {
@@ -29,6 +47,35 @@ function is_in_box(x_coord, y_coord, x_start, y_start, width, height) {
     (x_coord < x_start + width) &&
     (y_coord > y_start) &&
     (y_coord < y_start + height));
+}
+
+function draw_game_img_fixed_height(
+  context, img, x_center_g, baseline_g, height_g, rotate = false) {
+  const h_scr = conv_y(height_g);
+  const w_scr = h_scr * img.width / img.height;
+
+  const x_center_scr = conv_x(x_center_g);
+  const x_scr = x_center_scr - 0.5 * w_scr;
+  const y_baseline_scr = conv_y(baseline_g);
+  const y_scr = y_baseline_scr - h_scr;
+  if (rotate) {
+    // context.save();
+    context.setTransform(1, 0, 0, 1, x_center_scr, y_baseline_scr - 0.5 * h_scr);
+    context.rotate(0.5 * Math.PI);
+    context.drawImage(img, - 0.5 * w_scr, - 0.5 * h_scr, w_scr, h_scr);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  else {
+    context.drawImage(img, x_scr, y_scr, w_scr, h_scr);
+  }
+}
+
+function draw_game_img_fixed_width(context, img, x_center_g, baseline_g, width_g) {
+  const w_scr = conv_x(width_g);
+  const h_scr = w_scr * img.height / img.width;
+  const x_scr = conv_x(x_center_g) - 0.5 * w_scr;
+  const y_scr = conv_y(baseline_g) + h_scr;
+  context.drawImage(img, x_scr, y_scr, w_scr, h_scr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -286,10 +333,10 @@ class ButtonAction extends ButtonObject {
 class TextObject extends DrawingObject {
   constructor(x_left, y_top, width) {
     super();
-    this.text = "Instructions for each step will be shown here. Please click the \"Start\" button.";
+    this.text = "";
     this.font_size = 24;
     this.text_align = "left";
-    this.text_baseline = "bottom";
+    this.text_baseline = "top";
     this.x_left = x_left;
     this.y_top = y_top;
     this.width = width;
@@ -308,7 +355,21 @@ class TextObject extends DrawingObject {
     const max_char = Math.floor(this.width / font_width);
 
     let idx = 0;
-    let y_pos = this.y_top + this.font_size;
+    let x_pos = this.x_left;
+    if (this.text_align == "right") {
+      x_pos = this.x_left + this.width;
+    }
+    else if (this.text_align == "center") {
+      x_pos = this.x_left + this.width * 0.5;
+    }
+
+    let y_pos = this.y_top; // assume "top" as default
+    if (this.text_baseline == "middle") {
+      y_pos = this.y_top + this.font_size * 0.5;
+    }
+    else if (this.text_baseline == "bottom") {
+      y_pos = this.y_top + this.font_size;
+    }
     while (idx < num_word) {
       let str_draw = "";
       while (idx < num_word) {
@@ -330,14 +391,27 @@ class TextObject extends DrawingObject {
       }
 
       // if a word is too long, split it.
-      if (str_draw == "") {
+      if (str_draw == "" && idx < num_word) {
         str_draw = array_text[idx].slice(0, max_char);
         array_text[idx] = array_text[idx].slice(max_char);
       }
 
-      context.fillText(str_draw, this.x_left, y_pos);
+      context.fillText(str_draw, x_pos, y_pos);
       y_pos = y_pos + this.font_size;
     }
+  }
+}
+
+
+class TextScore extends TextObject {
+  constructor(x_left, y_top, width) {
+    super(x_left, y_top, width);
+    this.font_size = 24;
+    this.text_align = "right";
+  }
+
+  set_score(number) {
+    this.text = "Score: " + number.toString();
   }
 }
 
@@ -350,6 +424,10 @@ function conv_x(fX) {
 
 function conv_y(fY) {
   return Math.round(fY / grid_y * game_size);
+}
+
+function is_coord_equal(coord1, coord2) {
+  return coord1[0] == coord2[0] && coord1[1] == coord2[1];
 }
 
 class GameObject extends DrawingObject {
@@ -376,16 +454,19 @@ class GameObject extends DrawingObject {
 class Wall extends GameObject {
   constructor(x_g, y_g) {
     super(x_g, y_g);
+    this.dir = 0;
   }
 
   draw(context) {
     super.draw(context);
-    context.fillStyle = "Black";
-    const x_corner = conv_x(this.x_g);
-    const y_corner = conv_y(this.y_g);
-    const wdth = conv_x(1);
-    const hght = conv_y(1);
-    context.fillRect(x_corner, y_corner, wdth, hght);
+    if (this.dir == 0) {
+      draw_game_img_fixed_height(
+        context, img_wall, this.x_g + 0.5, this.y_g + 1, 1, true);
+    }
+    else {
+      draw_game_img_fixed_height(
+        context, img_wall, this.x_g + 0.5, this.y_g + 1, 1);
+    }
   }
 }
 
@@ -396,12 +477,9 @@ class Goal extends GameObject {
 
   draw(context) {
     super.draw(context);
-    context.fillStyle = "Gold";
-    const x_corner = conv_x(this.x_g);
-    const y_corner = conv_y(this.y_g);
-    const wdth = conv_x(1);
-    const hght = conv_y(1);
-    context.fillRect(x_corner, y_corner, wdth, hght);
+
+    draw_game_img_fixed_height(
+      context, img_goal, this.x_g + 0.5, this.y_g + 1 - 0.1, 0.8);
   }
 }
 
@@ -429,14 +507,15 @@ class BoxOrigin extends GameObject {
   draw(context) {
     super.draw(context);
     context.fillStyle = "Grey";
-    const x_corner = conv_x(this.x_g);
-    const y_corner = conv_y(this.y_g);
-    const wdth = conv_x(1);
-    const hght = conv_y(1);
-    context.fillRect(x_corner, y_corner, wdth, hght);
+    const x_cen = conv_x(this.x_g + 0.5);
+    const y_cen = conv_y(this.y_g + 1 - 0.3);
+    const rad_x = conv_x(0.4);
+    const rad_y = conv_y(0.2);
+    context.beginPath();
+    context.ellipse(x_cen, y_cen, rad_x, rad_y, 0, 0, 2 * Math.PI);
+    context.fill();
   }
 }
-
 
 class Box extends GameObject {
   constructor(x_g, y_g, state) {
@@ -450,42 +529,21 @@ class Box extends GameObject {
       return;
     }
 
-    {
-      context.fillStyle = "Sienna";
-      const mar = conv_x(0.1);
-      const x_corner = conv_x(this.x_g) + mar;
-      const y_corner = conv_y(this.y_g) + mar;
-      const wdth = conv_x(1) - 2 * mar;
-      const hght = conv_y(1) - 2 * mar;
-      context.fillRect(x_corner, y_corner, wdth, hght);
+    if (this.state == "box" || this.state == "drop") {
+      draw_game_img_fixed_height(
+        context, img_box, this.x_g + 0.5, this.y_g + 1 - 0.2, 0.6);
     }
-
-    if (this.state == "human") {
-      const x_h = conv_x(this.x_g + 0.5);
-      const y_h = conv_y(this.y_g);
-      const w_h = conv_x(0.5);
-      const h_h = conv_y(0.7);
-      context.drawImage(img_human, x_h, y_h, w_h, h_h);
+    else if (this.state == "human") {
+      draw_game_img_fixed_height(
+        context, img_human_box, this.x_g + 0.5, this.y_g + 1, 1);
     }
     else if (this.state == "robot") {
-      const x_r = conv_x(this.x_g);
-      const y_r = conv_y(this.x_g + 0.3);
-      const w_r = conv_x(0.5);
-      const h_r = conv_x(0.7);
-      context.drawImage(img_robot, x_r, y_r, w_r, h_r);
+      draw_game_img_fixed_height(
+        context, img_robot_box, this.x_g + 0.5, this.y_g + 1, 1);
     }
     else if (this.state == "both") {
-      const x_h = conv_x(this.x_g + 0.5);
-      const y_h = conv_y(this.y_g);
-      const w_h = conv_x(0.5);
-      const h_h = conv_y(0.7);
-      context.drawImage(img_human, x_h, y_h, w_h, h_h);
-
-      const x_r = conv_x(this.x_g);
-      const y_r = conv_y(this.x_g + 0.3);
-      const w_r = conv_x(0.5);
-      const h_r = conv_x(0.7);
-      context.drawImage(img_robot, x_r, y_r, w_r, h_r);
+      draw_game_img_fixed_height(
+        context, img_both_box, this.x_g + 0.5, this.y_g + 1, 1);
     }
   }
 }
@@ -495,6 +553,7 @@ class Agent extends GameObject {
     super(null, null);
     this.type = type;
     this.box = null;
+    this.latent = null;
   }
 
   draw(context) {
@@ -510,17 +569,14 @@ class Agent extends GameObject {
     }
 
     super.draw(context);
-    const mar_w = conv_x(0.25);
-    const mar_h = conv_x(0.15);
-    const x_l = conv_x(this.x_g) + mar_w;
-    const y_t = conv_y(this.y_g) + mar_h;
-    const wid = conv_x(1) - 2 * mar_w;
-    const hei = conv_y(1) - 2 * mar_h;
+
     if (this.type == "human") {
-      context.drawImage(img_human, x_l, y_t, wid, hei);
+      draw_game_img_fixed_height(
+        context, img_human, this.x_g + 0.5, this.y_g + 1, 1);
     }
     else {
-      context.drawImage(img_robot, x_l, y_t, wid, hei);
+      draw_game_img_fixed_height(
+        context, img_robot, this.x_g + 0.5, this.y_g + 1, 1);
     }
   }
 }
@@ -627,12 +683,12 @@ $(document).ready(function () {
   // initialize UI
   /////////////////////////////////////////////////////////////////////////////
   game_size = cnvs.height;
-  const start_btn_width = 200;
-  const start_btn_height = 60;
+  const start_btn_width = parseInt(game_size / 3);
+  const start_btn_height = parseInt(game_size / 10);
   const btnStart = new ButtonStart(game_size / 2, game_size / 2,
     start_btn_width, start_btn_height);
 
-  const ctrl_btn_w = 50;
+  const ctrl_btn_w = parseInt(game_size / 12);
   const x_ctrl_cen = game_size + (cnvs.width - game_size) / 2;
   const y_ctrl_cen = game_size * 3 / 4;
   var list_joy_btn = [];
@@ -662,7 +718,7 @@ $(document).ready(function () {
 
   const btnHold = new ButtonAction(
     x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen - ctrl_btn_w * 0.75,
-    ctrl_btn_w * 2, ctrl_btn_w, "Hold");
+    ctrl_btn_w * 2, ctrl_btn_w, "Pick Up");
 
   const btnDrop = new ButtonAction(
     x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen + ctrl_btn_w * 0.75,
@@ -670,6 +726,8 @@ $(document).ready(function () {
 
   const margin_inst = 10;
   const txtInstruction = new TextObject(game_size + margin_inst, margin_inst,
+    cnvs.width - game_size - 2 * margin_inst);
+  const txtScore = new TextScore(game_size + margin_inst, game_size * 0.5,
     cnvs.width - game_size - 2 * margin_inst);
 
   /////////////////////////////////////////////////////////////////////////////
@@ -706,6 +764,13 @@ $(document).ready(function () {
       walls = [];
       for (const coord of obj_json.walls) {
         walls.push(new Wall(coord[0], coord[1]));
+      }
+    }
+
+    if (walls != null && obj_json.hasOwnProperty("wall_dir")) {
+      const num_wall = walls.length;
+      for (let i = 0; i < num_wall; i++) {
+        walls[i].dir = obj_json.wall_dir[i];
       }
     }
 
@@ -755,41 +820,58 @@ $(document).ready(function () {
       agents[0].box = a1_box;
       agents[1].box = a2_box;
     }
+
+    if (obj_json.hasOwnProperty("a1_latent")) {
+      agents[0].latent = obj_json.a1_latent;
+    }
+
+    if (obj_json.hasOwnProperty("a2_latent")) {
+      agents[1].latent = obj_json.a2_latent;
+    }
   }
 
-  function set_overlay(is_selecting_latent, obj_json) {
+  function set_overlay(is_selecting_latent) {
     overlays = [];
     let idx = 0
     if (is_selecting_latent) {
-      if (boxes != null) {
-        const num_obj = boxes.length;
-        for (let i = 0; i < num_obj; i++) {
-          const obj = boxes[i];
-          if (obj.state != "goal") {
-            overlays.push(new SelectingOverlay(obj.x_g, obj.y_g, ["box", i], idx++));
+      const bidx = agents[0].box;
+      if (bidx == null) {
+        if (boxes != null) {
+          const num_obj = boxes.length;
+          for (let i = 0; i < num_obj; i++) {
+            const obj = boxes[i];
+            if (obj.state != "goal") {
+              overlays.push(new SelectingOverlay(obj.x_g, obj.y_g, ["box", i], idx++));
+            }
           }
         }
       }
-      if (goals != null) {
-        const num_obj = goals.length;
-        for (let i = 0; i < num_obj; i++) {
-          const obj = goals[i];
-          overlays.push(new SelectingOverlay(obj.x_g, obj.y_g, ["goal", i], idx++));
+      else {
+        if (box_origins != null) {
+          const obj = box_origins[bidx];
+          overlays.push(new SelectingOverlay(obj.x_g, obj.y_g, ["box", bidx], idx++));
         }
-      }
-      if (drops != null) {
-        const num_obj = drops.length;
-        for (let i = 0; i < num_obj; i++) {
-          const obj = drops[i];
-          overlays.push(new SelectingOverlay(obj.x_g, obj.y_g, ["drop", i], idx++));
+        if (goals != null) {
+          const num_obj = goals.length;
+          for (let i = 0; i < num_obj; i++) {
+            const obj = goals[i];
+            overlays.push(new SelectingOverlay(obj.x_g, obj.y_g, ["goal", i], idx++));
+          }
+        }
+        if (drops != null) {
+          const num_obj = drops.length;
+          for (let i = 0; i < num_obj; i++) {
+            const obj = drops[i];
+            overlays.push(new SelectingOverlay(obj.x_g, obj.y_g, ["drop", i], idx++));
+          }
         }
       }
     }
     else {
-      if (obj_json.hasOwnProperty("a1_latent")) {
-        const a1_latent = obj_json.a1_latent;
+      if ((agents[0].latent != null)) {
+        const a1_latent = agents[0].latent;
         if (a1_latent[0] == "box") {
-          const obj = boxes[a1_latent[1]];
+          const obj = box_origins[a1_latent[1]];
           overlays.push(new StaticOverlay(obj.x_g, obj.y_g));
         }
         else if (a1_latent[0] == "drop") {
@@ -921,8 +1003,6 @@ $(document).ready(function () {
         draw_ctrl_btn(true, x_cursor, y_cursor);
         draw_overlay(false, x_cursor, y_cursor);
       }
-      // draw instruction
-      txtInstruction.draw(ctx);
 
     }
     else {
@@ -930,9 +1010,11 @@ $(document).ready(function () {
       draw_by_mouse_over(btnStart, x_cursor, y_cursor);
       // draw ctrl buttons (inactive)
       draw_ctrl_btn(false);
-      // draw instruction
-      txtInstruction.draw(ctx);
     }
+    // draw instruction
+    txtInstruction.draw(ctx);
+    // draw score
+    txtScore.draw(ctx);
   }
 
   /////////////////////////////////////////////////////////////////////////////
@@ -942,6 +1024,7 @@ $(document).ready(function () {
   var selecting_latent = false;
   var x_mouse = -1;
   var y_mouse = -1;
+  var score = 0;
 
   // click event listener
   cnvs.addEventListener('click', onClick, true);
@@ -994,19 +1077,22 @@ $(document).ready(function () {
     y_mouse = event.offsetY;
   }
 
-  function disable_ctrl_btn(disable) {
+  function disable_ctrl_btn() {
     for (const btn of list_joy_btn) {
-      btn.disable = disable;
+      btn.disable = true;
     }
-    btnHold.disable = disable;
-    btnDrop.disable = disable;
+    btnHold.disable = true;
+    btnDrop.disable = true;
   }
+
+  // function disable_hold_drop_btn
 
   function reset_game_ui() {
     app_running = false;
     // disable and draw ctrl buttons
-    disable_ctrl_btn(true);
+    disable_ctrl_btn();
     txtInstruction.text = "Instructions for each step will be shown here. Please click the \"Start\" button.";
+    txtScore.set_score(score);
 
     // draw_scene(app_running, selecting_latent);
   }
@@ -1036,6 +1122,7 @@ $(document).ready(function () {
       show_failure = obj_json["show_failure"];
     }
 
+    // to find agents whose state is not changed -- before set_object
     let prev_a1_pos;
     let prev_a2_pos;
     let prev_a1_box;
@@ -1047,29 +1134,67 @@ $(document).ready(function () {
       prev_a2_box = agents[1].box;
     }
 
-    // set objects & overlays
+    // set objects
     set_objects(obj_json);
 
+    // to find agents whose state is not changed -- after set_object
     failed_agent = [];
     if (show_failure) {
       const a1_pos = agents[0].get_coord();
       const a2_pos = agents[1].get_coord();
       const a1_box = agents[0].box;
       const a2_box = agents[1].box;
-      if (prev_a1_pos[0] == a1_pos[0] && prev_a1_pos[1] == a1_pos[1] &&
-        prev_a1_box == a1_box) {
+      if (is_coord_equal(prev_a1_pos, a1_pos) && prev_a1_box == a1_box) {
         failed_agent.push(agents[0]);
       }
-      if (prev_a2_pos[0] == a2_pos[0] && prev_a2_pos[1] == a2_pos[1] &&
+      if (is_coord_equal(prev_a2_pos, a2_pos) &&
         prev_a2_box == a2_box) {
         failed_agent.push(agents[1]);
       }
     }
     vib_count = 0;
 
-    set_overlay(selecting_latent, obj_json);
+    // set overlay
+    set_overlay(selecting_latent);
     // ctrl buttons
-    disable_ctrl_btn(selecting_latent); // update_hold_btn();
+    if (selecting_latent) {
+      disable_ctrl_btn();
+    }
+    else {
+      for (const btn of list_joy_btn) {
+        btn.disable = false;
+      }
+
+      btnDrop.disable = true;
+      btnHold.disable = true;
+      const a1_pos = agents[0].get_coord();
+      const a1_box = agents[0].box;
+      if (a1_box != null) {
+        if (is_coord_equal(a1_pos, box_origins[a1_box].get_coord())) {
+          btnDrop.disable = false;
+        }
+        else if (boxes[a1_box].state == "both") {
+          btnDrop.disable = false;
+        }
+        else {
+          for (const obj of goals) {
+            if (is_coord_equal(a1_pos, obj.get_coord())) {
+              btnDrop.disable = false;
+              break;
+            }
+          }
+        }
+      }
+      else {
+        for (const obj of boxes) {
+          if (is_coord_equal(a1_pos, obj.get_coord()) && obj.state != "goal") {
+            btnHold.disable = false;
+            break;
+          }
+        }
+      }
+    }
+
     if (selecting_latent) {
       txtInstruction.text = "Please select your current destination (target) in your mind.";
     }

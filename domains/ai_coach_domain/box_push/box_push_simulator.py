@@ -12,6 +12,7 @@ class BoxPushSimulator(Simulator):
 
   def __init__(self, id: Hashable) -> None:
     super().__init__(id)
+    self.changed_state = []
 
   def _init_env(self, *args, **kwargs):
     self.reset_game()
@@ -24,6 +25,7 @@ class BoxPushSimulator(Simulator):
     self.walls = [(X_GRID - 5, Y_GRID - 1 - i)
                   for i in range(5)] + [(X_GRID - 1 - i, Y_GRID - 5)
                                         for i in range(3)]
+    self.wall_dir = [0 for i in range(5)] + [1 for i in range(3)]
     # self.drops = [(X_GRID - 4, Y_GRID - 5)]
     self.drops = []
 
@@ -61,6 +63,10 @@ class BoxPushSimulator(Simulator):
     self.a1_pos = a1_pos
     self.a2_pos = a2_pos
     self.box_states = box_states
+
+    self.changed_state.append("a1_pos")
+    self.changed_state.append("a2_pos")
+    self.changed_state.append("box_states")
 
   def reset_game(self):
     self.a1_pos = (BoxPushSimulator.X_GRID - 1, 0)
@@ -110,11 +116,13 @@ class BoxPushSimulator(Simulator):
         self.a1_action = event_type
       else:
         self.a1_latent = value
+        self.changed_state.append("a1_latent")
     elif agent == BoxPushSimulator.AGENT2:
       if event_type != EventType.SET_LATENT:
         self.a2_action = event_type
       else:
         self.a2_latent = value
+        self.changed_state.append("a2_latent")
 
   def get_action(self) -> Mapping[Hashable, Hashable]:
     map_a2a = {
@@ -134,6 +142,7 @@ class BoxPushSimulator(Simulator):
         "goals": self.goals,
         "drops": self.drops,
         "walls": self.walls,
+        "wall_dir": self.wall_dir,
         "a1_pos": self.a1_pos,
         "a2_pos": self.a2_pos,
         "a1_latent": self.a1_latent,
@@ -141,14 +150,17 @@ class BoxPushSimulator(Simulator):
     }
 
   def get_changed_objects(self):
-    return {
-        "box_states": self.box_states,
-        "a1_pos": self.a1_pos,
-        "a2_pos": self.a2_pos,
-        "a1_latent": self.a1_latent,
-        "a2_latent": self.a2_latent
-    }
-    # return self.get_env_info()
+    dict_changed_obj = {}
+    for state in self.changed_state:
+      dict_changed_obj[state] = getattr(self, state)
+    return dict_changed_obj
+    # return {
+    #     "box_states": self.box_states,
+    #     "a1_pos": self.a1_pos,
+    #     "a2_pos": self.a2_pos,
+    #     "a1_latent": self.a1_latent,
+    #     "a2_latent": self.a2_latent
+    # }
 
   def save_history(self):
     pass

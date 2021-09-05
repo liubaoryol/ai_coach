@@ -99,7 +99,6 @@ def on_key_down(msg):
   env_id = request.sid
 
   action = None
-
   action_name = msg["data"]
   if action_name == "Left":
     action = EventType.LEFT
@@ -109,7 +108,7 @@ def on_key_down(msg):
     action = EventType.UP
   elif action_name == "Down":
     action = EventType.DOWN
-  elif action_name == "Hold":
+  elif action_name == "Pick Up":
     action = EventType.HOLD
   elif action_name == "Drop":
     action = EventType.UNHOLD
@@ -149,6 +148,6 @@ def set_latent(msg):
   game = g_id_2_game[env_id]
   game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, latent)
 
-  dict_update = {}
+  dict_update = game.get_changed_objects()
   session['action_count'] = 0
   update_html_canvas(dict_update, env_id, NOT_ASK_LATENT, NOT_SHOW_FAILURE)
