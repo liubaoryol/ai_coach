@@ -9,3 +9,9 @@ def experiment():
   cur_user = g.user
   # print(cur_user)
   return render_template('experiment1.html', cur_user=cur_user)
+
+
+@exp1_bp.route('/tutorial', methods=('GET', 'POST'))
+@login_required
+def tutorial():
+  return render_template('tutorial.html')

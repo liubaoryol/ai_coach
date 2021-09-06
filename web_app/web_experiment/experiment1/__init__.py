@@ -10,4 +10,4 @@ exp1_bp = Blueprint('exp1',
                     static_folder='static',
                     static_url_path='/experiment1/static')
 
-from . import views, events  # noqa: E402, F401
+from . import views, events_exp1, events_tutorial  # noqa: E402, F401

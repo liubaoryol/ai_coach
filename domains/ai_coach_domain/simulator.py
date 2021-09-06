@@ -5,9 +5,8 @@ from typing import Mapping, Hashable, Callable
 class Simulator():
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, id: Hashable, *args, **kwargs) -> None:
+  def __init__(self, id: Hashable) -> None:
     self.id = id
-    self._init_env(args=args, kwargs=kwargs)
     # self.timer = None  # type: Timer
     # self.lock = Lock()
     self.history = []
@@ -88,7 +87,7 @@ class Simulator():
   #   raise NotImplementedError
 
   @abc.abstractmethod
-  def _init_env(self, *args, **kwargs):
+  def init_game(self, *args, **kwargs):
     raise NotImplementedError
 
   # def run_periodic_actions(self,

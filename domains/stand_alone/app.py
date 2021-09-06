@@ -4,6 +4,7 @@ from tkinter.filedialog import askopenfilename
 from ai_coach_domain.simulator import Simulator
 
 
+# TODO: game configuration ui / logic
 class AppInterface():
   def __init__(self) -> None:
     self.main_window = None
@@ -22,6 +23,11 @@ class AppInterface():
 
   def run(self):
     self.main_window.mainloop()
+
+  def _init_game(self):
+    'define game related variables and objects'
+    # self.game = Simulator()
+    pass
 
   def __init_window(self):
     self.main_window = tk.Tk()
@@ -180,10 +186,6 @@ class AppInterface():
     pass
 
   def _update_canvas_overlay(self):
-    pass
-
-  def _init_game(self):
-    # self.game = Simulator()
     pass
 
   def _on_game_end(self):

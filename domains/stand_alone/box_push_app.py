@@ -8,6 +8,14 @@ class BoxPushApp(AppInterface):
   def __init__(self) -> None:
     super().__init__()
 
+  def _init_game(self):
+    'define game related variables and objects'
+    GAME_ENV_ID = 0
+    self.x_grid = 10
+    self.y_grid = 10
+    self.game = BoxPushSimulator(GAME_ENV_ID)
+    self.game.init_game_with_test_map(self.x_grid, self.y_grid)
+
   def _init_gui(self):
     self.main_window.title("Box Push")
     self.canvas_width = 300
@@ -60,8 +68,8 @@ class BoxPushApp(AppInterface):
     # a1_latent = data["a1_latent"]
     # a2_latent = data["a2_latent"]
 
-    x_unit = int(self.canvas_width / BoxPushSimulator.X_GRID)
-    y_unit = int(self.canvas_height / BoxPushSimulator.Y_GRID)
+    x_unit = int(self.canvas_width / self.x_grid)
+    y_unit = int(self.canvas_height / self.y_grid)
 
     self.clear_canvas()
     for coord in boxes:
@@ -127,10 +135,6 @@ class BoxPushApp(AppInterface):
 
   def _update_canvas_overlay(self):
     pass
-
-  def _init_game(self):
-    GAME_ENV_ID = 0
-    self.game = BoxPushSimulator(GAME_ENV_ID)
 
   def _on_game_end(self):
     self.game.reset_game()

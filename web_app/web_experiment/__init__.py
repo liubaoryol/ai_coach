@@ -48,13 +48,11 @@ def create_app(debug=False, test_config=None):
   from web_experiment.consent import consent_bp
   from web_experiment.auth import auth_bp
   from web_experiment.survey import survey_bp
-  from web_experiment.instruction import inst_bp
   from web_experiment.experiment1 import exp1_bp
   from web_experiment.experiment2 import exp2_bp
   app.register_blueprint(consent_bp)
   app.register_blueprint(auth_bp)
   app.register_blueprint(survey_bp)
-  app.register_blueprint(inst_bp)
   app.register_blueprint(exp1_bp)
   app.register_blueprint(exp2_bp)
 

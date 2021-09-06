@@ -1,29 +1,63 @@
-from typing import Hashable, Mapping
+from typing import Hashable, Mapping, Tuple, Sequence
 import numpy as np
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.box_push.box_push_helper import EventType, transition
 
+Coord = Tuple[int, int]
+
 
 class BoxPushSimulator(Simulator):
-  X_GRID = 10
-  Y_GRID = 10
   AGENT1 = 0
   AGENT2 = 1
 
   def __init__(self, id: Hashable) -> None:
     super().__init__(id)
-    self.changed_state = []
 
-  def _init_env(self, *args, **kwargs):
+  def init_game(self,
+                x_grid: Coord,
+                y_grid: Coord,
+                boxes: Sequence[Coord] = [],
+                goals: Sequence[Coord] = [],
+                walls: Sequence[Coord] = [],
+                wall_dir: Sequence[int] = [],
+                drops: Sequence[Coord] = []):
+    self.x_grid = x_grid
+    self.y_grid = y_grid
+    self.boxes = boxes
+    self.goals = goals
+    self.walls = walls
+    self.wall_dir = wall_dir
+    self.drops = drops
+
     self.reset_game()
 
+  def init_game_with_test_map(self, x_grid, y_grid):
+    boxes = [(1, 3), (2, 5), (4, 2)]
+    goals = [(x_grid - 1, y_grid - 1)]
+    walls = [(x_grid - 5, y_grid - 1 - i)
+             for i in range(5)] + [(x_grid - 1 - i, y_grid - 5)
+                                   for i in range(3)]
+    wall_dir = [0 for i in range(5)] + [1 for i in range(3)]
+    drops = []
+
+    self.init_game(x_grid, y_grid, boxes, goals, walls, wall_dir, drops)
+
+  def reset_game(self):
+    self.a1_pos = (self.x_grid - 1, 0)
+    self.a2_pos = (0, self.y_grid - 1)
+    # starts with their original locations
+    self.box_states = [0] * len(self.boxes)
+    self.a1_action = None
+    self.a2_action = None
+    self.a1_latent = None
+    self.a2_latent = None
+    self.changed_state = []
+
   def _generate_map(self):
-    X_GRID = BoxPushSimulator.X_GRID
-    Y_GRID = BoxPushSimulator.Y_GRID
     self.boxes = [(1, 3), (2, 5), (4, 2)]
-    self.goals = [(X_GRID - 1, Y_GRID - 1)]
-    self.walls = [(X_GRID - 5, Y_GRID - 1 - i)
-                  for i in range(5)] + [(X_GRID - 1 - i, Y_GRID - 5)
+    self.goals = [(self.x_grid - 1, self.y_grid - 1)]
+    self.walls = [(self.x_grid - 5, self.y_grid - 1 - i)
+                  for i in range(5)] + [(self.x_grid - 1 - i, self.y_grid - 5)
                                         for i in range(3)]
     self.wall_dir = [0 for i in range(5)] + [1 for i in range(3)]
     # self.drops = [(X_GRID - 4, Y_GRID - 5)]
@@ -51,8 +85,7 @@ class BoxPushSimulator(Simulator):
 
     list_next_env = transition(self.box_states, self.a1_pos, self.a2_pos,
                                a1_action, a2_action, self.boxes, self.goals,
-                               self.walls, self.drops, BoxPushSimulator.X_GRID,
-                               BoxPushSimulator.Y_GRID)
+                               self.walls, self.drops, self.x_grid, self.y_grid)
 
     list_prop = []
     for item in list_next_env:
@@ -67,17 +100,6 @@ class BoxPushSimulator(Simulator):
     self.changed_state.append("a1_pos")
     self.changed_state.append("a2_pos")
     self.changed_state.append("box_states")
-
-  def reset_game(self):
-    self.a1_pos = (BoxPushSimulator.X_GRID - 1, 0)
-    self.a2_pos = (0, BoxPushSimulator.Y_GRID - 1)
-    self._generate_map()
-    # starts with their original locations
-    self.box_states = [0] * len(self.boxes)
-    self.a1_action = None
-    self.a2_action = None
-    self.a1_latent = None
-    self.a2_latent = None
 
   def get_num_box_state(self):
     '''
