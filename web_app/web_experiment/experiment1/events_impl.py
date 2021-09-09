@@ -81,7 +81,16 @@ def run_game(msg,
     id_2_game[env_id] = BoxPushSimulator(env_id)
 
   game = id_2_game[env_id]
-  game.init_game_with_test_map(grid_x, grid_y)
+  if len(game_map) != 0:
+    game.init_game(grid_x,
+                   grid_y,
+                   boxes=game_map["boxes"],
+                   goals=game_map["goals"],
+                   walls=game_map["walls"],
+                   wall_dir=game_map["wall_dir"],
+                   drops=game_map["drops"])
+  else:
+    game.init_game_with_test_map(grid_x, grid_y)
   dict_update = game.get_env_info()
   if dict_update is not None:
     session['action_count'] = 0
@@ -126,7 +135,6 @@ def on_key_down(msg, name_space, id_2_game: Mapping[Hashable,
 
       draw_overlay = (True if session['action_count'] >= ASK_LATENT_FREQUENCY
                       else False)
-      SHOW_FAILURE = True
       update_html_canvas(dict_update, env_id, draw_overlay, SHOW_FAILURE,
                          name_space)
     else:

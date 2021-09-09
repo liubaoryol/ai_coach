@@ -16,9 +16,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='methods.js') }}"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1.js') }}"></script>
 <script type="text/javascript">
-  initImagePath(
+  initImagePathCurUser(
     "{{ url_for('exp1.static', filename='robot.svg') }}",
     "{{ url_for('exp1.static', filename='human.svg') }}",
     "{{ url_for('exp1.static', filename='box.svg') }}",
@@ -27,8 +28,7 @@
     "{{ url_for('exp1.static', filename='both_box.svg') }}",
     "{{ url_for('exp1.static', filename='human_box.svg') }}",
     "{{ url_for('exp1.static', filename='robot_box.svg') }}",
-  );
-  initCurUser("{{ cur_user }}");
+    "{{ cur_user }}");
 </script>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>

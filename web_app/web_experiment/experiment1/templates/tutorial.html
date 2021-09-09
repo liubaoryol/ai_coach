@@ -7,14 +7,40 @@
 {% endblock %}
 
 {% block content %}
+<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+  crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+  integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+  crossorigin="anonymous"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='methods.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='tutorial_classes.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='tutorial.js') }}"></script>
+<script type="text/javascript">
+  initImagePathCurUser(
+    "{{ url_for('exp1.static', filename='robot.svg') }}",
+    "{{ url_for('exp1.static', filename='human.svg') }}",
+    "{{ url_for('exp1.static', filename='box.svg') }}",
+    "{{ url_for('exp1.static', filename='wall.svg') }}",
+    "{{ url_for('exp1.static', filename='goal.svg') }}",
+    "{{ url_for('exp1.static', filename='both_box.svg') }}",
+    "{{ url_for('exp1.static', filename='human_box.svg') }}",
+    "{{ url_for('exp1.static', filename='robot_box.svg') }}",
+    "{{ cur_user }}");
+</script>
+
 <div class="explanation">
   <li> This experiment consists of two different mini games.</li>
+
   <li> Main goal of this experiment is to build human models that are supposed to depend on mental states (e.g.
     objective or situation awareness) </li>
   <li> ... and more instructions ...</li>
   <li> ... Tutorial...</li>
   <li> ... video or gif ...</li>
 </div>
+
+<canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
+  Your browser does not support the HTML5 canvas tag.
+</canvas>
 
 <!-- <div class="button-center">
 <form action="{{ url_for('survey.preexperiment') }}">
