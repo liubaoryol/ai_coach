@@ -815,17 +815,28 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
   else {
     if (game_obj.agents[0].latent != null) {
       const a1_latent = game_obj.agents[0].latent;
-      if (a1_latent[0] == "box") {
-        const obj = game_obj.box_origins[a1_latent[1]];
-        game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+      const bidx = game_obj.agents[0].box;
+      // holding a box --> latent should be dropping locations
+      if (bidx != null) {
+        if (a1_latent[0] == "box") {
+          const obj = game_obj.box_origins[a1_latent[1]];
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+        }
+        else if (a1_latent[0] == "drop") {
+          const obj = game_obj.drops[a1_latent[1]];
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+        }
+        else if (a1_latent[0] == "goal") {
+          const obj = game_obj.goals[a1_latent[1]];
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+        }
       }
-      else if (a1_latent[0] == "drop") {
-        const obj = game_obj.drops[a1_latent[1]];
-        game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
-      }
-      else if (a1_latent[0] == "goal") {
-        const obj = game_obj.goals[a1_latent[1]];
-        game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+      // not holding a box --> latent should be a box
+      else {
+        if (a1_latent[0] == "box") {
+          const obj = game_obj.boxes[a1_latent[1]];
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+        }
       }
     }
   }
@@ -851,27 +862,43 @@ function set_action_btn_disable(is_selecting_latent, game_obj, control_ui) {
 
     const a1_pos = game_obj.agents[0].get_coord();
     const a1_box = game_obj.agents[0].box;
+    const a1_latent = game_obj.agents[0].latent;
+    // if the agent is holding a box, set drop button availability
     if (a1_box != null) {
-      if (is_coord_equal(a1_pos, game_obj.box_origins[a1_box].get_coord())) {
-        control_ui.btn_drop.disable = false;
-      }
-      else if (game_obj.boxes[a1_box].state == "both") {
+      if (game_obj.boxes[a1_box].state == "both") {
         control_ui.btn_drop.disable = false;
       }
       else {
-        for (const obj of game_obj.goals) {
-          if (is_coord_equal(a1_pos, obj.get_coord())) {
+        if (a1_latent != null) {
+          if (a1_latent[0] == "box" &&
+            is_coord_equal(a1_pos, game_obj.box_origins[a1_box].get_coord())) {
             control_ui.btn_drop.disable = false;
-            break;
+          }
+          else {
+            const num_obj = game_obj.goals.length;
+            for (let i = 0; i < num_obj; i++) {
+              const obj = game_obj.goals[i];
+              if (a1_latent[0] == "goal" && a1_latent[1] == i &&
+                is_coord_equal(a1_pos, obj.get_coord())) {
+                control_ui.btn_drop.disable = false;
+                break;
+              }
+            }
           }
         }
       }
     }
+    // if the agent doesn't have a box, set pickup button availability
     else {
-      for (const obj of game_obj.boxes) {
-        if (is_coord_equal(a1_pos, obj.get_coord()) && obj.state != "goal") {
-          control_ui.btn_hold.disable = false;
-          break;
+      if (a1_latent != null) {
+        const num_obj = game_obj.boxes.length;
+        for (let i = 0; i < num_obj; i++) {
+          const obj = game_obj.boxes[i];
+          if (a1_latent[0] == "box" && a1_latent[1] == i &&
+            is_coord_equal(a1_pos, obj.get_coord()) && obj.state != "goal") {
+            control_ui.btn_hold.disable = false;
+            break;
+          }
         }
       }
     }
@@ -976,8 +1003,7 @@ function draw_game(context, game_obj, control_ui, global_object,
   }
 }
 
-
-class PageSpotlight {
+class PageBasic {
   // class for a page with the spotlight method
   // a page can have its own control ui and overlays
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
@@ -991,42 +1017,27 @@ class PageSpotlight {
     this.canvas = canvas;
     this.socket = socket;
 
-    this.x_cen = null;
-    this.y_cen = null;
-    this.radius = null;
+    this.draw_frame = true;
   }
 
   init_page() { }
 
   draw_page(context, mouse_x, mouse_y) {
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    this._draw_pre_spotlight(context, mouse_x, mouse_y);
-
-    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
-      context.save();
+    if (this.draw_frame) {
+      context.strokeStyle = "black";
       context.beginPath();
-      context.rect(0, 0, this.canvas.width, this.canvas.height);
-      context.arc(this.x_cen, this.y_cen, this.radius, 0, Math.PI * 2, true);
-      context.clip();
-      context.globalAlpha = 0.3;
-      context.fillStyle = "gray";
-      context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      context.restore();
+      context.moveTo(this.global_object.game_size, 0);
+      context.lineTo(this.global_object.game_size, this.global_object.game_size);
+      context.stroke();
     }
 
-    this._draw_post_spotlight(context, mouse_x, mouse_y);
+    this._draw_game(context, mouse_x, mouse_y);
+    this._draw_overlay(context, mouse_x, mouse_y);
   }
 
-  _draw_pre_spotlight(context, mouse_x, mouse_y) {
-    context.strokeStyle = "black";
-    context.beginPath();
-    context.moveTo(this.global_object.game_size, 0);
-    context.lineTo(this.global_object.game_size, this.global_object.game_size);
-    context.stroke();
-  }
-
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
+  _draw_game(context, mouse_x, mouse_y) { }
+  _draw_overlay(context, mouse_x, mouse_y) {
     const margin = 5;
     const x_left = this.global_object.game_size + margin;
     const y_top = margin;
@@ -1034,7 +1045,6 @@ class PageSpotlight {
     const hei = this.canvas.height * 0.55;
     context.fillStyle = "white";
     context.fillRect(x_left, y_top, wid, hei);
-
     this.ctrl_ui.lbl_instruction.draw(context);
   }
 
@@ -1045,7 +1055,7 @@ class PageSpotlight {
   }
 }
 
-class PageExperimentHome extends PageSpotlight {
+class PageExperimentHome extends PageBasic {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
@@ -1063,9 +1073,8 @@ class PageExperimentHome extends PageSpotlight {
       "Please click the \"Start\" button.";
   }
 
-  _draw_pre_spotlight(context, mouse_x, mouse_y) {
-    super._draw_pre_spotlight(context, mouse_x, mouse_y);
-
+  _draw_game(context, mouse_x, mouse_y) {
+    super._draw_game(context, mouse_x, mouse_y);
     draw_with_mouse_move(context, this.ctrl_ui.btn_start, mouse_x, mouse_y);
     draw_action_btn(context, this.ctrl_ui, mouse_x, mouse_y);
     this.ctrl_ui.lbl_score.draw(context);
@@ -1082,11 +1091,10 @@ class PageExperimentHome extends PageSpotlight {
   }
 }
 
-class PageDuringGame extends PageSpotlight {
+class PageDuringGame extends PageBasic {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.is_selecting_latent = false;
-    this.instruction = "Please take an action.";
   }
 
   init_page() {
@@ -1107,15 +1115,18 @@ class PageDuringGame extends PageSpotlight {
     }
   }
 
-  _draw_pre_spotlight(context, mouse_x, mouse_y) {
-    super._draw_pre_spotlight(context, mouse_x, mouse_y);
-
+  _draw_game(context, mouse_x, mouse_y) {
+    super._draw_game(context, mouse_x, mouse_y);
+    // draw scene
     draw_game_scene(context, this.game_obj);
+
+    // draw UI
     draw_action_btn(context, this.ctrl_ui, mouse_x, mouse_y);
     draw_game_overlay(context, global_object.game_size, this.game_obj,
       this.is_selecting_latent, mouse_x, mouse_y);
     this.ctrl_ui.lbl_score.draw(context);
   }
+
 
   on_click(context, mouse_x, mouse_y) {
     if (this.is_selecting_latent) {
@@ -1155,6 +1166,7 @@ class PageDuringGame extends PageSpotlight {
     if (changed_obj.hasOwnProperty("ask_latent")) {
       this.is_selecting_latent = changed_obj["ask_latent"];
     }
+
     this._set_instruction();
     set_overlay(this.is_selecting_latent, this.game_obj, this.global_object);
     set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
@@ -1165,5 +1177,67 @@ function go_to_next_page(global_object) {
   if (global_object.cur_page_idx + 1 < global_object.page_list.length) {
     global_object.cur_page_idx++;
     global_object.page_list[global_object.cur_page_idx].init_page();
+  }
+}
+
+function draw_spotlight(context, canvas, x_cen, y_cen, radius, color, alpha) {
+  context.save();
+  context.beginPath();
+  context.rect(0, 0, canvas.width, canvas.height);
+  context.arc(x_cen, y_cen, radius, 0, Math.PI * 2, true);
+  context.clip();
+  context.globalAlpha = alpha;
+  context.fillStyle = color;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.restore();
+}
+
+class PageHomeTutorial extends PageExperimentHome {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.x_cen = null;
+    this.y_cen = null;
+    this.radius = null;
+  }
+
+  _draw_overlay(context, mouse_x, mouse_y) {
+    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
+      draw_spotlight(context, this.canvas, this.x_cen, this.y_cen, this.radius,
+        "gray", 0.3);
+    }
+
+    const margin = 5;
+    const x_left = this.global_object.game_size + margin;
+    const y_top = margin;
+    const wid = this.canvas.width - margin - x_left;
+    const hei = this.canvas.height * 0.55;
+    context.fillStyle = "white";
+    context.fillRect(x_left, y_top, wid, hei);
+
+    super._draw_overlay(context, mouse_x, mouse_y);
+
+    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
+  }
+}
+
+class PageGameTutorial extends PageDuringGame {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.x_cen = null;
+    this.y_cen = null;
+    this.radius = null;
+  }
+
+  _draw_overlay(context, mouse_x, mouse_y) {
+    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
+      draw_spotlight(context, this.canvas, this.x_cen, this.y_cen, this.radius,
+        "gray", 0.3);
+    }
+
+    super._draw_overlay(context, mouse_x, mouse_y);
+
+    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
   }
 }

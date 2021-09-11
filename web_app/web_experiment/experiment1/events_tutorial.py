@@ -1,4 +1,5 @@
 from typing import Mapping, Hashable
+import copy
 from flask import request
 from ai_coach_domain.box_push import (BoxPushSimulator, EventType, BoxState,
                                       conv_box_state_2_idx)
@@ -65,13 +66,11 @@ def run_game(msg):
 
   if dict_update is not None:
     event_impl.update_html_canvas(dict_update, env_id,
-                                  event_impl.NOT_ASK_LATENT,
-                                  event_impl.NOT_SHOW_FAILURE,
-                                  EXP1_TUT_NAMESPACE)
+                                  event_impl.NOT_ASK_LATENT, EXP1_TUT_NAMESPACE)
 
 
 @socketio.on('action_event', namespace=EXP1_TUT_NAMESPACE)
-def on_key_down(msg):
+def action_event(msg):
   env_id = request.sid
 
   action = None
@@ -93,6 +92,9 @@ def on_key_down(msg):
 
   if action:
     game = g_id_2_game[env_id]
+
+    dict_env_prev = copy.deepcopy(game.get_env_info())
+
     game.event_input(BoxPushSimulator.AGENT1, action, None)
     map_agent2action = game.get_action()
     game.take_a_step(map_agent2action)
@@ -104,9 +106,22 @@ def on_key_down(msg):
     if dict_update is None:
       dict_update = {}
 
+    a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed = (
+        event_impl.are_agent_states_changed(dict_env_prev, dict_update))
+    unchanged_agents = []
+    if not a1_pos_changed and not a1_hold_changed:
+      unchanged_agents.append(0)
+    if not a2_pos_changed and not a2_hold_changed:
+      unchanged_agents.append(1)
+
+    dict_update["unchanged_agents"] = unchanged_agents
+
+    if a1_hold_changed:
+      game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, None)
+      dict_update["a1_latent"] = None
+
     event_impl.update_html_canvas(dict_update, env_id,
-                                  event_impl.NOT_ASK_LATENT,
-                                  event_impl.SHOW_FAILURE, EXP1_TUT_NAMESPACE)
+                                  event_impl.NOT_ASK_LATENT, EXP1_TUT_NAMESPACE)
 
 
 @socketio.on('set_latent', namespace=EXP1_TUT_NAMESPACE)
@@ -119,7 +134,7 @@ def set_latent(msg):
 
   dict_update = game.get_changed_objects()
   event_impl.update_html_canvas(dict_update, env_id, event_impl.NOT_ASK_LATENT,
-                                event_impl.NOT_SHOW_FAILURE, EXP1_TUT_NAMESPACE)
+                                EXP1_TUT_NAMESPACE)
 
 
 @socketio.on('help_teammate', namespace=EXP1_TUT_NAMESPACE)
@@ -154,6 +169,4 @@ def help_teammate(msg):
 
   if dict_update is not None:
     event_impl.update_html_canvas(dict_update, env_id,
-                                  event_impl.NOT_ASK_LATENT,
-                                  event_impl.NOT_SHOW_FAILURE,
-                                  EXP1_TUT_NAMESPACE)
+                                  event_impl.NOT_ASK_LATENT, EXP1_TUT_NAMESPACE)

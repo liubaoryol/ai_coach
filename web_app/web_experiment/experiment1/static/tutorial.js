@@ -82,7 +82,6 @@ $(document).ready(function () {
   /////////////////////////////////////////////////////////////////////////////
   var x_mouse = -1;
   var y_mouse = -1;
-  var score = 0;
 
   // click event listener
   cnvs.addEventListener('click', onClick, true);
@@ -110,47 +109,25 @@ $(document).ready(function () {
   });
 
 
-  var failed_agent = null;
+  game_obj.score = 0;
+
+  let unchanged_agents = null;
   let vib_count = 0;
   // latent selection
   socket.on('draw_canvas', function (json_msg) {
     const obj_json = JSON.parse(json_msg);
 
-    let show_failure = false;
-    if (obj_json.hasOwnProperty("show_failure")) {
-      show_failure = obj_json["show_failure"];
-    }
-
-    // to find agents whose state is not changed -- before set_object
-    let prev_a1_pos;
-    let prev_a2_pos;
-    let prev_a1_box;
-    let prev_a2_box;
-    if (show_failure) {
-      prev_a1_pos = game_obj.agents[0].get_coord();
-      prev_a1_box = game_obj.agents[0].box;
-      prev_a2_pos = game_obj.agents[1].get_coord();
-      prev_a2_box = game_obj.agents[1].box;
-    }
-
     // set objects
     update_game_objects(obj_json, game_obj, global_object);
 
+    // update page
     global_object.page_list[global_object.cur_page_idx].on_data_update(obj_json);
 
     // to find agents whose state is not changed -- after set_object
-    failed_agent = [];
-    if (show_failure) {
-      const a1_pos = game_obj.agents[0].get_coord();
-      const a2_pos = game_obj.agents[1].get_coord();
-      const a1_box = game_obj.agents[0].box;
-      const a2_box = game_obj.agents[1].box;
-      if (is_coord_equal(prev_a1_pos, a1_pos) && prev_a1_box == a1_box) {
-        failed_agent.push(game_obj.agents[0]);
-      }
-      if (is_coord_equal(prev_a2_pos, a2_pos) &&
-        prev_a2_box == a2_box) {
-        failed_agent.push(game_obj.agents[1]);
+    unchanged_agents = [];
+    if (obj_json.hasOwnProperty("unchanged_agents")) {
+      for (const idx of obj_json.unchanged_agents) {
+        unchanged_agents.push(game_obj.agents[idx]);
       }
     }
     vib_count = 0;
@@ -171,17 +148,16 @@ $(document).ready(function () {
   }
 
   let old_time_stamp = 0;
-  const update_duration = 100;
-
+  const update_duration = 50;
   function update_scene(timestamp) {
     const elapsed = timestamp - old_time_stamp;
 
     if (elapsed > update_duration) {
       old_time_stamp = timestamp;
 
-      if (failed_agent != null && failed_agent.length > 0) {
+      if (unchanged_agents != null && unchanged_agents.length > 0) {
         if (vib_count < perturbations.length) {
-          for (const agt of failed_agent) {
+          for (const agt of unchanged_agents) {
             vibrate_agent_pos(agt, vib_count);
           }
           vib_count++;

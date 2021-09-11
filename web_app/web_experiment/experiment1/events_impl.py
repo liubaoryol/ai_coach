@@ -2,7 +2,8 @@ from typing import Mapping, Hashable
 import json
 from flask import session, request, copy_current_request_context
 from flask_socketio import emit, disconnect
-from ai_coach_domain.box_push import BoxPushSimulator, EventType
+from ai_coach_domain.box_push import (BoxPushSimulator, BoxState,
+                                      conv_box_idx_2_state)
 from web_experiment import socketio
 
 ASK_LATENT = True
@@ -56,9 +57,8 @@ def test_disconnect(id_2_game: Mapping[Hashable, BoxPushSimulator]):
 
 
 # socketio methods
-def update_html_canvas(objs, room_id, ask_latent, show_failure, name_space):
+def update_html_canvas(objs, room_id, ask_latent, name_space):
   objs["ask_latent"] = ask_latent
-  objs["show_failure"] = show_failure
   objs_json = json.dumps(objs)
   str_emit = 'draw_canvas'
   socketio.emit(str_emit, objs_json, room=room_id, namespace=name_space)
@@ -68,88 +68,56 @@ def on_game_end(room_id, name_space):
   socketio.emit('game_end', room=room_id, namespace=name_space)
 
 
-def run_game(msg,
-             name_space,
-             id_2_game: Mapping[Hashable, BoxPushSimulator],
-             grid_x,
-             grid_y,
-             game_map={}):
-  env_id = request.sid
+def are_agent_states_changed(dict_env_prev, dict_updated):
+  KEY_A1_POS = "a1_pos"
+  KEY_A2_POS = "a2_pos"
+  KEY_BOX_STATES = "box_states"
+  num_drops = len(dict_env_prev["drops"])
+  num_goals = len(dict_env_prev["goals"])
 
-  # run a game
-  if env_id not in id_2_game:
-    id_2_game[env_id] = BoxPushSimulator(env_id)
+  a1_pos_changed = False
+  a2_pos_changed = False
+  if KEY_A1_POS in dict_updated:
+    if dict_env_prev[KEY_A1_POS] != dict_updated[KEY_A1_POS]:
+      a1_pos_changed = True
 
-  game = id_2_game[env_id]
-  if len(game_map) != 0:
-    game.init_game(grid_x,
-                   grid_y,
-                   boxes=game_map["boxes"],
-                   goals=game_map["goals"],
-                   walls=game_map["walls"],
-                   wall_dir=game_map["wall_dir"],
-                   drops=game_map["drops"])
-  else:
-    game.init_game_with_test_map(grid_x, grid_y)
-  dict_update = game.get_env_info()
-  if dict_update is not None:
-    session['action_count'] = 0
-    update_html_canvas(dict_update, env_id, ASK_LATENT, NOT_SHOW_FAILURE,
-                       name_space)
+  if KEY_A2_POS in dict_updated:
+    if dict_env_prev[KEY_A2_POS] != dict_updated[KEY_A2_POS]:
+      a2_pos_changed = True
 
+  a1_box_changed = False
+  a2_box_changed = False
+  if KEY_BOX_STATES in dict_updated:
+    box_states_prev = dict_env_prev[KEY_BOX_STATES]
+    a1_box_prev = False
+    a2_box_prev = False
+    for idx in range(len(box_states_prev)):
+      state = conv_box_idx_2_state(box_states_prev[idx], num_drops, num_goals)
+      if state[0] == BoxState.WithAgent1:  # with a1
+        a1_box_prev = True
+      elif state[0] == BoxState.WithAgent2:  # with a2
+        a2_box_prev = True
+      elif state[0] == BoxState.WithBoth:  # with both
+        a1_box_prev = True
+        a2_box_prev = True
 
-def on_key_down(msg, name_space, id_2_game: Mapping[Hashable,
-                                                    BoxPushSimulator]):
-  env_id = request.sid
+    box_states = dict_updated[KEY_BOX_STATES]
+    a1_box = False
+    a2_box = False
+    for idx in range(len(box_states)):
+      state = conv_box_idx_2_state(box_states[idx], num_drops, num_goals)
+      if state[0] == BoxState.WithAgent1:  # with a1
+        a1_box = True
+      elif state[0] == BoxState.WithAgent2:  # with a2
+        a2_box = True
+      elif state[0] == BoxState.WithBoth:  # with both
+        a1_box = True
+        a2_box = True
 
-  action = None
-  action_name = msg["data"]
-  if action_name == "Left":
-    action = EventType.LEFT
-  elif action_name == "Right":
-    action = EventType.RIGHT
-  elif action_name == "Up":
-    action = EventType.UP
-  elif action_name == "Down":
-    action = EventType.DOWN
-  elif action_name == "Pick Up":
-    action = EventType.HOLD
-  elif action_name == "Drop":
-    action = EventType.UNHOLD
-  elif action_name == "Stay":
-    action = EventType.STAY
+    if a1_box_prev != a1_box:
+      a1_box_changed = True
 
-  if action:
-    game = id_2_game[env_id]
-    game.event_input(BoxPushSimulator.AGENT1, action, None)
-    map_agent2action = game.get_action()
-    game.take_a_step(map_agent2action)
+    if a2_box_prev != a2_box:
+      a2_box_changed = True
 
-    if not game.is_finished():
-      dict_update = game.get_changed_objects()
-      if dict_update is None:
-        dict_update = {}
-
-      session['action_count'] = session.get('action_count', 0) + 1
-      ASK_LATENT_FREQUENCY = 5
-
-      draw_overlay = (True if session['action_count'] >= ASK_LATENT_FREQUENCY
-                      else False)
-      update_html_canvas(dict_update, env_id, draw_overlay, SHOW_FAILURE,
-                         name_space)
-    else:
-      game.reset_game()
-      on_game_end(env_id, name_space)
-
-
-def set_latent(msg, name_space, id_2_game: Mapping[Hashable, BoxPushSimulator]):
-  env_id = request.sid
-  latent = msg["data"]
-
-  game = id_2_game[env_id]
-  game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, latent)
-
-  dict_update = game.get_changed_objects()
-  session['action_count'] = 0
-  update_html_canvas(dict_update, env_id, NOT_ASK_LATENT, NOT_SHOW_FAILURE,
-                     name_space)
+  return a1_pos_changed, a2_pos_changed, a1_box_changed, a2_box_changed

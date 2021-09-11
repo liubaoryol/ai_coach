@@ -1,9 +1,10 @@
 
-class PageTutorialStart extends PageSpotlight {
+class PageTutorialStart extends PageBasic {
   // we don't need spotlight for tutorial start page.
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
+    this.draw_frame = false;
     // tutorial start button
     this.btn_tutorial = new ButtonRect(canvas.width / 2, canvas.height / 2,
       global_object.game_size / 2, global_object.game_size / 5, "Start Tutorial");
@@ -23,6 +24,7 @@ class PageTutorialStart extends PageSpotlight {
     this.ctrl_ui.btn_next.disable = true;
   }
 
+  // one exceptional page, so just overwrite the method
   draw_page(context, mouse_x, mouse_y) {
     context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     draw_with_mouse_move(context, this.btn_tutorial, mouse_x, mouse_y);
@@ -38,7 +40,7 @@ class PageTutorialStart extends PageSpotlight {
   }
 }
 
-class PageInstructionSL extends PageExperimentHome {
+class PageInstructionSL extends PageHomeTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.x_cen = ctrl_ui.lbl_instruction.x_left + 0.5 * ctrl_ui.lbl_instruction.width;
@@ -55,11 +57,6 @@ class PageInstructionSL extends PageExperimentHome {
       "Click the \"Next\" button to proceed.";
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
@@ -70,7 +67,7 @@ class PageInstructionSL extends PageExperimentHome {
   }
 }
 
-class PageStartSL extends PageExperimentHome {
+class PageStartSL extends PageHomeTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.x_cen = ctrl_ui.btn_start.x_origin;
@@ -84,14 +81,9 @@ class PageStartSL extends PageExperimentHome {
     this.ctrl_ui.lbl_instruction.text = "To start each experiment, please hit the \"Start \"button. " +
       "Click the \"Start\" button to proceed.";
   }
-
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
 }
 
-class PageJoystickSL extends PageDuringGame {
+class PageJoystickSL extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
@@ -112,11 +104,6 @@ class PageJoystickSL extends PageDuringGame {
     this.ctrl_ui.btn_next.disable = false;
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
@@ -127,7 +114,7 @@ class PageJoystickSL extends PageDuringGame {
   }
 }
 
-class PageTargetSL extends PageDuringGame {
+class PageTargetSL extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
@@ -140,7 +127,7 @@ class PageTargetSL extends PageDuringGame {
 
   __set_spotlight_target() {
     const latent = this.game_obj.agents[0].latent;
-    if (latent[0] == "box") {
+    if (latent != null && latent[0] == "box") {
       const coord = this.game_obj.boxes[latent[1]].get_coord();
       this.x_cen = convert_x(this.global_object, coord[0] + 0.5);
       this.y_cen = convert_y(this.global_object, coord[1] + 0.5);
@@ -153,11 +140,6 @@ class PageTargetSL extends PageDuringGame {
 
     this.ctrl_ui.btn_next.disable = true;
     this.__set_spotlight_target();
-  }
-
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
   }
 
   on_data_update(changed_obj) {
@@ -173,7 +155,7 @@ class PageTargetSL extends PageDuringGame {
   }
 }
 
-class PageMoveWithBox extends PageDuringGame {
+class PageMoveWithBox extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
@@ -192,11 +174,6 @@ class PageMoveWithBox extends PageDuringGame {
     this.ctrl_ui.btn_next.disable = false;
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
@@ -208,7 +185,7 @@ class PageMoveWithBox extends PageDuringGame {
   }
 }
 
-class PageDestinationSL extends PageDuringGame {
+class PageDestinationSL extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
@@ -221,7 +198,7 @@ class PageDestinationSL extends PageDuringGame {
 
   __set_spotlight_target() {
     const latent = this.game_obj.agents[0].latent;
-    if (latent[0] == "goal") {
+    if (latent != null && latent[0] == "goal") {
       const coord = this.game_obj.goals[latent[1]].get_coord();
       this.x_cen = convert_x(this.global_object, coord[0] + 0.5);
       this.y_cen = convert_y(this.global_object, coord[1] + 0.5);
@@ -234,11 +211,6 @@ class PageDestinationSL extends PageDuringGame {
 
     this.ctrl_ui.btn_next.disable = true;
     this.__set_spotlight_target();
-  }
-
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
   }
 
   on_data_update(changed_obj) {
@@ -254,7 +226,7 @@ class PageDestinationSL extends PageDuringGame {
   }
 }
 
-class PageScoreSL extends PageDuringGame {
+class PageScoreSL extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
@@ -275,11 +247,6 @@ class PageScoreSL extends PageDuringGame {
     this.ctrl_ui.btn_next.disable = false;
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
@@ -291,7 +258,7 @@ class PageScoreSL extends PageDuringGame {
   }
 }
 
-class PageTeammateSL extends PageDuringGame {
+class PageTeammateSL extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
@@ -303,7 +270,7 @@ class PageTeammateSL extends PageDuringGame {
 
   __set_spotlight_target() {
     const latent = this.game_obj.agents[0].latent;
-    if (latent[0] == "box") {
+    if (latent != null && latent[0] == "box") {
       const coord = this.game_obj.boxes[latent[1]].get_coord();
       this.x_cen = convert_x(this.global_object, coord[0] + 0.5);
       this.y_cen = convert_y(this.global_object, coord[1] + 0.5);
@@ -316,11 +283,6 @@ class PageTeammateSL extends PageDuringGame {
 
     this.ctrl_ui.btn_next.disable = true;
     this.__set_spotlight_target();
-  }
-
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
   }
 
   on_data_update(changed_obj) {
@@ -336,7 +298,7 @@ class PageTeammateSL extends PageDuringGame {
   }
 }
 
-class PageMoveTogether extends PageDuringGame {
+class PageMoveTogether extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
@@ -356,11 +318,6 @@ class PageMoveTogether extends PageDuringGame {
     this.ctrl_ui.btn_next.disable = false;
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
@@ -372,7 +329,7 @@ class PageMoveTogether extends PageDuringGame {
 }
 
 // can be used twice
-class PageLatentSelection extends PageDuringGame {
+class PageLatentSelection extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.instruction = "Often times, you will be asked to set your target or destination. " +
@@ -394,11 +351,6 @@ class PageLatentSelection extends PageDuringGame {
     this.ctrl_ui.btn_next.disable = true;
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_data_update(changed_obj) {
     // before parent update
     if (changed_obj.hasOwnProperty("ask_latent")) {
@@ -414,7 +366,7 @@ class PageLatentSelection extends PageDuringGame {
 }
 
 
-class PageSelectionResult extends PageDuringGame {
+class PageSelectionResult extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.is_selecting_latent = false;
@@ -431,11 +383,6 @@ class PageSelectionResult extends PageDuringGame {
     this.ctrl_ui.btn_next.disable = false;
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
@@ -446,7 +393,7 @@ class PageSelectionResult extends PageDuringGame {
   }
 }
 
-class PageUserLatentSL extends PageDuringGame {
+class PageUserLatentSL extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
@@ -468,11 +415,6 @@ class PageUserLatentSL extends PageDuringGame {
     this.ctrl_ui.btn_next.disable = false;
   }
 
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-
   on_click(context, mouse_x, mouse_y) {
     // TODO: change to another button
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
@@ -484,7 +426,7 @@ class PageUserLatentSL extends PageDuringGame {
   }
 }
 
-class PageMiniGame extends PageDuringGame {
+class PageMiniGame extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
@@ -498,11 +440,6 @@ class PageMiniGame extends PageDuringGame {
     super.init_page();
 
     this.ctrl_ui.btn_next.disable = false;
-  }
-
-  _draw_post_spotlight(context, mouse_x, mouse_y) {
-    super._draw_post_spotlight(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
   }
 
   on_click(context, mouse_x, mouse_y) {
