@@ -22,6 +22,7 @@ class PageTutorialStart extends PageBasic {
     this.ctrl_ui.btn_hold.disable = true;
     this.ctrl_ui.btn_drop.disable = true;
     this.ctrl_ui.btn_next.disable = true;
+    this.ctrl_ui.btn_select.disable = true;
   }
 
   // one exceptional page, so just overwrite the method
@@ -397,10 +398,11 @@ class PageUserLatentSL extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
-    this.x_cen = ctrl_ui.btn_next.x_origin;
-    this.y_cen = ctrl_ui.btn_next.x_origin;
-    this.radius = ctrl_ui.btn_next.width * 1.2;
+    this.x_cen = ctrl_ui.btn_select.x_origin;
+    this.y_cen = ctrl_ui.btn_select.y_origin;
+    this.radius = ctrl_ui.btn_select.width * 1.2;
     this.is_selecting_latent = false;
+    this.use_manual_selection = true;
   }
 
   _set_instruction() {
@@ -412,12 +414,12 @@ class PageUserLatentSL extends PageGameTutorial {
   init_page() {
     super.init_page();
 
-    this.ctrl_ui.btn_next.disable = false;
+    this.ctrl_ui.btn_next.disable = true;
   }
 
   on_click(context, mouse_x, mouse_y) {
     // TODO: change to another button
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
+    if (this.ctrl_ui.btn_select.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
       return;
     }
@@ -429,6 +431,7 @@ class PageUserLatentSL extends PageGameTutorial {
 class PageMiniGame extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+    this.use_manual_selection = true;
   }
 
   _set_instruction() {
@@ -439,28 +442,7 @@ class PageMiniGame extends PageGameTutorial {
   init_page() {
     super.init_page();
 
-    this.ctrl_ui.btn_next.disable = false;
+    this.ctrl_ui.btn_next.disable = true;
   }
 
-  on_click(context, mouse_x, mouse_y) {
-    // TODO: change to another button
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
-      this.is_selecting_latent = true;
-      this.ctrl_ui.btn_next.disable = true;
-      set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
-      set_overlay(this.is_selecting_latent, this.game_obj, this.global_object);
-      return;
-    }
-
-    super.on_click(context, mouse_x, mouse_y);
-  }
-
-  on_data_update(changed_obj) {
-    // before parent update
-    super.on_data_update(changed_obj);
-    // after parent update
-    if (!this.is_selecting_latent) {
-      this.ctrl_ui.btn_next.disable = false;
-    }
-  }
 }

@@ -649,6 +649,11 @@ function get_control_ui_object(
     x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen + ctrl_btn_w * 0.75,
     ctrl_btn_w * 2, ctrl_btn_w, "Drop");
 
+  const btn_select = new ButtonRect(
+    x_ctrl_cen - ctrl_btn_w * 1.5, y_ctrl_cen + ctrl_btn_w * 2,
+    ctrl_btn_w * 2, ctrl_btn_w, "Select");
+
+
   // instruction
   const margin_inst = 10;
   const label_instruction = new TextObject(game_size + margin_inst, margin_inst,
@@ -667,6 +672,7 @@ function get_control_ui_object(
   ctrl_obj.btn_drop = btn_drop;
   ctrl_obj.lbl_instruction = label_instruction;
   ctrl_obj.lbl_score = label_score;
+  ctrl_obj.btn_select = btn_select;
 
   return ctrl_obj;
 }
@@ -968,40 +974,9 @@ function draw_action_btn(context, control_ui, x_cursor = -1, y_cursor = -1) {
   }
   draw_with_mouse_move(context, control_ui.btn_hold, x_cursor, y_cursor);
   draw_with_mouse_move(context, control_ui.btn_drop, x_cursor, y_cursor);
+  draw_with_mouse_move(context, control_ui.btn_select, x_cursor, y_cursor);
 }
 
-
-function draw_game(context, game_obj, control_ui, global_object,
-  is_game_running, is_selecting_latent, show_instruction = true, x_cursor = -1, y_cursor = -1) {
-  // draw divider
-  context.strokeStyle = "black";
-  context.beginPath();
-  context.moveTo(global_object.game_size, 0);
-  context.lineTo(global_object.game_size, global_object.game_size);
-  context.stroke();
-
-  if (is_game_running) {
-    // draw map
-    draw_game_scene(context, game_obj);
-    draw_action_btn(context, control_ui, x_cursor, y_cursor);
-    draw_game_overlay(
-      context, global_object.game_size, game_obj,
-      is_selecting_latent, x_cursor, y_cursor);
-
-  }
-  else {
-    draw_with_mouse_move(context, control_ui.btn_start, x_cursor, y_cursor);
-    draw_action_btn(context, control_ui, x_cursor, y_cursor);
-  }
-
-  // draw score
-  control_ui.lbl_score.draw(context);
-
-  // draw instruction
-  if (show_instruction) {
-    control_ui.lbl_instruction.draw(context);
-  }
-}
 
 class PageBasic {
   // class for a page with the spotlight method
@@ -1069,6 +1044,7 @@ class PageExperimentHome extends PageBasic {
     this.ctrl_ui.btn_start.disable = false;
     this.ctrl_ui.btn_hold.disable = true;
     this.ctrl_ui.btn_drop.disable = true;
+    this.ctrl_ui.btn_select.disable = true;
     this.ctrl_ui.lbl_instruction.text = "Instructions for each step will be shown here. " +
       "Please click the \"Start\" button.";
   }
@@ -1095,11 +1071,18 @@ class PageDuringGame extends PageBasic {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.is_selecting_latent = false;
+    this.use_manual_selection = false;
   }
 
   init_page() {
     super.init_page();
     this.ctrl_ui.btn_start.disable = true;
+    if (this.use_manual_selection && !this.is_selecting_latent) {
+      this.ctrl_ui.btn_select.disable = false;
+    }
+    else {
+      this.ctrl_ui.btn_select.disable = true;
+    }
     this._set_instruction();
     // ctrl buttons
     set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
@@ -1139,6 +1122,14 @@ class PageDuringGame extends PageBasic {
       }
     }
     else {
+      // check latent selection button clicked
+      if (this.ctrl_ui.btn_select.isPointInObject(context, mouse_x, mouse_y)) {
+        this.is_selecting_latent = true;
+        this.ctrl_ui.btn_select.disable = true;
+        set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
+        set_overlay(this.is_selecting_latent, this.game_obj, this.global_object);
+        return;
+      }
       // check if an action is selected
       // joystic buttons
       for (const joy_btn of this.ctrl_ui.list_joystick_btn) {
@@ -1165,6 +1156,13 @@ class PageDuringGame extends PageBasic {
   on_data_update(changed_obj) {
     if (changed_obj.hasOwnProperty("ask_latent")) {
       this.is_selecting_latent = changed_obj["ask_latent"];
+    }
+
+    if (this.use_manual_selection && !this.is_selecting_latent) {
+      this.ctrl_ui.btn_select.disable = false;
+    }
+    else {
+      this.ctrl_ui.btn_select.disable = true;
     }
 
     this._set_instruction();

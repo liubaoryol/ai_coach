@@ -91,7 +91,7 @@ class QLearningInterface():
     if len(list_act_idx) == 0:  # cannot be 0. inspect if NaN is inside
       return None
 
-    return random.choice(list_act_idx)
+    return random.choice(list_act_idx)[0]
 
   @abc.abstractmethod
   def get_action(self, state_idx: int):
@@ -123,7 +123,7 @@ class QLearningGreedy(QLearningInterface):
 
     rand_val = random.random()
     if rand_val < self.epsilon:
-      action_idx = random.choice(range(self.num_states))
+      action_idx = random.choice(range(self.num_actions))
     else:
       action_idx = self.get_policy(state_idx)
 

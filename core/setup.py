@@ -16,4 +16,6 @@ setup(name="ai_coach_core",
       install_requires=[
           'numpy',
           'tqdm',
+          'absl-py',
+          'scipy'
       ])

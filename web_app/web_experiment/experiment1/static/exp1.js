@@ -52,6 +52,7 @@ $(document).ready(function () {
 
   global_object.page_list.push(new PageExperimentHome("Experiment home", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageDuringGame("During game", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list[1].use_manual_selection = true;
 
 
   /////////////////////////////////////////////////////////////////////////////
