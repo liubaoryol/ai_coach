@@ -1,7 +1,7 @@
 from typing import Hashable, Tuple
 from stand_alone.app import AppInterface
-from ai_coach_domain.box_push import BoxPushSimulator
-from ai_coach_domain.box_push import (EventType, BoxState, conv_box_idx_2_state)
+from ai_coach_domain.box_push import BoxPushSimulator, get_6by6_action
+from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
 
 
 class BoxPushApp(AppInterface):
@@ -11,10 +11,25 @@ class BoxPushApp(AppInterface):
   def _init_game(self):
     'define game related variables and objects'
     GAME_ENV_ID = 0
-    self.x_grid = 10
-    self.y_grid = 10
+    GRID_X = 6
+    GRID_Y = 6
+    self.x_grid = GRID_X
+    self.y_grid = GRID_Y
     self.game = BoxPushSimulator(GAME_ENV_ID)
-    self.game.init_game_with_test_map(self.x_grid, self.y_grid)
+
+    game_map = {
+        "boxes": [(0, 1), (3, 1)],
+        "goals": [(GRID_X - 1, GRID_Y - 1)],
+        "walls": [(GRID_X - 2, GRID_Y - i - 1) for i in range(3)],
+        "wall_dir": [0 for dummy_i in range(3)],
+        "drops": []
+    }
+    self.game.init_game(GRID_X, GRID_Y, **game_map)
+    self.game.set_autonomous_agent(
+        cb_get_A2_action=lambda **kwargs: get_6by6_action(
+            BoxPushSimulator.AGENT2, x_grid=GRID_X, y_grid=GRID_Y, **kwargs))
+
+    # self.game.init_game_with_test_map(self.x_grid, self.y_grid)
 
   def _init_gui(self):
     self.main_window.title("Box Push")

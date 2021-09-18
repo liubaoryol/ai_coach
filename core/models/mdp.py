@@ -1,13 +1,14 @@
 """Defines an abstract MDP class using numpy."""
 
 import abc
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 from absl import logging
 import numpy as np
 import numpy.testing as npt
 import scipy.special as sc
 from tqdm import tqdm
+import sparse
 
 from utils.mdp_utils import StateSpace, ActionSpace
 
@@ -17,7 +18,7 @@ class MDP:
   # Python 2 style but Python3 is also compatible with this.
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, fast_cache_mode: bool = False):
+  def __init__(self, fast_cache_mode: bool = False, use_sparse: bool = False):
     """Initializes MDP class.
 
       Args:
@@ -26,6 +27,7 @@ class MDP:
           correct.
     """
     self.fast_cache_mode = fast_cache_mode
+    self.use_sparse = use_sparse
 
     # Define state space.
     self.init_statespace()
@@ -181,30 +183,62 @@ class MDP:
     if self._np_transition_model is not None:
       return self._np_transition_model
 
-    # Else: Compute using the transition model.
-    self._np_transition_model = np.zeros(
-        (self.num_states, self.num_actions, self.num_states), dtype=np.float32)
-    for state in tqdm(range(self.num_states)):
-      # for illegal actions and termial states,
-      # the transition should remain at the same state
-      self._np_transition_model[state, :, state] = np.ones((self.num_actions, ))
-      for action in self.legal_actions(state):
-        self._np_transition_model[state, action, state] = 0
-        np_next_p_state_idx = self.transition_model(state, action)
-        if self.fast_cache_mode:
-          self._np_transition_model[state, action,
-                                    tuple(np_next_p_state_idx[:, 1].astype(int)
-                                          )] = (np_next_p_state_idx[:, 0])
-        else:
+    if not self.use_sparse:
+      # Else: Compute using the transition model.
+      self._np_transition_model = np.zeros(
+          (self.num_states, self.num_actions, self.num_states),
+          dtype=np.float32)
+      for state in tqdm(range(self.num_states)):
+        # for illegal actions and termial states,
+        # the transition should remain at the same state
+        self._np_transition_model[state, :, state] = np.ones(
+            (self.num_actions, ))
+        for action in self.legal_actions(state):
+          self._np_transition_model[state, action, state] = 0
+          np_next_p_state_idx = self.transition_model(state, action)
+          if self.fast_cache_mode:
+            self._np_transition_model[state, action,
+                                      tuple(np_next_p_state_idx[:,
+                                                                1].astype(int)
+                                            )] = (np_next_p_state_idx[:, 0])
+          else:
+            for (next_p, next_state) in np_next_p_state_idx:
+              next_state = int(next_state)
+              self._np_transition_model[state, action, next_state] = next_p
+            npt.assert_almost_equal(
+                actual=self._np_transition_model[state, action].sum(),
+                desired=1,
+                decimal=7,
+                err_msg="Transition probabilities do not sum to one.",
+            )
+    else:
+      coord_2_data = {
+          (self.num_states - 1, self.num_actions - 1, self.num_states - 1): 0
+      }
+      for state in tqdm(range(self.num_states)):
+        # for illegal actions and termial states,
+        # the transition should remain at the same state
+        for action in range(self.num_actions):
+          coord_2_data[(state, action, state)] = 1
+
+        for action in self.legal_actions(state):
+          coord_2_data[(state, action, state)] = 0
+          # self._np_transition_model[state, action, state] = 0
+          np_next_p_state_idx = self.transition_model(state, action)
+
           for (next_p, next_state) in np_next_p_state_idx:
             next_state = int(next_state)
-            self._np_transition_model[state, action, next_state] = next_p
-          npt.assert_almost_equal(
-              actual=self._np_transition_model[state, action].sum(),
-              desired=1,
-              decimal=7,
-              err_msg="Transition probabilities do not sum to one.",
-          )
+            coord_2_data[(state, action, next_state)] = next_p
+            # self._np_transition_model[state, action, next_state] = next_p
+          # npt.assert_almost_equal(
+          #     actual=self._np_transition_model[state, action].sum(),
+          #     desired=1,
+          #     decimal=7,
+          #     err_msg="Transition probabilities do not sum to one.",
+          # )
+      self._np_transition_model = sparse.COO.from_iter(coord_2_data,
+                                                       dtype=np.float32)
+
     return self._np_transition_model
 
   def transition(self, state_idx: int, action_idx: int) -> int:
@@ -246,7 +280,9 @@ class MDP:
       return self._np_reward_model
 
     # Else: Compute using the reward method.
-    # self._np_reward_model = np.zeros((self.num_states, self.num_actions))
+    # Set -inf to unreachable states to prevent an action from falling in them
+    # Perhaps, we need to switch -inf to a large negative number later
+    # numpy.nan_to_num() can be an option
     self._np_reward_model = np.full((self.num_states, self.num_actions),
                                     -np.inf)
     for state in tqdm(range(self.num_states)):
@@ -299,7 +335,7 @@ def v_value_from_q_value(q_value: np.ndarray) -> np.ndarray:
 
 def q_value_from_v_value(
     v_value: np.ndarray,
-    transition_model: np.ndarray,
+    transition_model: Union[np.ndarray, sparse.COO],
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
 ) -> np.ndarray:
@@ -315,14 +351,22 @@ def q_value_from_v_value(
   Returns:
     value of a state and action pair, Q(s,a), as a numpy 2-d array.
   """
-  q_value = reward_model + discount_factor * np.einsum(
-      'san,n -> sa', transition_model, v_value)
+  # q_value = reward_model + discount_factor * np.einsum(
+  #     'san,n -> sa', transition_model, np.nan_to_num(v_value))
+  if isinstance(transition_model, sparse.COO):
+    q_value = reward_model + discount_factor * sparse.tensordot(
+        transition_model, np.nan_to_num(v_value), axes=(2, 0))
+  else:
+    q_value = reward_model + discount_factor * np.tensordot(
+        transition_model, np.nan_to_num(v_value), axes=(2, 0))
+
   return q_value
 
 
 def v_value_from_policy(
     policy: np.ndarray,
-    transition_model: np.ndarray,
+    transition_model: Union[np.ndarray, sparse.COO],
+    # transition_model: np.ndarray,
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
     max_iteration: int = 20,
@@ -365,7 +409,10 @@ def v_value_from_policy(
   while (iteration_idx < max_iteration) and (delta_v > epsilon):
     q_value = q_value_from_v_value(v_value, transition_model, reward_model,
                                    discount_factor)
-    new_v_value = np.einsum('sa,sa->s', stochastic_policy, q_value)
+
+    # new_v_value = np.einsum('sa,sa->s', stochastic_policy,
+    #                         np.nan_to_num(q_value))
+    new_v_value = np.sum(stochastic_policy * np.nan_to_num(q_value), axis=1)
     delta_v = np.linalg.norm(new_v_value[:] - v_value[:])
     iteration_idx += 1
     v_value = new_v_value
@@ -375,7 +422,7 @@ def v_value_from_policy(
 
 def q_value_from_policy(
     policy: np.ndarray,
-    transition_model: np.ndarray,
+    transition_model: Union[np.ndarray, sparse.COO],
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
     max_iteration: int = 20,

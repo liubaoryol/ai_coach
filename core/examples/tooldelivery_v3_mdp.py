@@ -146,7 +146,7 @@ class ToolDeliveryMDP_V3(MDP):
       np_next_p_state_idx[iter_idx] = next_p, next_state_idx
       iter_idx += 1
 
-    assert (np.sum(np_next_p_state_idx[:, 0]) == 1.)
+    # assert (np.sum(np_next_p_state_idx[:, 0]) == 1.)
 
     return np_next_p_state_idx
 

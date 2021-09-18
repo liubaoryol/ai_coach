@@ -12,6 +12,8 @@ class BoxPushSimulator(Simulator):
 
   def __init__(self, id: Hashable) -> None:
     super().__init__(id)
+    self.cb_get_A1_action = None
+    self.cb_get_A2_action = None
 
   def init_game(self,
                 x_grid: Coord,
@@ -30,6 +32,10 @@ class BoxPushSimulator(Simulator):
     self.drops = drops
 
     self.reset_game()
+
+  def set_autonomous_agent(self, cb_get_A1_action=None, cb_get_A2_action=None):
+    self.cb_get_A1_action = cb_get_A1_action
+    self.cb_get_A2_action = cb_get_A2_action
 
   def init_game_with_test_map(self, x_grid, y_grid):
     boxes = [(1, 3), (2, 5), (4, 2)]
@@ -52,16 +58,6 @@ class BoxPushSimulator(Simulator):
     self.a1_latent = None
     self.a2_latent = None
     self.changed_state = []
-
-  def _generate_map(self):
-    self.boxes = [(1, 3), (2, 5), (4, 2)]
-    self.goals = [(self.x_grid - 1, self.y_grid - 1)]
-    self.walls = [(self.x_grid - 5, self.y_grid - 1 - i)
-                  for i in range(5)] + [(self.x_grid - 1 - i, self.y_grid - 5)
-                                        for i in range(3)]
-    self.wall_dir = [0 for i in range(5)] + [1 for i in range(3)]
-    # self.drops = [(X_GRID - 4, Y_GRID - 5)]
-    self.drops = []
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
@@ -146,11 +142,19 @@ class BoxPushSimulator(Simulator):
         self.a2_latent = value
         self.changed_state.append("a2_latent")
 
-  def get_action(self) -> Mapping[Hashable, Hashable]:
-    map_a2a = {
-        BoxPushSimulator.AGENT1: self.a1_action,
-        BoxPushSimulator.AGENT2: self.a2_action
-    }
+  def get_joint_action(self) -> Mapping[Hashable, Hashable]:
+    map_a2a = {}
+    if self.cb_get_A1_action:
+      map_a2a[BoxPushSimulator.AGENT1] = self.cb_get_A1_action(
+          **self.get_env_info())
+    else:
+      map_a2a[BoxPushSimulator.AGENT1] = self.a1_action
+
+    if self.cb_get_A2_action:
+      map_a2a[BoxPushSimulator.AGENT2] = self.cb_get_A2_action(
+          **self.get_env_info())
+    else:
+      map_a2a[BoxPushSimulator.AGENT2] = self.a2_action
 
     self.a1_action = None
     self.a2_action = None

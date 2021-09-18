@@ -197,7 +197,9 @@ def transition(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
   elif hold == "Both":
     bidx = get_box_idx(a1_pos)
     assert bidx >= 0
-    assert a1_pos == a2_pos
+    # invalid case
+    if a1_pos != a2_pos:
+      list_next_env.append((1.0, box_states, a1_pos, a2_pos))
 
     box_states_new = list(box_states)
     # both try to drop the box

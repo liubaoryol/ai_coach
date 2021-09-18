@@ -52,13 +52,13 @@ class Simulator():
     raise NotImplementedError
 
   @abc.abstractmethod
-  def get_action(self) -> Mapping[Hashable, Hashable]:
+  def get_joint_action(self) -> Mapping[Hashable, Hashable]:
     raise NotImplementedError
 
   def run_simulation(self, num_iter: int, *args, **kwargs):
     for dummy_i in range(num_iter):
       while not self.is_finished():
-        map_agent_2_action = self.get_action()
+        map_agent_2_action = self.get_joint_action()
         self.take_a_step(map_agent_2_action)
       self.save_history()
       self.reset_game()

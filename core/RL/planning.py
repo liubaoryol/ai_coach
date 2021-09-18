@@ -4,7 +4,7 @@ Provides a domain independent implementation of policy and value iteration
 using numpy.
 """
 
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from tqdm import tqdm
@@ -36,7 +36,8 @@ def mellowmax_by_row(q_val):
   return softmax_by_row(q_val) - np.log(q_val.shape[1])
 
 
-def soft_value_iteration(transition_model: np.ndarray,
+def soft_value_iteration(transition_model: Union[np.ndarray,
+                                                 mdp_lib.sparse.COO],
                          reward_model: np.ndarray,
                          discount_factor: float = 0.95,
                          max_iteration: int = 20,
@@ -71,7 +72,7 @@ def soft_value_iteration(transition_model: np.ndarray,
 
 
 def value_iteration(
-    transition_model: np.ndarray,
+    transition_model: Union[np.ndarray, mdp_lib.sparse.COO],
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
     max_iteration: int = 20,
@@ -119,7 +120,7 @@ def value_iteration(
 
 
 def policy_iteration(
-    transition_model: np.ndarray,
+    transition_model: Union[np.ndarray, mdp_lib.sparse.COO],
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
     max_iteration: int = 20,
@@ -168,10 +169,12 @@ def policy_iteration(
         reward_model=reward_model,
         discount_factor=discount_factor,
     )
+
     new_policy = mdp_lib.deterministic_policy_from_q_value(q_value)
     delta_policy = (policy != new_policy).sum()
     policy = new_policy
     iteration_idx += 1
+    progress_bar.update()
   progress_bar.close()
 
   return (policy, v_value, q_value)

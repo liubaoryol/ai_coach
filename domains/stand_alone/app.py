@@ -151,7 +151,7 @@ class AppInterface():
     agent, e_type, e_value = self._conv_key_to_agent_event(key_event.keysym)
     self.game.event_input(agent, e_type, e_value)
     if self._event_based:
-      action_map = self.game.get_action()
+      action_map = self.game.get_joint_action()
       self.game.take_a_step(action_map)
 
       if not self.game.is_finished():

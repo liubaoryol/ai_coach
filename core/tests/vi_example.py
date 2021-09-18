@@ -168,15 +168,15 @@ if __name__ == "__main__":
     possible_lstates = tooldelivery_env.policy.get_possible_latstate_indices()
     num_lstates = len(possible_lstates)
 
-    # file_names = glob.glob(os.path.join(data_dir, file_prefix + '*.txt'))
-    # for fmn in file_names:
-    #   os.remove(fmn)
+    file_names = glob.glob(os.path.join(data_dir, file_prefix + '*.txt'))
+    for fmn in file_names:
+      os.remove(fmn)
 
-    # # to generate sequences comment out below lines
-    # generate_multiple_sequences(tooldelivery_env,
-    #                             data_dir,
-    #                             1000,
-    #                             file_prefix=file_prefix)
+    # to generate sequences comment out below lines
+    generate_multiple_sequences(tooldelivery_env,
+                                data_dir,
+                                1000,
+                                file_prefix=file_prefix)
 
     file_names = glob.glob(os.path.join(data_dir, '*.txt'))
 
@@ -212,14 +212,14 @@ if __name__ == "__main__":
     test_dir = './tests/tooldelivery_v3_test_data/'
     test_file_prefix = 'td3_test_'
 
-    # file_names = glob.glob(os.path.join(test_dir, test_file_prefix + '*.txt'))
-    # for fmn in file_names:
-    #   os.remove(fmn)
+    file_names = glob.glob(os.path.join(test_dir, test_file_prefix + '*.txt'))
+    for fmn in file_names:
+      os.remove(fmn)
 
-    # generate_multiple_sequences(tooldelivery_env,
-    #                             test_dir,
-    #                             300,
-    #                             file_prefix=test_file_prefix)
+    generate_multiple_sequences(tooldelivery_env,
+                                test_dir,
+                                300,
+                                file_prefix=test_file_prefix)
 
     test_file_names = glob.glob(os.path.join(test_dir, '*.txt'))
 
