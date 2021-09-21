@@ -1,7 +1,16 @@
 from typing import Hashable, Tuple
 from stand_alone.app import AppInterface
-from ai_coach_domain.box_push import BoxPushSimulator, get_6by6_action
 from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
+from ai_coach_domain.box_push.box_push_maps import EXP1_MAP
+from ai_coach_domain.box_push import (BoxPushSimulator_AlwaysAlone as
+                                      BoxPushSimulator)
+from ai_coach_domain.box_push.box_push_agent_mdp import (
+    BoxPushAgentMDP_AlwaysAlone)
+from ai_coach_domain.box_push.box_push_policy import get_indv_action
+# from ai_coach_domain.box_push import (BoxPushSimulator_AlwaysTogether as
+#                                       BoxPushSimulator)
+# from ai_coach_domain.box_push.box_push_mdp import BoxPushMDP_AlwaysTogether
+# from ai_coach_domain.box_push.box_push_policy import get_exp1_action
 
 
 class BoxPushApp(AppInterface):
@@ -11,25 +20,18 @@ class BoxPushApp(AppInterface):
   def _init_game(self):
     'define game related variables and objects'
     GAME_ENV_ID = 0
-    GRID_X = 6
-    GRID_Y = 6
-    self.x_grid = GRID_X
-    self.y_grid = GRID_Y
+    game_map = EXP1_MAP
+    self.x_grid = game_map["x_grid"]
+    self.y_grid = game_map["y_grid"]
     self.game = BoxPushSimulator(GAME_ENV_ID)
+    self.mdp = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
 
-    game_map = {
-        "boxes": [(0, 1), (3, 1)],
-        "goals": [(GRID_X - 1, GRID_Y - 1)],
-        "walls": [(GRID_X - 2, GRID_Y - i - 1) for i in range(3)],
-        "wall_dir": [0 for dummy_i in range(3)],
-        "drops": []
-    }
-    self.game.init_game(GRID_X, GRID_Y, **game_map)
+    self.game.init_game(**game_map)
     self.game.set_autonomous_agent(
-        cb_get_A2_action=lambda **kwargs: get_6by6_action(
-            BoxPushSimulator.AGENT2, x_grid=GRID_X, y_grid=GRID_Y, **kwargs))
-
-    # self.game.init_game_with_test_map(self.x_grid, self.y_grid)
+        cb_get_A2_action=lambda **kwargs: get_indv_action(
+            self.mdp, BoxPushSimulator.AGENT2, 0.3, **kwargs))
+    self.game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
+                          ("pickup", 0))
 
   def _init_gui(self):
     self.main_window.title("Box Push")
@@ -41,6 +43,7 @@ class BoxPushApp(AppInterface):
                                key_sym) -> Tuple[Hashable, Hashable, Hashable]:
     agent_id = None
     action = None
+    value = None
     # agent1 move
     if key_sym == "Left":
       agent_id = BoxPushSimulator.AGENT1
@@ -57,8 +60,12 @@ class BoxPushApp(AppInterface):
     elif key_sym == "p":
       agent_id = BoxPushSimulator.AGENT1
       action = EventType.HOLD
+    elif key_sym == "o":
+      agent_id = BoxPushSimulator.AGENT2
+      action = EventType.SET_LATENT
+      value = ("goal", 0)
 
-    return (agent_id, action, None)
+    return (agent_id, action, value)
 
   def _conv_mouse_to_agent_event(
       self, is_left: bool,

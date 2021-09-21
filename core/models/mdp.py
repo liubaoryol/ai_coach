@@ -351,8 +351,6 @@ def q_value_from_v_value(
   Returns:
     value of a state and action pair, Q(s,a), as a numpy 2-d array.
   """
-  # q_value = reward_model + discount_factor * np.einsum(
-  #     'san,n -> sa', transition_model, np.nan_to_num(v_value))
   if isinstance(transition_model, sparse.COO):
     q_value = reward_model + discount_factor * sparse.tensordot(
         transition_model, np.nan_to_num(v_value), axes=(2, 0))
@@ -366,7 +364,6 @@ def q_value_from_v_value(
 def v_value_from_policy(
     policy: np.ndarray,
     transition_model: Union[np.ndarray, sparse.COO],
-    # transition_model: np.ndarray,
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
     max_iteration: int = 20,
@@ -410,9 +407,7 @@ def v_value_from_policy(
     q_value = q_value_from_v_value(v_value, transition_model, reward_model,
                                    discount_factor)
 
-    # new_v_value = np.einsum('sa,sa->s', stochastic_policy,
-    #                         np.nan_to_num(q_value))
-    new_v_value = np.sum(stochastic_policy * np.nan_to_num(q_value), axis=1)
+    new_v_value = np.sum(stochastic_policy * np.nan_to_num(q_value), axis=-1)
     delta_v = np.linalg.norm(new_v_value[:] - v_value[:])
     iteration_idx += 1
     v_value = new_v_value
@@ -498,4 +493,4 @@ def softmax_policy_from_q_value(q_value: np.ndarray,
     stochastic_policy[np.arange(num_states), policy] = 1.
     return stochastic_policy
   else:
-    return sc.softmax(q_value / temperature, axis=1)
+    return sc.softmax(q_value / temperature, axis=-1)

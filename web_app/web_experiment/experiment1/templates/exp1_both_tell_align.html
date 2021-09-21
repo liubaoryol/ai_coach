@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %} Experiment 1{% endblock %}
+{% block title %} Experiment 1-1{% endblock %}
 
 {% block header %}
-<h1>Experiment 1</h1>
+<h1>Experiment 1-1</h1>
 <div class="explanation">
   <p>Please move all the boxes to the goal.</p>
   <p>You will be asked to provide your next target at every certain step.</p>
@@ -17,7 +17,7 @@
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1_both_tell_align.js') }}"></script>
 <script type="text/javascript">
   initImagePathCurUser(
     "{{ url_for('exp1.static', filename='robot.svg') }}",
@@ -38,7 +38,7 @@
 <div>
   <h3>Please do not click "Next" button until you finish the experiment.</h3>
   <div class="button-center">
-    <form action="{{ url_for('exp2.experiment') }}">
+    <form action="{{ url_for('exp1.exp1_both_user_random') }}">
       <button type="submit" value="submit">Next</button>
     </form>
   </div>

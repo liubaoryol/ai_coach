@@ -17,9 +17,7 @@ class Simulator():
     self.cb_renderer = None  # type: Callable
     self.cb_upon_game_end = None  # type: Callable[[Hashable],None]
 
-  # def __del__(self):
-  #   self.stop_game()
-
+  # TODO: connect simulator with Agent object
   @abc.abstractmethod
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
@@ -30,10 +28,13 @@ class Simulator():
     # '''
     self.current_step += 1
 
-  # def stop_game(self):
-  #   with self.lock:
-  #     if self.timer is not None:
-  #       self.timer.cancel()
+  @abc.abstractmethod
+  def event_input(self, agent: Hashable, event_type: Hashable, value=None):
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def get_joint_action(self) -> Mapping[Hashable, Hashable]:
+    raise NotImplementedError
 
   @abc.abstractmethod
   def reset_game(self):
@@ -45,14 +46,6 @@ class Simulator():
 
   @abc.abstractmethod
   def get_num_agents(self):
-    raise NotImplementedError
-
-  @abc.abstractmethod
-  def event_input(self, agent: Hashable, event_type: Hashable, value=None):
-    raise NotImplementedError
-
-  @abc.abstractmethod
-  def get_joint_action(self) -> Mapping[Hashable, Hashable]:
     raise NotImplementedError
 
   def run_simulation(self, num_iter: int, *args, **kwargs):
@@ -81,14 +74,22 @@ class Simulator():
       return True
     raise NotImplementedError
 
+  @abc.abstractmethod
+  def init_game(self, *args, **kwargs):
+    raise NotImplementedError
+
+  # def __del__(self):
+  #   self.stop_game()
+
+  # def stop_game(self):
+  #   with self.lock:
+  #     if self.timer is not None:
+  #       self.timer.cancel()
+
   # @abc.abstractmethod
   # def _get_policy_actions(self,
   #                         agents: Sequence[Hashable]) -> Sequence[Hashable]:
   #   raise NotImplementedError
-
-  @abc.abstractmethod
-  def init_game(self, *args, **kwargs):
-    raise NotImplementedError
 
   # def run_periodic_actions(self,
   #                          step_period: float = 0.5

@@ -2,8 +2,8 @@ from typing import Mapping, Hashable
 import json
 from flask import session, request, copy_current_request_context
 from flask_socketio import emit, disconnect
-from ai_coach_domain.box_push import (BoxPushSimulator, BoxState,
-                                      conv_box_idx_2_state)
+from ai_coach_domain.box_push import BoxState, conv_box_idx_2_state
+from ai_coach_domain.box_push.box_push_simulator import BoxPushSimulator
 from web_experiment import socketio
 
 ASK_LATENT = True
@@ -68,7 +68,7 @@ def on_game_end(room_id, name_space):
   socketio.emit('game_end', room=room_id, namespace=name_space)
 
 
-def are_agent_states_changed(dict_env_prev, dict_updated):
+def are_agent_states_changed(dict_env_prev, game: BoxPushSimulator):
   KEY_A1_POS = "a1_pos"
   KEY_A2_POS = "a2_pos"
   KEY_BOX_STATES = "box_states"
@@ -77,47 +77,61 @@ def are_agent_states_changed(dict_env_prev, dict_updated):
 
   a1_pos_changed = False
   a2_pos_changed = False
-  if KEY_A1_POS in dict_updated:
-    if dict_env_prev[KEY_A1_POS] != dict_updated[KEY_A1_POS]:
-      a1_pos_changed = True
+  if dict_env_prev[KEY_A1_POS] != game.a1_pos:
+    a1_pos_changed = True
 
-  if KEY_A2_POS in dict_updated:
-    if dict_env_prev[KEY_A2_POS] != dict_updated[KEY_A2_POS]:
-      a2_pos_changed = True
+  if dict_env_prev[KEY_A2_POS] != game.a2_pos:
+    a2_pos_changed = True
 
-  a1_box_changed = False
-  a2_box_changed = False
-  if KEY_BOX_STATES in dict_updated:
-    box_states_prev = dict_env_prev[KEY_BOX_STATES]
-    a1_box_prev = False
-    a2_box_prev = False
-    for idx in range(len(box_states_prev)):
-      state = conv_box_idx_2_state(box_states_prev[idx], num_drops, num_goals)
-      if state[0] == BoxState.WithAgent1:  # with a1
-        a1_box_prev = True
-      elif state[0] == BoxState.WithAgent2:  # with a2
-        a2_box_prev = True
-      elif state[0] == BoxState.WithBoth:  # with both
-        a1_box_prev = True
-        a2_box_prev = True
+  box_states_prev = dict_env_prev[KEY_BOX_STATES]
+  a1_hold_prev = False
+  a2_hold_prev = False
+  for idx in range(len(box_states_prev)):
+    state = conv_box_idx_2_state(box_states_prev[idx], num_drops, num_goals)
+    if state[0] == BoxState.WithAgent1:  # with a1
+      a1_hold_prev = True
+    elif state[0] == BoxState.WithAgent2:  # with a2
+      a2_hold_prev = True
+    elif state[0] == BoxState.WithBoth:  # with both
+      a1_hold_prev = True
+      a2_hold_prev = True
 
-    box_states = dict_updated[KEY_BOX_STATES]
-    a1_box = False
-    a2_box = False
-    for idx in range(len(box_states)):
-      state = conv_box_idx_2_state(box_states[idx], num_drops, num_goals)
-      if state[0] == BoxState.WithAgent1:  # with a1
-        a1_box = True
-      elif state[0] == BoxState.WithAgent2:  # with a2
-        a2_box = True
-      elif state[0] == BoxState.WithBoth:  # with both
-        a1_box = True
-        a2_box = True
+  box_states = game.box_states
+  a1_hold = False
+  a2_hold = False
+  for idx in range(len(box_states)):
+    state = conv_box_idx_2_state(box_states[idx], num_drops, num_goals)
+    if state[0] == BoxState.WithAgent1:  # with a1
+      a1_hold = True
+    elif state[0] == BoxState.WithAgent2:  # with a2
+      a2_hold = True
+    elif state[0] == BoxState.WithBoth:  # with both
+      a1_hold = True
+      a2_hold = True
 
-    if a1_box_prev != a1_box:
-      a1_box_changed = True
+  a1_hold_changed = False
+  a2_hold_changed = False
 
-    if a2_box_prev != a2_box:
-      a2_box_changed = True
+  if a1_hold_prev != a1_hold:
+    a1_hold_changed = True
 
-  return a1_pos_changed, a2_pos_changed, a1_box_changed, a2_box_changed
+  if a2_hold_prev != a2_hold:
+    a2_hold_changed = True
+
+  return (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed,
+          a1_hold, a2_hold)
+
+
+def get_valid_box_to_pickup(game: BoxPushSimulator):
+  num_drops = len(game.drops)
+  num_goals = len(game.goals)
+
+  valid_box = []
+
+  box_states = game.box_states
+  for idx in range(len(box_states)):
+    state = conv_box_idx_2_state(box_states[idx], num_drops, num_goals)
+    if state[0] in [BoxState.Original, BoxState.OnDropLoc]:  # with a1
+      valid_box.append(idx)
+
+  return valid_box

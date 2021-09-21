@@ -1,5 +1,6 @@
 import abc
 import numpy as np
+from tqdm import tqdm
 
 from models.mdp import MDP
 from utils.mdp_utils import StateSpace
@@ -7,8 +8,8 @@ from utils.mdp_utils import StateSpace
 
 class LatentMDP(MDP):
   """MDP with one latent state"""
-  def __init__(self, fast_cache_mode: bool = False):
-    super().__init__(fast_cache_mode)
+  def __init__(self, fast_cache_mode: bool = False, use_sparse: bool = False):
+    super().__init__(fast_cache_mode, use_sparse)
 
     # Define latent state space.
     self.init_latentspace()
@@ -24,14 +25,14 @@ class LatentMDP(MDP):
     self.num_latents = self.latent_space.num_states
 
   @abc.abstractmethod
-  def reward(self, state_idx: int, action_idx: int, latent_idx: int, *args,
+  def reward(self, latent_idx: int, state_idx: int, action_idx: int, *args,
              **kwargs) -> float:
     """Defines MDP reward function.
 
       Args:
+        latent_idx: Index of an MDP latent.
         state_idx: Index of an MDP state.
         action_idx: Index of an MDP action.
-        latent_idx: Index of an MDP latent.
 
       Returns:
         A scalar reward.
@@ -41,7 +42,7 @@ class LatentMDP(MDP):
   @property
   def np_reward_model(self):
     """Returns reward model as a np ndarray."""
-    # This code is largely duplicated with the parent method but more readable
+    # This code is largely repetitive to the parent method but more readable
 
     # If already computed, return the computed value.
     # This model does not change after the MDP is defined.
@@ -49,15 +50,19 @@ class LatentMDP(MDP):
       return self._np_reward_model
 
     # Else: Compute using the reward method.
-    self._np_reward_model = np.zeros(
-        (self.num_states, self.num_actions, self.num_latents))
-    for state in range(self.num_states):
-      for action in range(self.num_actions):
-        for latent in range(self.num_latents):
-          self._np_reward_model[state, action,
-                                latent] = self.reward(state, action, latent)
-    return self._np_reward_model
+    # Set -inf to unreachable states to prevent an action from falling in them
+    self._np_reward_model = np.full(
+        (self.num_latents, self.num_states, self.num_actions), -np.inf)
 
-  # def init_state_distribution(self):
-  #   'Return: numpy array with probability and states'
-  #   raise NotImplementedError
+    for latent in range(self.num_latents):
+      pbar = tqdm(range(self.num_states))
+      for state in pbar:
+        pbar.set_postfix(
+            {'Latent Count': str(latent + 1) + '/' + str(self.num_latents)})
+        if self.is_terminal(state) or len(self.legal_actions(state)) == 0:
+          self._np_reward_model[latent, state, 0] = 0
+        else:
+          for action in self.legal_actions(state):
+            self._np_reward_model[latent, state,
+                                  action] = self.reward(latent, state, action)
+    return self._np_reward_model

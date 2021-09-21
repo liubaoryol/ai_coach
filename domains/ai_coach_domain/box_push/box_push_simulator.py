@@ -1,7 +1,9 @@
-from typing import Hashable, Mapping, Tuple, Sequence
+from typing import Hashable, Mapping, Tuple, Sequence, Callable
 import numpy as np
 from ai_coach_domain.simulator import Simulator
-from ai_coach_domain.box_push.box_push_helper import EventType, transition
+from ai_coach_domain.box_push.box_push_helper import (
+    EventType, transition_alone_and_together, transition_always_together,
+    transition_always_alone)
 
 Coord = Tuple[int, int]
 
@@ -10,25 +12,29 @@ class BoxPushSimulator(Simulator):
   AGENT1 = 0
   AGENT2 = 1
 
-  def __init__(self, id: Hashable) -> None:
+  def __init__(self, id: Hashable, cb_transition: Callable) -> None:
     super().__init__(id)
     self.cb_get_A1_action = None
     self.cb_get_A2_action = None
+    self.transition_fn = cb_transition
 
   def init_game(self,
                 x_grid: Coord,
                 y_grid: Coord,
+                a1_init: Coord,
+                a2_init: Coord,
                 boxes: Sequence[Coord] = [],
                 goals: Sequence[Coord] = [],
                 walls: Sequence[Coord] = [],
-                wall_dir: Sequence[int] = [],
-                drops: Sequence[Coord] = []):
+                drops: Sequence[Coord] = [],
+                **kwargs):
     self.x_grid = x_grid
     self.y_grid = y_grid
+    self.a1_init = a1_init
+    self.a2_init = a2_init
     self.boxes = boxes
     self.goals = goals
     self.walls = walls
-    self.wall_dir = wall_dir
     self.drops = drops
 
     self.reset_game()
@@ -37,20 +43,9 @@ class BoxPushSimulator(Simulator):
     self.cb_get_A1_action = cb_get_A1_action
     self.cb_get_A2_action = cb_get_A2_action
 
-  def init_game_with_test_map(self, x_grid, y_grid):
-    boxes = [(1, 3), (2, 5), (4, 2)]
-    goals = [(x_grid - 1, y_grid - 1)]
-    walls = [(x_grid - 5, y_grid - 1 - i)
-             for i in range(5)] + [(x_grid - 1 - i, y_grid - 5)
-                                   for i in range(3)]
-    wall_dir = [0 for i in range(5)] + [1 for i in range(3)]
-    drops = []
-
-    self.init_game(x_grid, y_grid, boxes, goals, walls, wall_dir, drops)
-
   def reset_game(self):
-    self.a1_pos = (self.x_grid - 1, 0)
-    self.a2_pos = (0, self.y_grid - 1)
+    self.a1_pos = self.a1_init
+    self.a2_pos = self.a2_init
     # starts with their original locations
     self.box_states = [0] * len(self.boxes)
     self.a1_action = None
@@ -79,9 +74,10 @@ class BoxPushSimulator(Simulator):
     if a2_action is None:
       a2_action = EventType.STAY
 
-    list_next_env = transition(self.box_states, self.a1_pos, self.a2_pos,
-                               a1_action, a2_action, self.boxes, self.goals,
-                               self.walls, self.drops, self.x_grid, self.y_grid)
+    list_next_env = self.transition_fn(self.box_states, self.a1_pos,
+                                       self.a2_pos, a1_action, a2_action,
+                                       self.boxes, self.goals, self.walls,
+                                       self.drops, self.x_grid, self.y_grid)
 
     list_prop = []
     for item in list_next_env:
@@ -163,12 +159,13 @@ class BoxPushSimulator(Simulator):
 
   def get_env_info(self):
     return {
+        "x_grid": self.x_grid,
+        "y_grid": self.y_grid,
         "box_states": self.box_states,
         "boxes": self.boxes,
         "goals": self.goals,
         "drops": self.drops,
         "walls": self.walls,
-        "wall_dir": self.wall_dir,
         "a1_pos": self.a1_pos,
         "a2_pos": self.a2_pos,
         "a1_latent": self.a1_latent,
@@ -204,3 +201,18 @@ class BoxPushSimulator(Simulator):
   @classmethod
   def read_file(cls, file_name):
     pass
+
+
+class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
+  def __init__(self, id: Hashable) -> None:
+    super().__init__(id, transition_alone_and_together)
+
+
+class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
+  def __init__(self, id: Hashable) -> None:
+    super().__init__(id, transition_always_together)
+
+
+class BoxPushSimulator_AlwaysAlone(BoxPushSimulator):
+  def __init__(self, id: Hashable) -> None:
+    super().__init__(id, transition_always_alone)

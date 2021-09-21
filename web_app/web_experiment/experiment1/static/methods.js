@@ -794,7 +794,7 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
         const obj = game_obj.boxes[i];
         if (obj.state != "goal") {
           game_obj.overlays.push(
-            new SelectingOverlay(obj.x_g, obj.y_g, ["box", i], idx++, global_object));
+            new SelectingOverlay(obj.x_g, obj.y_g, ["pickup", i], idx++, global_object));
         }
       }
     }
@@ -802,7 +802,7 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
       {
         const obj = game_obj.box_origins[bidx];
         game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["box", bidx], idx++, global_object));
+          new SelectingOverlay(obj.x_g, obj.y_g, ["origin", null], idx++, global_object));
       }
 
       for (let i = 0; i < game_obj.goals.length; i++) {
@@ -824,8 +824,8 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
       const bidx = game_obj.agents[0].box;
       // holding a box --> latent should be dropping locations
       if (bidx != null) {
-        if (a1_latent[0] == "box") {
-          const obj = game_obj.box_origins[a1_latent[1]];
+        if (a1_latent[0] == "origin") {
+          const obj = game_obj.box_origins[bidx];
           game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
         }
         else if (a1_latent[0] == "drop") {
@@ -839,7 +839,7 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
       }
       // not holding a box --> latent should be a box
       else {
-        if (a1_latent[0] == "box") {
+        if (a1_latent[0] == "pickup") {
           const obj = game_obj.boxes[a1_latent[1]];
           game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
         }
@@ -871,24 +871,19 @@ function set_action_btn_disable(is_selecting_latent, game_obj, control_ui) {
     const a1_latent = game_obj.agents[0].latent;
     // if the agent is holding a box, set drop button availability
     if (a1_box != null) {
-      if (game_obj.boxes[a1_box].state == "both") {
-        control_ui.btn_drop.disable = false;
-      }
-      else {
-        if (a1_latent != null) {
-          if (a1_latent[0] == "box" &&
-            is_coord_equal(a1_pos, game_obj.box_origins[a1_box].get_coord())) {
-            control_ui.btn_drop.disable = false;
-          }
-          else {
-            const num_obj = game_obj.goals.length;
-            for (let i = 0; i < num_obj; i++) {
-              const obj = game_obj.goals[i];
-              if (a1_latent[0] == "goal" && a1_latent[1] == i &&
-                is_coord_equal(a1_pos, obj.get_coord())) {
-                control_ui.btn_drop.disable = false;
-                break;
-              }
+      if (a1_latent != null) {
+        if (a1_latent[0] == "origin" &&
+          is_coord_equal(a1_pos, game_obj.box_origins[a1_box].get_coord())) {
+          control_ui.btn_drop.disable = false;
+        }
+        else {
+          const num_obj = game_obj.goals.length;
+          for (let i = 0; i < num_obj; i++) {
+            const obj = game_obj.goals[i];
+            if (a1_latent[0] == "goal" && a1_latent[1] == i &&
+              is_coord_equal(a1_pos, obj.get_coord())) {
+              control_ui.btn_drop.disable = false;
+              break;
             }
           }
         }
@@ -900,7 +895,7 @@ function set_action_btn_disable(is_selecting_latent, game_obj, control_ui) {
         const num_obj = game_obj.boxes.length;
         for (let i = 0; i < num_obj; i++) {
           const obj = game_obj.boxes[i];
-          if (a1_latent[0] == "box" && a1_latent[1] == i &&
+          if (a1_latent[0] == "pickup" && a1_latent[1] == i &&
             is_coord_equal(a1_pos, obj.get_coord()) && obj.state != "goal") {
             control_ui.btn_hold.disable = false;
             break;

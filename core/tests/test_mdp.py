@@ -1,4 +1,3 @@
-from enum import Enum
 import numpy as np
 import models.mdp as mdp_lib
 import RL.planning as plan_lib
@@ -6,13 +5,9 @@ from utils.mdp_utils import StateSpace, ActionSpace
 import utils.test_utils as test_utils
 
 
-class FL_Actions(Enum):
-  LEFT = 0
-  DOWN = 1
-  RIGHT = 2
-  UP = 3
-
-
+###############################################################################
+# Test Models
+###############################################################################
 class FrozenLakeMDP(mdp_lib.MDP):
   """
       SFFF
@@ -26,6 +21,11 @@ class FrozenLakeMDP(mdp_lib.MDP):
   The episode ends when you reach the goal or fall in a hole.
   You receive a reward of 1 if you reach the goal, and zero otherwise.
   """
+  LEFT = 0
+  DOWN = 1
+  RIGHT = 2
+  UP = 3
+
   def __init__(self, use_sparse=False):
     self.width = 4
     self.height = 4
@@ -53,7 +53,10 @@ class FrozenLakeMDP(mdp_lib.MDP):
   def init_actionspace(self):
 
     self.dict_factored_actionspace = {}
-    self.a_space = ActionSpace(actionspace=FL_Actions)
+    self.a_space = ActionSpace(actionspace=[
+        FrozenLakeMDP.LEFT, FrozenLakeMDP.DOWN, FrozenLakeMDP.RIGHT,
+        FrozenLakeMDP.UP
+    ])
     self.dict_factored_actionspace = {0: self.a_space}
 
   def is_terminal(self, state_idx):
@@ -76,13 +79,13 @@ class FrozenLakeMDP(mdp_lib.MDP):
 
     legal_act = []
     if state[0] != 0:
-      legal_act.append(action_to_idx(FL_Actions.LEFT))
+      legal_act.append(action_to_idx(FrozenLakeMDP.LEFT))
     if state[0] != self.width - 1:
-      legal_act.append(action_to_idx(FL_Actions.RIGHT))
+      legal_act.append(action_to_idx(FrozenLakeMDP.RIGHT))
     if state[1] != 0:
-      legal_act.append(action_to_idx(FL_Actions.UP))
+      legal_act.append(action_to_idx(FrozenLakeMDP.UP))
     if state[1] != self.height - 1:
-      legal_act.append(action_to_idx(FL_Actions.DOWN))
+      legal_act.append(action_to_idx(FrozenLakeMDP.DOWN))
 
     return legal_act
 
@@ -112,7 +115,7 @@ class FrozenLakeMDP(mdp_lib.MDP):
     p_remain = 1
     p_move_correct = 2. / 3.
     p_move_side = 1. / 6.
-    if act == FL_Actions.LEFT:
+    if act == FrozenLakeMDP.LEFT:
       if stt[0] != 0:
         sttn = (stt[0] - 1, stt[1])
         p_remain -= p_move_correct
@@ -125,7 +128,7 @@ class FrozenLakeMDP(mdp_lib.MDP):
         sttn = (stt[0], stt[1] - 1)
         p_remain -= p_move_side
         list_next_p_state.append((p_move_side, state_to_idx(sttn)))
-    elif act == FL_Actions.RIGHT:
+    elif act == FrozenLakeMDP.RIGHT:
       if stt[0] != self.width - 1:
         sttn = (stt[0] + 1, stt[1])
         p_remain -= p_move_correct
@@ -138,7 +141,7 @@ class FrozenLakeMDP(mdp_lib.MDP):
         sttn = (stt[0], stt[1] - 1)
         p_remain -= p_move_side
         list_next_p_state.append((p_move_side, state_to_idx(sttn)))
-    elif act == FL_Actions.UP:
+    elif act == FrozenLakeMDP.UP:
       if stt[1] != 0:
         sttn = (stt[0], stt[1] - 1)
         p_remain -= p_move_correct
@@ -151,7 +154,7 @@ class FrozenLakeMDP(mdp_lib.MDP):
         sttn = (stt[0] + 1, stt[1])
         p_remain -= p_move_side
         list_next_p_state.append((p_move_side, state_to_idx(sttn)))
-    elif act == FL_Actions.DOWN:
+    elif act == FrozenLakeMDP.DOWN:
       if stt[1] != self.height - 1:
         sttn = (stt[0], stt[1] + 1)
         p_remain -= p_move_correct
@@ -170,7 +173,7 @@ class FrozenLakeMDP(mdp_lib.MDP):
 
     return np.array(list_next_p_state)
 
-  def reward(self, state_idx: int, action_idx: int, *args, **kwargs) -> float:
+  def reward(self, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
 
@@ -178,8 +181,23 @@ class FrozenLakeMDP(mdp_lib.MDP):
     state = self.s_space.idx_to_state[s_i]
     if state == self.goal:
       return 1
-    # elif state in self.holes:
-    #   return -1
+    elif state in self.holes:
+      return -1
+    else:
+      return 0
+
+
+class FrozenLakeMDPLargeReward(FrozenLakeMDP):
+  def reward(self, state_idx: int, action_idx: int) -> float:
+    if self.is_terminal(state_idx):
+      return 0
+
+    s_i, = self.conv_idx_to_state(state_idx)
+    state = self.s_space.idx_to_state[s_i]
+    if state == self.goal:
+      return 100
+    elif state in self.holes:
+      return -100
     else:
       return 0
 
@@ -195,13 +213,29 @@ def test_value_iteration_toy():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = np.array([
-      0.25367878, 0.53623493, 0.33812841, 0.21074621, 0., 0., 0., 0.25719306,
-      0.18139626, 0.80532859, 0.35965969, 1., 0.56359908, 0.18139626, 0.,
-      0.6630453, 0.
-  ])
+  true_v_values = [
+      -0.10419714, 0.44722222, -0.07147563, -0.12002533, -1., -1., -1.,
+      -0.12161469, -0.2624726, 0.77309292, 0.10260353, 1., 0.38091399,
+      -0.26156758, -1., 0.62459513, 0.
+  ]
 
   assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+
+  soft_pi = mdp_lib.softmax_policy_from_q_value(np_q_value)
+  true_soft_pi = [[0., 0.40285736, 0.24471172, 0.35243092],
+                  [0.23122445, 0.35976952, 0.27326633, 0.1357397],
+                  [0.2066682, 0.33723388, 0.2066682, 0.24942972],
+                  [0., 0.51772445, 0.48227555, 0.], [1., 0., 0., 0.],
+                  [1., 0., 0., 0.], [1., 0., 0., 0.],
+                  [0.32611822, 0.34788286, 0.32599892, 0.],
+                  [0.59753234, 0.40246766, 0., 0.],
+                  [0.31448087, 0., 0.39394004, 0.2915791],
+                  [0., 0.21878471, 0.40677427, 0.37444101], [1., 0., 0., 0.],
+                  [0.32959284, 0.33204518, 0.13832293, 0.20003904],
+                  [0.37221262, 0.25587745, 0.37190993, 0.], [1., 0., 0., 0.],
+                  [0.17069074, 0., 0.49457589, 0.33473337], [1., 0., 0., 0.]]
+
+  assert np.allclose(true_soft_pi, soft_pi, atol=0.0001, rtol=0.)
 
 
 def test_soft_value_iteration_toy():
@@ -215,11 +249,11 @@ def test_soft_value_iteration_toy():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = np.array([
-      4.02017073, 5.01630892, 3.75830779, 4.37395269, 0., 0., 0., 4.54604286,
-      3.3518442, 4.9130761, 4.47174755, 1., 4.93311667, 4.04621692, 0.,
-      4.87367982, 0.
-  ])
+  true_v_values = [
+      3.49651174, 4.60783148, 3.15563615, 3.90679818, -1., -1., -1., 4.0435257,
+      2.79330297, 4.61366732, 4.00216669, 1., 4.51553684, 3.51108191, -1.,
+      4.52279111, 0.
+  ]
 
   assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
 
@@ -242,11 +276,11 @@ def test_policy_iteration_toy():
       policy_initial=policy_init,
   )
 
-  true_v_values = np.array([
-      0.25397292, 0.53637719, 0.33818329, 0.21110123, 0., 0., 0., 0.25737311,
-      0.1816352, 0.80534705, 0.35988207, 1., 0.56365481, 0.1816352, 0.,
-      0.66311948, 0.
-  ])
+  true_v_values = [
+      -0.1038797, 0.44737575, -0.07141636, -0.11934478, -1., -1., -1.,
+      -0.12141501, -0.26241833, 0.77311281, 0.10284152, 1., 0.38097357,
+      -0.26072438, -1., 0.6246746, 0.
+  ]
 
   assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
 
@@ -262,11 +296,11 @@ def test_value_iteration_toy_sparse():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = np.array([
-      0.25367878, 0.53623493, 0.33812841, 0.21074621, 0., 0., 0., 0.25719306,
-      0.18139626, 0.80532859, 0.35965969, 1., 0.56359908, 0.18139626, 0.,
-      0.6630453, 0.
-  ])
+  true_v_values = [
+      -0.10419714, 0.44722222, -0.07147563, -0.12002533, -1., -1., -1.,
+      -0.12161469, -0.2624726, 0.77309292, 0.10260353, 1., 0.38091399,
+      -0.26156758, -1., 0.62459513, 0.
+  ]
 
   assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
 
@@ -282,11 +316,11 @@ def test_soft_value_iteration_toy_sparse():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = np.array([
-      4.02017073, 5.01630892, 3.75830779, 4.37395269, 0., 0., 0., 4.54604286,
-      3.3518442, 4.9130761, 4.47174755, 1., 4.93311667, 4.04621692, 0.,
-      4.87367982, 0.
-  ])
+  true_v_values = [
+      3.49651174, 4.60783148, 3.15563615, 3.90679818, -1., -1., -1., 4.0435257,
+      2.79330297, 4.61366732, 4.00216669, 1., 4.51553684, 3.51108191, -1.,
+      4.52279111, 0.
+  ]
 
   assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
 
@@ -309,11 +343,51 @@ def test_policy_iteration_toy_sparse():
       policy_initial=policy_init,
   )
 
-  true_v_values = np.array([
-      0.25397292, 0.53637719, 0.33818329, 0.21110123, 0., 0., 0., 0.25737311,
-      0.1816352, 0.80534705, 0.35988207, 1., 0.56365481, 0.1816352, 0.,
-      0.66311948, 0.
-  ])
+  true_v_values = [
+      -0.1038797, 0.44737575, -0.07141636, -0.11934478, -1., -1., -1.,
+      -0.12141501, -0.26241833, 0.77311281, 0.10284152, 1., 0.38097357,
+      -0.26072438, -1., 0.6246746, 0.
+  ]
+
+  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+
+
+def test_value_iteration_toy_large_r():
+  toy_mdp = FrozenLakeMDPLargeReward()
+
+  gamma = 0.9
+  pi, np_v_value, np_q_value = plan_lib.value_iteration(
+      toy_mdp.np_transition_model,
+      toy_mdp.np_reward_model,
+      discount_factor=gamma,
+      max_iteration=100,
+      epsilon=0.001)
+
+  true_v_values = [
+      -10.38749348, 44.7378058, -7.14154661, -11.93329614, -100., -100., -100.,
+      -12.12675995, -26.20729746, 77.31131124, 10.28450564, 100., 38.09744522,
+      -26.07084431, -100., 62.46757813, 0.
+  ]
+
+  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+
+
+def test_soft_value_iteration_toy_large_r():
+  toy_mdp = FrozenLakeMDPLargeReward()
+
+  gamma = 0.9
+  np_v_value, np_q_value = plan_lib.soft_value_iteration(
+      toy_mdp.np_transition_model,
+      toy_mdp.np_reward_model,
+      discount_factor=gamma,
+      max_iteration=100,
+      epsilon=0.001)
+
+  true_v_values = [
+      -10.32205029, 44.87600258, -6.84860371, -11.71808827, -100., -100., -100.,
+      -11.76685238, -25.95336616, 77.39746581, 10.37739743, 100., 38.58577821,
+      -25.12065333, -100., 62.55272753, 0.
+  ]
 
   assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
 
@@ -324,7 +398,7 @@ def test_transition_validity_toy():
 
 
 if __name__ == "__main__":
-  toy_mdp = FrozenLakeMDP(use_sparse=True)
+  toy_mdp = FrozenLakeMDP(use_sparse=False)
 
   gamma = 0.9
 
@@ -366,6 +440,9 @@ if __name__ == "__main__":
   print(pi_table)
   print(v_table)
 
+  soft_pi = mdp_lib.softmax_policy_from_q_value(np_q_value, temperature=1)
+  print(soft_pi)
+
   np_v_value, np_q_value = plan_lib.soft_value_iteration(
       toy_mdp.np_transition_model,
       toy_mdp.np_reward_model,
@@ -398,6 +475,38 @@ if __name__ == "__main__":
 
   print("Policy Iteration")
   print(pi)
+  print(np_v_value)
+  pi_table, v_table = get_grid_v_values(pi, np_v_value)
+  print(pi_table)
+  print(v_table)
+
+  toy_mdp_large_reward = FrozenLakeMDPLargeReward(use_sparse=False)
+
+  pi, np_v_value, np_q_value = plan_lib.value_iteration(
+      toy_mdp_large_reward.np_transition_model,
+      toy_mdp_large_reward.np_reward_model,
+      discount_factor=gamma,
+      max_iteration=100,
+      epsilon=0.001)
+
+  print("Value Iteration-large")
+  print(pi)
+  print(np_v_value)
+  pi_table, v_table = get_grid_v_values(pi, np_v_value)
+  print(pi_table)
+  print(v_table)
+
+  np_v_value, np_q_value = plan_lib.soft_value_iteration(
+      toy_mdp_large_reward.np_transition_model,
+      toy_mdp_large_reward.np_reward_model,
+      discount_factor=gamma,
+      max_iteration=100,
+      epsilon=0.001,
+      temperature=1.)
+
+  pi = mdp_lib.deterministic_policy_from_q_value(np_q_value)
+
+  print("Soft Value Iteration-large")
   print(np_v_value)
   pi_table, v_table = get_grid_v_values(pi, np_v_value)
   print(pi_table)

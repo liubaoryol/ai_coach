@@ -112,6 +112,7 @@ def value_iteration(
     iteration_idx += 1
     v_value = new_v_value
     progress_bar.update()
+    progress_bar.set_postfix({'delta': delta_v})
   progress_bar.close()
 
   policy = mdp_lib.deterministic_policy_from_q_value(q_value)

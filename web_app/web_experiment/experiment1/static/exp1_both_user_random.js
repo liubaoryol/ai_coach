@@ -25,7 +25,7 @@ $(document).ready(function () {
   }, false);
 
   // Connect to the Socket.IO server.
-  var socket = io('http://' + document.domain + ':' + location.port + '/experiment1');
+  var socket = io('http://' + document.domain + ':' + location.port + '/exp1_both_user_random');
 
   // alias 
   const cnvs = document.getElementById("myCanvas");

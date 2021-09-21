@@ -1,15 +1,17 @@
 from typing import Mapping, Hashable
 import copy
 from flask import request
-from ai_coach_domain.box_push import (BoxPushSimulator, EventType, BoxState,
-                                      conv_box_state_2_idx)
+from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
+from ai_coach_domain.box_push import (BoxPushSimulator_AloneOrTogether as
+                                      BoxPushSimulator)
+from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
 g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator]
 EXP1_TUT_NAMESPACE = '/exp1_tutorial'
-GRID_X = 6
-GRID_Y = 6
+GRID_X = TUTORIAL_MAP["x_grid"]
+GRID_Y = TUTORIAL_MAP["y_grid"]
 
 
 @socketio.on('connect', namespace=EXP1_TUT_NAMESPACE)
@@ -39,13 +41,7 @@ def test_disconnect():
 
 @socketio.on('run_game', namespace=EXP1_TUT_NAMESPACE)
 def run_game(msg):
-  game_map = {
-      "boxes": [(0, 1), (3, 1)],
-      "goals": [(GRID_X - 1, GRID_Y - 1)],
-      "walls": [(GRID_X - 2, GRID_Y - i - 1) for i in range(3)],
-      "wall_dir": [0 for dummy_i in range(3)],
-      "drops": []
-  }
+  game_map = TUTORIAL_MAP
   env_id = request.sid
 
   # run a game
@@ -53,13 +49,7 @@ def run_game(msg):
     g_id_2_game[env_id] = BoxPushSimulator(env_id)
 
   game = g_id_2_game[env_id]
-  game.init_game(GRID_X,
-                 GRID_Y,
-                 boxes=game_map["boxes"],
-                 goals=game_map["goals"],
-                 walls=game_map["walls"],
-                 wall_dir=game_map["wall_dir"],
-                 drops=game_map["drops"])
+  game.init_game(**game_map)
 
   game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, ("box", 0))
   dict_update = game.get_env_info()
@@ -96,7 +86,7 @@ def action_event(msg):
     dict_env_prev = copy.deepcopy(game.get_env_info())
 
     game.event_input(BoxPushSimulator.AGENT1, action, None)
-    map_agent2action = game.get_action()
+    map_agent2action = game.get_joint_action()
     game.take_a_step(map_agent2action)
 
     if game.is_finished():
@@ -139,13 +129,7 @@ def set_latent(msg):
 
 @socketio.on('help_teammate', namespace=EXP1_TUT_NAMESPACE)
 def help_teammate(msg):
-  game_map = {
-      "boxes": [(0, 1), (3, 1)],
-      "goals": [(GRID_X - 1, GRID_Y - 1)],
-      "walls": [(GRID_X - 2, GRID_Y - i - 1) for i in range(3)],
-      "wall_dir": [0 for dummy_i in range(3)],
-      "drops": []
-  }
+  game_map = TUTORIAL_MAP
   env_id = request.sid
 
   # run a game
@@ -153,13 +137,7 @@ def help_teammate(msg):
     g_id_2_game[env_id] = BoxPushSimulator(env_id)
 
   game = g_id_2_game[env_id]
-  game.init_game(GRID_X,
-                 GRID_Y,
-                 boxes=game_map["boxes"],
-                 goals=game_map["goals"],
-                 walls=game_map["walls"],
-                 wall_dir=game_map["wall_dir"],
-                 drops=game_map["drops"])
+  game.init_game(**game_map)
 
   # make scenario
   game.box_states[0] = conv_box_state_2_idx((BoxState.WithAgent2, None),
