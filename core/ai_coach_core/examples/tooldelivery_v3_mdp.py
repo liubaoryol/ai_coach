@@ -1,8 +1,8 @@
 import numpy as np
-from models.mdp import MDP
-from utils.mdp_utils import StateSpace, ActionSpace
-import examples.tooldelivery_v3_state_action as T3SA
-from utils.exceptions import InvalidTransitionError
+from ai_coach_core.models.mdp import MDP
+from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
+import ai_coach_core.examples.tooldelivery_v3_state_action as T3SA
+from ai_coach_core.utils.exceptions import InvalidTransitionError
 
 
 class ToolDeliveryMDP_V3(MDP):

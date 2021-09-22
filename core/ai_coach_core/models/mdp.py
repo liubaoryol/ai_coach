@@ -10,7 +10,7 @@ import scipy.special as sc
 from tqdm import tqdm
 import sparse
 
-from utils.mdp_utils import StateSpace, ActionSpace
+from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 
 
 class MDP:

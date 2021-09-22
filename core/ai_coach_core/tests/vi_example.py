@@ -4,10 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import time
-import model_inference.variational_inference.bayesian_policy_infer as bpi
-from examples.environment import RequestEnvironment
-from examples.tooldelivery_v3_env import ToolDeliveryEnv_V3
-from latent_inference.bayesian_inference import bayesian_mind_inference
+import ai_coach_core.model_inference.variational_inference.bayesian_policy_infer as bpi  # noqa: E501
+from ai_coach_core.examples.environment import RequestEnvironment
+from ai_coach_core.examples.tooldelivery_v3_env import ToolDeliveryEnv_V3
+from ai_coach_core.latent_inference.bayesian_inference import (
+    bayesian_mind_inference)
 
 
 def read_sample(file_name):
@@ -158,7 +159,8 @@ if __name__ == "__main__":
   ##############################################
 
   if load_task_model:
-    data_dir = './tests/tooldelivery_v3_train_data/'
+    data_dir = os.path.join(os.path.dirname(__file__),
+                            "tooldelivery_v3_train_data/")
     file_prefix = 'td3_train_'
     tooldelivery_env = ToolDeliveryEnv_V3()
     num_agents = tooldelivery_env.num_brains
@@ -209,7 +211,8 @@ if __name__ == "__main__":
 
     ##############################################
     # test data
-    test_dir = './tests/tooldelivery_v3_test_data/'
+    test_dir = os.path.join(os.path.dirname(__file__),
+                            "tooldelivery_v3_test_data/")
     test_file_prefix = 'td3_test_'
 
     file_names = glob.glob(os.path.join(test_dir, test_file_prefix + '*.txt'))

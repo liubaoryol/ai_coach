@@ -1,10 +1,10 @@
 import numpy as np
 import os
 import pickle
-from examples.environment import MMDPPolicy
-from examples.tooldelivery_v3_mdp import ToolDeliveryMDP_V3
-import examples.tooldelivery_v3_state_action as T3SA
-from utils.exceptions import InvalidTransitionError
+from ai_coach_core.examples.environment import MMDPPolicy
+from ai_coach_core.examples.tooldelivery_v3_mdp import ToolDeliveryMDP_V3
+import ai_coach_core.examples.tooldelivery_v3_state_action as T3SA
+from ai_coach_core.utils.exceptions import InvalidTransitionError
 
 RATIONALITY_SCALAR = 1
 
@@ -30,8 +30,11 @@ class ToolDeliveryPolicy_V3(MMDPPolicy):
     self.np_cn_idx_to_state = np_cn_idx_to_state
 
     self.value_table = {}
-    pickle_name_scalpel_vtable = "./examples/scalpel_vtable_v3.pickle"
-    pickle_name_suture_vtable = "./examples/forceps_vtable_v3.pickle"
+    cur_dir = os.path.dirname(__file__)
+    pickle_name_scalpel_vtable = os.path.join(cur_dir,
+                                              "scalpel_vtable_v3.pickle")
+    pickle_name_suture_vtable = os.path.join(cur_dir,
+                                             "forceps_vtable_v3.pickle")
     if os.path.exists(pickle_name_scalpel_vtable):
       with open(pickle_name_scalpel_vtable, 'rb') as handle:
         self.value_table[T3SA.LatentState.SCALPEL] = (pickle.load(handle))

@@ -2,8 +2,8 @@ import abc
 import numpy as np
 from tqdm import tqdm
 
-from models.mdp import MDP
-from utils.mdp_utils import StateSpace
+from ai_coach_core.models.mdp import MDP
+from ai_coach_core.utils.mdp_utils import StateSpace
 
 
 class LatentMDP(MDP):

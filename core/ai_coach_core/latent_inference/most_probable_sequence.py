@@ -1,6 +1,6 @@
 from typing import Sequence, Tuple, Callable
 import numpy as np
-from models.mdp import MDP
+from ai_coach_core.models.mdp import MDP
 
 
 def most_probable_sequence(

@@ -2,8 +2,8 @@ from typing import Callable, Optional, Tuple, Sequence
 import random
 import numpy as np
 from tqdm import tqdm
-from RL.planning import soft_value_iteration
-from models.mdp import MDP, softmax_policy_from_q_value
+from ai_coach_core.RL.planning import soft_value_iteration
+from ai_coach_core.models.mdp import MDP, softmax_policy_from_q_value
 
 T_StateActionSeqence = Sequence[Tuple[int, int]]
 

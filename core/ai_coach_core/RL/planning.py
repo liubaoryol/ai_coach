@@ -9,7 +9,7 @@ from typing import Optional, Union
 import numpy as np
 from tqdm import tqdm
 
-import models.mdp as mdp_lib
+import ai_coach_core.models.mdp as mdp_lib
 
 
 def softmax_by_row(q_val, temperature=1.):

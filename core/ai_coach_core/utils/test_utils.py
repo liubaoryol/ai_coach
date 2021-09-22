@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
-from utils.exceptions import InvalidTransitionError
-from models.mdp import MDP
+from ai_coach_core.utils.exceptions import InvalidTransitionError
+from ai_coach_core.models.mdp import MDP
 
 
 def check_transition_validity(mdp: MDP):

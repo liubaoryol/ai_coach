@@ -1,8 +1,8 @@
 import abc
 from typing import Optional
 import numpy as np
-from utils.mdp_utils import StateSpace
-from models.mdp import MDP
+from ai_coach_core.utils.mdp_utils import StateSpace
+from ai_coach_core.models.mdp import MDP
 
 
 class MindInterface:

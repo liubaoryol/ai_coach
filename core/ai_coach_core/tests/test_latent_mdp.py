@@ -1,7 +1,7 @@
 import numpy as np
-import models.latent_mdp as mdp_lib
-import RL.planning as plan_lib
-from utils.mdp_utils import StateSpace, ActionSpace
+import ai_coach_core.models.latent_mdp as mdp_lib
+import ai_coach_core.RL.planning as plan_lib
+from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 
 
 class LatentFrozenLakeMDP(mdp_lib.LatentMDP):

@@ -1,6 +1,6 @@
 import numpy as np
-from models.latent_mdp import LatentMDP
-from utils.mdp_utils import StateSpace, ActionSpace
+from ai_coach_core.models.latent_mdp import LatentMDP
+from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
 from ai_coach_domain.box_push.box_push_helper import (
@@ -310,7 +310,7 @@ class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
 if __name__ == "__main__":
   import os
   import pickle
-  import RL.planning as plan_lib
+  import ai_coach_core.RL.planning as plan_lib
   from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
 
   game_map = TUTORIAL_MAP

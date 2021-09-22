@@ -1,8 +1,9 @@
 import os
 import pickle
 import numpy as np
-import models.mdp as mdp_lib
-from utils.feature_utils import get_gridworld_astar_distance, manhattan_distance
+import ai_coach_core.models.mdp as mdp_lib
+from ai_coach_core.utils.feature_utils import (get_gridworld_astar_distance,
+                                               manhattan_distance)
 from ai_coach_domain.box_push.box_push_team_mdp import BoxPushTeamMDP
 from ai_coach_domain.box_push.box_push_agent_mdp import (
     BoxPushAgentMDP, get_agent_switched_boxstates)
@@ -112,18 +113,6 @@ def get_exp1_action(mdp_team: BoxPushTeamMDP, agent_id, temperature, box_states,
                                        drops, a1_latent, a2_latent)
 
 
-# def get_tut1_action(mdp_team: BoxPushTeamMDP, agent_id, temperature, box_states,
-#                     a1_pos, a2_pos, x_grid, y_grid, boxes, goals, walls, drops,
-#                     a1_latent, a2_latent, **kwargs):
-#   global policy_tut1_list
-#   return get_action_from_team_mdp_impl(mdp_team, policy_tut1_list,
-#                                        "box_push_team_np_q_value_tutorial_",
-#                                        agent_id, temperature, box_states,
-#                                        a1_pos, a2_pos, x_grid, y_grid, boxes,
-#                                        goals, walls, drops, a1_latent,
-#                                        a2_latent)
-
-
 def get_indv_action(mdp_indv: BoxPushAgentMDP, agent_id, temperature,
                     box_states, a1_pos, a2_pos, x_grid, y_grid, boxes, goals,
                     walls, drops, a1_latent, a2_latent, **kwargs):
@@ -228,7 +217,7 @@ def get_simple_action(agent_id, box_states, a1_pos, a2_pos, x_grid, y_grid,
 
 
 if __name__ == "__main__":
-  import RL.planning as plan_lib
+  import ai_coach_core.RL.planning as plan_lib
   GEN_EXP1 = False
   GEN_INDV = False
 

@@ -3,17 +3,19 @@ import glob
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from model_inference.IRL.maxent_irl import (CMaxEntIRL, compute_relative_freq,
-                                            cal_reward_error, cal_policy_error)
-from models.mdp import MDP
-from RL.planning import value_iteration
-from utils.mdp_utils import StateSpace, ActionSpace
-from utils.exceptions import InvalidTransitionError
+from ai_coach_core.model_inference.IRL.maxent_irl import (CMaxEntIRL,
+                                                          compute_relative_freq,
+                                                          cal_reward_error,
+                                                          cal_policy_error)
+from ai_coach_core.models.mdp import MDP
+from ai_coach_core.RL.planning import value_iteration
+from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
+from ai_coach_core.utils.exceptions import InvalidTransitionError
 
 DANGER_GRIDS = [(1, 3), (4, 1), (4, 2)]
 TERMINAL_STATE = -1
 PICK = (9, 9)
-DATA_DIR = "./tests/irl_toy_trajectories/"
+DATA_DIR = os.path.join(os.path.dirname(__file__), "irl_toy_trajectories/")
 
 
 def get_neighborhood(stt, set_state):
@@ -402,7 +404,7 @@ if __name__ == "__main__":
 
   sto_pi = get_stochastic_policy(toy_mdp, pi)
 
-  GENERATE_DATA = False
+  GENERATE_DATA = True
 
   if GENERATE_DATA:
     for dummy in range(100):

@@ -1,6 +1,6 @@
 import numpy as np
-from models.latent_mdp import LatentMDP
-from utils.mdp_utils import StateSpace, ActionSpace
+from ai_coach_core.models.latent_mdp import LatentMDP
+from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
 from ai_coach_domain.box_push.box_push_helper import (
@@ -299,7 +299,7 @@ def get_agent_switched_boxstates(box_states, num_drops, num_goals):
 if __name__ == "__main__":
   import os
   import pickle
-  import RL.planning as plan_lib
+  import ai_coach_core.RL.planning as plan_lib
   from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
   game_map = TUTORIAL_MAP
 
@@ -310,7 +310,7 @@ if __name__ == "__main__":
   VALUE_ITER = False
 
   if CHECK_VALIDITY:
-    from utils.test_utils import check_transition_validity
+    from ai_coach_core.utils.test_utils import check_transition_validity
     assert check_transition_validity(box_push_mdp)
 
   if VALUE_ITER:
