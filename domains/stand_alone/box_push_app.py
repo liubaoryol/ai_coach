@@ -1,12 +1,13 @@
 from typing import Hashable, Tuple
+import random
 from stand_alone.app import AppInterface
 from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
-from ai_coach_domain.box_push.box_push_maps import EXP1_MAP
-from ai_coach_domain.box_push import (BoxPushSimulator_AlwaysAlone as
-                                      BoxPushSimulator)
-from ai_coach_domain.box_push.box_push_agent_mdp import (
-    BoxPushAgentMDP_AlwaysAlone)
-from ai_coach_domain.box_push.box_push_policy import get_indv_action
+from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
+from ai_coach_domain.box_push.box_push_simulator import BoxPushSimulator
+from ai_coach_domain.box_push import BoxPushSimulator_AlwaysTogether
+from ai_coach_domain.box_push.box_push_team_mdp import (
+    BoxPushTeamMDP_AlwaysTogether)
+from ai_coach_domain.box_push.box_push_policy import (get_simple_action)
 # from ai_coach_domain.box_push import (BoxPushSimulator_AlwaysTogether as
 #                                       BoxPushSimulator)
 # from ai_coach_domain.box_push.box_push_mdp import BoxPushMDP_AlwaysTogether
@@ -20,16 +21,16 @@ class BoxPushApp(AppInterface):
   def _init_game(self):
     'define game related variables and objects'
     GAME_ENV_ID = 0
-    game_map = EXP1_MAP
+    game_map = TUTORIAL_MAP
     self.x_grid = game_map["x_grid"]
     self.y_grid = game_map["y_grid"]
-    self.game = BoxPushSimulator(GAME_ENV_ID)
-    self.mdp = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
+    self.game = BoxPushSimulator_AlwaysTogether(GAME_ENV_ID)
+    self.mdp = BoxPushTeamMDP_AlwaysTogether(**TUTORIAL_MAP)
 
     self.game.init_game(**game_map)
     self.game.set_autonomous_agent(
-        cb_get_A2_action=lambda **kwargs: get_indv_action(
-            self.mdp, BoxPushSimulator.AGENT2, 0.3, **kwargs))
+        cb_get_A2_action=lambda **kwargs: get_simple_action(
+            BoxPushSimulator.AGENT2, **kwargs))
     self.game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
                           ("pickup", 0))
 
@@ -63,7 +64,23 @@ class BoxPushApp(AppInterface):
     elif key_sym == "o":
       agent_id = BoxPushSimulator.AGENT2
       action = EventType.SET_LATENT
-      value = ("goal", 0)
+
+      a2_hold = False
+      valid_boxes = []
+      for idx, bidx in enumerate(self.game.box_states):
+        bstate = conv_box_idx_2_state(bidx, len(self.game.drops),
+                                      len(self.game.goals))
+        if bstate[0] == BoxState.Original:
+          valid_boxes.append(idx)
+        elif bstate[0] in [BoxState.WithAgent2, BoxState.WithBoth]:
+          a2_hold = True
+          break
+
+      if a2_hold:
+        value = ("goal", 0)
+      else:
+        idx = random.choice(valid_boxes)
+        value = ("pickup", idx)
 
     return (agent_id, action, value)
 

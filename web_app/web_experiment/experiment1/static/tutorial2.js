@@ -25,7 +25,7 @@ $(document).ready(function () {
   }, false);
 
   // Connect to the Socket.IO server.
-  const socket = io('http://' + document.domain + ':' + location.port + '/exp1_tutorial');
+  const socket = io('http://' + document.domain + ':' + location.port + '/exp1_tutorial2');
 
   // alias 
   const cnvs = document.getElementById("myCanvas");
@@ -59,20 +59,11 @@ $(document).ready(function () {
   /////////////////////////////////////////////////////////////////////////////
   global_object.page_list = [];
   global_object.page_list.push(new PageTutorialStart("Start tutorial", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageInstructionSL("Spotlight instruction", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageStartSL("Spotlight game start", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageJoystickSL("Spotlight joystick", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageTargetSL("Spotlight target", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageDestinationSL("Spotlight destination", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageScoreSL("Spotlight score", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageTrappedScenario("Spotlight teammate", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageLatentSelection("Select latent", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageSelectionResult("Selection result", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageUserLatentSL("Prompting selection", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageLatentSelection("Select latent 2", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list[global_object.page_list.length - 1].instruction =
-    "Ta-da! Now you can choose your target or destination as you have done before." +
-    "Please hit the number that you are currently regarding as your target.";
   global_object.page_list.push(new PageMiniGame("Mini game", global_object, game_obj, control_ui, cnvs, socket));
 
   /////////////////////////////////////////////////////////////////////////////

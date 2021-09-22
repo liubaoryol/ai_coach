@@ -387,7 +387,7 @@ class Wall extends GameObject {
 
   draw(context) {
     super.draw(context);
-    if (this.dir == 0) {
+    if (this.dir == 1) {
       this.draw_game_img_fixed_height(
         context, this.global_object.img_wall, this.x_g + 0.5, this.y_g + 1, 1, true);
     }
@@ -446,9 +446,10 @@ class BoxOrigin extends GameObject {
 }
 
 class Box extends GameObject {
-  constructor(x_g, y_g, state, global_object) {
+  constructor(x_g, y_g, state, global_object, game_obj) {
     super(x_g, y_g, global_object);
     this.state = state;
+    this.game_obj = game_obj;
   }
 
   draw(context) {
@@ -462,12 +463,30 @@ class Box extends GameObject {
         context, this.global_object.img_box, this.x_g + 0.5, this.y_g + 1 - 0.2, 0.6);
     }
     else if (this.state == "human") {
+      let offset = 0;
+      if (this.game_obj.hasOwnProperty("agents")) {
+        const a2_pos = this.game_obj.agents[1].get_coord();
+        const a2_box = this.game_obj.agents[1].box;
+        if (a2_box == null && is_coord_equal(this.get_coord(), a2_pos)) {
+          offset = 0.2;
+        }
+      }
+
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_human_box, this.x_g + 0.5, this.y_g + 1, 1);
+        context, this.global_object.img_human_box, this.x_g + 0.5 + offset, this.y_g + 1, 1);
     }
     else if (this.state == "robot") {
+      let offset = 0;
+      if (this.game_obj.hasOwnProperty("agents")) {
+        const a1_pos = this.game_obj.agents[0].get_coord();
+        const a1_box = this.game_obj.agents[0].box;
+        if (a1_box == null && is_coord_equal(this.get_coord(), a1_pos)) {
+          offset = 0.2;
+        }
+      }
+
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_robot_box, this.x_g + 0.5, this.y_g + 1, 1);
+        context, this.global_object.img_robot_box, this.x_g + 0.5 + offset, this.y_g + 1, 1);
     }
     else if (this.state == "both") {
       this.draw_game_img_fixed_height(
@@ -477,11 +496,12 @@ class Box extends GameObject {
 }
 
 class Agent extends GameObject {
-  constructor(type, global_object) {
+  constructor(type, global_object, game_obj) {
     super(null, null, global_object);
     this.type = type;
     this.box = null;
     this.latent = null;
+    this.game_obj = game_obj;
   }
 
   draw(context) {
@@ -499,12 +519,46 @@ class Agent extends GameObject {
     super.draw(context);
 
     if (this.type == "human") {
+      let offset = 0;
+      if (this.game_obj.hasOwnProperty("agents")) {
+        const a2_box = this.game_obj.agents[1].box;
+        if (a2_box == null) {
+          const a2_pos = this.game_obj.agents[1].get_coord();
+          if (is_coord_equal(this.get_coord(), a2_pos)) {
+            offset = 0.3;
+          }
+        }
+        else {
+          const a2_pos = this.game_obj.boxes[a2_box].get_coord();
+          if (is_coord_equal(this.get_coord(), a2_pos)) {
+            offset = 0.3;
+          }
+        }
+      }
+
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_human, this.x_g + 0.5, this.y_g + 1, 1);
+        context, this.global_object.img_human, this.x_g + 0.5 - offset, this.y_g + 1, 1);
     }
     else {
+      let offset = 0;
+      if (this.game_obj.hasOwnProperty("agents")) {
+        const a1_box = this.game_obj.agents[0].box;
+        if (a1_box == null) {
+          const a1_pos = this.game_obj.agents[0].get_coord();
+          if (is_coord_equal(this.get_coord(), a1_pos)) {
+            offset = 0.3;
+          }
+        }
+        else {
+          const a1_pos = this.game_obj.boxes[a1_box].get_coord();
+          if (is_coord_equal(this.get_coord(), a1_pos)) {
+            offset = -0.3;
+          }
+        }
+      }
+
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_robot, this.x_g + 0.5, this.y_g + 1, 1);
+        context, this.global_object.img_robot, this.x_g + 0.5 + offset, this.y_g + 1, 1);
     }
   }
 }
@@ -685,8 +739,8 @@ function get_game_object(global_object) {
   game_obj.box_origins = [];
   game_obj.boxes = [];
   game_obj.agents = [
-    new Agent("human", global_object),
-    new Agent("robot", global_object)];
+    new Agent("human", global_object, game_obj),
+    new Agent("robot", global_object, game_obj)];
   game_obj.overlays = [];
 
   return game_obj;
@@ -746,28 +800,28 @@ function update_game_objects(obj_json, game_obj, global_object) {
       const idx = obj_json.box_states[i];
       if (idx == 0) {   // at origin
         const coord = game_obj.box_origins[i].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "box", global_object));
+        game_obj.boxes.push(new Box(coord[0], coord[1], "box", global_object, game_obj));
       }
       else if (idx == 1) {   // with human
-        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "human", global_object));
+        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "human", global_object, game_obj));
         a1_box = i;
       }
       else if (idx == 2) {   // with robot
-        game_obj.boxes.push(new Box(a2_pos[0], a2_pos[1], "robot", global_object));
+        game_obj.boxes.push(new Box(a2_pos[0], a2_pos[1], "robot", global_object, game_obj));
         a2_box = i;
       }
       else if (idx == 3) {   // with both
-        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "both", global_object));
+        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "both", global_object, game_obj));
         a1_box = i;
         a2_box = i;
       }
       else if (idx >= 4 && idx < 4 + game_obj.drops.length) {
         const coord = game_obj.drops[idx - 4].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "drop", global_object));
+        game_obj.boxes.push(new Box(coord[0], coord[1], "drop", global_object, game_obj));
       }
       else {   //if (idx >= 4 + drops.length)
         const coord = game_obj.goals[idx - 4 - game_obj.drops.length].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "goal", global_object));
+        game_obj.boxes.push(new Box(coord[0], coord[1], "goal", global_object, game_obj));
       }
     }
     game_obj.agents[0].box = a1_box;

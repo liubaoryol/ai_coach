@@ -118,7 +118,7 @@ $(document).ready(function () {
   });
 
 
-  const perturbations = [-0.1, 0.2, -0.2, 0.2, -0.1];
+  const perturbations = [-0.05, 0.1, -0.1, 0.1, -0.05];
   function vibrate_agent_pos(agent, idx) {
     if (agent.box != null) {
       const pos = game_obj.boxes[agent.box].get_coord();

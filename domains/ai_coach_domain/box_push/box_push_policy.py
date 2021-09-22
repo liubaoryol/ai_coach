@@ -2,50 +2,52 @@ import os
 import pickle
 import numpy as np
 import models.mdp as mdp_lib
+from utils.feature_utils import get_gridworld_astar_distance, manhattan_distance
 from ai_coach_domain.box_push.box_push_team_mdp import BoxPushTeamMDP
 from ai_coach_domain.box_push.box_push_agent_mdp import (
     BoxPushAgentMDP, get_agent_switched_boxstates)
 from ai_coach_domain.box_push.box_push_simulator import BoxPushSimulator
 from ai_coach_domain.box_push.box_push_maps import EXP1_MAP
+from ai_coach_domain.box_push.box_push_helper import (conv_box_idx_2_state,
+                                                      BoxState, EventType)
 
 policy_exp1_list = None
 policy_indv_list = None
+# policy_tut1_list = None
 
 
-def get_exp1_action(mdp_exp1: BoxPushTeamMDP, agent_id, temperature, box_states,
-                    a1_pos, a2_pos, x_grid, y_grid, boxes, goals, walls, drops,
-                    a1_latent, a2_latent, **kwargs):
-  global policy_exp1_list
-
-  if policy_exp1_list is None:
-    policy_exp1_list = []
+def get_action_from_team_mdp_impl(mdp: BoxPushTeamMDP, policy_list, file_prefix,
+                                  agent_id, temperature, box_states, a1_pos,
+                                  a2_pos, x_grid, y_grid, boxes, goals, walls,
+                                  drops, a1_latent, a2_latent):
+  if policy_list is None:
+    policy_list = []
     cur_dir = os.path.dirname(__file__)
-    for idx in range(mdp_exp1.num_latents):
-      str_q_val = os.path.join(
-          cur_dir, "data/box_push_np_q_value_exp1_%d.pickle" % (idx, ))
+    for idx in range(mdp.num_latents):
+      str_q_val = os.path.join(cur_dir,
+                               "data/" + file_prefix + "%d.pickle" % (idx, ))
       with open(str_q_val, "rb") as f:
         q_value = pickle.load(f)
-        policy_exp1_list.append(
+        policy_list.append(
             mdp_lib.softmax_policy_from_q_value(q_value, temperature))
 
-  if ((mdp_exp1.x_grid != x_grid) or (mdp_exp1.y_grid != y_grid)
-      or (mdp_exp1.boxes != boxes) or (mdp_exp1.goals != goals)
-      or (mdp_exp1.walls != walls) or (mdp_exp1.drops != drops)):
+  if ((mdp.x_grid != x_grid) or (mdp.y_grid != y_grid) or (mdp.boxes != boxes)
+      or (mdp.goals != goals) or (mdp.walls != walls) or (mdp.drops != drops)):
     return None
 
-  sidx = mdp_exp1.conv_sim_states_to_mdp_sidx(a1_pos, a2_pos, box_states)
+  sidx = mdp.conv_sim_states_to_mdp_sidx(a1_pos, a2_pos, box_states)
 
   latent = a1_latent
   if agent_id == BoxPushSimulator.AGENT2:
     latent = a2_latent
 
-  lat_idx = mdp_exp1.latent_space.state_to_idx[latent]
+  lat_idx = mdp.latent_space.state_to_idx[latent]
 
-  next_joint_action = np.random.choice(range(mdp_exp1.num_actions),
+  next_joint_action = np.random.choice(range(mdp.num_actions),
                                        size=1,
                                        replace=False,
-                                       p=policy_exp1_list[lat_idx][sidx, :])[0]
-  act1, act2 = mdp_exp1.conv_mdp_aidx_to_sim_action(next_joint_action)
+                                       p=policy_list[lat_idx][sidx, :])[0]
+  act1, act2 = mdp.conv_mdp_aidx_to_sim_action(next_joint_action)
 
   if agent_id == BoxPushSimulator.AGENT1:
     return act1
@@ -55,25 +57,24 @@ def get_exp1_action(mdp_exp1: BoxPushTeamMDP, agent_id, temperature, box_states,
   return None
 
 
-def get_indv_action(mdp_indv: BoxPushAgentMDP, agent_id, temperature,
-                    box_states, a1_pos, a2_pos, x_grid, y_grid, boxes, goals,
-                    walls, drops, a1_latent, a2_latent, **kwargs):
-  global policy_indv_list
-
-  if policy_indv_list is None:
-    policy_indv_list = []
+def get_action_from_agent_mdp_impl(mdp: BoxPushTeamMDP, policy_list,
+                                   file_prefix, agent_id, temperature,
+                                   box_states, a1_pos, a2_pos, x_grid, y_grid,
+                                   boxes, goals, walls, drops, a1_latent,
+                                   a2_latent):
+  if policy_list is None:
+    policy_list = []
     cur_dir = os.path.dirname(__file__)
-    for idx in range(mdp_indv.num_latents):
-      str_q_val = os.path.join(
-          cur_dir, "data/box_push_np_q_value_indv_%d.pickle" % (idx, ))
+    for idx in range(mdp.num_latents):
+      str_q_val = os.path.join(cur_dir,
+                               "data/" + file_prefix + "%d.pickle" % (idx, ))
       with open(str_q_val, "rb") as f:
         q_value = pickle.load(f)
-        policy_indv_list.append(
+        policy_list.append(
             mdp_lib.softmax_policy_from_q_value(q_value, temperature))
 
-  if ((mdp_indv.x_grid != x_grid) or (mdp_indv.y_grid != y_grid)
-      or (mdp_indv.boxes != boxes) or (mdp_indv.goals != goals)
-      or (mdp_indv.walls != walls) or (mdp_indv.drops != drops)):
+  if ((mdp.x_grid != x_grid) or (mdp.y_grid != y_grid) or (mdp.boxes != boxes)
+      or (mdp.goals != goals) or (mdp.walls != walls) or (mdp.drops != drops)):
     return None
 
   my_pos = a1_pos
@@ -87,18 +88,143 @@ def get_indv_action(mdp_indv: BoxPushAgentMDP, agent_id, temperature,
     relative_box_states = get_agent_switched_boxstates(box_states, len(drops),
                                                        len(goals))
 
-  sidx = mdp_indv.conv_sim_states_to_mdp_sidx(my_pos, teammate_pos,
-                                              relative_box_states)
+  sidx = mdp.conv_sim_states_to_mdp_sidx(my_pos, teammate_pos,
+                                         relative_box_states)
+  lat_idx = mdp.latent_space.state_to_idx[latent]
 
-  lat_idx = mdp_indv.latent_space.state_to_idx[latent]
-
-  next_aidx = np.random.choice(range(mdp_indv.num_actions),
+  next_aidx = np.random.choice(range(mdp.num_actions),
                                size=1,
                                replace=False,
-                               p=policy_indv_list[lat_idx][sidx, :])[0]
-  act1 = mdp_indv.conv_mdp_aidx_to_sim_action(next_aidx)
+                               p=policy_list[lat_idx][sidx, :])[0]
+  act1 = mdp.conv_mdp_aidx_to_sim_action(next_aidx)
 
   return act1
+
+
+def get_exp1_action(mdp_team: BoxPushTeamMDP, agent_id, temperature, box_states,
+                    a1_pos, a2_pos, x_grid, y_grid, boxes, goals, walls, drops,
+                    a1_latent, a2_latent, **kwargs):
+  global policy_exp1_list
+  return get_action_from_team_mdp_impl(mdp_team, policy_exp1_list,
+                                       "box_push_np_q_value_exp1_", agent_id,
+                                       temperature, box_states, a1_pos, a2_pos,
+                                       x_grid, y_grid, boxes, goals, walls,
+                                       drops, a1_latent, a2_latent)
+
+
+# def get_tut1_action(mdp_team: BoxPushTeamMDP, agent_id, temperature, box_states,
+#                     a1_pos, a2_pos, x_grid, y_grid, boxes, goals, walls, drops,
+#                     a1_latent, a2_latent, **kwargs):
+#   global policy_tut1_list
+#   return get_action_from_team_mdp_impl(mdp_team, policy_tut1_list,
+#                                        "box_push_team_np_q_value_tutorial_",
+#                                        agent_id, temperature, box_states,
+#                                        a1_pos, a2_pos, x_grid, y_grid, boxes,
+#                                        goals, walls, drops, a1_latent,
+#                                        a2_latent)
+
+
+def get_indv_action(mdp_indv: BoxPushAgentMDP, agent_id, temperature,
+                    box_states, a1_pos, a2_pos, x_grid, y_grid, boxes, goals,
+                    walls, drops, a1_latent, a2_latent, **kwargs):
+  global policy_indv_list
+
+  return get_action_from_agent_mdp_impl(mdp_indv, policy_indv_list,
+                                        "box_push_np_q_value_indv_", agent_id,
+                                        temperature, box_states, a1_pos, a2_pos,
+                                        x_grid, y_grid, boxes, goals, walls,
+                                        drops, a1_latent, a2_latent)
+
+
+def get_simple_action(agent_id, box_states, a1_pos, a2_pos, x_grid, y_grid,
+                      boxes, goals, walls, drops, a1_latent, a2_latent,
+                      **kwargs):
+  np_gridworld = np.zeros((x_grid, y_grid))
+  for coord in walls:
+    np_gridworld[coord] = 1
+
+  a1_hold = False
+  a2_hold = False
+  for idx, bidx in enumerate(box_states):
+    bstate = conv_box_idx_2_state(bidx, len(drops), len(goals))
+    if bstate[0] == BoxState.WithAgent1:
+      a1_hold = True
+    elif bstate[0] == BoxState.WithAgent2:
+      a2_hold = True
+    elif bstate[0] == BoxState.WithBoth:
+      a1_hold = True
+      a2_hold = True
+
+  my_pos = a1_pos
+  my_hold = a1_hold
+  if agent_id == BoxPushSimulator.AGENT2:
+    my_pos = a2_pos
+    my_hold = a2_hold
+
+  if my_hold:
+    if my_pos in goals:
+      return EventType.HOLD
+
+    for idx, bidx in enumerate(box_states):
+      bstate = conv_box_idx_2_state(bidx, len(drops), len(goals))
+      if bstate[0] == BoxState.Original:
+        np_gridworld[boxes[idx]] = 1
+      elif bstate[0] in [BoxState.WithAgent1, BoxState.WithBoth]:
+        np_gridworld[a1_pos] = 1
+      elif bstate[0] == BoxState.WithAgent2:
+        np_gridworld[a2_pos] = 1
+      elif bstate[0] == BoxState.OnDropLoc:
+        np_gridworld[drops[bstate[1]]] = 1
+
+    path = get_gridworld_astar_distance(np_gridworld, my_pos, goals,
+                                        manhattan_distance)
+    if len(path) == 0:
+      return EventType.STAY
+    else:
+      x = path[0][0] - my_pos[0]
+      y = path[0][1] - my_pos[1]
+      if x > 0:
+        return EventType.RIGHT
+      elif x < 0:
+        return EventType.LEFT
+      elif y > 0:
+        return EventType.DOWN
+      elif y < 0:
+        return EventType.UP
+      else:
+        return EventType.STAY
+  else:
+    valid_boxes = []
+    for idx, bidx in enumerate(box_states):
+      bstate = conv_box_idx_2_state(bidx, len(drops), len(goals))
+      if bstate[0] == BoxState.Original:
+        valid_boxes.append(boxes[idx])
+      elif bstate[0] == BoxState.OnDropLoc:
+        valid_boxes.append(drops[bstate[1]])
+
+    if len(valid_boxes) == 0:
+      return EventType.STAY
+
+    if my_pos in valid_boxes:
+      return EventType.HOLD
+    else:
+      path = get_gridworld_astar_distance(np_gridworld, my_pos, valid_boxes,
+                                          manhattan_distance)
+      if len(path) == 0:
+        return EventType.STAY
+      else:
+        x = path[0][0] - my_pos[0]
+        y = path[0][1] - my_pos[1]
+        if x > 0:
+          return EventType.RIGHT
+        elif x < 0:
+          return EventType.LEFT
+        elif y > 0:
+          return EventType.DOWN
+        elif y < 0:
+          return EventType.UP
+        else:
+          return EventType.STAY
 
 
 if __name__ == "__main__":

@@ -22,12 +22,12 @@
   initImagePathCurUser(
     "{{ url_for('exp1.static', filename='robot.svg') }}",
     "{{ url_for('exp1.static', filename='human.svg') }}",
-    "{{ url_for('exp1.static', filename='box.svg') }}",
+    "{{ url_for('exp1.static', filename='Trash_bag.svg') }}",
     "{{ url_for('exp1.static', filename='wall.svg') }}",
     "{{ url_for('exp1.static', filename='goal.svg') }}",
     "{{ url_for('exp1.static', filename='both_box.svg') }}",
-    "{{ url_for('exp1.static', filename='human_box.svg') }}",
-    "{{ url_for('exp1.static', filename='robot_box.svg') }}",
+    "{{ url_for('exp1.static', filename='human_bag.svg') }}",
+    "{{ url_for('exp1.static', filename='robot_bag.svg') }}",
     "{{ cur_user }}");
 </script>
 
@@ -38,7 +38,7 @@
 <div>
   <h3>Please do not click "Next" button until you finish the experiment.</h3>
   <div class="button-center">
-    <form action="{{ url_for('exp1.exp1_indv_tell_random') }}">
+    <form action="{{ url_for('survey.survey_indv_tell_align') }}">
       <button type="submit" value="submit">Next</button>
     </form>
   </div>

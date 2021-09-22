@@ -3,19 +3,22 @@ import random
 import copy
 from flask import request
 from ai_coach_domain.box_push import EventType
-from ai_coach_domain.box_push import (BoxPushSimulator_AloneOrTogether as
-                                      BoxPushSimulator)
+from ai_coach_domain.box_push import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.box_push_maps import EXP1_MAP
 from ai_coach_domain.box_push.box_push_policy import get_indv_action
-from ai_coach_domain.box_push.box_push_mdp_individual import BoxPushMDP_Indv
+from ai_coach_domain.box_push.box_push_agent_mdp import (
+    BoxPushAgentMDP_AlwaysAlone)
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
-g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator]
+g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysAlone]
 EXP1_NAMESPACE = '/exp1_indv_user_random'
 GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
-EXP1_MDP = BoxPushMDP_Indv(**EXP1_MAP)
+EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
+
+AGENT1 = BoxPushSimulator_AlwaysAlone.AGENT1
+AGENT2 = BoxPushSimulator_AlwaysAlone.AGENT2
 
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)
@@ -49,23 +52,21 @@ def run_game(msg):
 
   # run a game
   if env_id not in g_id_2_game:
-    g_id_2_game[env_id] = BoxPushSimulator(env_id)
+    g_id_2_game[env_id] = BoxPushSimulator_AlwaysAlone(env_id)
 
   game = g_id_2_game[env_id]
   game.init_game(**EXP1_MAP)
   temperature = 0.3
   game.set_autonomous_agent(cb_get_A2_action=lambda **kwargs: get_indv_action(
-      EXP1_MDP, BoxPushSimulator.AGENT2, temperature, **kwargs))
+      EXP1_MDP, AGENT2, temperature, **kwargs))
 
   valid_boxes = event_impl.get_valid_box_to_pickup(game)
-  box_idx = None
   if len(valid_boxes) > 0:
     box_idx = random.choice(valid_boxes)
-
-  game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
-                   ("pickup", box_idx))
+    game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
 
   dict_update = game.get_env_info()
+  dict_update["wall_dir"] = EXP1_MAP["wall_dir"]
   if dict_update is not None:
     event_impl.update_html_canvas(dict_update, env_id, event_impl.ASK_LATENT,
                                   EXP1_NAMESPACE)
@@ -96,13 +97,13 @@ def action_event(msg):
     game = g_id_2_game[env_id]
     dict_env_prev = copy.deepcopy(game.get_env_info())
 
-    game.event_input(BoxPushSimulator.AGENT1, action, None)
+    game.event_input(AGENT1, action, None)
     map_agent2action = game.get_joint_action()
     game.take_a_step(map_agent2action)
 
     if not game.is_finished():
-      (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, _,
-       a2_hold) = event_impl.are_agent_states_changed(dict_env_prev, game)
+      (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
+       a2_box) = event_impl.are_agent_states_changed(dict_env_prev, game)
       unchanged_agents = []
       if not a1_pos_changed and not a1_hold_changed:
         unchanged_agents.append(0)
@@ -113,18 +114,28 @@ def action_event(msg):
       if a1_hold_changed:
         draw_overlay = True
 
-      if a2_hold_changed:
-        if a2_hold:
-          game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
-                           ("goal", 0))
-        else:
+      a2_latent_prev = game.a2_latent
+
+      a1_pickup = a1_hold_changed and (a1_box >= 0)
+      a2_pickup = a2_hold_changed and (a2_box >= 0)
+      a2_drop = a2_hold_changed and not (a2_box >= 0)
+
+      if a2_pickup:
+        game.event_input(AGENT2, EventType.SET_LATENT, ("goal", 0))
+        draw_overlay = True
+      elif a2_drop:
+        valid_boxes = event_impl.get_valid_box_to_pickup(game)
+        if len(valid_boxes) > 0:
+          box_idx = random.choice(valid_boxes)
+          game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
+      elif a1_pickup:
+        # a2 has no box and was targetting the same box that a1 picked up
+        # --> set to another box
+        if a2_box < 0 and a1_box == a2_latent_prev[1]:
           valid_boxes = event_impl.get_valid_box_to_pickup(game)
-          box_idx = None
           if len(valid_boxes) > 0:
             box_idx = random.choice(valid_boxes)
-
-          game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
-                           ("pickup", box_idx))
+            game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
 
       dict_update = game.get_changed_objects()
       if dict_update is None:
@@ -145,7 +156,7 @@ def set_latent(msg):
   latent = msg["data"]
 
   game = g_id_2_game[env_id]
-  game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, tuple(latent))
+  game.event_input(AGENT1, EventType.SET_LATENT, tuple(latent))
 
   dict_update = game.get_changed_objects()
   event_impl.update_html_canvas(dict_update, env_id, event_impl.NOT_ASK_LATENT,

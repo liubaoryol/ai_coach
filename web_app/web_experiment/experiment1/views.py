@@ -47,3 +47,9 @@ def exp1_indv_user_random():
 @login_required
 def tutorial():
   return render_template('tutorial.html')
+
+
+@exp1_bp.route('/tutorial2', methods=('GET', 'POST'))
+@login_required
+def tutorial2():
+  return render_template('tutorial2.html')

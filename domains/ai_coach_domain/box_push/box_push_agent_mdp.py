@@ -214,8 +214,19 @@ class BoxPushAgentMDP(LatentMDP):
         else:
           return -np.inf
       else:
-        if (my_pos == teammate_pos and my_pos == self.boxes[latent[1]]
-            and my_act == EventType.HOLD):
+        idx = latent[1]
+        bstate = box_states[idx]
+        box_pos = None
+        if bstate[0] == BoxState.Original:
+          box_pos = self.boxes[latent[1]]
+        elif bstate[0] == BoxState.WithTeammate:
+          box_pos = teammate_pos
+        elif bstate[0] == BoxState.OnDropLoc:
+          box_pos = self.drops[bstate[1]]
+        elif bstate[0] == BoxState.OnGoalLoc:
+          box_pos = self.goals[bstate[1]]
+
+        if my_pos == box_pos and my_act == EventType.HOLD:
           return 100
     elif holding_box >= 0:  # not "pickup" and holding a box --> drop the box
       desired_loc = None
@@ -226,8 +237,7 @@ class BoxPushAgentMDP(LatentMDP):
       else:  # latent[0] == "goal"
         desired_loc = self.goals[latent[1]]
 
-      if (my_pos == teammate_pos and my_pos == desired_loc
-          and my_act == EventType.UNHOLD):
+      if my_pos == desired_loc and my_act == EventType.UNHOLD:
         return 100
     else:  # "drop the box" but not having a box (illegal state)
       if my_act == EventType.STAY:
@@ -293,11 +303,11 @@ if __name__ == "__main__":
   from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
   game_map = TUTORIAL_MAP
 
-  box_push_mdp = BoxPushAgentMDP_AloneOrTogether(**game_map)
+  box_push_mdp = BoxPushAgentMDP_AlwaysAlone(**game_map)
   GAMMA = 0.95
 
-  CHECK_VALIDITY = False
-  VALUE_ITER = True
+  CHECK_VALIDITY = True
+  VALUE_ITER = False
 
   if CHECK_VALIDITY:
     from utils.test_utils import check_transition_validity

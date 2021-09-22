@@ -84,42 +84,42 @@ def are_agent_states_changed(dict_env_prev, game: BoxPushSimulator):
     a2_pos_changed = True
 
   box_states_prev = dict_env_prev[KEY_BOX_STATES]
-  a1_hold_prev = False
-  a2_hold_prev = False
+  a1_box_prev = -1
+  a2_box_prev = -1
   for idx in range(len(box_states_prev)):
     state = conv_box_idx_2_state(box_states_prev[idx], num_drops, num_goals)
     if state[0] == BoxState.WithAgent1:  # with a1
-      a1_hold_prev = True
+      a1_box_prev = idx
     elif state[0] == BoxState.WithAgent2:  # with a2
-      a2_hold_prev = True
+      a2_box_prev = idx
     elif state[0] == BoxState.WithBoth:  # with both
-      a1_hold_prev = True
-      a2_hold_prev = True
+      a1_box_prev = idx
+      a2_box_prev = idx
 
   box_states = game.box_states
-  a1_hold = False
-  a2_hold = False
+  a1_box = -1
+  a2_box = -1
   for idx in range(len(box_states)):
     state = conv_box_idx_2_state(box_states[idx], num_drops, num_goals)
     if state[0] == BoxState.WithAgent1:  # with a1
-      a1_hold = True
+      a1_box = idx
     elif state[0] == BoxState.WithAgent2:  # with a2
-      a2_hold = True
+      a2_box = idx
     elif state[0] == BoxState.WithBoth:  # with both
-      a1_hold = True
-      a2_hold = True
+      a1_box = idx
+      a2_box = idx
 
   a1_hold_changed = False
   a2_hold_changed = False
 
-  if a1_hold_prev != a1_hold:
+  if a1_box_prev != a1_box:
     a1_hold_changed = True
 
-  if a2_hold_prev != a2_hold:
+  if a2_box_prev != a2_box:
     a2_hold_changed = True
 
   return (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed,
-          a1_hold, a2_hold)
+          a1_box, a2_box)
 
 
 def get_valid_box_to_pickup(game: BoxPushSimulator):

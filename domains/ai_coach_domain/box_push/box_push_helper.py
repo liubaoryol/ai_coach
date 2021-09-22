@@ -794,10 +794,22 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
       box_states_new = list(box_states)
       bidx = get_box_idx(a1_pos)
       assert bidx >= 0
+
+      p_a1_success = 0
+      a1_pos_new = a1_pos
       if a1_act == EventType.UNHOLD:
         box_states_new[bidx] = conv_box_state_2_idx((BoxState.WithAgent2, None),
                                                     num_drops)
-      list_next_env.append((1.0, box_states_new, a1_pos, a2_pos))
+        p_a1_success = 1.0
+      else:
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        if a1_pos_new != a1_pos:
+          p_a1_success = P_MOVE
+
+      if p_a1_success > 0:
+        list_next_env.append((p_a1_success, box_states_new, a1_pos_new, a2_pos))
+      if 1 - p_a1_success > 0:
+        list_next_env.append((1 - p_a1_success, box_states_new, a1_pos, a2_pos))
     else:
       box_states_new = list(box_states)
       p_a1_success = 0
@@ -833,10 +845,21 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
       box_states_new = list(box_states)
       bidx = get_box_idx(a2_pos)
       assert bidx >= 0
+      p_a2_success = 0
+      a2_pos_new = a2_pos
       if a2_act == EventType.UNHOLD:
         box_states_new[bidx] = conv_box_state_2_idx((BoxState.WithAgent1, None),
                                                     num_drops)
-      list_next_env.append((1.0, box_states_new, a1_pos, a2_pos))
+        p_a2_success = 1.0
+      else:
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        if a2_pos_new != a2_pos:
+          p_a2_success = P_MOVE
+
+      if p_a2_success > 0:
+        list_next_env.append((p_a2_success, box_states_new, a1_pos, a2_pos_new))
+      if 1 - p_a2_success > 0:
+        list_next_env.append((1 - p_a2_success, box_states_new, a1_pos, a2_pos))
     else:
       box_states_new = list(box_states)
       p_a2_success = 0

@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
   game_map = TUTORIAL_MAP
 
-  box_push_mdp = BoxPushTeamMDP_AloneOrTogether(**game_map)
+  box_push_mdp = BoxPushTeamMDP_AlwaysTogether(**game_map)
   GAMMA = 0.95
 
   CHECK_VALIDITY = False
@@ -326,24 +326,25 @@ if __name__ == "__main__":
     from utils.test_utils import check_transition_validity
     assert check_transition_validity(box_push_mdp)
 
+  cur_dir = os.path.dirname(__file__)
   if VALUE_ITER:
-    pi, np_v_value, np_q_value = plan_lib.value_iteration(
-        box_push_mdp.np_transition_model,
-        box_push_mdp.np_reward_model[0],
-        discount_factor=GAMMA,
-        max_iteration=500,
-        epsilon=0.01)
+    for idx in range(box_push_mdp.num_latents):
+      pi, np_v_value, np_q_value = plan_lib.value_iteration(
+          box_push_mdp.np_transition_model,
+          box_push_mdp.np_reward_model[idx],
+          discount_factor=GAMMA,
+          max_iteration=500,
+          epsilon=0.01)
 
-    cur_dir = os.path.dirname(__file__)
-    str_v_val = os.path.join(cur_dir,
-                             "data/box_push_team_np_v_value_tutorial.pickle")
-    with open(str_v_val, "wb") as f:
-      pickle.dump(np_v_value, f, pickle.HIGHEST_PROTOCOL)
+      str_v_val = os.path.join(
+          cur_dir, "data/box_push_team_np_v_value_tutorial_%d.pickle" % (idx, ))
+      with open(str_v_val, "wb") as f:
+        pickle.dump(np_v_value, f, pickle.HIGHEST_PROTOCOL)
 
-    str_q_val = os.path.join(cur_dir,
-                             "data/box_push_team_np_q_value_tutorial.pickle")
-    with open(str_q_val, "wb") as f:
-      pickle.dump(np_q_value, f, pickle.HIGHEST_PROTOCOL)
+      str_q_val = os.path.join(
+          cur_dir, "data/box_push_team_np_q_value_tutorial_%d.pickle" % (idx, ))
+      with open(str_q_val, "wb") as f:
+        pickle.dump(np_q_value, f, pickle.HIGHEST_PROTOCOL)
 
   if QLEARN:
     from tqdm import tqdm
@@ -384,5 +385,7 @@ if __name__ == "__main__":
             (box_push_qlearn.get_episodes_sofar(), count,
              box_push_qlearn.episode_rewards))
 
-    with open("box_push_team_qlearn_np_q_val_tutorial.pickle", "wb") as f:
+    str_qlearn_file = os.path.join(
+        cur_dir, "data/box_push_team_qlearn_np_q_val_tutorial.pickle")
+    with open(str_qlearn_file, "wb") as f:
       pickle.dump(box_push_qlearn.np_q_values, f, pickle.HIGHEST_PROTOCOL)

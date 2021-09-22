@@ -1,13 +1,9 @@
 {% extends 'base.html' %}
 
-{% block title %} Experiment 1-4{% endblock %}
+{% block title %}Tutorial{% endblock %}
 
 {% block header %}
-<h1>Experiment 1-4</h1>
-<div class="explanation">
-  <p>Please move all the boxes to the goal.</p>
-  <p>You will be asked to provide your next target at every certain step.</p>
-</div>
+<h1>Tutorial</h1>
 {% endblock %}
 
 {% block content %}
@@ -17,7 +13,8 @@
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1_indv_tell_random.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='tutorial_classes2.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='tutorial2.js') }}"></script>
 <script type="text/javascript">
   initImagePathCurUser(
     "{{ url_for('exp1.static', filename='robot.svg') }}",
@@ -31,17 +28,28 @@
     "{{ cur_user }}");
 </script>
 
+<div class="explanation">
+  <li> This experiment consists of mini games with different scenarios.</li>
+
+  <li> The goal of this mini game is to move all boxes to the flag with your teammate. </li>
+  <li> To move a box, you need to go to the box and pick it up. </li>
+  <li> Then, you can drop the box at the flag once you reach there. </li>
+  <li> Please note that you can carry a box by yourself as well as with your teammate. </li>
+  <li> If you carry a box together, you can move it faster. </li>
+</div>
+
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 
-<div>
-  <h3>Please do not click "Next" button until you finish the experiment.</h3>
-  <div class="button-center">
-    <form action="{{ url_for('survey.survey_indv_tell_random') }}">
-      <button type="submit" value="submit">Next</button>
-    </form>
-  </div>
+<!-- <div class="button-center">
+<form action="{{ url_for('survey.preexperiment') }}">
+  <button type="submit" value="submit">Prev</button>
+</form>
+</div> -->
+<div class="button-center">
+  <form action="{{ url_for('exp1.exp1_indv_tell_align') }}">
+    <button type="submit" value="submit">Next</button>
+  </form>
 </div>
-
 {% endblock %}

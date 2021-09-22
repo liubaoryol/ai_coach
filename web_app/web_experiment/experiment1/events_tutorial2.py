@@ -2,19 +2,19 @@ from typing import Mapping, Hashable
 import copy
 from flask import request, session
 from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
-from ai_coach_domain.box_push import BoxPushSimulator_AlwaysTogether
+from ai_coach_domain.box_push import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
 from ai_coach_domain.box_push.box_push_policy import get_simple_action
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
-g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysTogether]
-EXP1_TUT_NAMESPACE = '/exp1_tutorial'
+g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysAlone]
+EXP1_TUT_NAMESPACE = '/exp1_tutorial2'
 GRID_X = TUTORIAL_MAP["x_grid"]
 GRID_Y = TUTORIAL_MAP["y_grid"]
 
-AGENT1 = BoxPushSimulator_AlwaysTogether.AGENT1
-AGENT2 = BoxPushSimulator_AlwaysTogether.AGENT2
+AGENT1 = BoxPushSimulator_AlwaysAlone.AGENT1
+AGENT2 = BoxPushSimulator_AlwaysAlone.AGENT2
 GAME_MAP = TUTORIAL_MAP
 
 
@@ -49,7 +49,7 @@ def run_game(msg):
 
   # run a game
   if env_id not in g_id_2_game:
-    g_id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
+    g_id_2_game[env_id] = BoxPushSimulator_AlwaysAlone(env_id)
 
   game = g_id_2_game[env_id]
   game.init_game(**GAME_MAP)
@@ -70,7 +70,7 @@ def box_pickup_scenario(msg):
 
   # run a game
   if env_id not in g_id_2_game:
-    g_id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
+    g_id_2_game[env_id] = BoxPushSimulator_AlwaysAlone(env_id)
 
   game = g_id_2_game[env_id]
   game.init_game(**GAME_MAP)
@@ -89,6 +89,7 @@ def box_pickup_scenario(msg):
   dict_update["wall_dir"] = GAME_MAP["wall_dir"]
   if dict_update is not None:
     session['action_count'] = 0
+
     event_impl.update_html_canvas(dict_update, env_id, ask_latent,
                                   EXP1_TUT_NAMESPACE)
 
@@ -120,62 +121,7 @@ def action_event(msg):
     dict_env_prev = copy.deepcopy(game.get_env_info())
 
     game.event_input(AGENT1, action, None)
-    map_agent2action = game.get_joint_action()
-    game.take_a_step(map_agent2action)
-    session['action_count'] = session.get('action_count', 0) + 1
 
-    if not game.is_finished():
-      (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
-       _) = event_impl.are_agent_states_changed(dict_env_prev, game)
-      unchanged_agents = []
-      if not a1_pos_changed and not a1_hold_changed:
-        unchanged_agents.append(0)
-      if not a2_pos_changed and not a2_hold_changed:
-        unchanged_agents.append(1)
-
-      dict_update = game.get_changed_objects()
-      if dict_update is None:
-        dict_update = {}
-
-      dict_update["unchanged_agents"] = unchanged_agents
-      if a1_hold_changed:
-        game.event_input(AGENT1, EventType.SET_LATENT, None)
-        dict_update["a1_latent"] = None
-
-      event_impl.update_html_canvas(dict_update, env_id,
-                                    event_impl.NOT_ASK_LATENT,
-                                    EXP1_TUT_NAMESPACE)
-    else:
-      game.reset_game()
-      box_pickup_scenario({'data': ''})
-
-
-@socketio.on('aligned_action_event', namespace=EXP1_TUT_NAMESPACE)
-def aligned_action_event(msg):
-  env_id = request.sid
-  action = None
-  action_name = msg["data"]
-  if action_name == "Left":
-    action = EventType.LEFT
-  elif action_name == "Right":
-    action = EventType.RIGHT
-  elif action_name == "Up":
-    action = EventType.UP
-  elif action_name == "Down":
-    action = EventType.DOWN
-  elif action_name == "Pick Up":
-    action = EventType.HOLD
-  elif action_name == "Drop":
-    action = EventType.UNHOLD
-  elif action_name == "Stay":
-    action = EventType.STAY
-
-  if action:
-    game = g_id_2_game[env_id]
-
-    dict_env_prev = copy.deepcopy(game.get_env_info())
-    game.event_input(AGENT1, action, None)
-    game.event_input(AGENT2, action, None)
     map_agent2action = game.get_joint_action()
     game.take_a_step(map_agent2action)
     session['action_count'] = session.get('action_count', 0) + 1
@@ -226,18 +172,23 @@ def trapped_scenario(msg):
 
   # run a game
   if env_id not in g_id_2_game:
-    g_id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
+    g_id_2_game[env_id] = BoxPushSimulator_AlwaysAlone(env_id)
 
   game = g_id_2_game[env_id]
   game.init_game(**GAME_MAP)
   game.set_autonomous_agent()
 
   # make scenario
-  bidx = 1
-  game.box_states[bidx] = conv_box_state_2_idx((BoxState.WithBoth, None),
-                                               len(game.drops))
-  game.a1_pos = game.boxes[bidx]
-  game.a2_pos = game.boxes[bidx]
+  bidx1 = 1
+  game.a1_pos = game.boxes[bidx1]
+  game.box_states[bidx1] = conv_box_state_2_idx((BoxState.WithAgent1, None),
+                                                len(game.drops))
+
+  bidx2 = 0
+  game.box_states[bidx2] = conv_box_state_2_idx((BoxState.WithAgent2, None),
+                                                len(game.drops))
+  game.a2_pos = game.boxes[bidx2]
+
   game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
   dict_update = game.get_env_info()
 

@@ -56,7 +56,6 @@ class BoxPushSimulator(Simulator):
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
-    self.current_step += 1
     a1_action = None
     if BoxPushSimulator.AGENT1 in map_agent_2_action:
       a1_action = map_agent_2_action[BoxPushSimulator.AGENT1]
@@ -65,6 +64,10 @@ class BoxPushSimulator(Simulator):
     if BoxPushSimulator.AGENT2 in map_agent_2_action:
       a2_action = map_agent_2_action[BoxPushSimulator.AGENT2]
 
+    if a1_action is None and a2_action is None:
+      return
+
+    self.current_step += 1
     self.__transition(a1_action, a2_action)
 
   def __transition(self, a1_action, a2_action):
@@ -139,6 +142,11 @@ class BoxPushSimulator(Simulator):
         self.changed_state.append("a2_latent")
 
   def get_joint_action(self) -> Mapping[Hashable, Hashable]:
+    # TODO: need to think about logic.. for now let's assume at least one agent
+    # is always a human
+    if self.a1_action is None and self.a2_action is None:
+      return {}
+
     map_a2a = {}
     if self.cb_get_A1_action:
       map_a2a[BoxPushSimulator.AGENT1] = self.cb_get_A1_action(
