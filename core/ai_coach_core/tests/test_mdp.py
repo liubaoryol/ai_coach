@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 import ai_coach_core.models.mdp as mdp_lib
 import ai_coach_core.RL.planning as plan_lib
 from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
@@ -398,6 +399,11 @@ def test_transition_validity_toy():
 
 
 if __name__ == "__main__":
+  logging.basicConfig(filename='myapp.log',
+                      level=logging.INFO,
+                      format='%(asctime)s:[%(levelname)s]%(message)s')
+  logging.info("Started")
+
   toy_mdp = FrozenLakeMDP(use_sparse=False)
 
   gamma = 0.9

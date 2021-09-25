@@ -37,6 +37,7 @@ class ButtonObject extends DrawingObject {
     this.font = "bold 20px arial";
     this.x_text_offset = 0;
     this.y_text_offset = 0;
+    this.color = "black";
   }
 
   draw(context) {
@@ -80,8 +81,8 @@ class ButtonObject extends DrawingObject {
       context.strokeStyle = "green";
     }
     else {
-      context.fillStyle = "black";
-      context.strokeStyle = "black";
+      context.fillStyle = this.color;
+      context.strokeStyle = this.color;
     }
   }
 
@@ -305,10 +306,16 @@ class TextScore extends TextObject {
   constructor(x_left, y_top, width, font_size) {
     super(x_left, y_top, width, font_size);
     this.text_align = "right";
+    this.score = 0;
   }
 
   set_score(number) {
-    this.text = "Score: " + number.toString();
+    this.score = number;
+  }
+
+  draw(context) {
+    this.text = "Time Taken: " + this.score.toString();
+    super.draw(context);
   }
 }
 
@@ -468,7 +475,7 @@ class Box extends GameObject {
         const a2_pos = this.game_obj.agents[1].get_coord();
         const a2_box = this.game_obj.agents[1].box;
         if (a2_box == null && is_coord_equal(this.get_coord(), a2_pos)) {
-          offset = 0.2;
+          offset = -0.2;
         }
       }
 
@@ -481,12 +488,12 @@ class Box extends GameObject {
         const a1_pos = this.game_obj.agents[0].get_coord();
         const a1_box = this.game_obj.agents[0].box;
         if (a1_box == null && is_coord_equal(this.get_coord(), a1_pos)) {
-          offset = 0.2;
+          offset = -0.2;
         }
       }
 
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_robot_box, this.x_g + 0.5 + offset, this.y_g + 1, 1);
+        context, this.global_object.img_robot_box, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
     }
     else if (this.state == "both") {
       this.draw_game_img_fixed_height(
@@ -525,13 +532,13 @@ class Agent extends GameObject {
         if (a2_box == null) {
           const a2_pos = this.game_obj.agents[1].get_coord();
           if (is_coord_equal(this.get_coord(), a2_pos)) {
-            offset = 0.3;
+            offset = 0.2;
           }
         }
         else {
           const a2_pos = this.game_obj.boxes[a2_box].get_coord();
           if (is_coord_equal(this.get_coord(), a2_pos)) {
-            offset = 0.3;
+            offset = -0.2;
           }
         }
       }
@@ -546,19 +553,19 @@ class Agent extends GameObject {
         if (a1_box == null) {
           const a1_pos = this.game_obj.agents[0].get_coord();
           if (is_coord_equal(this.get_coord(), a1_pos)) {
-            offset = 0.3;
+            offset = 0.2;
           }
         }
         else {
           const a1_pos = this.game_obj.boxes[a1_box].get_coord();
           if (is_coord_equal(this.get_coord(), a1_pos)) {
-            offset = -0.3;
+            offset = 0.2;
           }
         }
       }
 
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_robot, this.x_g + 0.5 + offset, this.y_g + 1, 1);
+        context, this.global_object.img_robot, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
     }
   }
 }
@@ -669,7 +676,7 @@ function get_control_ui_object(
   // joystick
   const ctrl_btn_w = parseInt(game_size / 12);
   const x_ctrl_cen = game_size + (canvas_width - game_size) / 2;
-  const y_ctrl_cen = canvas_height * 3 / 4;
+  const y_ctrl_cen = canvas_height * 65 / 100;
 
   const x_joy_cen = x_ctrl_cen - ctrl_btn_w * 1.5;
   const y_joy_cen = y_ctrl_cen;
@@ -696,16 +703,16 @@ function get_control_ui_object(
 
   // hold/drop btn
   const btn_hold = new ButtonRect(
-    x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen - ctrl_btn_w * 0.75,
+    x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen - ctrl_btn_w * 0.6,
     ctrl_btn_w * 2, ctrl_btn_w, "Pick Up");
 
   const btn_drop = new ButtonRect(
-    x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen + ctrl_btn_w * 0.75,
+    x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen + ctrl_btn_w * 0.6,
     ctrl_btn_w * 2, ctrl_btn_w, "Drop");
 
   const btn_select = new ButtonRect(
-    x_ctrl_cen - ctrl_btn_w * 1.5, y_ctrl_cen + ctrl_btn_w * 2,
-    ctrl_btn_w * 2, ctrl_btn_w, "Select");
+    x_ctrl_cen, y_ctrl_cen + ctrl_btn_w * 2,
+    ctrl_btn_w * 4, ctrl_btn_w, "Select Destination");
 
 
   // instruction
@@ -1066,7 +1073,7 @@ class PageBasic {
     const x_left = this.global_object.game_size + margin;
     const y_top = margin;
     const wid = this.canvas.width - margin - x_left;
-    const hei = this.canvas.height * 0.55;
+    const hei = this.canvas.height * 0.5;
     context.fillStyle = "white";
     context.fillRect(x_left, y_top, wid, hei);
     this.ctrl_ui.lbl_instruction.draw(context);
@@ -1108,7 +1115,6 @@ class PageExperimentHome extends PageBasic {
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_start.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
-      this.socket.emit('run_game', { data: global_object.user_id });
       return;
     }
 
@@ -1121,11 +1127,23 @@ class PageDuringGame extends PageBasic {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.is_selecting_latent = false;
     this.use_manual_selection = false;
+    this.do_emit = true;
+    this.initial_emit_name = 'run_game';
+    this.initial_emit_data = { user_id: global_object.user_id };
+    this.action_event_data = { data: "", user_id: global_object.user_id }
+    this.is_test = false;
   }
 
   init_page() {
     super.init_page();
     this.ctrl_ui.btn_start.disable = true;
+    this.__set_controls();
+    if (this.do_emit) {
+      this.socket.emit(this.initial_emit_name, this.initial_emit_data);
+    }
+  }
+
+  __set_controls() {
     if (this.use_manual_selection && !this.is_selecting_latent) {
       this.ctrl_ui.btn_select.disable = false;
     }
@@ -1140,10 +1158,15 @@ class PageDuringGame extends PageBasic {
 
   _set_instruction() {
     if (this.is_selecting_latent) {
-      this.ctrl_ui.lbl_instruction.text = "Please select your current destination (target) in your mind.";
+      this.ctrl_ui.lbl_instruction.text = "Please select your current destination among the circled options. It can be the same destination as you had previously selected.";
     }
     else {
-      this.ctrl_ui.lbl_instruction.text = "Please take an action.";
+      if (this.is_test) {
+        this.ctrl_ui.lbl_instruction.text = "Please choose your next action. If your destination has changed, please update it using the select destination button.";
+      }
+      else {
+        this.ctrl_ui.lbl_instruction.text = "Please choose your next action.";
+      }
     }
   }
 
@@ -1183,18 +1206,21 @@ class PageDuringGame extends PageBasic {
       // joystic buttons
       for (const joy_btn of this.ctrl_ui.list_joystick_btn) {
         if (joy_btn.isPointInObject(context, mouse_x, mouse_y)) {
-          this.socket.emit('action_event', { data: joy_btn.text });
+          this.action_event_data.data = joy_btn.text;
+          this.socket.emit('action_event', this.action_event_data);
           return;
         }
       }
       // hold button
       if (this.ctrl_ui.btn_hold.isPointInObject(context, mouse_x, mouse_y)) {
-        this.socket.emit('action_event', { data: this.ctrl_ui.btn_hold.text });
+        this.action_event_data.data = this.ctrl_ui.btn_hold.text;
+        this.socket.emit('action_event', this.action_event_data);
         return;
       }
 
       if (this.ctrl_ui.btn_drop.isPointInObject(context, mouse_x, mouse_y)) {
-        this.socket.emit('action_event', { data: this.ctrl_ui.btn_drop.text });
+        this.action_event_data.data = this.ctrl_ui.btn_drop.text;
+        this.socket.emit('action_event', this.action_event_data);
         return;
       }
     }
@@ -1207,22 +1233,24 @@ class PageDuringGame extends PageBasic {
       this.is_selecting_latent = changed_obj["ask_latent"];
     }
 
-    if (this.use_manual_selection && !this.is_selecting_latent) {
-      this.ctrl_ui.btn_select.disable = false;
-    }
-    else {
-      this.ctrl_ui.btn_select.disable = true;
+    if (changed_obj.hasOwnProperty("current_step")) {
+      this.ctrl_ui.lbl_score.set_score(changed_obj["current_step"]);
     }
 
-    this._set_instruction();
-    set_overlay(this.is_selecting_latent, this.game_obj, this.global_object);
-    set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
+    this.__set_controls();
   }
 }
 
 function go_to_next_page(global_object) {
   if (global_object.cur_page_idx + 1 < global_object.page_list.length) {
     global_object.cur_page_idx++;
+    global_object.page_list[global_object.cur_page_idx].init_page();
+  }
+}
+
+function go_to_prev_page(global_object) {
+  if (global_object.cur_page_idx - 1 >= 0) {
+    global_object.cur_page_idx--;
     global_object.page_list[global_object.cur_page_idx].init_page();
   }
 }
@@ -1237,54 +1265,4 @@ function draw_spotlight(context, canvas, x_cen, y_cen, radius, color, alpha) {
   context.fillStyle = color;
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.restore();
-}
-
-class PageHomeTutorial extends PageExperimentHome {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
-    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-
-    this.x_cen = null;
-    this.y_cen = null;
-    this.radius = null;
-  }
-
-  _draw_overlay(context, mouse_x, mouse_y) {
-    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
-      draw_spotlight(context, this.canvas, this.x_cen, this.y_cen, this.radius,
-        "gray", 0.3);
-    }
-
-    const margin = 5;
-    const x_left = this.global_object.game_size + margin;
-    const y_top = margin;
-    const wid = this.canvas.width - margin - x_left;
-    const hei = this.canvas.height * 0.55;
-    context.fillStyle = "white";
-    context.fillRect(x_left, y_top, wid, hei);
-
-    super._draw_overlay(context, mouse_x, mouse_y);
-
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
-}
-
-class PageGameTutorial extends PageDuringGame {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
-    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-
-    this.x_cen = null;
-    this.y_cen = null;
-    this.radius = null;
-  }
-
-  _draw_overlay(context, mouse_x, mouse_y) {
-    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
-      draw_spotlight(context, this.canvas, this.x_cen, this.y_cen, this.radius,
-        "gray", 0.3);
-    }
-
-    super._draw_overlay(context, mouse_x, mouse_y);
-
-    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
-  }
 }

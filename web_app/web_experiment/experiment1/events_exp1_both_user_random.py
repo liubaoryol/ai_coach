@@ -130,7 +130,7 @@ def action_event(msg):
 
       dict_update["unchanged_agents"] = unchanged_agents
 
-      ASK_LATENT_FREQUENCY = 5
+      ASK_LATENT_FREQUENCY = 3
       session['action_count'] = session.get('action_count', 0) + 1
       if session['action_count'] >= ASK_LATENT_FREQUENCY:
         draw_overlay = True
@@ -139,7 +139,8 @@ def action_event(msg):
                                     EXP1_NAMESPACE)
     else:
       game.reset_game()
-      event_impl.on_game_end(env_id, EXP1_NAMESPACE)
+      cur_user = msg["user_id"]
+      event_impl.on_game_end(env_id, EXP1_NAMESPACE, cur_user, "session_a3")
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)

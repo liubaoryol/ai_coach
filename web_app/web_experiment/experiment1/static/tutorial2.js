@@ -41,13 +41,18 @@ $(document).ready(function () {
   let control_ui = get_control_ui_object(cnvs.width, cnvs.height, game_size);
 
   // next button
-  const next_btn_width = (cnvs.width - game_size) / 3;
+  const next_btn_width = (cnvs.width - game_size) / 4;
   const next_btn_height = next_btn_width * 0.5;
   const mrgn = 10;
   control_ui.btn_next = new ButtonRect(
-    cnvs.width - next_btn_width * 0.5 - mrgn, game_size * 0.5,
+    cnvs.width - next_btn_width * 0.5 - mrgn, game_size * 0.5 - 0.5 * next_btn_height - mrgn,
     next_btn_width, next_btn_height, "Next");
   control_ui.btn_next.font = "bold 18px arial";
+
+  control_ui.btn_prev = new ButtonRect(
+    game_size + next_btn_width * 0.5 + mrgn, game_size * 0.5 - 0.5 * next_btn_height - mrgn,
+    next_btn_width, next_btn_height, "Prev");
+  control_ui.btn_prev.font = "bold 18px arial";
 
   /////////////////////////////////////////////////////////////////////////////
   // game instances and methods
@@ -58,13 +63,22 @@ $(document).ready(function () {
   // initalize pages
   /////////////////////////////////////////////////////////////////////////////
   global_object.page_list = [];
-  global_object.page_list.push(new PageTutorialStart("Start tutorial", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageStartSL("Spotlight game start", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageTargetSL("Spotlight target", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageDestinationSL("Spotlight destination", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageTrappedScenario("Spotlight teammate", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageLatentSelection("Select latent", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageMiniGame("Mini game", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageTutorialStart("Start Tutorial", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageInstruction("Instruction", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageStart("Game start", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageJoystick_bag("Joystick1", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageOnlyHuman("OnlyHuman", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageTarget("Target1", global_object, game_obj, control_ui, cnvs, socket, "trash bag"));
+  global_object.page_list.push(new PageTarget2("Target2", global_object, game_obj, control_ui, cnvs, socket, "trash bag"));
+  global_object.page_list.push(new PageDestination("Destination", global_object, game_obj, control_ui, cnvs, socket, "trash bag"));
+  global_object.page_list.push(new PageScore("Score", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageTrappedScenario("Trapped", global_object, game_obj, control_ui, cnvs, socket, "trash bag"));
+  global_object.page_list.push(new PageTargetHint("TargetHint", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageTargetNoHint("TargetNoHint", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageUserLatent("User Prompt", global_object, game_obj, control_ui, cnvs, socket, "trash bag"));
+  global_object.page_list.push(new PageUserSelectionResult("Selection", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageSelectionPrompt("Auto Prompt", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageMiniGame("Mini Game", global_object, game_obj, control_ui, cnvs, socket));
 
   /////////////////////////////////////////////////////////////////////////////
   // game control logics

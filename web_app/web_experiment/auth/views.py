@@ -1,4 +1,5 @@
-from flask import (flash, redirect, render_template, request, url_for)
+import logging
+from flask import (flash, redirect, render_template, request, url_for, g)
 from web_experiment.models import db, User
 from web_experiment.auth.functions import admin_required
 from . import auth_bp
@@ -23,6 +24,7 @@ def register():
         new_user = User(userid=userid)
         db.session.add(new_user)
         db.session.commit()
+        logging.info('User %s added a new user %s.' % (g.user, userid))
         return redirect(url_for('auth.register'))
 
       flash(error)
@@ -32,6 +34,7 @@ def register():
       db.session.delete(qdata)
       db.session.commit()
 
+      logging.info('User %s deleted user %s.' % (g.user, delid))
       return redirect(url_for('auth.register'))
 
   user_list = User.query.all()

@@ -132,7 +132,8 @@ def action_event(msg):
                                     event_impl.NOT_ASK_LATENT, EXP1_NAMESPACE)
     else:
       game.reset_game()
-      event_impl.on_game_end(env_id, EXP1_NAMESPACE)
+      cur_user = msg["user_id"]
+      event_impl.on_game_end(env_id, EXP1_NAMESPACE, cur_user, "session_a1")
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)

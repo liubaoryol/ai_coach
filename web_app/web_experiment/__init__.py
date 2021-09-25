@@ -3,6 +3,7 @@ Copyright (c) 2020. Sangwon Seo, Vaibhav Unhelkar.
 All rights reserved.
 '''
 import os
+import logging
 from flask import Flask
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
@@ -15,6 +16,10 @@ db = SQLAlchemy()
 
 
 def create_app(debug=False, test_config=None):
+  logging.basicConfig(
+      filename='myapp.log',
+      level=logging.INFO,
+      format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
   """Create an application"""
   app = Flask(__name__, instance_relative_config=True)
   app.debug = debug
@@ -50,13 +55,17 @@ def create_app(debug=False, test_config=None):
   from web_experiment.survey import survey_bp
   from web_experiment.experiment1 import exp1_bp
   from web_experiment.experiment2 import exp2_bp
+  from web_experiment.instruction import inst_bp
   app.register_blueprint(consent_bp)
   app.register_blueprint(auth_bp)
   app.register_blueprint(survey_bp)
   app.register_blueprint(exp1_bp)
   app.register_blueprint(exp2_bp)
+  app.register_blueprint(inst_bp)
 
   # app.add_url_rule('/', endpoint='consent')
 
   socketio.init_app(app)
+
+  logging.info('Create app!')
   return app

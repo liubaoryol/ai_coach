@@ -1,10 +1,12 @@
 from typing import Mapping, Hashable
 import json
+import logging
 from flask import session, request, copy_current_request_context
 from flask_socketio import emit, disconnect
 from ai_coach_domain.box_push import BoxState, conv_box_idx_2_state
 from ai_coach_domain.box_push.box_push_simulator import BoxPushSimulator
 from web_experiment import socketio
+from web_experiment.models import db, User
 
 ASK_LATENT = True
 NOT_ASK_LATENT = False
@@ -64,8 +66,16 @@ def update_html_canvas(objs, room_id, ask_latent, name_space):
   socketio.emit(str_emit, objs_json, room=room_id, namespace=name_space)
 
 
-def on_game_end(room_id, name_space):
+def on_game_end(room_id, name_space, user_id, session_name):
+  logging.info("User %s completed %s" % (user_id, session_name))
+
   socketio.emit('game_end', room=room_id, namespace=name_space)
+  user = User.query.filter_by(userid=user_id).first()
+
+  if user is not None:
+    setattr(user, session_name, True)
+    # user.tutorial1 = True
+    db.session.commit()
 
 
 def are_agent_states_changed(dict_env_prev, game: BoxPushSimulator):

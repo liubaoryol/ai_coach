@@ -133,6 +133,8 @@ def action_event(msg):
         if len(valid_boxes) > 0:
           box_idx = random.choice(valid_boxes)
           game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
+        # else:
+        # game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", game.))
       elif a1_drop and a2_pickup:
         valid_boxes = event_impl.get_valid_box_to_pickup(game)
         if len(valid_boxes) > 0:
@@ -209,7 +211,8 @@ def action_event(msg):
                                     event_impl.NOT_ASK_LATENT, EXP1_NAMESPACE)
     else:
       game.reset_game()
-      event_impl.on_game_end(env_id, EXP1_NAMESPACE)
+      cur_user = msg["user_id"]
+      event_impl.on_game_end(env_id, EXP1_NAMESPACE, cur_user, "session_b2")
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)

@@ -1,11 +1,13 @@
 from typing import Mapping, Hashable
 import copy
+import logging
 from flask import request, session
 from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
 from ai_coach_domain.box_push import BoxPushSimulator_AlwaysTogether
 from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
 from ai_coach_domain.box_push.box_push_policy import get_simple_action
 from web_experiment import socketio
+from web_experiment.models import db, User
 import web_experiment.experiment1.events_impl as event_impl
 
 g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysTogether]
@@ -53,37 +55,52 @@ def run_game(msg):
 
   game = g_id_2_game[env_id]
   game.init_game(**GAME_MAP)
-  game.set_autonomous_agent()
-
-  game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 2))
-  dict_update = game.get_env_info()
-  dict_update["wall_dir"] = GAME_MAP["wall_dir"]
-  if dict_update is not None:
-    session['action_count'] = 0
-    event_impl.update_html_canvas(dict_update, env_id,
-                                  event_impl.NOT_ASK_LATENT, EXP1_TUT_NAMESPACE)
-
-
-@socketio.on('box_pickup_scenario', namespace=EXP1_TUT_NAMESPACE)
-def box_pickup_scenario(msg):
-  env_id = request.sid
-
-  # run a game
-  if env_id not in g_id_2_game:
-    g_id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
-
-  game = g_id_2_game[env_id]
-  game.init_game(**GAME_MAP)
-  game.set_autonomous_agent(
-      cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
 
   ask_latent = False
-  if msg['data'] == 'ask_latent':
-    ask_latent = True
-    game.event_input(AGENT2, EventType.SET_LATENT, ("goal", 0))
+  if "type" in msg:
+    game_type = msg["type"]
+    PICKUP_BOX = 2
+    if game_type == "to_box":
+      game.set_autonomous_agent()
+      game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
+    elif game_type == "box_pickup":
+      game.set_autonomous_agent(
+          cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
+      game.a1_pos = game.boxes[PICKUP_BOX]
+      game.current_step = int(msg["score"])
+      game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
+      game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
+    elif game_type == "to_goal":
+      game.set_autonomous_agent(
+          cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
+      game.a1_pos = game.boxes[PICKUP_BOX]
+      game.a2_pos = game.boxes[PICKUP_BOX]
+      game.box_states[PICKUP_BOX] = conv_box_state_2_idx(
+          (BoxState.WithBoth, None), len(game.drops))
+      game.current_step = int(msg["score"])
+      game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
+      game.event_input(AGENT2, EventType.SET_LATENT, ("goal", 0))
+    elif game_type == "trapped_scenario":
+      game.set_autonomous_agent()
+      # make scenario
+      TRAP_BOX = 1
+      game.box_states[TRAP_BOX] = conv_box_state_2_idx(
+          (BoxState.WithBoth, None), len(game.drops))
+      game.a1_pos = game.boxes[TRAP_BOX]
+      game.a2_pos = game.boxes[TRAP_BOX]
+      game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
+    elif game_type == "auto_prompt":
+      game.set_autonomous_agent(
+          cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
+      game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
+    else:  # "normal"
+      game.set_autonomous_agent(
+          cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
+      game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
+      ask_latent = True
   else:
+    game.set_autonomous_agent()
     game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 2))
-    game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", 2))
 
   dict_update = game.get_env_info()
   dict_update["wall_dir"] = GAME_MAP["wall_dir"]
@@ -120,9 +137,11 @@ def action_event(msg):
     dict_env_prev = copy.deepcopy(game.get_env_info())
 
     game.event_input(AGENT1, action, None)
+    if "aligned" in msg:
+      game.event_input(AGENT2, action, None)
+
     map_agent2action = game.get_joint_action()
     game.take_a_step(map_agent2action)
-    session['action_count'] = session.get('action_count', 0) + 1
 
     if not game.is_finished():
       (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
@@ -133,77 +152,28 @@ def action_event(msg):
       if not a2_pos_changed and not a2_hold_changed:
         unchanged_agents.append(1)
 
-      dict_update = game.get_changed_objects()
-      if dict_update is None:
-        dict_update = {}
-
-      dict_update["unchanged_agents"] = unchanged_agents
+      draw_overlay = False
       if a1_hold_changed:
-        game.event_input(AGENT1, EventType.SET_LATENT, None)
-        dict_update["a1_latent"] = None
-
-      event_impl.update_html_canvas(dict_update, env_id,
-                                    event_impl.NOT_ASK_LATENT,
-                                    EXP1_TUT_NAMESPACE)
-    else:
-      game.reset_game()
-      box_pickup_scenario({'data': ''})
-
-
-@socketio.on('aligned_action_event', namespace=EXP1_TUT_NAMESPACE)
-def aligned_action_event(msg):
-  env_id = request.sid
-  action = None
-  action_name = msg["data"]
-  if action_name == "Left":
-    action = EventType.LEFT
-  elif action_name == "Right":
-    action = EventType.RIGHT
-  elif action_name == "Up":
-    action = EventType.UP
-  elif action_name == "Down":
-    action = EventType.DOWN
-  elif action_name == "Pick Up":
-    action = EventType.HOLD
-  elif action_name == "Drop":
-    action = EventType.UNHOLD
-  elif action_name == "Stay":
-    action = EventType.STAY
-
-  if action:
-    game = g_id_2_game[env_id]
-
-    dict_env_prev = copy.deepcopy(game.get_env_info())
-    game.event_input(AGENT1, action, None)
-    game.event_input(AGENT2, action, None)
-    map_agent2action = game.get_joint_action()
-    game.take_a_step(map_agent2action)
-    session['action_count'] = session.get('action_count', 0) + 1
-
-    if not game.is_finished():
-      (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
-       _) = event_impl.are_agent_states_changed(dict_env_prev, game)
-      unchanged_agents = []
-      if not a1_pos_changed and not a1_hold_changed:
-        unchanged_agents.append(0)
-      if not a2_pos_changed and not a2_hold_changed:
-        unchanged_agents.append(1)
+        draw_overlay = True
 
       dict_update = game.get_changed_objects()
       if dict_update is None:
         dict_update = {}
 
       dict_update["unchanged_agents"] = unchanged_agents
-      if a1_hold_changed:
-        game.event_input(AGENT1, EventType.SET_LATENT, None)
-        dict_update["a1_latent"] = None
 
-      event_impl.update_html_canvas(dict_update, env_id,
-                                    event_impl.NOT_ASK_LATENT,
+      ASK_LATENT_FREQUENCY = 3
+      if "auto_prompt" in msg:
+        session['action_count'] = session.get('action_count', 0) + 1
+
+      if session['action_count'] >= ASK_LATENT_FREQUENCY:
+        draw_overlay = True
+
+      event_impl.update_html_canvas(dict_update, env_id, draw_overlay,
                                     EXP1_TUT_NAMESPACE)
     else:
       game.reset_game()
-      box_pickup_scenario({'data': ''})
+      run_game({'user_id': msg["user_id"], 'type': 'normal'})
 
 
 @socketio.on('set_latent', namespace=EXP1_TUT_NAMESPACE)
@@ -220,27 +190,12 @@ def set_latent(msg):
                                 EXP1_TUT_NAMESPACE)
 
 
-@socketio.on('trapped_scenario', namespace=EXP1_TUT_NAMESPACE)
-def trapped_scenario(msg):
-  env_id = request.sid
+@socketio.on('done_game', namespace=EXP1_TUT_NAMESPACE)
+def done_game(msg):
+  cur_user = msg["data"]
+  logging.info("User %s completed tutorial 1" % (cur_user, ))
+  user = User.query.filter_by(userid=cur_user).first()
 
-  # run a game
-  if env_id not in g_id_2_game:
-    g_id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
-
-  game = g_id_2_game[env_id]
-  game.init_game(**GAME_MAP)
-  game.set_autonomous_agent()
-
-  # make scenario
-  bidx = 1
-  game.box_states[bidx] = conv_box_state_2_idx((BoxState.WithBoth, None),
-                                               len(game.drops))
-  game.a1_pos = game.boxes[bidx]
-  game.a2_pos = game.boxes[bidx]
-  game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
-  dict_update = game.get_env_info()
-
-  if dict_update is not None:
-    event_impl.update_html_canvas(dict_update, env_id,
-                                  event_impl.NOT_ASK_LATENT, EXP1_TUT_NAMESPACE)
+  if user is not None:
+    user.tutorial1 = True
+    db.session.commit()

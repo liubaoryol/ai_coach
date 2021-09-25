@@ -1,7 +1,7 @@
 from typing import Mapping, Hashable
 import random
 import copy
-from flask import request
+from flask import session, request
 from ai_coach_domain.box_push import EventType
 from ai_coach_domain.box_push import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.box_push_maps import EXP1_MAP
@@ -68,6 +68,7 @@ def run_game(msg):
   dict_update = game.get_env_info()
   dict_update["wall_dir"] = EXP1_MAP["wall_dir"]
   if dict_update is not None:
+    session["action_count"] = 0
     event_impl.update_html_canvas(dict_update, env_id, event_impl.ASK_LATENT,
                                   EXP1_NAMESPACE)
 
@@ -143,11 +144,17 @@ def action_event(msg):
 
       dict_update["unchanged_agents"] = unchanged_agents
 
+      ASK_LATENT_FREQUENCY = 3
+      session['action_count'] = session.get('action_count', 0) + 1
+      if session['action_count'] >= ASK_LATENT_FREQUENCY:
+        draw_overlay = True
+
       event_impl.update_html_canvas(dict_update, env_id, draw_overlay,
                                     EXP1_NAMESPACE)
     else:
       game.reset_game()
-      event_impl.on_game_end(env_id, EXP1_NAMESPACE)
+      cur_user = msg["user_id"]
+      event_impl.on_game_end(env_id, EXP1_NAMESPACE, cur_user, "session_b3")
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)
@@ -159,5 +166,6 @@ def set_latent(msg):
   game.event_input(AGENT1, EventType.SET_LATENT, tuple(latent))
 
   dict_update = game.get_changed_objects()
+  session['action_count'] = 0
   event_impl.update_html_canvas(dict_update, env_id, event_impl.NOT_ASK_LATENT,
                                 EXP1_NAMESPACE)

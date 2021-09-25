@@ -91,6 +91,7 @@ $(document).ready(function () {
 
   socket.on('game_end', function () {
     reset_game_ui();
+    document.getElementById("submit").disabled = false;
   });
 
   game_obj.score = 0;

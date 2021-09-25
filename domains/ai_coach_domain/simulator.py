@@ -38,7 +38,7 @@ class Simulator():
 
   @abc.abstractmethod
   def reset_game(self):
-    raise NotImplementedError
+    self.current_step = 0
 
   @abc.abstractmethod
   def get_env_info(self):
@@ -72,11 +72,14 @@ class Simulator():
   def is_finished(self) -> bool:
     if self.current_step > self.max_steps:
       return True
-    raise NotImplementedError
+    return False
 
   @abc.abstractmethod
   def init_game(self, *args, **kwargs):
     raise NotImplementedError
+
+  def get_current_step(self):
+    return self.current_step
 
   # def __del__(self):
   #   self.stop_game()

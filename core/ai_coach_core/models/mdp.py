@@ -3,7 +3,7 @@
 import abc
 from typing import Optional, Tuple, Union
 
-from absl import logging
+import logging
 import numpy as np
 import numpy.testing as npt
 import scipy.special as sc
@@ -78,7 +78,7 @@ class MDP:
     self.num_dummy_states = (0 if self.dummy_states is None else
                              self.dummy_states.num_states)
     self.num_states = self.num_actual_states + self.num_dummy_states
-    logging.info("num_states= %d" % (self.num_states, ))
+    logging.debug("num_states= %d" % (self.num_states, ))
 
     # Create mapping from state to state index.
     # Mapping takes state value as inputs and outputs a scalar state index.
@@ -137,7 +137,7 @@ class MDP:
       self.list_num_actions.append(
           self.dict_factored_actionspace.get(idx).num_actions)
     self.num_actions = np.prod(self.list_num_actions)
-    logging.info("num_actions= %d" % (self.num_actions, ))
+    logging.debug("num_actions= %d" % (self.num_actions, ))
 
     # Create mapping from action to action index.
     # Mapping takes action value as inputs and outputs a scalar action index.

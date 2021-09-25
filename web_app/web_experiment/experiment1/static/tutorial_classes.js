@@ -1,3 +1,70 @@
+class PageHomeTutorial extends PageExperimentHome {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.x_cen = null;
+    this.y_cen = null;
+    this.radius = null;
+  }
+
+  init_page() {
+    super.init_page();
+    this.ctrl_ui.btn_prev.disable = false;
+  }
+
+  _draw_overlay(context, mouse_x, mouse_y) {
+    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
+      draw_spotlight(context, this.canvas, this.x_cen, this.y_cen, this.radius,
+        "gray", 0.3);
+    }
+
+    super._draw_overlay(context, mouse_x, mouse_y);
+
+    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
+    draw_with_mouse_move(context, this.ctrl_ui.btn_prev, mouse_x, mouse_y);
+  }
+}
+
+class PageGameTutorial extends PageDuringGame {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.x_cen = null;
+    this.y_cen = null;
+    this.radius = null;
+  }
+
+  init_page() {
+    super.init_page();
+    this.ctrl_ui.btn_prev.disable = false;
+  }
+
+  _draw_overlay(context, mouse_x, mouse_y) {
+    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
+      draw_spotlight(context, this.canvas, this.x_cen, this.y_cen, this.radius,
+        "gray", 0.3);
+    }
+
+    super._draw_overlay(context, mouse_x, mouse_y);
+
+    draw_with_mouse_move(context, this.ctrl_ui.btn_next, mouse_x, mouse_y);
+    draw_with_mouse_move(context, this.ctrl_ui.btn_prev, mouse_x, mouse_y);
+  }
+
+  on_click(context, mouse_x, mouse_y) {
+    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
+      go_to_next_page(this.global_object);
+      return;
+    }
+
+    if (this.ctrl_ui.btn_prev.isPointInObject(context, mouse_x, mouse_y)) {
+      go_to_prev_page(this.global_object);
+      return;
+    }
+
+    super.on_click(context, mouse_x, mouse_y);
+  }
+}
 
 class PageTutorialStart extends PageBasic {
   // we don't need spotlight for tutorial start page.
@@ -7,7 +74,7 @@ class PageTutorialStart extends PageBasic {
     this.draw_frame = false;
     // tutorial start button
     this.btn_tutorial = new ButtonRect(canvas.width / 2, canvas.height / 2,
-      global_object.game_size / 2, global_object.game_size / 5, "Start Tutorial1");
+      global_object.game_size / 2, global_object.game_size / 5, "Interactive Tutorial");
     this.btn_tutorial.font = "bold 30px arial";
   }
 
@@ -22,6 +89,7 @@ class PageTutorialStart extends PageBasic {
     this.ctrl_ui.btn_hold.disable = true;
     this.ctrl_ui.btn_drop.disable = true;
     this.ctrl_ui.btn_next.disable = true;
+    this.ctrl_ui.btn_prev.disable = true;
     this.ctrl_ui.btn_select.disable = true;
   }
 
@@ -41,26 +109,30 @@ class PageTutorialStart extends PageBasic {
   }
 }
 
-class PageInstructionSL extends PageHomeTutorial {
+class PageInstruction extends PageHomeTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-    this.x_cen = ctrl_ui.lbl_instruction.x_left + 0.5 * ctrl_ui.lbl_instruction.width;
-    this.y_cen = global_object.game_size * 1 / 5;
-    this.radius = this.y_cen * 0.1;
   }
 
   init_page() {
     super.init_page();
+    this.x_cen = this.ctrl_ui.lbl_instruction.x_left + 0.5 * this.ctrl_ui.lbl_instruction.width;
+    this.y_cen = this.global_object.game_size * 1 / 5;
+    this.radius = this.y_cen * 0.1;
     this.ctrl_ui.btn_start.disable = true;
     this.ctrl_ui.btn_next.disable = false;
-    this.ctrl_ui.lbl_instruction.text = "Instructions for each step will be shown here. " +
-      "Please read each instruction carefully during the experiment. " +
-      "Click the \"Next\" button to proceed.";
+    this.ctrl_ui.lbl_instruction.text = "Prompts will be shown here. Please read each prompt carefully. " +
+      "Click the “Next” button to proceed and “Back” button to go to the previous prompt.";
   }
 
   on_click(context, mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
       go_to_next_page(this.global_object);
+      return;
+    }
+
+    if (this.ctrl_ui.btn_prev.isPointInObject(context, mouse_x, mouse_y)) {
+      go_to_prev_page(this.global_object);
       return;
     }
 
@@ -68,55 +140,64 @@ class PageInstructionSL extends PageHomeTutorial {
   }
 }
 
-class PageStartSL extends PageHomeTutorial {
+class PageStart extends PageHomeTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-    this.x_cen = ctrl_ui.btn_start.x_origin;
-    this.y_cen = ctrl_ui.btn_start.y_origin;
-    this.radius = ctrl_ui.btn_start.width * 1.1;
   }
 
   init_page() {
     super.init_page();
     this.ctrl_ui.btn_next.disable = true;
-    this.ctrl_ui.lbl_instruction.text = "To start each experiment, please hit the \"Start \"button. " +
-      "Click the \"Start\" button to proceed.";
+    this.ctrl_ui.lbl_instruction.text = "At the start of each task, you will see the screen shown on the left. " +
+      "Click the “Start” button to begin the task.";
+  }
+
+  on_click(context, mouse_x, mouse_y) {
+    if (this.ctrl_ui.btn_prev.isPointInObject(context, mouse_x, mouse_y)) {
+      go_to_prev_page(this.global_object);
+      return;
+    }
+
+    super.on_click(context, mouse_x, mouse_y);
   }
 }
 
-class PageJoystickSL extends PageGameTutorial {
+class PageJoystick extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-
-    this.x_cen = ctrl_ui.list_joystick_btn[0].x_origin;
-    this.y_cen = ctrl_ui.list_joystick_btn[0].y_origin;;
-    this.radius = ctrl_ui.list_joystick_btn[0].width * 2;
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "You can move your character by clicking joystick buttons. " +
-      "Please note that your character will vibrate and stay put if your action fail. " +
-      "Get used to the joystick buttons and click the \"Next\" button to proceed.";
+    this.ctrl_ui.lbl_instruction.text = "During the task, you control the human player. " +
+      "You can move the human player by clicking the motion buttons. " +
+      "Once you have pressed all five buttons (left, right, up, down, and wait), please click on the “Next” button to continue.";
   }
 
   init_page() {
     super.init_page();
 
-    this.ctrl_ui.btn_next.disable = false;
+    this.x_cen = this.ctrl_ui.list_joystick_btn[0].x_origin;
+    this.y_cen = this.ctrl_ui.list_joystick_btn[0].y_origin;;
+    this.radius = this.ctrl_ui.list_joystick_btn[0].width * 1.7;
+    this.clicked_btn = {};
+    this.ctrl_ui.btn_next.disable = true;
   }
 
   on_click(context, mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object);
-      this.socket.emit('box_pickup_scenario', { data: "" });
-      return;
-    }
-
     // joystic buttons
     for (const joy_btn of this.ctrl_ui.list_joystick_btn) {
       if (joy_btn.isPointInObject(context, mouse_x, mouse_y)) {
-        this.socket.emit('action_event', { data: joy_btn.text });
+        this.socket.emit('action_event', { data: joy_btn.text, user_id: global_object.user_id });
         this.x_cen = null;
+        this.clicked_btn[joy_btn.text] = 1;
+        joy_btn.color = "LightGreen";
+        const num_key = Object.keys(this.clicked_btn).length;
+        if (num_key == 5) {
+          for (const joy_btn_2 of this.ctrl_ui.list_joystick_btn) {
+            joy_btn_2.color = "black";
+          }
+          this.ctrl_ui.btn_next.disable = false;
+        }
         return;
       }
     }
@@ -125,40 +206,124 @@ class PageJoystickSL extends PageGameTutorial {
   }
 }
 
-class PageTargetSL extends PageGameTutorial {
+class PageJoystick2 extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "The red circle indicates your current target. " +
-      "You can pick up only the targeted box. " +
-      "Please move to the box and pick it up in game.";
+    this.ctrl_ui.lbl_instruction.text = "If you take an invalid action (e.g., try to move into a wall), " +
+      "the human player will just vibrate on the spot.";
   }
 
-  __set_spotlight_target() {
-    const latent = this.game_obj.agents[0].latent;
-    if (latent != null && latent[0] == "pickup") {
-      const coord = this.game_obj.boxes[latent[1]].get_coord();
-      this.x_cen = convert_x(this.global_object, coord[0] + 0.5);
-      this.y_cen = convert_y(this.global_object, coord[1] + 0.5);
-      this.radius = convert_x(this.global_object, 0.75);
-    }
+  init_page() {
+    super.init_page();
+    this.ctrl_ui.btn_next.disable = false;
+  }
+}
+
+class PageJoystick_bag extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+  }
+
+  _set_instruction() {
+    this.ctrl_ui.lbl_instruction.text = "During the task, you control the human player. " +
+      "You can move the human player similar to the previous task. " +
+      "If you take an invalid action (e.g., try to move into a wall), " +
+      "the human player will just vibrate on the spot.";
+  }
+
+  init_page() {
+    super.init_page();
+    this.ctrl_ui.btn_next.disable = false;
+  }
+}
+
+
+class PageOnlyHuman extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+  }
+
+  _set_instruction() {
+    this.ctrl_ui.lbl_instruction.text = "While the success of the task depends on both you and the robot, " +
+      "you cannot control the robot during the game. You can only control the human player. " +
+      "The robot moves autonomously.";
   }
 
   init_page() {
     super.init_page();
 
     this.ctrl_ui.btn_next.disable = false;
-    this.__set_spotlight_target();
+  }
+}
+
+class PageTarget extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket, object_kind) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.initial_emit_data = { user_id: this.global_object.user_id, type: "to_box" };
+    this.object_kind = object_kind;
+  }
+
+  _set_instruction() {
+    this.ctrl_ui.lbl_instruction.text = "The red circle indicates your current destination and provides you a hint on where to move next. " +
+      "Please move to the " + this.object_kind + " (using the motion buttons) and try to pick it. " +
+      "The pick button will be available only when you are at the correct destination.";
+  }
+
+  init_page() {
+    super.init_page();
+    this.ctrl_ui.btn_next.disable = true;
+  }
+
+  on_data_update(changed_obj) {
+    // before parent update
+    const latent = this.game_obj.agents[0].latent;
+    const box_coord = this.game_obj.boxes[latent[1]].get_coord();
+    const a1_coord = this.game_obj.agents[0].get_coord();
+    if (a1_coord[0] == box_coord[0] && a1_coord[1] == box_coord[1]) {
+      go_to_next_page(this.global_object);
+      return;
+    }
+
+    super.on_data_update(changed_obj);
+  }
+}
+
+class PageTarget2 extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket, object_kind) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.initial_emit_data = { user_id: this.global_object.user_id, type: "box_pickup" };
+    this.object_kind = object_kind;
+  }
+
+  _set_instruction() {
+    this.ctrl_ui.lbl_instruction.text = "Now, please pick it up using the (pick button). " +
+      "You will notice that you can pick up the " + this.object_kind + " alone. " +
+      "You don’t need to wait for the robot.";
+  }
+
+  init_page() {
+    this.initial_emit_data.score = this.ctrl_ui.lbl_score.score;
+    super.init_page();
+
+    this.x_cen = this.ctrl_ui.btn_hold.x_origin;
+    this.y_cen = this.ctrl_ui.btn_hold.y_origin;
+    this.radius = this.ctrl_ui.btn_hold.width * 0.6;
+    this.ctrl_ui.btn_next.disable = true;
     set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
+    this.ctrl_ui.btn_hold.disable = false;
   }
 
   on_click(context, mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
-      this.ctrl_ui.btn_next.disable = true;
-      set_action_btn_disable(!this.ctrl_ui.btn_next.disable, this.game_obj, this.ctrl_ui);
+    // hold button
+    if (this.ctrl_ui.btn_hold.isPointInObject(context, mouse_x, mouse_y)) {
       this.x_cen = null;
+      this.action_event_data.data = this.ctrl_ui.btn_hold.text;
+      this.socket.emit('action_event', this.action_event_data);
       return;
     }
 
@@ -169,57 +334,35 @@ class PageTargetSL extends PageGameTutorial {
     // before parent update
     if (this.game_obj.agents[0].box != null) {
       go_to_next_page(this.global_object);
-      this.socket.emit('set_latent', { data: ["goal", 0] });
       return;
     }
 
     super.on_data_update(changed_obj);
-    // after parent update
-    if (!this.ctrl_ui.btn_next.disable) {
-      this.__set_spotlight_target();
-      set_action_btn_disable(!this.ctrl_ui.btn_next.disable, this.game_obj, this.ctrl_ui);
+
+    if (this.x_cen != null) {
+      set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
+      this.ctrl_ui.btn_hold.disable = false;
     }
   }
 }
 
-class PageDestinationSL extends PageGameTutorial {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+class PageDestination extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket, object_kind) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.initial_emit_data = { user_id: this.global_object.user_id, type: "to_goal" };
+    this.object_kind = object_kind;
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "As in the picking-up scenario, " +
-      "you can drop a box only at the location that is marked as the destination. " +
-      "Please carry the box to the destination and drop it there in game.";
-  }
-
-  __set_spotlight_target() {
-    const latent = this.game_obj.agents[0].latent;
-    if (latent != null && latent[0] == "goal") {
-      const coord = this.game_obj.goals[latent[1]].get_coord();
-      this.x_cen = convert_x(this.global_object, coord[0] + 0.5);
-      this.y_cen = convert_y(this.global_object, coord[1] + 0.5);
-      this.radius = convert_x(this.global_object, 0.75);
-    }
+    this.ctrl_ui.lbl_instruction.text = "After picking up the " + this.object_kind + ", you need to drop it at the flag. " +
+      "Please carry the " + this.object_kind + " to the flag and drop it there.";
   }
 
   init_page() {
+    this.initial_emit_data.score = this.ctrl_ui.lbl_score.score;
     super.init_page();
-
-    this.ctrl_ui.btn_next.disable = false;
-    this.__set_spotlight_target();
-    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
-  }
-
-  on_click(context, mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
-      this.ctrl_ui.btn_next.disable = true;
-      set_action_btn_disable(!this.ctrl_ui.btn_next.disable, this.game_obj, this.ctrl_ui);
-      this.x_cen = null;
-      return;
-    }
-
-    super.on_click(context, mouse_x, mouse_y);
+    this.ctrl_ui.btn_next.disable = true;
   }
 
   on_data_update(changed_obj) {
@@ -230,56 +373,47 @@ class PageDestinationSL extends PageGameTutorial {
     }
 
     super.on_data_update(changed_obj);
-    // after parent update
-    if (!this.ctrl_ui.btn_next.disable) {
-      this.__set_spotlight_target();
-      set_action_btn_disable(!this.ctrl_ui.btn_next.disable, this.game_obj, this.ctrl_ui);
-    }
   }
 }
 
-class PageScoreSL extends PageGameTutorial {
+class PageScore extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
-    this.x_cen = ctrl_ui.lbl_score.x_left + 0.9 * ctrl_ui.lbl_score.width;
-    this.y_cen = ctrl_ui.lbl_score.y_top + ctrl_ui.lbl_score.font_size * 0.5;
-    this.radius = ctrl_ui.lbl_score.font_size * 5;
+    this.do_emit = false;
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "Well done! The score board will be updated every time you drop a box on the goal. " +
-      "If you use less steps to carry the box, you will get higher scores." +
-      "Click the \"Next\" button to proceed";
+    this.ctrl_ui.lbl_instruction.text = "Well done! " +
+      "You might have noticed that as you were doing the task the “Time Taken” counter (shown below) was increasing. " +
+      "Your goal is to complete the task as fast as possible (i.e., with the least amount of time taken).";
   }
 
   init_page() {
     super.init_page();
 
+    this.x_cen = this.ctrl_ui.lbl_score.x_left + 0.9 * this.ctrl_ui.lbl_score.width;
+    this.y_cen = this.ctrl_ui.lbl_score.y_top + this.ctrl_ui.lbl_score.font_size * 0.5;
+    this.radius = this.ctrl_ui.lbl_score.font_size * 2;
     this.ctrl_ui.btn_next.disable = false;
     set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
-  }
-
-  on_click(context, mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object);
-      this.socket.emit('trapped_scenario', { data: global_object.user_id });
-      return;
-    }
-
-    super.on_click(context, mouse_x, mouse_y);
   }
 }
 
 class PageTrappedScenario extends PageGameTutorial {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket, object_kind) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.initial_emit_data = { user_id: this.global_object.user_id, type: "trapped_scenario" };
+    this.action_event_data.aligned = true;
+    this.object_kind = object_kind;
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "If you have a box, you cannot pass other boxes. " +
-      "Namely, you can be trapped with boxes. " + "For simplicity, your teammate will take the same action you take. " +
-      "Have a look at this scenario and click the \"Next\" button to proceed.";
+    this.ctrl_ui.lbl_instruction.text = "Let’s look at some other aspects of the task. " +
+      "When you are holding a " + this.object_kind + ", you cannot move on top of another " + this.object_kind + ". " +
+      "Try moving to the goal. You will notice that you are stuck! " +
+      "Please click on the “Next” button to continue.";
   }
 
   init_page() {
@@ -287,47 +421,41 @@ class PageTrappedScenario extends PageGameTutorial {
 
     this.ctrl_ui.btn_next.disable = false;
   }
+}
 
-  on_click(context, mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object);
-      this.socket.emit('box_pickup_scenario', { data: "ask_latent" });
-      return;
-    }
+class PageTargetHint extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
-    // joystic buttons
-    for (const joy_btn of this.ctrl_ui.list_joystick_btn) {
-      if (joy_btn.isPointInObject(context, mouse_x, mouse_y)) {
-        this.socket.emit('aligned_action_event', { data: joy_btn.text });
-        return;
-      }
-    }
-    // hold button
-    if (this.ctrl_ui.btn_hold.isPointInObject(context, mouse_x, mouse_y)) {
-      this.socket.emit('aligned_action_event', { data: this.ctrl_ui.btn_hold.text });
-      return;
-    }
+  }
 
-    if (this.ctrl_ui.btn_drop.isPointInObject(context, mouse_x, mouse_y)) {
-      this.socket.emit('aligned_action_event', { data: this.ctrl_ui.btn_drop.text });
-      return;
-    }
+  _set_instruction() {
+    this.ctrl_ui.lbl_instruction.text = "During the practice sessions, you will be given hints on where to move next. " +
+      "This will be done using the red circles shown earlier. Please click on the “Next” button to continue.";
+  }
 
-    super.on_click(context, mouse_x, mouse_y);
+  init_page() {
+    super.init_page();
+    this.x_cen = this.ctrl_ui.lbl_instruction.x_left + 0.5 * this.ctrl_ui.lbl_instruction.width;
+    this.y_cen = this.global_object.game_size * 1 / 5;
+    this.radius = this.y_cen * 0.1;
+    this.ctrl_ui.btn_next.disable = false;
+    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
+  }
+
+  on_data_update(changed_obj) {
+    super.on_data_update(changed_obj);
+    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
   }
 }
 
-// can be used twice
-class PageLatentSelection extends PageGameTutorial {
+class PageTargetNoHint extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-    this.instruction = "Often times, you will be asked to set your target or destination. " +
-      "Possible targets or destinations are numbered and shown on the game as a overlay." +
-      "Please hit the number that you are currently regarding as your target with mouse click.";
+    this.instruction = "In the test sessions, you will no longer be given hints. " +
+      "Instead, you will have to select your next target using the “Select Destination” button. " +
+      "Let’s see how to do this!  Please click on the “Next” button to continue.";
 
-    // this.instruction2 = "Ta-da! Now you can choose your target or destination as you have done before." +
-    //   "Please hit the number that you are currently regarding as your target.";
-    this.is_selecting_latent = true;
   }
 
   _set_instruction() {
@@ -336,92 +464,132 @@ class PageLatentSelection extends PageGameTutorial {
 
   init_page() {
     super.init_page();
-
-    this.ctrl_ui.btn_next.disable = true;
+    this.x_cen = this.ctrl_ui.lbl_instruction.x_left + 0.5 * this.ctrl_ui.lbl_instruction.width;
+    this.y_cen = this.global_object.game_size * 1 / 5;
+    this.radius = this.y_cen * 0.1;
+    this.ctrl_ui.btn_next.disable = false;
+    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
   }
 
   on_data_update(changed_obj) {
-    // before parent update
-    if (changed_obj.hasOwnProperty("ask_latent")) {
-      if (!changed_obj["ask_latent"]) {
-        go_to_next_page(this.global_object);
-        return;
-      }
-    }
-
     super.on_data_update(changed_obj);
-    // after parent update
+    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
   }
 }
 
-
-class PageSelectionResult extends PageGameTutorial {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
-    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-    this.is_selecting_latent = false;
-  }
-
-  _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "Well done! Now you can see your choice is marked with the red circle. " +
-      "Click the \"Next\" button to proceed.";
-  }
-
-  init_page() {
-    super.init_page();
-
-    this.ctrl_ui.btn_next.disable = false;
-  }
-
-  on_click(context, mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_next.isPointInObject(context, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object);
-      return;
-    }
-
-    super.on_click(context, mouse_x, mouse_y);
-  }
-}
-
-class PageUserLatentSL extends PageGameTutorial {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+class PageUserLatent extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket, object_kind) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
-    this.x_cen = ctrl_ui.btn_select.x_origin;
-    this.y_cen = ctrl_ui.btn_select.y_origin;
-    this.radius = ctrl_ui.btn_select.width * 1.2;
-    this.is_selecting_latent = false;
     this.use_manual_selection = true;
+    this.object_kind = object_kind;
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "For some experiment setting, you can manually provide " +
-      "your current target or destination with the \"Select Target\" button." +
-      "Let's see if it works! Please hit the \"Select Target\" button.";
+    this.ctrl_ui.lbl_instruction.text = "First click the “Select Destination” button. " +
+      "Possible destinations are numbered and shown as an overlay. " +
+      "Please click on your current destination (i.e., the " + this.object_kind + " which you are planning to pick next).";
   }
 
   init_page() {
     super.init_page();
+    this.x_cen = this.ctrl_ui.btn_select.x_origin;
+    this.y_cen = this.ctrl_ui.btn_select.y_origin;
+    this.radius = this.ctrl_ui.btn_select.width * 0.6;
+    this.is_selecting_latent = false;
 
     this.ctrl_ui.btn_next.disable = true;
     set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
   }
 
   on_click(context, mouse_x, mouse_y) {
-    // TODO: change to another button
     if (this.ctrl_ui.btn_select.isPointInObject(context, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object);
+      this.x_cen = null;
+      this.is_selecting_latent = true;
+      this.ctrl_ui.btn_select.disable = true;
+      set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
+      set_overlay(this.is_selecting_latent, this.game_obj, this.global_object);
       return;
     }
 
+    if (this.is_selecting_latent) {
+      // check if a latent is selected
+      for (const obj of this.game_obj.overlays) {
+        if (obj.isPointInObject(context, mouse_x, mouse_y)) {
+          go_to_next_page(this.global_object);
+          this.socket.emit('set_latent', { data: obj.get_id() });
+          return;
+        }
+      }
+    }
     super.on_click(context, mouse_x, mouse_y);
   }
 
   on_data_update(changed_obj) {
     super.on_data_update(changed_obj);
-    // after parent update
-    if (!this.ctrl_ui.btn_next.disable) {
-      set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
+    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
+  }
+}
+
+class PageUserSelectionResult extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.do_emit = false;
+  }
+
+  _set_instruction() {
+    this.ctrl_ui.lbl_instruction.text = "Well done! Now you can see your choice is marked with the red circle and you have selected your next destination.";
+  }
+
+  init_page() {
+    super.init_page();
+
+    this.is_selecting_latent = false;
+    this.ctrl_ui.btn_next.disable = false;
+    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
+  }
+
+  on_data_update(changed_obj) {
+    super.on_data_update(changed_obj);
+    set_action_btn_disable(true, this.game_obj, this.ctrl_ui);
+  }
+}
+
+
+class PageSelectionPrompt extends PageGameTutorial {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+    this.initial_emit_data = { user_id: this.global_object.user_id, type: "auto_prompt" };
+    this.action_event_data.auto_prompt = true;
+  }
+
+  _set_instruction() {
+    this.ctrl_ui.lbl_instruction.text = "We will also prompt the destination selection automatically and periodically during the test sessions. " +
+      "Please move the human player several steps. When the destination selection is prompted, " +
+      "please click on your current destination.";
+  }
+
+  init_page() {
+    super.init_page();
+
+    this.is_selecting_latent = false;
+    this.ctrl_ui.btn_next.disable = true;
+    set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
+  }
+
+  on_click(context, mouse_x, mouse_y) {
+    if (this.is_selecting_latent) {
+      // check if a latent is selected
+      for (const obj of this.game_obj.overlays) {
+        if (obj.isPointInObject(context, mouse_x, mouse_y)) {
+          go_to_next_page(this.global_object);
+          this.socket.emit('set_latent', { data: obj.get_id() });
+          return;
+        }
+      }
     }
+    super.on_click(context, mouse_x, mouse_y);
   }
 }
 
@@ -429,19 +597,22 @@ class PageMiniGame extends PageGameTutorial {
   constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
     this.use_manual_selection = true;
+    this.initial_emit_data = { user_id: this.global_object.user_id, type: "normal" };
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "Good job! Tutorial is now completed." +
-      "Feel free to have some practice runs with this mini game before experiments. " +
-      "In this tutorial game, your teammate will always go to the closest box. " +
-      "However, in actual experiment game, your teammate will show more complex behavior.";
+    this.ctrl_ui.lbl_instruction.text = "Now, we are at the final step of the tutorial. " +
+      "Feel free to interact with the interface and get familiar with the task. " +
+      "You can also press the back button to revisit any of the previous prompts. " +
+      "Once you are ready, please proceed to the practice sessions " +
+      "(using the button at the bottom of this page).";
   }
 
   init_page() {
     super.init_page();
 
     this.ctrl_ui.btn_next.disable = true;
+    this.socket.emit('done_game', { data: global_object.user_id });
+    document.getElementById("submit").disabled = false;
   }
-
 }

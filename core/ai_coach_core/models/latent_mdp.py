@@ -1,6 +1,7 @@
 import abc
 import numpy as np
 from tqdm import tqdm
+import logging
 
 from ai_coach_core.models.mdp import MDP
 from ai_coach_core.utils.mdp_utils import StateSpace
@@ -23,6 +24,7 @@ class LatentMDP(MDP):
   def init_latentspace_helper_vars(self):
     """Creates helper variables for the latent state space."""
     self.num_latents = self.latent_space.num_states
+    logging.debug("num_latents= %d" % (self.num_latents, ))
 
   @abc.abstractmethod
   def reward(self, latent_idx: int, state_idx: int, action_idx: int, *args,

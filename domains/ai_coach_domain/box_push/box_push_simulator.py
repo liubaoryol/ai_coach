@@ -54,6 +54,8 @@ class BoxPushSimulator(Simulator):
     self.a2_latent = None
     self.changed_state = []
 
+    super().reset_game()
+
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
     a1_action = None
@@ -67,8 +69,9 @@ class BoxPushSimulator(Simulator):
     if a1_action is None and a2_action is None:
       return
 
-    self.current_step += 1
     self.__transition(a1_action, a2_action)
+    super().take_a_step(map_agent_2_action)
+    self.changed_state.append("current_step")
 
   def __transition(self, a1_action, a2_action):
     if a1_action is None:
@@ -177,7 +180,8 @@ class BoxPushSimulator(Simulator):
         "a1_pos": self.a1_pos,
         "a2_pos": self.a2_pos,
         "a1_latent": self.a1_latent,
-        "a2_latent": self.a2_latent
+        "a2_latent": self.a2_latent,
+        "current_step": self.current_step
     }
 
   def get_changed_objects(self):
@@ -197,7 +201,7 @@ class BoxPushSimulator(Simulator):
     pass
 
   def is_finished(self) -> bool:
-    if self.current_step > self.max_steps:
+    if super().is_finished():
       return True
 
     for state in self.box_states:

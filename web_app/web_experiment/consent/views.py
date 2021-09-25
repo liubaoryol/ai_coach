@@ -1,3 +1,4 @@
+import logging
 from flask import flash, redirect, render_template, request, session, url_for
 # from web_experiment.db import query_db
 from web_experiment.models import User
@@ -10,6 +11,7 @@ def consent():
   session.clear()
   if request.method == 'POST':
     userid = request.form['userid']
+    logging.info('User %s attempts to log in' % (userid, ))
     if userid == ADMIN_ID:
       session['user_id'] = userid
       return redirect(url_for("auth.register"))
@@ -21,8 +23,13 @@ def consent():
       error = 'Incorrect user id'
 
     if error is None:
-      session['user_id'] = user.userid
-      return redirect(url_for("survey.preexperiment"))
+      if (user.session_a1 and user.session_a2 and user.session_a3
+          and user.session_a4 and user.session_b1 and user.session_b2
+          and user.session_b3 and user.session_b4):
+        error = "You already completed the experiment."
+      else:
+        session['user_id'] = user.userid
+        return redirect(url_for("inst.overview"))
 
     flash(error)
 
