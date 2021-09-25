@@ -91,6 +91,11 @@ button and Checkbox */
     text-align: center;
 }
 
+.image-center {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
 form .statement {
   display:block;
   font-size: 16px;

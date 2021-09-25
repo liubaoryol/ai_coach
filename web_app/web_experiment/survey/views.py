@@ -58,7 +58,7 @@ def preexperiment():
                                   comment=comments)
       db.session.add(new_pre_exp)
       db.session.commit()
-      return redirect(url_for('exp1.tutorial1'))
+      return redirect(url_for('inst.movers_and_packers'))
 
     flash(error)
 
