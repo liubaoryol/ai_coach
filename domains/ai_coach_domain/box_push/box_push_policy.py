@@ -12,8 +12,8 @@ from ai_coach_domain.box_push.box_push_maps import EXP1_MAP
 from ai_coach_domain.box_push.box_push_helper import (conv_box_idx_2_state,
                                                       BoxState, EventType)
 
-policy_exp1_list = None
-policy_indv_list = None
+policy_exp1_list = []
+policy_indv_list = []
 # policy_tut1_list = None
 
 
@@ -21,8 +21,7 @@ def get_action_from_team_mdp_impl(mdp: BoxPushTeamMDP, policy_list, file_prefix,
                                   agent_id, temperature, box_states, a1_pos,
                                   a2_pos, x_grid, y_grid, boxes, goals, walls,
                                   drops, a1_latent, a2_latent):
-  if policy_list is None:
-    policy_list = []
+  if len(policy_list) == 0:
     cur_dir = os.path.dirname(__file__)
     for idx in range(mdp.num_latents):
       str_q_val = os.path.join(cur_dir,
@@ -42,6 +41,9 @@ def get_action_from_team_mdp_impl(mdp: BoxPushTeamMDP, policy_list, file_prefix,
   if agent_id == BoxPushSimulator.AGENT2:
     latent = a2_latent
 
+  if latent not in mdp.latent_space.state_to_idx:
+    return None
+
   lat_idx = mdp.latent_space.state_to_idx[latent]
 
   next_joint_action = np.random.choice(range(mdp.num_actions),
@@ -58,13 +60,12 @@ def get_action_from_team_mdp_impl(mdp: BoxPushTeamMDP, policy_list, file_prefix,
   return None
 
 
-def get_action_from_agent_mdp_impl(mdp: BoxPushTeamMDP, policy_list,
+def get_action_from_agent_mdp_impl(mdp: BoxPushAgentMDP, policy_list,
                                    file_prefix, agent_id, temperature,
                                    box_states, a1_pos, a2_pos, x_grid, y_grid,
                                    boxes, goals, walls, drops, a1_latent,
                                    a2_latent):
-  if policy_list is None:
-    policy_list = []
+  if len(policy_list) == 0:
     cur_dir = os.path.dirname(__file__)
     for idx in range(mdp.num_latents):
       str_q_val = os.path.join(cur_dir,
@@ -91,6 +92,10 @@ def get_action_from_agent_mdp_impl(mdp: BoxPushTeamMDP, policy_list,
 
   sidx = mdp.conv_sim_states_to_mdp_sidx(my_pos, teammate_pos,
                                          relative_box_states)
+
+  if latent not in mdp.latent_space.state_to_idx:
+    return None
+
   lat_idx = mdp.latent_space.state_to_idx[latent]
 
   next_aidx = np.random.choice(range(mdp.num_actions),
@@ -106,6 +111,9 @@ def get_exp1_action(mdp_team: BoxPushTeamMDP, agent_id, temperature, box_states,
                     a1_pos, a2_pos, x_grid, y_grid, boxes, goals, walls, drops,
                     a1_latent, a2_latent, **kwargs):
   global policy_exp1_list
+  if policy_exp1_list is None:
+    print("p-non")
+
   return get_action_from_team_mdp_impl(mdp_team, policy_exp1_list,
                                        "box_push_np_q_value_exp1_", agent_id,
                                        temperature, box_states, a1_pos, a2_pos,

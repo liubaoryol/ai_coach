@@ -301,9 +301,16 @@ class PageTarget2 extends PageGameTutorial {
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "Now, please pick it up using the (pick button). " +
-      "You will notice that you can pick up the " + this.object_kind + " alone. " +
-      "You don’t need to wait for the robot.";
+    if (this.object_kind == "box") {
+      this.ctrl_ui.lbl_instruction.text = "Now, please pick it up using the (pick button). " +
+        "You will notice that you cannot pick up the " + this.object_kind + " alone. " +
+        "You have to pick it up together with the robot.";
+    }
+    else {
+      this.ctrl_ui.lbl_instruction.text = "Now, please pick it up using the (pick button). " +
+        "You will notice that you can pick up the " + this.object_kind + " alone. " +
+        "You don’t need to wait for the robot.";
+    }
   }
 
   init_page() {
@@ -532,14 +539,20 @@ class PageUserLatent extends PageGameTutorial {
 }
 
 class PageUserSelectionResult extends PageGameTutorial {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket, is_2nd) {
     super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
 
+    this.is_2nd = is_2nd;
     this.do_emit = false;
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "Well done! Now you can see your choice is marked with the red circle and you have selected your next destination.";
+    if (this.is_2nd) {
+      this.ctrl_ui.lbl_instruction.text = "Great! As before, your choice is marked with the red circle and you have selected your next destination.";
+    }
+    else {
+      this.ctrl_ui.lbl_instruction.text = "Well done! Now you can see your choice is marked with the red circle and you have selected your next destination.";
+    }
   }
 
   init_page() {

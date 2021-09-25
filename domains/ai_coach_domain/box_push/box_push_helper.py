@@ -9,7 +9,7 @@ class EventType(Enum):
   RIGHT = 3
   STAY = 4
   HOLD = 5
-  UNHOLD = 5
+  UNHOLD = HOLD
   SET_LATENT = 6
 
 

@@ -1,6 +1,7 @@
 import logging
 from flask import (flash, redirect, render_template, request, url_for, g)
-from web_experiment.models import db, User
+from web_experiment.models import (db, User, PostExperiment, InExperiment,
+                                   PreExperiment)
 from web_experiment.auth.functions import admin_required
 from . import auth_bp
 
@@ -30,6 +31,18 @@ def register():
       flash(error)
     elif 'delid' in request.form:
       delid = request.form['delid']
+
+      query_pre = PreExperiment.query.filter_by(subject_id=delid).first()
+      db.session.delete(query_pre)
+
+      query_in = InExperiment.query.filter_by(subject_id=delid).all()
+      print(query_in)
+      for query in query_in:
+        db.session.delete(query)
+
+      query_post = PostExperiment.query.filter_by(subject_id=delid).first()
+      db.session.delete(query_post)
+
       qdata = User.query.filter_by(userid=delid).first()
       db.session.delete(qdata)
       db.session.commit()

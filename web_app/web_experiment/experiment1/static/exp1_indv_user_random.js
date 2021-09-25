@@ -52,8 +52,9 @@ $(document).ready(function () {
 
   global_object.page_list.push(new PageExperimentHome("Experiment home", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageDuringGame("During game", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list[1].use_manual_selection = false;
+  global_object.page_list[1].use_manual_selection = true;
   global_object.page_list[1].is_test = true;
+  global_object.page_list.push(new PageExperimentEnd("Game End", global_object, game_obj, control_ui, cnvs, socket));
 
 
   /////////////////////////////////////////////////////////////////////////////
@@ -78,9 +79,19 @@ $(document).ready(function () {
   }
 
   function reset_game_ui() {
-    global_object.cur_page_idx = 0;
+    if (document.getElementById("submit").disabled) {
+      global_object.cur_page_idx = 0;
+    }
+    else {
+      global_object.cur_page_idx = global_object.page_list.length - 1;
+    }
     global_object.page_list[global_object.cur_page_idx].init_page();
   }
+
+  socket.on('game_end', function () {
+    document.getElementById("submit").disabled = false;
+    reset_game_ui();
+  });
 
   // init canvas
   socket.on('init_canvas', function (json_msg) {
@@ -88,11 +99,6 @@ $(document).ready(function () {
     global_object.grid_x = env.grid_x;
     global_object.grid_y = env.grid_y;
     reset_game_ui();
-  });
-
-  socket.on('game_end', function () {
-    reset_game_ui();
-    document.getElementById("submit").disabled = false;
   });
 
   game_obj.score = 0;

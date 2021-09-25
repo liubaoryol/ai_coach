@@ -39,6 +39,7 @@ class Simulator():
   @abc.abstractmethod
   def reset_game(self):
     self.current_step = 0
+    self.history = []
 
   @abc.abstractmethod
   def get_env_info(self):
@@ -50,10 +51,15 @@ class Simulator():
 
   def run_simulation(self, num_iter: int, *args, **kwargs):
     for dummy_i in range(num_iter):
+      cnt = 0
       while not self.is_finished():
         map_agent_2_action = self.get_joint_action()
         self.take_a_step(map_agent_2_action)
-      self.save_history()
+        cnt = cnt + 1
+        print(cnt)
+        if cnt > self.max_steps:
+          raise TimeoutError
+      self.save_history(*args, **kwargs)
       self.reset_game()
 
   @classmethod
@@ -61,7 +67,7 @@ class Simulator():
     pass
 
   @abc.abstractmethod
-  def save_history(self):
+  def save_history(self, *args, **kwargs):
     raise NotImplementedError
 
   @abc.abstractmethod

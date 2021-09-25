@@ -76,8 +76,9 @@ $(document).ready(function () {
   global_object.page_list.push(new PageTargetHint("TargetHint", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageTargetNoHint("TargetNoHint", global_object, game_obj, control_ui, cnvs, socket));
   global_object.page_list.push(new PageUserLatent("User Prompt", global_object, game_obj, control_ui, cnvs, socket, "trash bag"));
-  global_object.page_list.push(new PageUserSelectionResult("Selection", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageUserSelectionResult("Selection", global_object, game_obj, control_ui, cnvs, socket, false));
   global_object.page_list.push(new PageSelectionPrompt("Auto Prompt", global_object, game_obj, control_ui, cnvs, socket));
+  global_object.page_list.push(new PageUserSelectionResult("Selection", global_object, game_obj, control_ui, cnvs, socket, true));
   global_object.page_list.push(new PageMiniGame("Mini Game", global_object, game_obj, control_ui, cnvs, socket));
 
   /////////////////////////////////////////////////////////////////////////////

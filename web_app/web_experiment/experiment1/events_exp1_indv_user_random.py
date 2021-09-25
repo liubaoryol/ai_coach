@@ -1,6 +1,7 @@
 from typing import Mapping, Hashable
 import random
 import copy
+import logging
 from flask import session, request
 from ai_coach_domain.box_push import EventType
 from ai_coach_domain.box_push import BoxPushSimulator_AlwaysAlone
@@ -67,6 +68,7 @@ def run_game(msg):
 
   dict_update = game.get_env_info()
   dict_update["wall_dir"] = EXP1_MAP["wall_dir"]
+  dict_update["best_score"] = event_impl.get_best_score(msg["user_id"], False)
   if dict_update is not None:
     session["action_count"] = 0
     event_impl.update_html_canvas(dict_update, env_id, event_impl.ASK_LATENT,
@@ -124,11 +126,15 @@ def action_event(msg):
       if a2_pickup:
         game.event_input(AGENT2, EventType.SET_LATENT, ("goal", 0))
         draw_overlay = True
+
       elif a2_drop:
         valid_boxes = event_impl.get_valid_box_to_pickup(game)
         if len(valid_boxes) > 0:
           box_idx = random.choice(valid_boxes)
           game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
+        else:
+          game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", a1_box))
+
       elif a1_pickup:
         # a2 has no box and was targetting the same box that a1 picked up
         # --> set to another box
@@ -137,6 +143,8 @@ def action_event(msg):
           if len(valid_boxes) > 0:
             box_idx = random.choice(valid_boxes)
             game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
+          else:
+            game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", a1_box))
 
       dict_update = game.get_changed_objects()
       if dict_update is None:
@@ -144,7 +152,7 @@ def action_event(msg):
 
       dict_update["unchanged_agents"] = unchanged_agents
 
-      ASK_LATENT_FREQUENCY = 3
+      ASK_LATENT_FREQUENCY = 5
       session['action_count'] = session.get('action_count', 0) + 1
       if session['action_count'] >= ASK_LATENT_FREQUENCY:
         draw_overlay = True
@@ -152,9 +160,19 @@ def action_event(msg):
       event_impl.update_html_canvas(dict_update, env_id, draw_overlay,
                                     EXP1_NAMESPACE)
     else:
-      game.reset_game()
+      session_name = "session_b3"
       cur_user = msg["user_id"]
-      event_impl.on_game_end(env_id, EXP1_NAMESPACE, cur_user, "session_b3")
+      file_name = event_impl.get_file_name(cur_user, session_name)
+      header = "BoxPushSimulator_AlwaysAlone\n"
+      header += "User ID: %s\n" % (str(cur_user), )
+      header += str(EXP1_MAP)
+      game.save_history(file_name, header)
+
+      event_impl.on_game_end(env_id, EXP1_NAMESPACE, cur_user, session_name,
+                             game.current_step, False)
+
+      game.reset_game()
+      logging.info("User %s completed %s" % (cur_user, session_name))
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)

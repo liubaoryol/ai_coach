@@ -98,7 +98,6 @@ def run_game(msg):
       game.set_autonomous_agent(
           cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
-      ask_latent = True
   else:
     game.set_autonomous_agent()
 

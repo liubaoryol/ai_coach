@@ -307,15 +307,45 @@ class TextScore extends TextObject {
     super(x_left, y_top, width, font_size);
     this.text_align = "right";
     this.score = 0;
+    this.best = 999;
   }
 
   set_score(number) {
     this.score = number;
   }
 
+  set_best(number) {
+    this.best = number;
+  }
+
   draw(context) {
     this.text = "Time Taken: " + this.score.toString();
     super.draw(context);
+
+    let x_pos = this.x_left;
+    if (this.text_align == "right") {
+      x_pos = this.x_left + this.width;
+    }
+    else if (this.text_align == "center") {
+      x_pos = this.x_left + this.width * 0.5;
+    }
+
+    let y_pos = this.y_top; // assume "top" as default
+    if (this.text_baseline == "middle") {
+      y_pos = this.y_top + this.font_size * 0.5;
+    }
+    else if (this.text_baseline == "bottom") {
+      y_pos = this.y_top + this.font_size;
+    }
+
+    y_pos = y_pos + this.font_size;
+    context.font = "bold " + (this.font_size - 2) + "px arial";
+    if (this.best == 999) {
+      context.fillText("(Your best: - )", x_pos, y_pos);
+    }
+    else {
+      context.fillText("(Your best: " + this.best.toString() + ")", x_pos, y_pos);
+    }
   }
 }
 
@@ -755,6 +785,7 @@ function get_game_object(global_object) {
 
 function update_game_objects(obj_json, game_obj, global_object) {
   // set each property
+
   if (obj_json.hasOwnProperty("boxes")) {
     game_obj.box_origins = [];
     for (const coord of obj_json.boxes) {
@@ -1101,8 +1132,7 @@ class PageExperimentHome extends PageBasic {
     this.ctrl_ui.btn_hold.disable = true;
     this.ctrl_ui.btn_drop.disable = true;
     this.ctrl_ui.btn_select.disable = true;
-    this.ctrl_ui.lbl_instruction.text = "Instructions for each step will be shown here. " +
-      "Please click the \"Start\" button.";
+    this.ctrl_ui.lbl_instruction.text = "Click the “Start” button to begin the task.";
   }
 
   _draw_game(context, mouse_x, mouse_y) {
@@ -1237,6 +1267,10 @@ class PageDuringGame extends PageBasic {
       this.ctrl_ui.lbl_score.set_score(changed_obj["current_step"]);
     }
 
+    if (changed_obj.hasOwnProperty("best_score")) {
+      this.ctrl_ui.lbl_score.set_best(changed_obj["best_score"]);
+    }
+
     this.__set_controls();
   }
 }
@@ -1265,4 +1299,40 @@ function draw_spotlight(context, canvas, x_cen, y_cen, radius, color, alpha) {
   context.fillStyle = color;
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.restore();
+}
+
+class PageExperimentEnd extends PageBasic {
+  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this.btn_end = new ButtonRect(canvas.width / 2, canvas.height / 2,
+      global_object.game_size / 2, global_object.game_size / 5, "Completed");
+    this.btn_end.font = "bold 30px arial";
+    this.btn_end.set_mouse_over(false);
+  }
+
+  init_page() {
+    super.init_page();
+    for (const btn of this.ctrl_ui.list_joystick_btn) {
+      btn.disable = true;
+    }
+
+    this.ctrl_ui.btn_start.disable = true;
+    this.ctrl_ui.btn_hold.disable = true;
+    this.ctrl_ui.btn_drop.disable = true;
+    this.ctrl_ui.btn_select.disable = true;
+    this.ctrl_ui.lbl_instruction.text = "Instructions for each step will be shown here. " +
+      "Please click the \"Start\" button.";
+  }
+
+  // one exceptional page, so just overwrite the method
+  draw_page(context, mouse_x, mouse_y) {
+    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.btn_end.draw(context);
+    // draw_with_mouse_move(context, this.btn_end, mouse_x, mouse_y);
+  }
+
+
+  on_click(context, mouse_x, mouse_y) {
+  }
 }
