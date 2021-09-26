@@ -12,7 +12,7 @@
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='methods.js') }}"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='tutorial_classes.js') }}"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='tutorial2.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='exp1_game_logic.js') }}"></script>
 <script type="text/javascript">
   initImagePathCurUser(
     "{{ url_for('exp1.static', filename='robot.svg') }}",
@@ -24,6 +24,28 @@
     "{{ url_for('exp1.static', filename='man_bag.svg') }}",
     "{{ url_for('exp1.static', filename='robot_bag.svg') }}",
     "{{ cur_user }}");
+
+  page_list = [];
+
+  page_list.push(new PageTutorialStart());
+  page_list.push(new PageInstruction());
+  page_list.push(new PageStart());
+  page_list.push(new PageJoystick_bag());
+  page_list.push(new PageOnlyHuman());
+  page_list.push(new PageTarget("trash bag"));
+  page_list.push(new PageTarget2("trash bag"));
+  page_list.push(new PageDestination("trash bag"));
+  page_list.push(new PageScore());
+  page_list.push(new PageTrappedScenario("trash bag"));
+  page_list.push(new PageTargetHint());
+  page_list.push(new PageTargetNoHint());
+  page_list.push(new PageUserLatent("trash bag"));
+  page_list.push(new PageUserSelectionResult(false));
+  page_list.push(new PageSelectionPrompt());
+  page_list.push(new PageUserSelectionResult(true));
+  page_list.push(new PageMiniGame());
+
+  initPages(page_list, "exp1_tutorial2", true);
 </script>
 
 <div class="explanation">

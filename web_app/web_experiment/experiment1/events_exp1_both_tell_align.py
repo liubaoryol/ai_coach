@@ -98,6 +98,9 @@ def action_event(msg):
 
   if action:
     game = g_id_2_game[env_id]
+    if game.is_finished():
+      return
+
     dict_env_prev = copy.deepcopy(game.get_env_info())
 
     game.event_input(AGENT1, action, None)
@@ -144,7 +147,7 @@ def action_event(msg):
       event_impl.on_game_end(env_id, EXP1_NAMESPACE, cur_user, session_name,
                              game.current_step, True)
 
-      game.reset_game()
+      # game.reset_game()
       logging.info("User %s completed %s" % (cur_user, session_name))
 
 
@@ -154,6 +157,9 @@ def set_latent(msg):
   latent = msg["data"]
 
   game = g_id_2_game[env_id]
+  if game.is_finished():
+    return
+
   game.event_input(AGENT1, EventType.SET_LATENT, tuple(latent))
   game.event_input(AGENT2, EventType.SET_LATENT, tuple(latent))
 

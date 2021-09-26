@@ -13,6 +13,12 @@ function initImagePathCurUser(src_robot, src_human, src_box,
     src_wall, src_goal, src_both_box, src_human_box, src_robot_box, cur_user);
 }
 
+function initPages(page_list, name_space, is_tutorial = false) {
+  global_object.page_list = page_list;
+  global_object.name_space = name_space;
+  global_object.is_tutorial = is_tutorial;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // run once DOM is ready
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,37 +31,39 @@ $(document).ready(function () {
   }, false);
 
   // Connect to the Socket.IO server.
-  var socket = io('http://' + document.domain + ':' + location.port + '/exp1_indv_tell_random');
+  var socket = io('http://' + document.domain + ':' + location.port + '/' + global_object.name_space);
 
   // alias 
   const cnvs = document.getElementById("myCanvas");
-  const ctx = cnvs.getContext("2d");
-
-  /////////////////////////////////////////////////////////////////////////////
-  // initialize global UI
-  /////////////////////////////////////////////////////////////////////////////
-  global_object.game_size = cnvs.height;
-  const game_size = global_object.game_size;
-
-  // game control ui
-  let control_ui = get_control_ui_object(cnvs.width, cnvs.height, game_size);
 
   /////////////////////////////////////////////////////////////////////////////
   // game instances and methods
   /////////////////////////////////////////////////////////////////////////////
-  const game_obj = get_game_object(global_object);
+  let game_obj = get_game_object(global_object);
+  game_obj.game_size = cnvs.height;
+  game_obj.score = 0;
 
   /////////////////////////////////////////////////////////////////////////////
-  // initalize pages
+  // initialize global UI
   /////////////////////////////////////////////////////////////////////////////
-  global_object.page_list = [];
 
-  global_object.page_list.push(new PageExperimentHome("Experiment home", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list.push(new PageDuringGame("During game", global_object, game_obj, control_ui, cnvs, socket));
-  global_object.page_list[1].use_manual_selection = false;
-  global_object.page_list.push(new PageExperimentEnd("Game End", global_object, game_obj, control_ui, cnvs, socket));
+  // game control ui
+  let control_ui = get_control_ui_object(cnvs.width, cnvs.height, game_obj.game_size);
 
-
+  // next and prev buttons for tutorial
+  if (global_object.is_tutorial) {
+    const next_btn_width = (cnvs.width - game_obj.game_size) / 4;
+    const next_btn_height = next_btn_width * 0.5;
+    const mrgn = 10;
+    control_ui.btn_next = new ButtonRect(
+      cnvs.width - next_btn_width * 0.5 - mrgn, game_obj.game_size * 0.5 - 0.5 * next_btn_height - mrgn,
+      next_btn_width, next_btn_height, "Next");
+    control_ui.btn_next.font = "bold 18px arial";
+    control_ui.btn_prev = new ButtonRect(
+      game_obj.game_size + next_btn_width * 0.5 + mrgn, game_obj.game_size * 0.5 - 0.5 * next_btn_height - mrgn,
+      next_btn_width, next_btn_height, "Prev");
+    control_ui.btn_prev.font = "bold 18px arial";
+  }
   /////////////////////////////////////////////////////////////////////////////
   // game control logics
   /////////////////////////////////////////////////////////////////////////////
@@ -67,7 +75,7 @@ $(document).ready(function () {
   function onClick(event) {
     let x_m = event.offsetX;
     let y_m = event.offsetY;
-    global_object.page_list[global_object.cur_page_idx].on_click(ctx, x_m, y_m);
+    global_object.page_list[global_object.cur_page_idx].on_click(x_m, y_m);
   }
 
   // mouse move event listner
@@ -77,30 +85,29 @@ $(document).ready(function () {
     y_mouse = event.offsetY;
   }
 
-  function reset_game_ui() {
+  // for actual tasks, set game end behavior
+  if (!global_object.is_tutorial) {
+    socket.on('game_end', function () {
+      document.getElementById("submit").disabled = false;
+      global_object.cur_page_idx = global_object.page_list.length - 1;
+      global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
+    });
+  }
+
+  // init canvas
+  socket.on('init_canvas', function (json_msg) {
+    const env = JSON.parse(json_msg);
+    game_obj.grid_x = env.grid_x;
+    game_obj.grid_y = env.grid_y;
+
     if (document.getElementById("submit").disabled) {
       global_object.cur_page_idx = 0;
     }
     else {
       global_object.cur_page_idx = global_object.page_list.length - 1;
     }
-    global_object.page_list[global_object.cur_page_idx].init_page();
-  }
-
-  socket.on('game_end', function () {
-    document.getElementById("submit").disabled = false;
-    reset_game_ui();
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
   });
-
-  // init canvas
-  socket.on('init_canvas', function (json_msg) {
-    const env = JSON.parse(json_msg);
-    global_object.grid_x = env.grid_x;
-    global_object.grid_y = env.grid_y;
-    reset_game_ui();
-  });
-
-  game_obj.score = 0;
 
   let unchanged_agents = null;
   let vib_count = 0;
@@ -125,7 +132,7 @@ $(document).ready(function () {
   });
 
 
-  const perturbations = [-0.1, 0.2, -0.2, 0.2, -0.1];
+  const perturbations = [-0.05, 0.1, -0.1, 0.1, -0.05];
   function vibrate_agent_pos(agent, idx) {
     if (agent.box != null) {
       const pos = game_obj.boxes[agent.box].get_coord();
@@ -155,7 +162,7 @@ $(document).ready(function () {
           vib_count++;
         }
       }
-      global_object.page_list[global_object.cur_page_idx].draw_page(ctx, x_mouse, y_mouse);
+      global_object.page_list[global_object.cur_page_idx].draw_page(x_mouse, y_mouse);
     }
 
     requestAnimationFrame(update_scene);

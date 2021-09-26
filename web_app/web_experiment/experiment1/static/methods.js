@@ -353,12 +353,12 @@ class TextScore extends TextObject {
 // game models and methods
 ///////////////////////////////////////////////////////////////////////////////
 
-function convert_x(global_object, fX) {
-  return Math.round(fX / global_object.grid_x * global_object.game_size);
+function convert_x(game_obj, fX) {
+  return Math.round(fX / game_obj.grid_x * game_obj.game_size);
 }
 
-function convert_y(global_object, fY) {
-  return Math.round(fY / global_object.grid_y * global_object.game_size);
+function convert_y(game_obj, fY) {
+  return Math.round(fY / game_obj.grid_y * game_obj.game_size);
 }
 
 function is_coord_equal(coord1, coord2) {
@@ -366,11 +366,11 @@ function is_coord_equal(coord1, coord2) {
 }
 
 class GameObject extends DrawingObject {
-  constructor(x_g, y_g, global_object) {
+  constructor(x_g, y_g, game_obj) {
     super();
     this.x_g = x_g;
     this.y_g = y_g;
-    this.global_object = global_object;
+    this.game_obj = game_obj;
   }
 
   draw(context) {
@@ -387,11 +387,11 @@ class GameObject extends DrawingObject {
   }
 
   conv_x(fX) {
-    return convert_x(this.global_object, fX);
+    return convert_x(this.game_obj, fX);
   }
 
   conv_y(fY) {
-    return convert_y(this.global_object, fY);
+    return convert_y(this.game_obj, fY);
   }
 
   draw_game_img_fixed_height(
@@ -417,40 +417,42 @@ class GameObject extends DrawingObject {
 }
 
 class Wall extends GameObject {
-  constructor(x_g, y_g, global_object) {
-    super(x_g, y_g, global_object);
+  constructor(x_g, y_g, game_obj, img_wall) {
+    super(x_g, y_g, game_obj);
     this.dir = 0;
+    this.img_wall = img_wall;
   }
 
   draw(context) {
     super.draw(context);
     if (this.dir == 1) {
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_wall, this.x_g + 0.5, this.y_g + 1, 1, true);
+        context, this.img_wall, this.x_g + 0.5, this.y_g + 1, 1, true);
     }
     else {
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_wall, this.x_g + 0.5, this.y_g + 1, 1);
+        context, this.img_wall, this.x_g + 0.5, this.y_g + 1, 1);
     }
   }
 }
 
 class Goal extends GameObject {
-  constructor(x_g, y_g, global_object) {
-    super(x_g, y_g, global_object);
+  constructor(x_g, y_g, game_obj, img_goal) {
+    super(x_g, y_g, game_obj);
+    this.img_goal = img_goal;
   }
 
   draw(context) {
     super.draw(context);
 
     this.draw_game_img_fixed_height(
-      context, this.global_object.img_goal, this.x_g + 0.5, this.y_g + 1 - 0.1, 0.8);
+      context, this.img_goal, this.x_g + 0.5, this.y_g + 1 - 0.1, 0.8);
   }
 }
 
 class DropLoc extends GameObject {
-  constructor(x_g, y_g, global_object) {
-    super(x_g, y_g, global_object);
+  constructor(x_g, y_g, game_obj) {
+    super(x_g, y_g, game_obj);
   }
 
   draw(context) {
@@ -465,8 +467,8 @@ class DropLoc extends GameObject {
 }
 
 class BoxOrigin extends GameObject {
-  constructor(x_g, y_g, global_object) {
-    super(x_g, y_g, global_object);
+  constructor(x_g, y_g, game_obj) {
+    super(x_g, y_g, game_obj);
   }
 
   draw(context) {
@@ -483,10 +485,13 @@ class BoxOrigin extends GameObject {
 }
 
 class Box extends GameObject {
-  constructor(x_g, y_g, state, global_object, game_obj) {
-    super(x_g, y_g, global_object);
+  constructor(x_g, y_g, state, game_obj, img_box, img_human_box, img_robot_box, img_both_box) {
+    super(x_g, y_g, game_obj);
     this.state = state;
-    this.game_obj = game_obj;
+    this.img_box = img_box;
+    this.img_human_box = img_human_box;
+    this.img_robot_box = img_robot_box;
+    this.img_both_box = img_both_box;
   }
 
   draw(context) {
@@ -497,7 +502,7 @@ class Box extends GameObject {
 
     if (this.state == "box" || this.state == "drop") {
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_box, this.x_g + 0.5, this.y_g + 1 - 0.2, 0.6);
+        context, this.img_box, this.x_g + 0.5, this.y_g + 1 - 0.2, 0.6);
     }
     else if (this.state == "human") {
       let offset = 0;
@@ -510,7 +515,7 @@ class Box extends GameObject {
       }
 
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_human_box, this.x_g + 0.5 + offset, this.y_g + 1, 1);
+        context, this.img_human_box, this.x_g + 0.5 + offset, this.y_g + 1, 1);
     }
     else if (this.state == "robot") {
       let offset = 0;
@@ -523,22 +528,23 @@ class Box extends GameObject {
       }
 
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_robot_box, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
+        context, this.img_robot_box, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
     }
     else if (this.state == "both") {
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_both_box, this.x_g + 0.5, this.y_g + 1, 1);
+        context, this.img_both_box, this.x_g + 0.5, this.y_g + 1, 1);
     }
   }
 }
 
 class Agent extends GameObject {
-  constructor(type, global_object, game_obj) {
-    super(null, null, global_object);
+  constructor(type, game_obj, img_human, img_robot) {
+    super(null, null, game_obj);
     this.type = type;
     this.box = null;
     this.latent = null;
-    this.game_obj = game_obj;
+    this.img_human = img_human;
+    this.img_robot = img_robot;
   }
 
   draw(context) {
@@ -574,7 +580,7 @@ class Agent extends GameObject {
       }
 
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_human, this.x_g + 0.5 - offset, this.y_g + 1, 1);
+        context, this.img_human, this.x_g + 0.5 - offset, this.y_g + 1, 1);
     }
     else {
       let offset = 0;
@@ -595,23 +601,23 @@ class Agent extends GameObject {
       }
 
       this.draw_game_img_fixed_height(
-        context, this.global_object.img_robot, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
+        context, this.img_robot, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
     }
   }
 }
 
 class GameOverlay extends ButtonObject {
-  constructor(x_g, y_g, global_object) {
+  constructor(x_g, y_g, game_obj) {
     super(
-      convert_x(global_object, x_g + 0.5), convert_y(global_object, y_g + 0.5),
-      convert_x(global_object, 0.9), convert_y(global_object, 0.9));
-    this.global_object = global_object;
+      convert_x(game_obj, x_g + 0.5), convert_y(game_obj, y_g + 0.5),
+      convert_x(game_obj, 0.9), convert_y(game_obj, 0.9));
+    this.game_obj = game_obj;
   }
 }
 
 class SelectingOverlay extends GameOverlay {
-  constructor(x_g, y_g, id, idx, global_object) {
-    super(x_g, y_g, global_object);
+  constructor(x_g, y_g, id, idx, game_obj) {
+    super(x_g, y_g, game_obj);
     this.text = JSON.stringify(idx);
     this.id = id;
     this.fill_path = false;
@@ -646,8 +652,8 @@ class SelectingOverlay extends GameOverlay {
 }
 
 class StaticOverlay extends GameOverlay {
-  constructor(x_g, y_g, global_object) {
-    super(x_g, y_g, global_object);
+  constructor(x_g, y_g, game_obj) {
+    super(x_g, y_g, game_obj);
     this.fill_path = false;
     this.show_text = false;
   }
@@ -776,8 +782,8 @@ function get_game_object(global_object) {
   game_obj.box_origins = [];
   game_obj.boxes = [];
   game_obj.agents = [
-    new Agent("human", global_object, game_obj),
-    new Agent("robot", global_object, game_obj)];
+    new Agent("human", game_obj, global_object.img_human, global_object.img_robot),
+    new Agent("robot", game_obj, global_object.img_human, global_object.img_robot)];
   game_obj.overlays = [];
 
   return game_obj;
@@ -790,25 +796,25 @@ function update_game_objects(obj_json, game_obj, global_object) {
     game_obj.box_origins = [];
     for (const coord of obj_json.boxes) {
       game_obj.box_origins.push(
-        new BoxOrigin(coord[0], coord[1], global_object));
+        new BoxOrigin(coord[0], coord[1], game_obj));
     }
   }
   if (obj_json.hasOwnProperty("goals")) {
     game_obj.goals = [];
     for (const coord of obj_json.goals) {
-      game_obj.goals.push(new Goal(coord[0], coord[1], global_object));
+      game_obj.goals.push(new Goal(coord[0], coord[1], game_obj, global_object.img_goal));
     }
   }
   if (obj_json.hasOwnProperty("drops")) {
     game_obj.drops = [];
     for (const coord of obj_json.drops) {
-      game_obj.drops.push(new DropLoc(coord[0], coord[1], global_object));
+      game_obj.drops.push(new DropLoc(coord[0], coord[1], game_obj));
     }
   }
   if (obj_json.hasOwnProperty("walls")) {
     game_obj.walls = [];
     for (const coord of obj_json.walls) {
-      game_obj.walls.push(new Wall(coord[0], coord[1], global_object));
+      game_obj.walls.push(new Wall(coord[0], coord[1], game_obj, global_object.img_wall));
     }
   }
 
@@ -838,28 +844,40 @@ function update_game_objects(obj_json, game_obj, global_object) {
       const idx = obj_json.box_states[i];
       if (idx == 0) {   // at origin
         const coord = game_obj.box_origins[i].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "box", global_object, game_obj));
+        game_obj.boxes.push(new Box(coord[0], coord[1], "box", game_obj,
+          global_object.img_box, global_object.img_human_box,
+          global_object.img_robot_box, global_object.img_both_box));
       }
       else if (idx == 1) {   // with human
-        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "human", global_object, game_obj));
+        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "human", game_obj,
+          global_object.img_box, global_object.img_human_box,
+          global_object.img_robot_box, global_object.img_both_box));
         a1_box = i;
       }
       else if (idx == 2) {   // with robot
-        game_obj.boxes.push(new Box(a2_pos[0], a2_pos[1], "robot", global_object, game_obj));
+        game_obj.boxes.push(new Box(a2_pos[0], a2_pos[1], "robot", game_obj,
+          global_object.img_box, global_object.img_human_box,
+          global_object.img_robot_box, global_object.img_both_box));
         a2_box = i;
       }
       else if (idx == 3) {   // with both
-        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "both", global_object, game_obj));
+        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "both", game_obj,
+          global_object.img_box, global_object.img_human_box,
+          global_object.img_robot_box, global_object.img_both_box));
         a1_box = i;
         a2_box = i;
       }
       else if (idx >= 4 && idx < 4 + game_obj.drops.length) {
         const coord = game_obj.drops[idx - 4].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "drop", global_object, game_obj));
+        game_obj.boxes.push(new Box(coord[0], coord[1], "drop", game_obj,
+          global_object.img_box, global_object.img_human_box,
+          global_object.img_robot_box, global_object.img_both_box));
       }
       else {   //if (idx >= 4 + drops.length)
         const coord = game_obj.goals[idx - 4 - game_obj.drops.length].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "goal", global_object, game_obj));
+        game_obj.boxes.push(new Box(coord[0], coord[1], "goal", game_obj,
+          global_object.img_box, global_object.img_human_box,
+          global_object.img_robot_box, global_object.img_both_box));
       }
     }
     game_obj.agents[0].box = a1_box;
@@ -875,7 +893,7 @@ function update_game_objects(obj_json, game_obj, global_object) {
   }
 }
 
-function set_overlay(is_selecting_latent, game_obj, global_object) {
+function set_overlay(is_selecting_latent, game_obj) {
   game_obj.overlays = [];
   let idx = 0
   if (is_selecting_latent) {
@@ -886,7 +904,7 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
         const obj = game_obj.boxes[i];
         if (obj.state != "goal") {
           game_obj.overlays.push(
-            new SelectingOverlay(obj.x_g, obj.y_g, ["pickup", i], idx++, global_object));
+            new SelectingOverlay(obj.x_g, obj.y_g, ["pickup", i], idx++, game_obj));
         }
       }
     }
@@ -894,19 +912,19 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
       {
         const obj = game_obj.box_origins[bidx];
         game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["origin", null], idx++, global_object));
+          new SelectingOverlay(obj.x_g, obj.y_g, ["origin", null], idx++, game_obj));
       }
 
       for (let i = 0; i < game_obj.goals.length; i++) {
         const obj = game_obj.goals[i];
         game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["goal", i], idx++, global_object));
+          new SelectingOverlay(obj.x_g, obj.y_g, ["goal", i], idx++, game_obj));
       }
 
       for (let i = 0; i < game_obj.drops.length; i++) {
         const obj = game_obj.drops[i];
         game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["drop", i], idx++, global_object));
+          new SelectingOverlay(obj.x_g, obj.y_g, ["drop", i], idx++, game_obj));
       }
     }
   }
@@ -918,22 +936,22 @@ function set_overlay(is_selecting_latent, game_obj, global_object) {
       if (bidx != null) {
         if (a1_latent[0] == "origin") {
           const obj = game_obj.box_origins[bidx];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
         }
         else if (a1_latent[0] == "drop") {
           const obj = game_obj.drops[a1_latent[1]];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
         }
         else if (a1_latent[0] == "goal") {
           const obj = game_obj.goals[a1_latent[1]];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
         }
       }
       // not holding a box --> latent should be a box
       else {
         if (a1_latent[0] == "pickup") {
           const obj = game_obj.boxes[a1_latent[1]];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, global_object));
+          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
         }
       }
     }
@@ -1064,53 +1082,89 @@ function draw_action_btn(context, control_ui, x_cursor = -1, y_cursor = -1) {
   draw_with_mouse_move(context, control_ui.btn_select, x_cursor, y_cursor);
 }
 
+function go_to_next_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+  if (global_object.cur_page_idx + 1 < global_object.page_list.length) {
+    global_object.cur_page_idx++;
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  }
+}
 
+function go_to_prev_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+  if (global_object.cur_page_idx - 1 >= 0) {
+    global_object.cur_page_idx--;
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  }
+}
+
+function draw_spotlight(context, canvas, x_cen, y_cen, radius, color, alpha) {
+  context.save();
+  context.beginPath();
+  context.rect(0, 0, canvas.width, canvas.height);
+  context.arc(x_cen, y_cen, radius, 0, Math.PI * 2, true);
+  context.clip();
+  context.globalAlpha = alpha;
+  context.fillStyle = color;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.restore();
+}
+
+// Page Objects
 class PageBasic {
   // class for a page with the spotlight method
   // a page can have its own control ui and overlays
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
+  constructor() {
+    this.draw_frame = true;
+    this.global_object = null;
+    this.game_obj = null;
+    this.ctrl_ui = null;
+    this.canvas = null;
+    this.ctx = null;
+    this.socket = null;
+  }
+
+  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
     // global_object: global variables
     // game_obj: game objects
     // ctrl_ui: external control ui
-    this.page_name = page_name;
     this.global_object = global_object;
     this.game_obj = game_obj;
     this.ctrl_ui = ctrl_ui;
     this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
     this.socket = socket;
-
-    this.draw_frame = true;
   }
 
-  init_page() { }
-
-  draw_page(context, mouse_x, mouse_y) {
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    if (this.draw_frame) {
-      context.strokeStyle = "black";
-      context.beginPath();
-      context.moveTo(this.global_object.game_size, 0);
-      context.lineTo(this.global_object.game_size, this.global_object.game_size);
-      context.stroke();
+  draw_page(mouse_x, mouse_y) {
+    if (this.canvas == null) {
+      return;
     }
 
-    this._draw_game(context, mouse_x, mouse_y);
-    this._draw_overlay(context, mouse_x, mouse_y);
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    if (this.draw_frame) {
+      this.ctx.strokeStyle = "black";
+      this.ctx.beginPath();
+      this.ctx.moveTo(this.game_obj.game_size, 0);
+      this.ctx.lineTo(this.game_obj.game_size, this.game_obj.game_size);
+      this.ctx.stroke();
+    }
+
+    this._draw_game(mouse_x, mouse_y);
+    this._draw_overlay(mouse_x, mouse_y);
   }
 
-  _draw_game(context, mouse_x, mouse_y) { }
-  _draw_overlay(context, mouse_x, mouse_y) {
+  _draw_game(mouse_x, mouse_y) { }
+  _draw_overlay(mouse_x, mouse_y) {
     const margin = 5;
-    const x_left = this.global_object.game_size + margin;
+    const x_left = this.game_obj.game_size + margin;
     const y_top = margin;
     const wid = this.canvas.width - margin - x_left;
     const hei = this.canvas.height * 0.5;
-    context.fillStyle = "white";
-    context.fillRect(x_left, y_top, wid, hei);
-    this.ctrl_ui.lbl_instruction.draw(context);
+    this.ctx.fillStyle = "white";
+    this.ctx.fillRect(x_left, y_top, wid, hei);
+    this.ctrl_ui.lbl_instruction.draw(this.ctx);
   }
 
-  on_click(context, mouse_x, mouse_y) {
+  on_click(mouse_x, mouse_y) {
   }
 
   on_data_update(changed_obj) {
@@ -1118,12 +1172,12 @@ class PageBasic {
 }
 
 class PageExperimentHome extends PageBasic {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
-    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+  constructor() {
+    super();
   }
 
-  init_page() {
-    super.init_page();
+  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
     for (const btn of this.ctrl_ui.list_joystick_btn) {
       btn.disable = true;
     }
@@ -1135,42 +1189,50 @@ class PageExperimentHome extends PageBasic {
     this.ctrl_ui.lbl_instruction.text = "Click the “Start” button to begin the task.";
   }
 
-  _draw_game(context, mouse_x, mouse_y) {
-    super._draw_game(context, mouse_x, mouse_y);
-    draw_with_mouse_move(context, this.ctrl_ui.btn_start, mouse_x, mouse_y);
-    draw_action_btn(context, this.ctrl_ui, mouse_x, mouse_y);
-    this.ctrl_ui.lbl_score.draw(context);
+  _draw_game(mouse_x, mouse_y) {
+    super._draw_game(mouse_x, mouse_y);
+    draw_with_mouse_move(this.ctx, this.ctrl_ui.btn_start, mouse_x, mouse_y);
+    draw_action_btn(this.ctx, this.ctrl_ui, mouse_x, mouse_y);
+    this.ctrl_ui.lbl_score.draw(this.ctx);
   }
 
-  on_click(context, mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_start.isPointInObject(context, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object);
+  on_click(mouse_x, mouse_y) {
+    if (this.ctrl_ui.btn_start.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
       return;
     }
 
-    super.on_click(context, mouse_x, mouse_y);
+    super.on_click(mouse_x, mouse_y);
   }
 }
 
 class PageDuringGame extends PageBasic {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
-    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
+  constructor() {
+    super();
     this.is_selecting_latent = false;
     this.use_manual_selection = false;
     this.do_emit = true;
-    this.initial_emit_name = 'run_game';
-    this.initial_emit_data = { user_id: global_object.user_id };
-    this.action_event_data = { data: "", user_id: global_object.user_id }
     this.is_test = false;
+    this.initial_emit_name = 'run_game';
+    this.initial_emit_data = {};
+    this.action_event_data = { data: "" }
   }
 
-  init_page() {
-    super.init_page();
+  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+
+    this._set_emit_data();
+
     this.ctrl_ui.btn_start.disable = true;
     this.__set_controls();
     if (this.do_emit) {
       this.socket.emit(this.initial_emit_name, this.initial_emit_data);
     }
+  }
+
+  _set_emit_data() {
+    this.initial_emit_data.user_id = this.global_object.user_id;
+    this.action_event_data.user_id = this.global_object.user_id;
   }
 
   __set_controls() {
@@ -1183,7 +1245,7 @@ class PageDuringGame extends PageBasic {
     this._set_instruction();
     // ctrl buttons
     set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
-    set_overlay(this.is_selecting_latent, this.game_obj, this.global_object);
+    set_overlay(this.is_selecting_latent, this.game_obj);
   }
 
   _set_instruction() {
@@ -1200,24 +1262,24 @@ class PageDuringGame extends PageBasic {
     }
   }
 
-  _draw_game(context, mouse_x, mouse_y) {
-    super._draw_game(context, mouse_x, mouse_y);
+  _draw_game(mouse_x, mouse_y) {
+    super._draw_game(mouse_x, mouse_y);
     // draw scene
-    draw_game_scene(context, this.game_obj);
+    draw_game_scene(this.ctx, this.game_obj);
 
     // draw UI
-    draw_action_btn(context, this.ctrl_ui, mouse_x, mouse_y);
-    draw_game_overlay(context, global_object.game_size, this.game_obj,
+    draw_action_btn(this.ctx, this.ctrl_ui, mouse_x, mouse_y);
+    draw_game_overlay(this.ctx, this.game_obj.game_size, this.game_obj,
       this.is_selecting_latent, mouse_x, mouse_y);
-    this.ctrl_ui.lbl_score.draw(context);
+    this.ctrl_ui.lbl_score.draw(this.ctx);
   }
 
 
-  on_click(context, mouse_x, mouse_y) {
+  on_click(mouse_x, mouse_y) {
     if (this.is_selecting_latent) {
       // check if a latent is selected
       for (const obj of this.game_obj.overlays) {
-        if (obj.isPointInObject(context, mouse_x, mouse_y)) {
+        if (obj.isPointInObject(this.ctx, mouse_x, mouse_y)) {
           this.socket.emit('set_latent', { data: obj.get_id() });
           return;
         }
@@ -1225,37 +1287,40 @@ class PageDuringGame extends PageBasic {
     }
     else {
       // check latent selection button clicked
-      if (this.ctrl_ui.btn_select.isPointInObject(context, mouse_x, mouse_y)) {
+      if (this.ctrl_ui.btn_select.isPointInObject(this.ctx, mouse_x, mouse_y)) {
         this.is_selecting_latent = true;
         this.ctrl_ui.btn_select.disable = true;
         set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
-        set_overlay(this.is_selecting_latent, this.game_obj, this.global_object);
+        set_overlay(this.is_selecting_latent, this.game_obj);
         return;
       }
       // check if an action is selected
       // joystic buttons
       for (const joy_btn of this.ctrl_ui.list_joystick_btn) {
-        if (joy_btn.isPointInObject(context, mouse_x, mouse_y)) {
+        if (joy_btn.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+          joy_btn.disable = true;
           this.action_event_data.data = joy_btn.text;
           this.socket.emit('action_event', this.action_event_data);
           return;
         }
       }
       // hold button
-      if (this.ctrl_ui.btn_hold.isPointInObject(context, mouse_x, mouse_y)) {
+      if (this.ctrl_ui.btn_hold.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+        this.ctrl_ui.btn_hold.disable = true;
         this.action_event_data.data = this.ctrl_ui.btn_hold.text;
         this.socket.emit('action_event', this.action_event_data);
         return;
       }
 
-      if (this.ctrl_ui.btn_drop.isPointInObject(context, mouse_x, mouse_y)) {
+      if (this.ctrl_ui.btn_drop.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+        this.ctrl_ui.btn_drop.disable = true;
         this.action_event_data.data = this.ctrl_ui.btn_drop.text;
         this.socket.emit('action_event', this.action_event_data);
         return;
       }
     }
 
-    super.on_click(context, mouse_x, mouse_y);
+    super.on_click(mouse_x, mouse_y);
   }
 
   on_data_update(changed_obj) {
@@ -1275,47 +1340,22 @@ class PageDuringGame extends PageBasic {
   }
 }
 
-function go_to_next_page(global_object) {
-  if (global_object.cur_page_idx + 1 < global_object.page_list.length) {
-    global_object.cur_page_idx++;
-    global_object.page_list[global_object.cur_page_idx].init_page();
-  }
-}
-
-function go_to_prev_page(global_object) {
-  if (global_object.cur_page_idx - 1 >= 0) {
-    global_object.cur_page_idx--;
-    global_object.page_list[global_object.cur_page_idx].init_page();
-  }
-}
-
-function draw_spotlight(context, canvas, x_cen, y_cen, radius, color, alpha) {
-  context.save();
-  context.beginPath();
-  context.rect(0, 0, canvas.width, canvas.height);
-  context.arc(x_cen, y_cen, radius, 0, Math.PI * 2, true);
-  context.clip();
-  context.globalAlpha = alpha;
-  context.fillStyle = color;
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.restore();
-}
-
 class PageExperimentEnd extends PageBasic {
-  constructor(page_name, global_object, game_obj, ctrl_ui, canvas, socket) {
-    super(page_name, global_object, game_obj, ctrl_ui, canvas, socket);
-
-    this.btn_end = new ButtonRect(canvas.width / 2, canvas.height / 2,
-      global_object.game_size / 2, global_object.game_size / 5, "Completed");
-    this.btn_end.font = "bold 30px arial";
-    this.btn_end.set_mouse_over(false);
+  constructor() {
+    super();
   }
 
-  init_page() {
-    super.init_page();
+  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
     for (const btn of this.ctrl_ui.list_joystick_btn) {
       btn.disable = true;
     }
+
+    // completion button
+    this.btn_end = new ButtonRect(canvas.width / 2, canvas.height / 2,
+      game_obj.game_size / 2, game_obj.game_size / 5, "Completed");
+    this.btn_end.font = "bold 30px arial";
+    this.btn_end.set_mouse_over(false);
 
     this.ctrl_ui.btn_start.disable = true;
     this.ctrl_ui.btn_hold.disable = true;
@@ -1326,13 +1366,17 @@ class PageExperimentEnd extends PageBasic {
   }
 
   // one exceptional page, so just overwrite the method
-  draw_page(context, mouse_x, mouse_y) {
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.btn_end.draw(context);
-    // draw_with_mouse_move(context, this.btn_end, mouse_x, mouse_y);
+  draw_page(mouse_x, mouse_y) {
+    if (this.canvas == null) {
+      return;
+    }
+
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.btn_end.draw(this.ctx);
+    // draw_with_mouse_move(this.ctx, this.btn_end, mouse_x, mouse_y);
   }
 
 
-  on_click(context, mouse_x, mouse_y) {
+  on_click(mouse_x, mouse_y) {
   }
 }

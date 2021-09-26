@@ -181,6 +181,7 @@ def set_latent(msg):
   game.event_input(AGENT1, EventType.SET_LATENT, tuple(latent))
   game.event_input(AGENT2, EventType.SET_LATENT, tuple(latent))
 
+  session['action_count'] = 0
   dict_update = game.get_changed_objects()
   event_impl.update_html_canvas(dict_update, env_id, event_impl.NOT_ASK_LATENT,
                                 EXP1_TUT_NAMESPACE)
