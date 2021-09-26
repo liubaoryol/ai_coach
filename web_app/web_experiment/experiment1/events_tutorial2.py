@@ -1,5 +1,4 @@
 from typing import Mapping, Hashable
-import copy
 import logging
 from flask import request, session
 from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
@@ -77,13 +76,11 @@ def run_game(msg):
       game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
     elif game_type == "trapped_scenario":
       game.set_autonomous_agent()
-
       # make scenario
       bidx1 = 1
       game.a1_pos = game.boxes[bidx1]
       game.box_states[bidx1] = conv_box_state_2_idx((BoxState.WithAgent1, None),
                                                     len(game.drops))
-
       bidx2 = 0
       game.box_states[bidx2] = conv_box_state_2_idx((BoxState.WithAgent2, None),
                                                     len(game.drops))
@@ -111,80 +108,21 @@ def run_game(msg):
 
 @socketio.on('action_event', namespace=EXP1_TUT_NAMESPACE)
 def action_event(msg):
-  env_id = request.sid
+  auto_prompt = "auto_prompt" in msg
 
-  action = None
-  action_name = msg["data"]
-  if action_name == "Left":
-    action = EventType.LEFT
-  elif action_name == "Right":
-    action = EventType.RIGHT
-  elif action_name == "Up":
-    action = EventType.UP
-  elif action_name == "Down":
-    action = EventType.DOWN
-  elif action_name == "Pick Up":
-    action = EventType.HOLD
-  elif action_name == "Drop":
-    action = EventType.UNHOLD
-  elif action_name == "Stay":
-    action = EventType.STAY
+  def game_finished(game, *args, **kwargs):
+    game.reset_game()
+    run_game({'user_id': msg["user_id"], 'type': 'normal'})
 
-  if action:
-    game = g_id_2_game[env_id]
-
-    dict_env_prev = copy.deepcopy(game.get_env_info())
-
-    game.event_input(AGENT1, action, None)
-    map_agent2action = game.get_joint_action()
-    game.take_a_step(map_agent2action)
-
-    if not game.is_finished():
-      (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
-       _) = event_impl.are_agent_states_changed(dict_env_prev, game)
-      unchanged_agents = []
-      if not a1_pos_changed and not a1_hold_changed:
-        unchanged_agents.append(0)
-      if not a2_pos_changed and not a2_hold_changed:
-        unchanged_agents.append(1)
-
-      dict_update = game.get_changed_objects()
-      if dict_update is None:
-        dict_update = {}
-
-      draw_overlay = False
-      if a1_hold_changed:
-        draw_overlay = True
-
-      dict_update["unchanged_agents"] = unchanged_agents
-
-      ASK_LATENT_FREQUENCY = 3
-      if "auto_prompt" in msg:
-        session['action_count'] = session.get('action_count', 0) + 1
-
-      if session['action_count'] >= ASK_LATENT_FREQUENCY:
-        draw_overlay = True
-
-      event_impl.update_html_canvas(dict_update, env_id, draw_overlay,
-                                    EXP1_TUT_NAMESPACE)
-    else:
-      game.reset_game()
-      run_game({'user_id': msg["user_id"], 'type': 'normal'})
+  ASK_LATENT_FREQUENCY = 3
+  event_impl.action_event(msg, g_id_2_game, None, game_finished,
+                          EXP1_TUT_NAMESPACE, True, auto_prompt,
+                          ASK_LATENT_FREQUENCY)
 
 
 @socketio.on('set_latent', namespace=EXP1_TUT_NAMESPACE)
 def set_latent(msg):
-  env_id = request.sid
-  latent = msg["data"]
-
-  game = g_id_2_game[env_id]
-  game.event_input(AGENT1, EventType.SET_LATENT, tuple(latent))
-  game.event_input(AGENT2, EventType.SET_LATENT, tuple(latent))
-
-  session['action_count'] = 0
-  dict_update = game.get_changed_objects()
-  event_impl.update_html_canvas(dict_update, env_id, event_impl.NOT_ASK_LATENT,
-                                EXP1_TUT_NAMESPACE)
+  event_impl.set_latent(msg, g_id_2_game, EXP1_TUT_NAMESPACE)
 
 
 @socketio.on('done_game', namespace=EXP1_TUT_NAMESPACE)

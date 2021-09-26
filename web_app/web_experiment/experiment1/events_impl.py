@@ -4,10 +4,15 @@ import time
 import json
 import logging
 import random
+import copy
 from flask import session, request, copy_current_request_context, current_app
 from flask_socketio import emit, disconnect
 from ai_coach_domain.box_push import BoxState, conv_box_idx_2_state, EventType
-from ai_coach_domain.box_push.box_push_simulator import BoxPushSimulator
+from ai_coach_domain.box_push.box_push_simulator import (
+    BoxPushSimulator, BoxPushSimulator_AlwaysTogether,
+    BoxPushSimulator_AlwaysAlone)
+from ai_coach_domain.box_push.box_push_policy import (get_exp1_action,
+                                                      get_indv_action)
 from web_experiment import socketio
 from web_experiment.models import db, User
 
@@ -200,3 +205,152 @@ def change_a2_latent_based_on_a1(game: BoxPushSimulator):
     if prop > random.uniform(0, 1):
       game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
                        ("pickup", closest_idx))
+
+
+def action_event(msg, id_2_game, cb_on_hold_change, cb_game_finished,
+                 name_space, prompt_on_change, auto_prompt, prompt_freq):
+  env_id = request.sid
+  action_name = msg["data"]
+  align_a2_action = "aligned" in msg
+
+  action = None
+  if action_name == "Left":
+    action = EventType.LEFT
+  elif action_name == "Right":
+    action = EventType.RIGHT
+  elif action_name == "Up":
+    action = EventType.UP
+  elif action_name == "Down":
+    action = EventType.DOWN
+  elif action_name == "Pick Up":
+    action = EventType.HOLD
+  elif action_name == "Drop":
+    action = EventType.UNHOLD
+  elif action_name == "Stay":
+    action = EventType.STAY
+
+  if action is None:
+    return
+
+  game = id_2_game[env_id]  # type: BoxPushSimulator
+  if game.is_finished():
+    return
+
+  dict_env_prev = copy.deepcopy(game.get_env_info())
+
+  game.event_input(BoxPushSimulator.AGENT1, action, None)
+  if align_a2_action:
+    game.event_input(BoxPushSimulator.AGENT2, action, None)
+
+  map_agent2action = game.get_joint_action()
+  game.take_a_step(map_agent2action)
+
+  if not game.is_finished():
+    (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
+     a2_box) = are_agent_states_changed(dict_env_prev, game)
+    unchanged_agents = []
+    if not a1_pos_changed and not a1_hold_changed:
+      unchanged_agents.append(0)
+    if not a2_pos_changed and not a2_hold_changed:
+      unchanged_agents.append(1)
+
+    draw_overlay = False
+    if prompt_on_change and (a1_hold_changed or a2_hold_changed):
+      draw_overlay = True
+
+    if cb_on_hold_change:
+      cb_on_hold_change(game, a1_hold_changed, a2_hold_changed, a1_box, a2_box)
+
+    dict_update = game.get_changed_objects()
+    if dict_update is None:
+      dict_update = {}
+
+    dict_update["unchanged_agents"] = unchanged_agents
+
+    if auto_prompt:
+      session['action_count'] = session.get('action_count', 0) + 1
+      if session['action_count'] >= prompt_freq:
+        draw_overlay = True
+
+    update_html_canvas(dict_update, env_id, draw_overlay, name_space)
+  else:
+    if cb_game_finished:
+      cb_game_finished(game, env_id, name_space)
+
+
+def task_end(env_id, game: BoxPushSimulator, user_id, session_name, game_type,
+             map_info, name_space, is_task_a):
+  file_name = get_file_name(user_id, session_name)
+  header = game_type + "\n"
+  header += "User ID: %s\n" % (str(user_id), )
+  header += str(map_info)
+  game.save_history(file_name, header)
+
+  on_game_end(env_id, name_space, user_id, session_name, game.current_step,
+              is_task_a)
+  logging.info("User %s completed %s" % (user_id, session_name))
+
+
+def set_latent(msg, id_2_game, name_space):
+  env_id = request.sid
+  latent = msg["data"]
+
+  game = id_2_game[env_id]
+  if game.is_finished():
+    return
+
+  game.event_input(BoxPushSimulator.AGENT1, EventType.SET_LATENT, tuple(latent))
+
+  dict_update = game.get_changed_objects()
+  session['action_count'] = 0
+  update_html_canvas(dict_update, env_id, NOT_ASK_LATENT, name_space)
+
+
+def run_task_A_game(msg, id_2_game, cb_set_init_latent, mdp, game_map,
+                    ask_latent, name_space):
+  env_id = request.sid
+
+  # run a game
+  if env_id not in id_2_game:
+    id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
+
+  game = id_2_game[env_id]  # type: BoxPushSimulator
+  game.init_game(**game_map)
+  temperature = 0.3
+  game.set_autonomous_agent(cb_get_A2_action=lambda **kwargs: get_exp1_action(
+      mdp, BoxPushSimulator.AGENT2, temperature, **kwargs))
+
+  if cb_set_init_latent:
+    cb_set_init_latent(game)
+
+  dict_update = game.get_env_info()
+  dict_update["wall_dir"] = game_map["wall_dir"]
+  dict_update["best_score"] = get_best_score(msg["user_id"], True)
+  if dict_update is not None:
+    session["action_count"] = 0
+    update_html_canvas(dict_update, env_id, ask_latent, name_space)
+
+
+def run_task_B_game(msg, id_2_game, cb_set_init_latent, mdp, game_map,
+                    ask_latent, name_space):
+  env_id = request.sid
+
+  # run a game
+  if env_id not in id_2_game:
+    id_2_game[env_id] = BoxPushSimulator_AlwaysAlone(env_id)
+
+  game = id_2_game[env_id]  # type: BoxPushSimulator
+  game.init_game(**game_map)
+  temperature = 0.3
+  game.set_autonomous_agent(cb_get_A2_action=lambda **kwargs: get_indv_action(
+      mdp, BoxPushSimulator.AGENT2, temperature, **kwargs))
+
+  if cb_set_init_latent:
+    cb_set_init_latent(game)
+
+  dict_update = game.get_env_info()
+  dict_update["wall_dir"] = game_map["wall_dir"]
+  dict_update["best_score"] = get_best_score(msg["user_id"], False)
+  if dict_update is not None:
+    session["action_count"] = 0
+    update_html_canvas(dict_update, env_id, ask_latent, name_space)
