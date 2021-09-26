@@ -88,8 +88,6 @@ def update_html_canvas(objs, room_id, ask_latent, name_space):
 
 
 def on_game_end(room_id, name_space, user_id, session_name, score, is_a):
-  logging.info("User %s completed %s" % (user_id, session_name))
-
   socketio.emit('game_end', room=room_id, namespace=name_space)
   user = User.query.filter_by(userid=user_id).first()
 

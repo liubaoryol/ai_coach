@@ -653,7 +653,9 @@ class PageMiniGame extends PageGameTutorial {
     super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
 
     this.ctrl_ui.btn_next.disable = true;
-    this.socket.emit('done_game', { data: global_object.user_id });
-    document.getElementById("submit").disabled = false;
+    if (document.getElementById("submit").disabled) {
+      this.socket.emit('done_game', { data: global_object.user_id });
+      document.getElementById("submit").disabled = false;
+    }
   }
 }

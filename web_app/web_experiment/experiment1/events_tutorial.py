@@ -130,7 +130,7 @@ def set_latent(msg):
 @socketio.on('done_game', namespace=EXP1_TUT_NAMESPACE)
 def done_game(msg):
   cur_user = msg["data"]
-  logging.info("User %s completed tutorial 1" % (cur_user, ))
+  logging.info("User %s completed tutorial1" % (cur_user, ))
   user = User.query.filter_by(userid=cur_user).first()
 
   if user is not None:
