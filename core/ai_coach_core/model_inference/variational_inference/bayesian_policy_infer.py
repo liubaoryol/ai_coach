@@ -161,24 +161,26 @@ class semisupervised_bayesian_policy_learning(bayesian_policy_learning):
                        1 / self.num_lstates)
       list_q_x.append(np_q_x)
 
-    list_q_pi_hyper = [
-        np.zeros(
-            (self.num_ostates, self.num_lstates, self.tuple_num_actions[i_a]))
-        for i_a in range(self.num_agents)
-    ]
+    # list_q_pi_hyper = [
+    #     np.zeros(
+    #         (self.num_ostates, self.num_lstates, self.tuple_num_actions[i_a]))
+    #     for i_a in range(self.num_agents)
+    # ]
+    list_q_pi_hyper = self.list_base_q_pi_hyper
     list_q_pi_hyper_prev = None
 
     progress_bar = tqdm(total=self.max_iteration)
     while count < self.max_iteration:
       count += 1
       list_q_pi_hyper_prev = list_q_pi_hyper
-      # Don't know exactly why,
-      # but the performance is better when we do mstep first
-      list_q_pi_hyper = self.mstep_global_variables(list_q_x)
+      # Don't know which is better to do between mstep and estp.
+      # Sometimes to do mstep first brings much better results
       list_q_x = self.estep_local_variables(list_q_pi_hyper)
+      list_q_pi_hyper = self.mstep_global_variables(list_q_x)
 
       if callback:
         callback(self.num_agents, list_q_pi_hyper)
+
       delta_team = 0
       for i_a in range(self.num_agents):
         delta = np.max(np.abs(list_q_pi_hyper[i_a] - list_q_pi_hyper_prev[i_a]))
