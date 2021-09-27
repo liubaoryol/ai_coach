@@ -155,6 +155,8 @@ if __name__ == "__main__":
   load_task_model = True
   do_sup_infer = True
   do_semi_infer = True
+  gen_train_set = False
+  gen_test_set = False
 
   ##############################################
 
@@ -170,15 +172,16 @@ if __name__ == "__main__":
     possible_lstates = tooldelivery_env.policy.get_possible_latstate_indices()
     num_lstates = len(possible_lstates)
 
-    file_names = glob.glob(os.path.join(data_dir, file_prefix + '*.txt'))
-    for fmn in file_names:
-      os.remove(fmn)
+    if gen_train_set:
+      file_names = glob.glob(os.path.join(data_dir, file_prefix + '*.txt'))
+      for fmn in file_names:
+        os.remove(fmn)
 
-    # to generate sequences comment out below lines
-    generate_multiple_sequences(tooldelivery_env,
-                                data_dir,
-                                1000,
-                                file_prefix=file_prefix)
+      # to generate sequences comment out below lines
+      generate_multiple_sequences(tooldelivery_env,
+                                  data_dir,
+                                  1000,
+                                  file_prefix=file_prefix)
 
     file_names = glob.glob(os.path.join(data_dir, '*.txt'))
 
@@ -215,14 +218,15 @@ if __name__ == "__main__":
                             "tooldelivery_v3_test_data/")
     test_file_prefix = 'td3_test_'
 
-    file_names = glob.glob(os.path.join(test_dir, test_file_prefix + '*.txt'))
-    for fmn in file_names:
-      os.remove(fmn)
+    if gen_test_set:
+      file_names = glob.glob(os.path.join(test_dir, test_file_prefix + '*.txt'))
+      for fmn in file_names:
+        os.remove(fmn)
 
-    generate_multiple_sequences(tooldelivery_env,
-                                test_dir,
-                                300,
-                                file_prefix=test_file_prefix)
+      generate_multiple_sequences(tooldelivery_env,
+                                  test_dir,
+                                  300,
+                                  file_prefix=test_file_prefix)
 
     test_file_names = glob.glob(os.path.join(test_dir, '*.txt'))
 

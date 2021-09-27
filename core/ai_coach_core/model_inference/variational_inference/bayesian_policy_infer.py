@@ -45,54 +45,11 @@ class bayesian_policy_learning:
     self.epsilon = epsilon
 
   def set_dirichlet_prior(self, hyperparam: float):
-    # added 1 just to make sure modes could be found
-    # self.prior_hyperparam = (
-    #     hyperparam / (self.num_actions) + 1)
+    # beta
     self.prior_hyperparam = hyperparam
 
   def do_inference(self, callback: Optional[Callable] = None):
     pass
-
-
-class supervised_bayesian_policy_learning(bayesian_policy_learning):
-  def __init__(
-      self,
-      trajectories: Sequence[T_StateJointActionSeqence],
-      latent_labels: Sequence[Tuple[int, ...]],
-      num_agents: int,
-      num_states: int,
-      num_latent_states: int,
-      tuple_num_actions: Tuple[int, ...],
-  ) -> None:
-    '''
-      trajectories: list of list of (state, joint action)-tuples
-    '''
-    super().__init__(None, trajectories, latent_labels, num_agents, num_states,
-                     num_latent_states, tuple_num_actions)
-
-  def do_inference(self, callback=None):
-    for idx in range(self.num_agents):
-      self.np_policy[idx] = np.full(
-          (self.num_ostates, self.num_lstates, self.tuple_num_actions[idx]),
-          self.prior_hyperparam - 1)
-
-    for i_data in range(len(self.labeled_data)):
-      joint_lstate = self.labels[i_data]
-      for state, joint_action in self.labeled_data[i_data]:
-        if self.num_agents == 1:
-          ind_ls = joint_lstate
-          ind_act = joint_action
-          self.np_policy[0][state][ind_ls][ind_act] += 1
-        else:
-          for i_a in range(self.num_agents):
-            ind_ls = joint_lstate[i_a]
-            ind_act = joint_action[i_a]
-            self.np_policy[i_a][state][ind_ls][ind_act] += 1
-
-    for idx in range(self.num_agents):
-      action_sums = np.sum(self.np_policy[idx], axis=2)
-      self.np_policy[idx] = (self.np_policy[idx] /
-                             action_sums[:, :, np.newaxis])
 
 
 class semisupervised_bayesian_policy_learning(bayesian_policy_learning):
@@ -107,7 +64,7 @@ class semisupervised_bayesian_policy_learning(bayesian_policy_learning):
                iteration: int = 10000,
                epsilon: float = 0.001) -> None:
     '''
-        trajectories: list of list of (state, joint action)-tuples
+        data: list of list of (state, joint action)-tuples
         '''
     super().__init__(unlabeled_data, labeled_data, labels, num_agents,
                      num_states, num_latent_states, tuple_num_actions,
@@ -239,3 +196,29 @@ class semisupervised_bayesian_policy_learning(bayesian_policy_learning):
 
     for idx in range(len(list_q_x)):
       self.list_mental_models.append(tuple(np.amax(list_q_x[idx], axis=1)))
+
+
+class supervised_bayesian_policy_learning(
+    semisupervised_bayesian_policy_learning):
+  def __init__(
+      self,
+      labeled_data: Sequence[T_StateJointActionSeqence],
+      labels: Sequence[Tuple[int, ...]],
+      num_agents: int,
+      num_states: int,
+      num_latent_states: int,
+      tuple_num_actions: Tuple[int, ...],
+  ) -> None:
+    '''
+      trajectories: list of list of (state, joint action)-tuples
+    '''
+    super().__init__([], labeled_data, labels, num_agents, num_states,
+                     num_latent_states, tuple_num_actions)
+
+  def do_inference(self, callback=None):
+    self.cal_base_pi_hyper()
+
+    for idx in range(self.num_agents):
+      numerator = self.list_base_q_pi_hyper[idx] - 1
+      action_sums = np.sum(numerator, axis=2)
+      self.np_policy[idx] = numerator / action_sums[:, :, np.newaxis]
