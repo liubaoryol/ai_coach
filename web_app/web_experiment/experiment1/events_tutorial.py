@@ -2,9 +2,9 @@ from typing import Mapping, Hashable
 import logging
 from flask import request, session
 from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
-from ai_coach_domain.box_push import BoxPushSimulator_AlwaysTogether
-from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
-from ai_coach_domain.box_push.box_push_policy import get_simple_action
+from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysTogether
+from ai_coach_domain.box_push.maps import TUTORIAL_MAP
+from ai_coach_domain.box_push.policy import get_simple_action
 from web_experiment import socketio
 from web_experiment.models import db, User
 import web_experiment.experiment1.events_impl as event_impl

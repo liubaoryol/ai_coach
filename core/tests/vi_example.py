@@ -4,11 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import time
-import ai_coach_core.model_inference.variational_inference.bayesian_policy_infer as bpi  # noqa: E501
-from ai_coach_core.examples.environment import RequestEnvironment
-from ai_coach_core.examples.tooldelivery_v3_env import ToolDeliveryEnv_V3
+import ai_coach_core.model_inference.var_infer.var_infer_static_x as var_infer
 from ai_coach_core.latent_inference.bayesian_inference import (
     bayesian_mind_inference)
+from tests.examples.environment import RequestEnvironment
+from tests.examples.tooldelivery_v3_env import ToolDeliveryEnv_V3
 
 
 def read_sample(file_name):
@@ -118,13 +118,13 @@ def get_bayesian_infer_result(num_agent, list_np_policies, num_lstate,
 
   tuple_num_lstate = tuple(num_lstate for dummy_i in range(num_agent))
 
-  def n_sxa_policy(agent_idx, state_idx, x_idx, joint_action):
+  def n_xsa_policy(agent_idx, x_idx, state_idx, joint_action):
     action_idx = joint_action[agent_idx]
-    return list_np_policies[agent_idx][state_idx][x_idx][action_idx]
+    return list_np_policies[agent_idx][x_idx][state_idx][action_idx]
 
   full_count_correct = 0
   for idx, trj in enumerate(test_full_trajectories):
-    infer_lat = bayesian_mind_inference(trj, tuple_num_lstate, n_sxa_policy,
+    infer_lat = bayesian_mind_inference(trj, tuple_num_lstate, n_xsa_policy,
                                         num_agent)
     true_lat = true_latent_labels[idx]
     full_conf[true_lat][infer_lat] += 1
@@ -135,7 +135,7 @@ def get_bayesian_infer_result(num_agent, list_np_policies, num_lstate,
 
   part_count_correct = 0
   for idx, trj in enumerate(test_part_trajectories):
-    infer_lat = bayesian_mind_inference(trj, tuple_num_lstate, n_sxa_policy,
+    infer_lat = bayesian_mind_inference(trj, tuple_num_lstate, n_xsa_policy,
                                         num_agent)
     true_lat = true_latent_labels[idx]
     part_conf[true_lat][infer_lat] += 1
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
   if load_task_model:
     data_dir = os.path.join(os.path.dirname(__file__),
-                            "tooldelivery_v3_train_data/")
+                            "data/tooldelivery_v3_train_data/")
     file_prefix = 'td3_train_'
     tooldelivery_env = ToolDeliveryEnv_V3()
     num_agents = tooldelivery_env.num_brains
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     ##############################################
     # test data
     test_dir = os.path.join(os.path.dirname(__file__),
-                            "tooldelivery_v3_test_data/")
+                            "data/tooldelivery_v3_test_data/")
     test_file_prefix = 'td3_test_'
 
     if gen_test_set:
@@ -250,7 +250,7 @@ if __name__ == "__main__":
       partial_trj, request_idx = get_tooldelivery_partial_traj(tooldelivery_env,
                                                                trj_n,
                                                                num_b4_request=0,
-                                                               num_af_request=5)
+                                                               num_af_request=7)
 
       test_full_trajectories.append(full_trj)
       test_part_trajectories.append(partial_trj)
@@ -299,12 +299,13 @@ if __name__ == "__main__":
   ##############################################
   # supervised policy learning
   if do_sup_infer:
-    sup_infer1 = bpi.supervised_bayesian_policy_learning(
-        trajectories[0:num_labeled1], latent_labels[0:num_labeled1], num_agents,
-        num_ostates, num_lstates, tuple_num_actions)
+    sup_infer1 = var_infer.VarInferStaticX_SL(trajectories[0:num_labeled1],
+                                              latent_labels[0:num_labeled1],
+                                              num_agents, num_ostates,
+                                              num_lstates, tuple_num_actions)
     sup_infer1.set_dirichlet_prior(SUPER_HYPERPARAM)
     sup_infer1.do_inference()
-    sup_np_policy1 = sup_infer1.np_policy
+    sup_np_policy1 = sup_infer1.list_np_policy
 
     (sup_conf_full1, sup_conf_part1, full_acc1, part_acc1, full_align_acc1,
      part_align_acc1) = get_bayesian_infer_result(num_agents, sup_np_policy1,
@@ -313,12 +314,12 @@ if __name__ == "__main__":
                                                   test_part_trajectories,
                                                   true_latent_labels)
 
-    sup_infer2 = bpi.supervised_bayesian_policy_learning(
-        trajectories, latent_labels, num_agents, num_ostates, num_lstates,
-        tuple_num_actions)
+    sup_infer2 = var_infer.VarInferStaticX_SL(trajectories, latent_labels,
+                                              num_agents, num_ostates,
+                                              num_lstates, tuple_num_actions)
     sup_infer2.set_dirichlet_prior(SUPER_HYPERPARAM)
     sup_infer2.do_inference()
-    sup_np_policy2 = sup_infer2.np_policy
+    sup_np_policy2 = sup_infer2.list_np_policy
     (sup_conf_full2, sup_conf_part2, full_acc2, part_acc2, full_align_acc2,
      part_align_acc2) = get_bayesian_infer_result(num_agents, sup_np_policy2,
                                                   num_lstates,
@@ -328,7 +329,7 @@ if __name__ == "__main__":
   # ##############################################
   # # semisupervised policy learning
   if do_semi_infer:
-    semisup_infer = bpi.semisupervised_bayesian_policy_learning(
+    semisup_infer = var_infer.VarInferStaticX_SemiSL(
         trajectories[num_labeled1:len(trajectories)],
         trajectories[0:num_labeled1],
         latent_labels[0:num_labeled1],
@@ -336,7 +337,7 @@ if __name__ == "__main__":
         num_ostates,
         num_lstates,
         tuple_num_actions,
-        iteration=100,
+        max_iteration=100,
         epsilon=0.001)
 
     semisup_infer.set_dirichlet_prior(SEMISUPER_HYPERPARAM)
@@ -346,7 +347,7 @@ if __name__ == "__main__":
     elapsed_time = time.time() - start_time
     print(elapsed_time)
 
-    semisup_np_policy = semisup_infer.np_policy
+    semisup_np_policy = semisup_infer.list_np_policy
     (semi_conf_full, semi_conf_part, semi_full_acc, semi_part_acc,
      semi_full_align_acc, semi_part_align_acc) = get_bayesian_infer_result(
          num_agents, semisup_np_policy, num_lstates, test_full_trajectories,

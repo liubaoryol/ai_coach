@@ -48,3 +48,15 @@ TEST_MAP2 = {
     "wall_dir": [],
     "drops": []
 }
+
+TEST_MAP3 = {
+    "x_grid": 2,
+    "y_grid": 1,
+    "a1_init": (0, 0),
+    "a2_init": (0, 0),
+    "boxes": [(1, 0)],
+    "goals": [(0, 0)],
+    "walls": [],
+    "wall_dir": [],
+    "drops": []
+}

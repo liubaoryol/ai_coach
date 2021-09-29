@@ -1,10 +1,10 @@
 import numpy as np
 import os
 import pickle
-from ai_coach_core.examples.environment import MMDPPolicy
-from ai_coach_core.examples.tooldelivery_v3_mdp import ToolDeliveryMDP_V3
-import ai_coach_core.examples.tooldelivery_v3_state_action as T3SA
 from ai_coach_core.utils.exceptions import InvalidTransitionError
+from tests.examples.environment import MMDPPolicy
+from tests.examples.tooldelivery_v3_mdp import ToolDeliveryMDP_V3
+import tests.examples.tooldelivery_v3_state_action as T3SA
 
 RATIONALITY_SCALAR = 1
 

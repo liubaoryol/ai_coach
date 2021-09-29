@@ -1,10 +1,9 @@
 from typing import Mapping, Hashable
 import random
 from ai_coach_domain.box_push import EventType
-from ai_coach_domain.box_push import BoxPushSimulator_AlwaysAlone
-from ai_coach_domain.box_push.box_push_maps import EXP1_MAP
-from ai_coach_domain.box_push.box_push_agent_mdp import (
-    BoxPushAgentMDP_AlwaysAlone)
+from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysAlone
+from ai_coach_domain.box_push.maps import EXP1_MAP
+from ai_coach_domain.box_push.agent_mdp import (BoxPushAgentMDP_AlwaysAlone)
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 

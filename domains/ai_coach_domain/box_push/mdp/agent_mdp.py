@@ -3,8 +3,8 @@ from ai_coach_core.models.latent_mdp import LatentMDP
 from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
-from ai_coach_domain.box_push.box_push_helper import (
-    transition_alone_and_together, transition_always_alone)
+from ai_coach_domain.box_push.helper import (transition_alone_and_together,
+                                             transition_always_alone)
 
 
 class BoxPushAgentMDP(LatentMDP):
@@ -68,15 +68,6 @@ class BoxPushAgentMDP(LatentMDP):
 
   def get_possible_box_states(self):
     raise NotImplementedError
-    # box_states = [(BoxState(idx), None) for idx in range(4)]
-    # num_drops = len(self.drops)
-    # num_goals = len(self.goals)
-    # if num_drops != 0:
-    #   for idx in range(num_drops):
-    #     box_states.append((BoxState.OnDropLoc, idx))
-    # for idx in range(num_goals):
-    #   box_states.append((BoxState.OnGoalLoc, idx))
-    # return box_states
 
   def is_terminal(self, state_idx):
     len_s_space = len(self.dict_factored_statespace)
@@ -188,7 +179,7 @@ class BoxPushAgentMDP(LatentMDP):
     state_vec = self.conv_idx_to_state(state_idx)
 
     my_pos = self.my_pos_space.idx_to_state[state_vec[0]]
-    teammate_pos = self.teammate_pos_space.idx_to_state[state_vec[1]]
+    # teammate_pos = self.teammate_pos_space.idx_to_state[state_vec[1]]
 
     box_states = []
     for idx in range(2, len_s_space):
@@ -201,7 +192,7 @@ class BoxPushAgentMDP(LatentMDP):
 
     holding_box = -1
     for idx, bstate in enumerate(box_states):
-      if bstate[0] in [BoxState.WithAgent1, BoxState.WithBoth]:
+      if bstate[0] in [BoxState.WithMe, BoxState.WithBoth]:
         holding_box = idx
 
     panelty = -1
@@ -219,12 +210,12 @@ class BoxPushAgentMDP(LatentMDP):
         box_pos = None
         if bstate[0] == BoxState.Original:
           box_pos = self.boxes[latent[1]]
-        elif bstate[0] == BoxState.WithTeammate:
-          box_pos = teammate_pos
+        # elif bstate[0] == BoxState.WithTeammate:
+        #   box_pos = teammate_pos
         elif bstate[0] == BoxState.OnDropLoc:
           box_pos = self.drops[bstate[1]]
-        elif bstate[0] == BoxState.OnGoalLoc:
-          box_pos = self.goals[bstate[1]]
+        # elif bstate[0] == BoxState.OnGoalLoc:
+        #   box_pos = self.goals[bstate[1]]
 
         if my_pos == box_pos and my_act == EventType.HOLD:
           return 100
@@ -300,34 +291,48 @@ if __name__ == "__main__":
   import os
   import pickle
   import ai_coach_core.RL.planning as plan_lib
-  from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
-  game_map = TUTORIAL_MAP
+  from ai_coach_domain.box_push.maps import TEST_MAP3
+  game_map = TEST_MAP3
 
   box_push_mdp = BoxPushAgentMDP_AlwaysAlone(**game_map)
   GAMMA = 0.95
 
-  CHECK_VALIDITY = True
-  VALUE_ITER = False
+  CHECK_VALIDITY = False
+  VALUE_ITER = True
 
   if CHECK_VALIDITY:
     from ai_coach_core.utils.test_utils import check_transition_validity
     assert check_transition_validity(box_push_mdp)
 
   if VALUE_ITER:
-    pi, np_v_value, np_q_value = plan_lib.value_iteration(
-        box_push_mdp.np_transition_model,
-        box_push_mdp.np_reward_model[0],
-        discount_factor=GAMMA,
-        max_iteration=500,
-        epsilon=0.01)
+    for idx in range(box_push_mdp.num_latents):
+      pi, np_v_value, np_q_value = plan_lib.value_iteration(
+          box_push_mdp.np_transition_model,
+          box_push_mdp.np_reward_model[idx],
+          discount_factor=GAMMA,
+          max_iteration=500,
+          epsilon=0.01)
+      # print(box_push_mdp.latent_space.idx_to_state[idx])
 
-    cur_dir = os.path.dirname(__file__)
-    str_v_val = os.path.join(cur_dir,
-                             "data/box_push_np_v_value_tutorial.pickle")
-    with open(str_v_val, "wb") as f:
-      pickle.dump(np_v_value, f, pickle.HIGHEST_PROTOCOL)
+      # for sidx in range(box_push_mdp.num_states):
+      #   imp, itp, ibox = box_push_mdp.conv_idx_to_state(sidx)
+      #   mp = box_push_mdp.my_pos_space.idx_to_state[imp]
+      #   tp = box_push_mdp.teammate_pos_space.idx_to_state[itp]
+      #   box = box_push_mdp.dict_factored_statespace[2].idx_to_state[ibox]
+      #   for aidx in range(box_push_mdp.num_actions):
+      #     act = box_push_mdp.my_act_space.idx_to_action[aidx]
+      #     print(
+      #         str(mp) + "; " + str(tp) + "; " + box[0].name + "; " +
+      # act.name +
+      #         "; " + "%f" % (np_q_value[sidx, aidx], ))
 
-    str_q_val = os.path.join(cur_dir,
-                             "data/box_push_np_q_value_tutorial.pickle")
-    with open(str_q_val, "wb") as f:
-      pickle.dump(np_q_value, f, pickle.HIGHEST_PROTOCOL)
+      cur_dir = os.path.dirname(__file__)
+      str_v_val = os.path.join(cur_dir,
+                               "data/box_push_np_v_value_tutorial.pickle")
+      with open(str_v_val, "wb") as f:
+        pickle.dump(np_v_value, f, pickle.HIGHEST_PROTOCOL)
+
+      str_q_val = os.path.join(cur_dir,
+                               "data/box_push_np_q_value_tutorial.pickle")
+      with open(str_q_val, "wb") as f:
+        pickle.dump(np_q_value, f, pickle.HIGHEST_PROTOCOL)

@@ -9,7 +9,7 @@ def bayesian_mind_inference_for_individual(
     trajectory: T_StateJointActionSeqence,
     mind_idx: int,
     num_latent: int,
-    cb_n_sxa_policy: Callable[[int, int, int, Tuple[int, ...]], float],
+    cb_n_xsa_policy: Callable[[int, int, int, Tuple[int, ...]], float],
     # sxa_policy: np.ndarray,
     np_prior: Optional[np.ndarray] = None):
   '''
@@ -32,7 +32,7 @@ def bayesian_mind_inference_for_individual(
 
   for xidx in range(num_latent):
     for state_idx, joint_action in trajectory:
-      p_a_sx = cb_n_sxa_policy(mind_idx, state_idx, xidx, joint_action)
+      p_a_sx = cb_n_xsa_policy(mind_idx, xidx, state_idx, joint_action)
       # p_a_sx = sxa_policy[state_idx][xidx][aidx]
 
       np_px[xidx] *= p_a_sx
@@ -48,7 +48,7 @@ def bayesian_mind_inference_for_individual(
 def bayesian_mind_inference(
     trajectory: T_StateJointActionSeqence,
     tuple_num_latent: Tuple[int, ...],
-    cb_n_sxa_policy: Callable[[int, int, int, Tuple[int, ...]], float],
+    cb_n_xsa_policy: Callable[[int, int, int, Tuple[int, ...]], float],
     # list_sxa_policy: Sequence[np.ndarray],
     num_minds: int,
     list_np_prior: Optional[Sequence[np.ndarray]] = None):
@@ -66,7 +66,7 @@ def bayesian_mind_inference(
     # inferred_x = bayesian_latent_inference_for_each_agent(
     #     trajectory, agent_idx, list_sxa_policy[agent_idx], np_prior)
     inferred_x = bayesian_mind_inference_for_individual(
-        trajectory, mind_idx, tuple_num_latent[mind_idx], cb_n_sxa_policy,
+        trajectory, mind_idx, tuple_num_latent[mind_idx], cb_n_xsa_policy,
         np_prior)
     list_inferred_x.append(inferred_x)
 

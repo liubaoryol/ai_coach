@@ -3,8 +3,8 @@ from ai_coach_core.models.latent_mdp import LatentMDP
 from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
-from ai_coach_domain.box_push.box_push_helper import (
-    transition_alone_and_together, transition_always_together)
+from ai_coach_domain.box_push.helper import (transition_alone_and_together,
+                                             transition_always_together)
 
 
 class BoxPushTeamMDP(LatentMDP):
@@ -286,6 +286,12 @@ class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
         if (a1_pos == a2_pos and a1_pos == self.boxes[latent[1]]
             and act1 == EventType.HOLD and act2 == EventType.HOLD):
           return 100
+
+        # if get close to the target, don't deduct
+        box_pos = self.boxes[latent[1]]
+        dist1 = abs(a1_pos[0] - box_pos[0]) + abs(a1_pos[1] - box_pos[1])
+        dist2 = abs(a2_pos[0] - box_pos[0]) + abs(a2_pos[1] - box_pos[1])
+        panelty += 1 / (dist1 + dist2 + 1)
     elif holding_box >= 0:  # not "pickup" and holding a box --> drop the box
       desired_loc = None
       if latent[0] == "origin":
@@ -311,7 +317,7 @@ if __name__ == "__main__":
   import os
   import pickle
   import ai_coach_core.RL.planning as plan_lib
-  from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
+  from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 
   game_map = TUTORIAL_MAP
 
@@ -323,7 +329,7 @@ if __name__ == "__main__":
   QLEARN = False
 
   if CHECK_VALIDITY:
-    from utils.test_utils import check_transition_validity
+    from ai_coach_core.utils.test_utils import check_transition_validity
     assert check_transition_validity(box_push_mdp)
 
   cur_dir = os.path.dirname(__file__)
@@ -348,7 +354,7 @@ if __name__ == "__main__":
 
   if QLEARN:
     from tqdm import tqdm
-    import RL.qlearning as qlearn_lib
+    import ai_coach_core.RL.qlearning as qlearn_lib
     NUM_TRAIN = 1000
     ALPHA = 0.1
     box_push_qlearn = qlearn_lib.QLearningSoftmax(

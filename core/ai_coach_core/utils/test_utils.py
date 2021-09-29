@@ -15,8 +15,3 @@ def check_transition_validity(mdp: MDP):
         pass
 
   return True
-
-
-if __name__ == "__main__":
-  from examples.tooldelivery_v3_mdp import ToolDeliveryMDP_V3
-  assert check_transition_validity(ToolDeliveryMDP_V3())

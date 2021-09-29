@@ -15,7 +15,7 @@ from ai_coach_core.utils.exceptions import InvalidTransitionError
 DANGER_GRIDS = [(1, 3), (4, 1), (4, 2)]
 TERMINAL_STATE = -1
 PICK = (9, 9)
-DATA_DIR = os.path.join(os.path.dirname(__file__), "irl_toy_trajectories/")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data/irl_toy_trajectories/")
 
 
 def get_neighborhood(stt, set_state):
@@ -404,7 +404,7 @@ if __name__ == "__main__":
 
   sto_pi = get_stochastic_policy(toy_mdp, pi)
 
-  GENERATE_DATA = True
+  GENERATE_DATA = False
 
   if GENERATE_DATA:
     for dummy in range(100):

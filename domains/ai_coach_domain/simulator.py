@@ -1,4 +1,5 @@
 import abc
+from tqdm import tqdm
 from typing import Mapping, Hashable, Callable
 
 
@@ -49,17 +50,13 @@ class Simulator():
   def get_num_agents(self):
     raise NotImplementedError
 
-  def run_simulation(self, num_iter: int, *args, **kwargs):
-    for dummy_i in range(num_iter):
-      cnt = 0
+  def run_simulation(self, num_iter: int, file_name_prefix, *args, **kwargs):
+    for idx in tqdm(range(num_iter)):
       while not self.is_finished():
         map_agent_2_action = self.get_joint_action()
         self.take_a_step(map_agent_2_action)
-        cnt = cnt + 1
-        print(cnt)
-        if cnt > self.max_steps:
-          raise TimeoutError
-      self.save_history(*args, **kwargs)
+      file_name = file_name_prefix + "%d.txt" % (idx, )
+      self.save_history(file_name, *args, **kwargs)
       self.reset_game()
 
   @classmethod
@@ -67,7 +64,7 @@ class Simulator():
     pass
 
   @abc.abstractmethod
-  def save_history(self, *args, **kwargs):
+  def save_history(self, file_name, *args, **kwargs):
     raise NotImplementedError
 
   @abc.abstractmethod

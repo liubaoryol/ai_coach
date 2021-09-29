@@ -8,11 +8,10 @@ import copy
 from flask import session, request, copy_current_request_context, current_app
 from flask_socketio import emit, disconnect
 from ai_coach_domain.box_push import BoxState, conv_box_idx_2_state, EventType
-from ai_coach_domain.box_push.box_push_simulator import (
-    BoxPushSimulator, BoxPushSimulator_AlwaysTogether,
-    BoxPushSimulator_AlwaysAlone)
-from ai_coach_domain.box_push.box_push_policy import (get_exp1_action,
-                                                      get_indv_action)
+from ai_coach_domain.box_push.simulator import (BoxPushSimulator,
+                                                BoxPushSimulator_AlwaysTogether,
+                                                BoxPushSimulator_AlwaysAlone)
+from ai_coach_domain.box_push.policy import (get_exp1_action, get_indv_action)
 from web_experiment import socketio
 from web_experiment.models import db, User
 

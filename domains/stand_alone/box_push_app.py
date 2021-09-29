@@ -2,16 +2,20 @@ from typing import Hashable, Tuple
 import random
 from stand_alone.app import AppInterface
 from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
-from ai_coach_domain.box_push.box_push_maps import TUTORIAL_MAP
-from ai_coach_domain.box_push.box_push_simulator import BoxPushSimulator
-from ai_coach_domain.box_push import BoxPushSimulator_AlwaysTogether
-from ai_coach_domain.box_push.box_push_team_mdp import (
-    BoxPushTeamMDP_AlwaysTogether)
-from ai_coach_domain.box_push.box_push_policy import (get_simple_action)
-# from ai_coach_domain.box_push import (BoxPushSimulator_AlwaysTogether as
-#                                       BoxPushSimulator)
-# from ai_coach_domain.box_push.box_push_mdp import BoxPushMDP_AlwaysTogether
-# from ai_coach_domain.box_push.box_push_policy import get_exp1_action
+from ai_coach_domain.box_push.maps import TEST_MAP
+from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysTogether
+from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether)
+from ai_coach_domain.box_push.policy import (get_test_team_action,
+                                             get_test_indv_action,
+                                             get_exp1_action)
+from ai_coach_domain.box_push.transition_x import (get_a1_latent_team,
+                                                   get_a2_latent_team,
+                                                   get_valid_box_to_pickup)
+from ai_coach_domain.box_push.transition_x import (get_a1_latent_indv,
+                                                   get_a2_latent_indv)
+
+BoxPushSimulator = BoxPushSimulator_AlwaysTogether
+BoxPushAgentMDP = BoxPushTeamMDP_AlwaysTogether
 
 
 class BoxPushApp(AppInterface):
@@ -21,18 +25,62 @@ class BoxPushApp(AppInterface):
   def _init_game(self):
     'define game related variables and objects'
     GAME_ENV_ID = 0
-    game_map = TUTORIAL_MAP
+    game_map = TEST_MAP
+    # game_map["a2_init"] = (1, 2)
     self.x_grid = game_map["x_grid"]
     self.y_grid = game_map["y_grid"]
-    self.game = BoxPushSimulator_AlwaysTogether(GAME_ENV_ID)
-    self.mdp = BoxPushTeamMDP_AlwaysTogether(**TUTORIAL_MAP)
+    self.game = BoxPushSimulator(GAME_ENV_ID)
+    self.mdp = BoxPushAgentMDP(**game_map)
+    self.game.max_steps = 100
 
     self.game.init_game(**game_map)
-    self.game.set_autonomous_agent(
-        cb_get_A2_action=lambda **kwargs: get_simple_action(
-            BoxPushSimulator.AGENT2, **kwargs))
-    self.game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
-                          ("pickup", 0))
+    temperature = 0.3
+
+    # self.game.box_states[0] = 4
+    # self.game.box_states[1] = 2
+
+    def get_a1_action(**kwargs):
+      act = get_test_team_action(self.mdp, BoxPushSimulator.AGENT1, temperature,
+                                 **kwargs)
+      return act
+
+    def get_a2_action(**kwargs):
+      act = get_test_team_action(self.mdp, BoxPushSimulator.AGENT2, temperature,
+                                 **kwargs)
+      return act
+
+    def get_a1_latent(cur_state, a1_action, a2_action, a1_latent, next_state):
+      return get_a1_latent_team(cur_state, a1_action, a2_action,
+                                a1_latent, next_state, self.game.boxes,
+                                len(self.game.drops), len(self.game.goals))
+
+    def get_a2_latent(cur_state, a1_action, a2_action, a2_latent, next_state):
+      return get_a2_latent_team(cur_state, a1_action, a2_action,
+                                a2_latent, next_state, self.game.boxes,
+                                len(self.game.drops), len(self.game.goals))
+
+    def get_init_x():
+      a1_latent = None
+      a2_latent = None
+      valid_boxes = get_valid_box_to_pickup(self.game.box_states,
+                                            len(self.game.drops),
+                                            len(self.game.goals))
+
+      if len(valid_boxes) > 0:
+        box_idx = random.choice(valid_boxes)
+        a1_latent = ("pickup", box_idx)
+        box_idx2 = random.choice(valid_boxes)
+        a2_latent = ("pickup", box_idx2)
+      return a1_latent, a2_latent
+
+    self.game.set_autonomous_agent(cb_get_A1_action=get_a1_action,
+                                   cb_get_A2_action=get_a2_action,
+                                   cb_get_A1_mental_state=get_a1_latent,
+                                   cb_get_A2_mental_state=get_a2_latent,
+                                   cb_get_init_mental_state=get_init_x)
+
+    # self.game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
+    #                       ("pickup", 0))
 
   def _init_gui(self):
     self.main_window.title("Box Push")
@@ -91,9 +139,9 @@ class BoxPushApp(AppInterface):
     # self.canvas_width
     # self.canvas_height
 
-    latent = 0
+    # latent = 0
 
-    return (BoxPushSimulator.AGENT1, EventType.SET_LATENT, latent)
+    return (None, None, None)
 
   def _update_canvas_scene(self):
     data = self.game.get_env_info()
