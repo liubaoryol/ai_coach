@@ -23,9 +23,7 @@ def consent():
       error = 'Incorrect user id'
 
     if error is None:
-      if (user.session_a1 and user.session_a2 and user.session_a3
-          and user.session_a4 and user.session_b1 and user.session_b2
-          and user.session_b3 and user.session_b4):
+      if user.completed:
         error = "You already completed the experiment."
       else:
         session['user_id'] = user.userid

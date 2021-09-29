@@ -33,18 +33,21 @@ def register():
       delid = request.form['delid']
 
       query_pre = PreExperiment.query.filter_by(subject_id=delid).first()
-      db.session.delete(query_pre)
+      if query_pre is not None:
+        db.session.delete(query_pre)
 
       query_in = InExperiment.query.filter_by(subject_id=delid).all()
-      print(query_in)
       for query in query_in:
-        db.session.delete(query)
+        if query is not None:
+          db.session.delete(query)
 
       query_post = PostExperiment.query.filter_by(subject_id=delid).first()
-      db.session.delete(query_post)
+      if query_post is not None:
+        db.session.delete(query_post)
 
       qdata = User.query.filter_by(userid=delid).first()
-      db.session.delete(qdata)
+      if qdata is not None:
+        db.session.delete(qdata)
       db.session.commit()
 
       logging.info('User %s deleted user %s.' % (g.user, delid))

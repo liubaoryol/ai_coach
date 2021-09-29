@@ -1,22 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'exp1_session_a_test.html' %}
+{% block subtitle %}TEST Session A4{% endblock %}
 
-{% block header %}
-<h1>{% block title %}Test Session A4{% endblock %}</h1>
-<div class="explanation">
-  <p>In this task,</p>
-  <ul>
-  <li>Your goal is to move all the boxes to the flag as soon as possible.</li>
-  <li>You can only pick up the box circled in red.</li>
-  <li>You cannot pick up the box alone.</li>
-  </ul>
-
-  <p>Special instructions for the test session,</p>
-  <ul>
-  <li>You will be periodically prompted to select your destination (red circle).</li>
-  <li>Since you will be selecting the destination, you can use this added flexibility to complete the task faster.</li>
-  </ul>
-</div>
-{% endblock %}
 
 {% block content %}
 <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
@@ -40,9 +24,10 @@
 
   page_list = [];
   page_list.push(new PageExperimentHome());
+  page_list.push(new PageExperimentHome2());
   page_list.push(new PageDuringGame());
-  page_list[1].use_manual_selection = true;
-  page_list[1].is_test = true;
+  page_list[page_list.length - 1].use_manual_selection = true;
+  page_list[page_list.length - 1].is_test = true;
   page_list.push(new PageExperimentEnd());
 
   initPages(page_list, "exp1_both_user_random_2");

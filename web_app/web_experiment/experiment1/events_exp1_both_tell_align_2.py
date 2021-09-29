@@ -3,7 +3,7 @@ import random
 from ai_coach_domain.box_push import EventType
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysTogether
 from ai_coach_domain.box_push.maps import EXP1_MAP
-from ai_coach_domain.box_push.team_mdp import (BoxPushTeamMDP_AlwaysTogether)
+from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether)
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 

@@ -253,7 +253,7 @@ class PageOnlyHuman extends PageGameTutorial {
 
   _set_instruction() {
     this.ctrl_ui.lbl_instruction.text = "While the success of the task depends on both you and the robot, " +
-      "you cannot control the robot during the game. You can only control the human player. " +
+      "you cannot control the robot. You can only control the human player. " +
       "The robot moves autonomously.";
   }
 
@@ -415,7 +415,7 @@ class PageScore extends PageGameTutorial {
   init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
     super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
 
-    this.x_cen = this.ctrl_ui.lbl_score.x_left + 0.9 * this.ctrl_ui.lbl_score.width;
+    this.x_cen = this.ctrl_ui.lbl_score.x_left + 0.95 * this.ctrl_ui.lbl_score.width;
     this.y_cen = this.ctrl_ui.lbl_score.y_top + this.ctrl_ui.lbl_score.font_size * 0.5;
     this.radius = this.ctrl_ui.lbl_score.font_size * 2;
     this.ctrl_ui.btn_next.disable = false;
@@ -457,7 +457,7 @@ class PageTargetHint extends PageGameTutorial {
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "During the practice sessions, you will be given hints on where to move next. " +
+    this.ctrl_ui.lbl_instruction.text = "During the PRACTICE sessions, you will be given hints on where to move next. " +
       "This will be done using the red circles shown earlier. Please click on the “Next” button to continue.";
   }
 
@@ -479,7 +479,7 @@ class PageTargetHint extends PageGameTutorial {
 class PageTargetNoHint extends PageGameTutorial {
   constructor() {
     super();
-    this.instruction = "In the test sessions, you will no longer be given hints. " +
+    this.instruction = "In the TEST sessions, you will no longer be given hints. " +
       "Instead, you will have to select your next target using the “Select Destination” button. " +
       "Let’s see how to do this!  Please click on the “Next” button to continue.";
 
@@ -513,7 +513,7 @@ class PageUserLatent extends PageGameTutorial {
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "First click the “Select Destination” button. " +
+    this.ctrl_ui.lbl_instruction.text = "First, click the “Select Destination” button. " +
       "Possible destinations are numbered and shown as an overlay. " +
       "Please click on your current destination (i.e., the " + this.object_kind + " which you are planning to pick next).";
   }
@@ -602,7 +602,7 @@ class PageSelectionPrompt extends PageGameTutorial {
   }
 
   _set_instruction() {
-    this.ctrl_ui.lbl_instruction.text = "We will also prompt the destination selection automatically and periodically during the test sessions. " +
+    this.ctrl_ui.lbl_instruction.text = "We will also prompt the destination selection automatically and periodically during the TEST sessions. " +
       "Please move the human player several steps. When the destination selection is prompted, " +
       "please click on your current destination.";
   }
@@ -645,7 +645,7 @@ class PageMiniGame extends PageGameTutorial {
     this.ctrl_ui.lbl_instruction.text = "Now, we are at the final step of the tutorial. " +
       "Feel free to interact with the interface and get familiar with the task. " +
       "You can also press the back button to revisit any of the previous prompts. " +
-      "Once you are ready, please proceed to the practice sessions " +
+      "Once you are ready, please proceed to the PRACTICE sessions " +
       "(using the button at the bottom of this page).";
   }
 

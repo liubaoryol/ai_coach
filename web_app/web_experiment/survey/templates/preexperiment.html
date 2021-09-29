@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<h1>{% block title %}Demographic Survey{% endblock %}</h1>
+<h1>{% block title %}Demographic Survey (part 2/5){% endblock %}</h1>
 <div class="explanation">
   <p>Before we move to the tasks, please fill out the following demographic survey.</p>
 </div>
@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action="{{ url_for('survey.preexperiment') }}">
     <div>
       <label class="statement" for="age">Age</label>
       <input name="age" id="age" value="{{ answers['age'] }}" required>

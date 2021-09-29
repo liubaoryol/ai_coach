@@ -12,7 +12,7 @@ class Simulator():
     # self.lock = Lock()
     self.history = []
 
-    self.max_steps = 500  # make sure game ending
+    self.max_steps = 150  # make sure game ending
     self.current_step = 0
 
     self.cb_renderer = None  # type: Callable

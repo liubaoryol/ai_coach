@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<h1>{% block title %}Post-Experiment Questionnaire{% endblock %}</h1>
+<h1>{% block title %}Post-Experiment Survey (part 5/5){% endblock %}</h1>
 <div class="explanation">
 <p>Now, we are at the final screen of your study session. Thank you for volunteering to participate in this study. We sincerely appreciate it. To complete the session, please complete the following questionnaire and press submit. All questions are optional.</p>
 </div>
@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action="{{ url_for('survey.completion') }}">
     <div>
       <label class="statement" for="comment">Please provide any comments that you might have regarding the study.</label>
       <textarea id="comment" name="comment" rows="4" cols="50" maxlength = "500">{{ saved_comment }}</textarea>

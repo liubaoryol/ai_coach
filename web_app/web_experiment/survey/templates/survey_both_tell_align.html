@@ -1,3 +1,5 @@
-{% extends 'inexperiment.html' %}
+{% extends 'inexperiment_session_a.html' %}
 
-{% block title %}In-Experiment Survey: Session A1{% endblock %}
+{% block subtitle %}In-Experiment Survey: Session A1{% endblock %}
+
+{% block url %}"{{ url_for('survey.survey_both_tell_align') }}"{% endblock %} 

@@ -18,8 +18,10 @@ class User(db.Model):
   session_b2 = db.Column(db.Boolean, default=False)
   session_b3 = db.Column(db.Boolean, default=False)
   session_b4 = db.Column(db.Boolean, default=False)
+  session_b5 = db.Column(db.Boolean, default=False)
   best_a = db.Column(db.Integer, default=999)
   best_b = db.Column(db.Integer, default=999)
+  completed = db.Column(db.Boolean, default=False)
   pre_exp = db.relationship('PreExperiment',
                             backref='user',
                             lazy=True,

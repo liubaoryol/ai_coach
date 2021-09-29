@@ -38,6 +38,7 @@ class ButtonObject extends DrawingObject {
     this.x_text_offset = 0;
     this.y_text_offset = 0;
     this.color = "black";
+    this.border = true;
   }
 
   draw(context) {
@@ -58,7 +59,9 @@ class ButtonObject extends DrawingObject {
       context.fill(this.path);
     }
     else {
-      context.stroke(this.path);
+      if (this.border) {
+        context.stroke(this.path);
+      }
     }
 
     if (this.show_text) {
@@ -87,6 +90,7 @@ class ButtonObject extends DrawingObject {
   }
 
   _on_drawing_text(context) {
+    context.fillStyle = this.text_color;
   }
 
   _set_path() { }
@@ -339,12 +343,12 @@ class TextScore extends TextObject {
     }
 
     y_pos = y_pos + this.font_size;
-    context.font = "bold " + (this.font_size - 2) + "px arial";
+    context.font = "bold " + (this.font_size) + "px arial";
     if (this.best == 999) {
-      context.fillText("(Your best: - )", x_pos, y_pos);
+      context.fillText("(Your Best: - )", x_pos, y_pos);
     }
     else {
-      context.fillText("(Your best: " + this.best.toString() + ")", x_pos, y_pos);
+      context.fillText("(Your Best: " + this.best.toString() + ")", x_pos, y_pos);
     }
   }
 }
@@ -1206,6 +1210,51 @@ class PageExperimentHome extends PageBasic {
   }
 }
 
+class PageExperimentHome2 extends PageBasic {
+  constructor() {
+    super();
+  }
+
+  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+    for (const btn of this.ctrl_ui.list_joystick_btn) {
+      btn.disable = true;
+    }
+
+    const fsize = 30;
+    this.lbl_warning = new TextObject(0, game_obj.game_size / 3 - fsize, game_obj.game_size, fsize);
+    this.lbl_warning.text = "Please review the instructions for this session listed above. When you are ready, press next to begin.";
+    this.lbl_warning.text_align = "center";
+    this.lbl_warning.text_baseline = "middle";
+
+    this.btn_real_next = new ButtonRect(game_obj.game_size / 2, game_obj.game_size * 0.6,
+      100, 50, "Next");
+
+    this.ctrl_ui.btn_start.disable = true;
+    this.ctrl_ui.btn_hold.disable = true;
+    this.ctrl_ui.btn_drop.disable = true;
+    this.ctrl_ui.btn_select.disable = true;
+    this.ctrl_ui.lbl_instruction.text = "";
+  }
+
+  _draw_game(mouse_x, mouse_y) {
+    super._draw_game(mouse_x, mouse_y);
+    draw_with_mouse_move(this.ctx, this.btn_real_next, mouse_x, mouse_y);
+    this.lbl_warning.draw(this.ctx);
+    draw_action_btn(this.ctx, this.ctrl_ui, mouse_x, mouse_y);
+    this.ctrl_ui.lbl_score.draw(this.ctx);
+  }
+
+  on_click(mouse_x, mouse_y) {
+    if (this.btn_real_next.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      return;
+    }
+
+    super.on_click(mouse_x, mouse_y);
+  }
+}
+
 class PageDuringGame extends PageBasic {
   constructor() {
     super();
@@ -1343,6 +1392,7 @@ class PageDuringGame extends PageBasic {
 class PageExperimentEnd extends PageBasic {
   constructor() {
     super();
+    this.button_text = "This session is now completed. Please proceed to the survey using the button below.";
   }
 
   init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
@@ -1352,10 +1402,11 @@ class PageExperimentEnd extends PageBasic {
     }
 
     // completion button
-    this.btn_end = new ButtonRect(canvas.width / 2, canvas.height / 2,
-      game_obj.game_size / 2, game_obj.game_size / 5, "Completed");
-    this.btn_end.font = "bold 30px arial";
-    this.btn_end.set_mouse_over(false);
+    const fsize = 30;
+    this.lbl_end = new TextObject(0, canvas.height / 2 - fsize, canvas.width, fsize);
+    this.lbl_end.text = this.button_text;
+    this.lbl_end.text_align = "center";
+    this.lbl_end.text_baseline = "middle";
 
     this.ctrl_ui.btn_start.disable = true;
     this.ctrl_ui.btn_hold.disable = true;
@@ -1372,7 +1423,8 @@ class PageExperimentEnd extends PageBasic {
     }
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.btn_end.draw(this.ctx);
+    this.lbl_end.draw(this.ctx);
+    this.ctrl_ui.lbl_score.draw(this.ctx);
     // draw_with_mouse_move(this.ctx, this.btn_end, mouse_x, mouse_y);
   }
 

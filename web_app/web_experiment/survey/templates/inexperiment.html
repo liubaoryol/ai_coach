@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action={% block url %}{% endblock%} >
     <div>
       <label class="statement" for="maintained">
       During the task, I moved towards the locations circled in red.
@@ -52,7 +52,7 @@
         </li>
         <li>
           <input type="radio" name="fluency" value="2" {{ answers['fluency2'] }}>
-          <label>Undecided</label>
+          <label>Neutral</label>
         </li>
         <li>
           <input type="radio" name="fluency" value="3" {{ answers['fluency3'] }}>
@@ -79,7 +79,7 @@
         </li>
         <li>
           <input type="radio" name="mycarry" value="2" {{ answers['mycarry2'] }}>
-          <label>Undecided</label>
+          <label>Neutral</label>
         </li>
         <li>
           <input type="radio" name="mycarry" value="3" {{ answers['mycarry3'] }}>
@@ -106,7 +106,7 @@
         </li>
         <li>
           <input type="radio" name="robotcarry" value="2" {{ answers['robotcarry2'] }}>
-          <label>Undecided</label>
+          <label>Neutral</label>
         </li>
         <li>
           <input type="radio" name="robotcarry" value="3" {{ answers['robotcarry3'] }}>
@@ -133,7 +133,7 @@
         </li>
         <li>
           <input type="radio" name="robotperception" value="2" {{ answers['robotperception2'] }}>
-          <label>Undecided</label>
+          <label>Neutral</label>
         </li>
         <li>
           <input type="radio" name="robotperception" value="3" {{ answers['robotperception3'] }}>
@@ -160,7 +160,7 @@
         </li>
         <li>
           <input type="radio" name="cooperative" value="2" {{ answers['cooperative2'] }}>
-          <label>Undecided</label>
+          <label>Neutral</label>
         </li>
         <li>
           <input type="radio" name="cooperative" value="3" {{ answers['cooperative3'] }}>

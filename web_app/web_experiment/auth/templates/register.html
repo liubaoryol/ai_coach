@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action="{{ url_for('auth.register') }}">
     <label for="userid">Register User ID</label>
     <input name="userid" id="userid" required>
     <input type="submit" value="Register">
@@ -26,7 +26,7 @@
 </div>
 
 <div class="form-control">
-<form method="post">
+<form method="post" action="{{ url_for('auth.register') }}">
   <label for="delid">Delete User ID</label>
   <input name="delid" id="delid" required>
   <input type="submit" value="Delete">

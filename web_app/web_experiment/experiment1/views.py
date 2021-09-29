@@ -125,6 +125,21 @@ def exp1_indv_user_random_2():
                          is_disabled=disabled)
 
 
+@exp1_bp.route('/exp1_indv_user_random_3')
+@login_required
+def exp1_indv_user_random_3():
+  cur_user = g.user
+  logging.info('User %s accesses to exp1_indv_user_random_3.' % (cur_user, ))
+
+  query_data = User.query.filter_by(userid=cur_user).first()
+  disabled = ''
+  if not query_data.session_b5:
+    disabled = 'disabled'
+  return render_template('exp1_indv_user_random_3.html',
+                         cur_user=cur_user,
+                         is_disabled=disabled)
+
+
 @exp1_bp.route('/tutorial1', methods=('GET', 'POST'))
 @login_required
 def tutorial1():

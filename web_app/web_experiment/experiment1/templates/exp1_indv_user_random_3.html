@@ -1,5 +1,5 @@
 {% extends 'exp1_session_b_test.html' %}
-{% block subtitle %}TEST Session B3{% endblock %}
+{% block subtitle %}TEST Session B5{% endblock %}
 
 {% block content %}
 <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
@@ -29,7 +29,7 @@
   page_list[page_list.length - 1].is_test = true;
   page_list.push(new PageExperimentEnd());
 
-  initPages(page_list, "exp1_indv_user_random");
+  initPages(page_list, "exp1_indv_user_random_3");
 </script>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
@@ -38,7 +38,7 @@
 
 <div>
   <div class="button-center">
-    <form action="{{ url_for('survey.survey_indv_user_random') }}">
+    <form action="{{ url_for('survey.survey_indv_user_random_3') }}">
       <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed to Survey</button>
     </form>
   </div>

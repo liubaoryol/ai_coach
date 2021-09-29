@@ -200,6 +200,13 @@ def survey_indv_user_random():
 @login_required
 def survey_indv_user_random_2():
   return inexperiment_impl(8, 'survey_indv_user_random_2.html',
+                           'exp1.exp1_indv_user_random_3')
+
+
+@survey_bp.route('/survey_indv_user_random_3', methods=('GET', 'POST'))
+@login_required
+def survey_indv_user_random_3():
+  return inexperiment_impl(9, 'survey_indv_user_random_3.html',
                            'survey.completion')
 
 
@@ -221,7 +228,7 @@ def completion():
     sec, msec = divmod(time.time() * 1000, 1000)
     time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
                                             time.gmtime(sec)), msec)
-    file_name = ('email_' + str(cur_user) + '_' + time_stamp + '.txt')
+    file_name = ('postsurvey_' + str(cur_user) + '_' + time_stamp + '.txt')
     with open(os.path.join(survey_dir, file_name), 'w', newline='') as txtfile:
       txtfile.write('id: ' + cur_user + '\n')
       txtfile.write('email: ' + email + '\n')
@@ -247,6 +254,8 @@ def completion():
                                     question=question,
                                     subject_id=cur_user)
       db.session.add(new_post_exp)
+
+      user.completed = True
       db.session.commit()
 
       return redirect(url_for('survey.thankyou'))
