@@ -916,7 +916,7 @@ function set_overlay(is_selecting_latent, game_obj) {
       {
         const obj = game_obj.box_origins[bidx];
         game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["origin", null], idx++, game_obj));
+          new SelectingOverlay(obj.x_g, obj.y_g, ["origin", 0], idx++, game_obj));
       }
 
       for (let i = 0; i < game_obj.goals.length; i++) {
@@ -1392,7 +1392,7 @@ class PageDuringGame extends PageBasic {
 class PageExperimentEnd extends PageBasic {
   constructor() {
     super();
-    this.button_text = "This session is now completed. Please proceed to the survey using the button below.";
+    this.button_text = "This session is now complete. Please proceed to the survey using the button below.";
   }
 
   init_page(global_object, game_obj, ctrl_ui, canvas, socket) {

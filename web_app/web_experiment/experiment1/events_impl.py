@@ -22,7 +22,7 @@ NOT_SHOW_FAILURE = False
 
 
 def get_file_name(user_id, session_name):
-  traj_dir = current_app.config["TRAJECTORY_PATH"]
+  traj_dir = os.path.join(current_app.config["TRAJECTORY_PATH"], user_id)
   # save somewhere
   if not os.path.exists(traj_dir):
     os.makedirs(traj_dir)
@@ -278,7 +278,7 @@ def action_event(msg, id_2_game, cb_on_hold_change, cb_game_finished,
 def task_end(env_id, game: BoxPushSimulator, user_id, session_name, game_type,
              map_info, name_space, is_task_a):
   file_name = get_file_name(user_id, session_name)
-  header = game_type + "\n"
+  header = game_type + "-" + session_name + "\n"
   header += "User ID: %s\n" % (str(user_id), )
   header += str(map_info)
   game.save_history(file_name, header)

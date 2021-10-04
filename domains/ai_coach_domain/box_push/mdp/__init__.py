@@ -11,4 +11,4 @@ from .agent_mdp import (  # noqa: F401
     BoxPushAgentMDP_AlwaysAlone, get_agent_switched_boxstates)
 from .team_mdp import (  # noqa: F401
     BoxPushTeamMDP, BoxPushTeamMDP_AloneOrTogether,
-    BoxPushTeamMDP_AlwaysTogether)
+    BoxPushTeamMDP_AlwaysTogether, BoxPushTeamMDP_AlwaysAlone)

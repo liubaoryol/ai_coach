@@ -4,7 +4,9 @@ from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
 from ai_coach_domain.box_push.helper import (transition_alone_and_together,
-                                             transition_always_together)
+                                             transition_always_together,
+                                             transition_always_alone,
+                                             get_possible_latent_states)
 
 
 class BoxPushTeamMDP(LatentMDP):
@@ -53,6 +55,11 @@ class BoxPushTeamMDP(LatentMDP):
 
   def get_possible_box_states(self):
     raise NotImplementedError
+
+  def init_latentspace(self):
+    latent_states = get_possible_latent_states(len(self.boxes), len(self.drops),
+                                               len(self.goals))
+    self.latent_space = StateSpace(latent_states)
 
   def is_terminal(self, state_idx):
     len_s_space = len(self.dict_factored_statespace)
@@ -157,9 +164,6 @@ class BoxPushTeamMDP_AloneOrTogether(BoxPushTeamMDP):
     super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
                      transition_alone_and_together)
 
-  def init_latentspace(self):
-    self.latent_space = StateSpace()
-
   def get_possible_box_states(self):
     box_states = [(BoxState(idx), None) for idx in range(4)]
     num_drops = len(self.drops)
@@ -221,19 +225,6 @@ class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
   def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
     super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
                      transition_always_together)
-
-  def init_latentspace(self):
-    latent_states = []
-    for idx in range(len(self.boxes)):
-      latent_states.append(("pickup", idx))
-
-    latent_states.append(("origin", None))  # drop at its original position
-    for idx in range(len(self.drops)):
-      latent_states.append(("drop", idx))
-    for idx in range(len(self.goals)):
-      latent_states.append(("goal", idx))
-
-    self.latent_space = StateSpace(latent_states)
 
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithBoth, None)]
@@ -311,6 +302,23 @@ class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
         return -np.inf
 
     return panelty
+
+
+class BoxPushTeamMDP_AlwaysAlone(BoxPushTeamMDP):
+  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
+    super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
+                     transition_always_alone)
+
+  def get_possible_box_states(self):
+    box_states = [(BoxState(idx), None) for idx in range(3)]
+    num_drops = len(self.drops)
+    num_goals = len(self.goals)
+    if num_drops != 0:
+      for idx in range(num_drops):
+        box_states.append((BoxState.OnDropLoc, idx))
+    for idx in range(num_goals):
+      box_states.append((BoxState.OnGoalLoc, idx))
+    return box_states
 
 
 if __name__ == "__main__":

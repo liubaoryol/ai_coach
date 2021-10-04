@@ -10,7 +10,7 @@ from . import consent_bp
 def consent():
   session.clear()
   if request.method == 'POST':
-    userid = request.form['userid']
+    userid = request.form['userid'].lower()
     logging.info('User %s attempts to log in' % (userid, ))
     if userid == ADMIN_ID:
       session['user_id'] = userid

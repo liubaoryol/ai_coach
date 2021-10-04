@@ -224,9 +224,7 @@ def get_simple_action(agent_id, box_states, a1_pos, a2_pos, x_grid, y_grid,
           return EventType.STAY
 
 
-def get_test_indv_action(mdp: BoxPushAgentMDP, agent_id, temperature,
-                         box_states, a1_pos, a2_pos, x_grid, y_grid, boxes,
-                         goals, walls, drops, a1_latent, a2_latent, **kwargs):
+def get_test_indv_policy(mdp: BoxPushAgentMDP, temperature):
   global policy_test_agent_list
 
   if len(policy_test_agent_list) == 0:
@@ -241,6 +239,33 @@ def get_test_indv_action(mdp: BoxPushAgentMDP, agent_id, temperature,
 
       policy_test_agent_list.append(
           mdp_lib.softmax_policy_from_q_value(np_q_value, temperature))
+
+  return policy_test_agent_list
+
+
+def get_test_team_policy(mdp: BoxPushAgentMDP, temperature):
+  global policy_test_team_list
+
+  if len(policy_test_team_list) == 0:
+    GAMMA = 0.95
+    for idx in range(mdp.num_latents):
+      pi, np_v_value, np_q_value = plan_lib.value_iteration(
+          mdp.np_transition_model,
+          mdp.np_reward_model[idx],
+          discount_factor=GAMMA,
+          max_iteration=500,
+          epsilon=0.01)
+
+      policy_test_team_list.append(
+          mdp_lib.softmax_policy_from_q_value(np_q_value, temperature))
+
+  return policy_test_team_list
+
+
+def get_test_indv_action(mdp: BoxPushAgentMDP, agent_id, temperature,
+                         box_states, a1_pos, a2_pos, x_grid, y_grid, boxes,
+                         goals, walls, drops, a1_latent, a2_latent, **kwargs):
+  policy_list = get_test_indv_policy(mdp, temperature)
 
   if ((mdp.x_grid != x_grid) or (mdp.y_grid != y_grid) or (mdp.boxes != boxes)
       or (mdp.goals != goals) or (mdp.walls != walls) or (mdp.drops != drops)):
@@ -268,7 +293,7 @@ def get_test_indv_action(mdp: BoxPushAgentMDP, agent_id, temperature,
   next_aidx = np.random.choice(range(mdp.num_actions),
                                size=1,
                                replace=False,
-                               p=policy_test_agent_list[lat_idx][sidx, :])[0]
+                               p=policy_list[lat_idx][sidx, :])[0]
   act1 = mdp.conv_mdp_aidx_to_sim_action(next_aidx)
   return act1
 
@@ -276,20 +301,7 @@ def get_test_indv_action(mdp: BoxPushAgentMDP, agent_id, temperature,
 def get_test_team_action(mdp: BoxPushAgentMDP, agent_id, temperature,
                          box_states, a1_pos, a2_pos, x_grid, y_grid, boxes,
                          goals, walls, drops, a1_latent, a2_latent, **kwargs):
-  global policy_test_team_list
-
-  if len(policy_test_team_list) == 0:
-    GAMMA = 0.95
-    for idx in range(mdp.num_latents):
-      pi, np_v_value, np_q_value = plan_lib.value_iteration(
-          mdp.np_transition_model,
-          mdp.np_reward_model[idx],
-          discount_factor=GAMMA,
-          max_iteration=500,
-          epsilon=0.01)
-
-      policy_test_team_list.append(
-          mdp_lib.softmax_policy_from_q_value(np_q_value, temperature))
+  policy_list = get_test_team_policy(mdp, temperature)
 
   if ((mdp.x_grid != x_grid) or (mdp.y_grid != y_grid) or (mdp.boxes != boxes)
       or (mdp.goals != goals) or (mdp.walls != walls) or (mdp.drops != drops)):
@@ -306,11 +318,10 @@ def get_test_team_action(mdp: BoxPushAgentMDP, agent_id, temperature,
 
   lat_idx = mdp.latent_space.state_to_idx[latent]
 
-  next_joint_action = np.random.choice(
-      range(mdp.num_actions),
-      size=1,
-      replace=False,
-      p=policy_test_team_list[lat_idx][sidx, :])[0]
+  next_joint_action = np.random.choice(range(mdp.num_actions),
+                                       size=1,
+                                       replace=False,
+                                       p=policy_list[lat_idx][sidx, :])[0]
   act1, act2 = mdp.conv_mdp_aidx_to_sim_action(next_joint_action)
 
   if agent_id == BoxPushSimulator.AGENT1:

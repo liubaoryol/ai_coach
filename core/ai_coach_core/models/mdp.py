@@ -184,6 +184,7 @@ class MDP:
       return self._np_transition_model
 
     if not self.use_sparse:
+      logging.info("Transition model type: numpy arrap")
       # Else: Compute using the transition model.
       self._np_transition_model = np.zeros(
           (self.num_states, self.num_actions, self.num_states),
@@ -212,6 +213,7 @@ class MDP:
                 err_msg="Transition probabilities do not sum to one.",
             )
     else:
+      logging.info("Transition model type: Sparse")
       coord_2_data = {
           (self.num_states - 1, self.num_actions - 1, self.num_states - 1): 0
       }

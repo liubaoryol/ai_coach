@@ -4,7 +4,8 @@ from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
 from ai_coach_domain.box_push.helper import (transition_alone_and_together,
-                                             transition_always_alone)
+                                             transition_always_alone,
+                                             get_possible_latent_states)
 
 
 class BoxPushAgentMDP(LatentMDP):
@@ -54,16 +55,8 @@ class BoxPushAgentMDP(LatentMDP):
     self.dict_factored_actionspace = {0: self.my_act_space}
 
   def init_latentspace(self):
-    latent_states = []
-    for idx in range(len(self.boxes)):
-      latent_states.append(("pickup", idx))
-
-    latent_states.append(("origin", None))  # drop at its original position
-    for idx in range(len(self.drops)):
-      latent_states.append(("drop", idx))
-    for idx in range(len(self.goals)):
-      latent_states.append(("goal", idx))
-
+    latent_states = get_possible_latent_states(len(self.boxes), len(self.drops),
+                                               len(self.goals))
     self.latent_space = StateSpace(latent_states)
 
   def get_possible_box_states(self):
@@ -150,6 +143,7 @@ class BoxPushAgentMDP(LatentMDP):
     return self.conv_state_to_idx(tuple(list_states))
 
   def conv_mdp_sidx_to_sim_states(self, state_idx):
+    'return: my_pos, teammate_pos, box_states'
     len_s_space = len(self.dict_factored_statespace)
     state_vec = self.conv_idx_to_state(state_idx)
 

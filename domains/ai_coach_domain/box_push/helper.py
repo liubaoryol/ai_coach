@@ -25,6 +25,20 @@ class BoxState(Enum):
   WithTeammate = WithAgent2
 
 
+def get_possible_latent_states(num_boxes, num_drops, num_goals):
+  latent_states = []
+  for idx in range(num_boxes):
+    latent_states.append(("pickup", idx))
+
+  latent_states.append(("origin", 0))  # drop at its original position
+  for idx in range(num_drops):
+    latent_states.append(("drop", idx))
+  for idx in range(num_goals):
+    latent_states.append(("goal", idx))
+
+  return latent_states
+
+
 def conv_box_idx_2_state(state_idx, num_drops, num_goals):
   if state_idx >= 0 and state_idx < 4:
     return (BoxState(state_idx), None)

@@ -1,4 +1,5 @@
 import logging
+import re
 from flask import (flash, redirect, render_template, request, url_for, g)
 from web_experiment.models import (db, User, PostExperiment, InExperiment,
                                    PreExperiment)
@@ -11,11 +12,13 @@ from . import auth_bp
 def register():
   if request.method == 'POST':
     if 'userid' in request.form:
-      userid = request.form['userid']
+      userid = request.form['userid'].lower()
       error = None
 
       if not userid:
         error = 'User ID is required.'
+      elif not bool(re.match('^[a-zA-Z0-9]*$', userid)):
+        error = 'Invalid User ID.'
       else:
         qdata = User.query.filter_by(userid=userid).first()
         if qdata is not None:
@@ -30,7 +33,7 @@ def register():
 
       flash(error)
     elif 'delid' in request.form:
-      delid = request.form['delid']
+      delid = request.form['delid'].lower()
 
       query_pre = PreExperiment.query.filter_by(subject_id=delid).first()
       if query_pre is not None:

@@ -1,17 +1,16 @@
 from typing import Sequence, Tuple, Callable
 import numpy as np
-from ai_coach_core.models.mdp import MDP
 
 
 def most_probable_sequence(
-    mdp: MDP,
     state_seq: Sequence[int],
     action_seq: Sequence[Tuple[int, ...]],
     num_minds: int,
     num_latent: int,
     cb_policy: Callable[[int, int, int, Tuple[int, ...]], float],
-    cb_transition: Callable[[int, int, int, int, int], float],
-    cb_prior: Callable[[int, int], float],
+    cb_transition_x: Callable[[int, int, int, Tuple[int, ...], int, int],
+                              float],
+    cb_prior: Callable[[int, int, int], float],
 ):
   num_step = len(state_seq)
 
@@ -29,9 +28,9 @@ def most_probable_sequence(
   tuple_action = action_seq[0]
   for idx in range(num_minds):
     for x_i in range(num_latent):
-      p_act_sum = cb_policy(idx, s_0, x_i, tuple_action)
+      p_act_sum = cb_policy(idx, x_i, s_0, tuple_action)
 
-      p_x_sum = cb_prior(idx, x_i)
+      p_x_sum = cb_prior(idx, s_0, x_i)
 
       # probs[idx][0, x_i] = p_act_sum * p_x_sum
       # trackers[idx].append([x_i])
@@ -43,21 +42,20 @@ def most_probable_sequence(
     tuple_action_i = action_seq[step]
     s_j = state_seq[step - 1]
     tuple_action_j = action_seq[step - 1]
-    joint_a_j = mdp.np_action_to_idx[tuple_action_j]
     for idx in range(num_minds):
       # prev_tracks = trackers[idx]
       # new_tracks = []
       prev_tracks_log = log_trackers[idx]
       new_tracks_log = []
       for x_i in range(num_latent):
-        p_act_sum = cb_policy(idx, s_i, x_i, tuple_action_i)
+        p_act_sum = cb_policy(idx, x_i, s_i, tuple_action_i)
 
         # max_idx = -1
         # max_val = -np.inf
         max_idx_log = -1
         max_log_val = -np.inf
         for x_j in range(num_latent):
-          p_x_n_sum = cb_transition(idx, s_j, joint_a_j, x_j, x_i)
+          p_x_n_sum = cb_transition_x(idx, x_j, s_j, tuple_action_j, s_i, x_i)
 
           # p_tmp = probs[idx][step - 1, x_j] * p_x_n_sum
           # if p_tmp > max_val:
@@ -92,27 +90,3 @@ def most_probable_sequence(
   # print(log_sequences)
 
   return log_sequences
-
-
-def norm_hamming_distance(seq1, seq2):
-  assert len(seq1) == len(seq2)
-
-  count = 0
-  for idx, elem in enumerate(seq1):
-    if elem != seq2[idx]:
-      count += 1
-
-  return count / len(seq1)
-
-
-def alignment_sequence(seq1, seq2):
-  assert len(seq1) == len(seq2)
-
-  seq_align = []
-  for idx in range(len(seq1)):
-    if seq1[idx] == seq2[idx]:
-      seq_align.append(1)
-    else:
-      seq_align.append(0)
-
-  return seq_align

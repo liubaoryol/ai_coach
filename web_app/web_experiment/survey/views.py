@@ -30,7 +30,7 @@ def preexperiment():
 
     if error is None:
       # save somewhere
-      survey_dir = current_app.config["SURVEY_PATH"]
+      survey_dir = os.path.join(current_app.config["SURVEY_PATH"], cur_user)
       if not os.path.exists(survey_dir):
         os.makedirs(survey_dir)
 
@@ -93,7 +93,7 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name):
 
     if error is None:
       # save somewhere
-      survey_dir = current_app.config["SURVEY_PATH"]
+      survey_dir = os.path.join(current_app.config["SURVEY_PATH"], cur_user)
       if not os.path.exists(survey_dir):
         os.makedirs(survey_dir)
 
@@ -220,7 +220,7 @@ def completion():
     question = request.form['question']
     email = request.form['email']
 
-    survey_dir = current_app.config["SURVEY_PATH"]
+    survey_dir = os.path.join(current_app.config["SURVEY_PATH"], cur_user)
     # save somewhere
     if not os.path.exists(survey_dir):
       os.makedirs(survey_dir)

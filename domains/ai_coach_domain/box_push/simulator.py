@@ -56,7 +56,8 @@ class BoxPushSimulator(Simulator):
     self.cb_get_A2_mental_state = cb_get_A2_mental_state
     self.cb_get_init_mental_state = cb_get_init_mental_state
     if self.cb_get_init_mental_state:
-      self.a1_latent, self.a2_latent = self.cb_get_init_mental_state()
+      self.a1_latent, self.a2_latent = self.cb_get_init_mental_state(
+          self.box_states, self.a1_pos, self.a2_pos)
 
   def reset_game(self):
     super().reset_game()
@@ -71,7 +72,8 @@ class BoxPushSimulator(Simulator):
     self.a1_latent = None
     self.a2_latent = None
     if self.cb_get_init_mental_state:
-      self.a1_latent, self.a2_latent = self.cb_get_init_mental_state()
+      self.a1_latent, self.a2_latent = self.cb_get_init_mental_state(
+          self.box_states, self.a1_pos, self.a2_pos)
     self.changed_state = []
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
@@ -93,8 +95,21 @@ class BoxPushSimulator(Simulator):
     if a2_action is None:
       a2_action = EventType.STAY
 
-    a1_lat = tuple(self.a1_latent) if self.a1_latent is not None else ("NA", 0)
-    a2_lat = tuple(self.a2_latent) if self.a2_latent is not None else ("NA", 0)
+    a1_lat = None
+    a2_lat = None
+    if self.a1_latent is None:
+      a1_lat = ("NA", 0)
+    else:
+      a1_lat_0 = self.a1_latent[0] if self.a1_latent[0] is not None else "NA"
+      a1_lat_1 = self.a1_latent[1] if self.a1_latent[1] is not None else 0
+      a1_lat = (a1_lat_0, a1_lat_1)
+
+    if self.a2_latent is None:
+      a2_lat = ("NA", 0)
+    else:
+      a2_lat_0 = self.a2_latent[0] if self.a2_latent[0] is not None else "NA"
+      a2_lat_1 = self.a2_latent[1] if self.a2_latent[1] is not None else 0
+      a2_lat = (a2_lat_0, a2_lat_1)
 
     cur_state = [tuple(self.box_states), tuple(self.a1_pos), tuple(self.a2_pos)]
 
@@ -269,8 +284,8 @@ class BoxPushSimulator(Simulator):
       txtfile.write('%d; ' % (self.current_step, ))  # cur step
       # box states
       for idx in range(len(self.box_states) - 1):
-        txtfile.write('%d, ' % (bstt[idx], ))
-      txtfile.write('%d; ' % (bstt[-1], ))
+        txtfile.write('%d, ' % (self.box_states[idx], ))
+      txtfile.write('%d; ' % (self.box_states[-1], ))
 
       txtfile.write('%d, %d; ' % self.a1_pos)
       txtfile.write('%d, %d; ' % self.a2_pos)
