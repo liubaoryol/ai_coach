@@ -149,20 +149,25 @@ def true_Tx(agent_idx, latent_idx, state_idx, tuple_action_idx, next_state_idx,
   return np_Tx[latent_next_idx]
 
 
-def true_Tx_for_var_infer(agent_idx, latent_idx, state_idx, action1_idx,
-                          action2_idx, next_state_idx, latent_next_idx):
+def true_Tx_for_var_infer(agent_idx, state_idx, action1_idx, action2_idx,
+                          next_state_idx):
   joint_action = (action1_idx, action2_idx)
-  return true_Tx(agent_idx, latent_idx, state_idx, joint_action, next_state_idx,
-                 latent_next_idx)
+
+  np_Txx = np.zeros((MDP_AGENT.num_latents, MDP_AGENT.num_latents))
+  for xidx in range(MDP_AGENT.num_latents):
+    np_Txx[xidx, :] = get_np_Tx(MDP_AGENT, agent_idx, xidx, state_idx,
+                                joint_action, next_state_idx)
+
+  return np_Txx
 
 
-def initial_latent_pr(agent_idx, state_idx, latent_idx):
+def initial_latent_pr(agent_idx, state_idx):
   if IS_TEAM:
     np_bx = bp_tx.get_team_np_bx(MDP_AGENT, agent_idx, state_idx)
   else:
     np_bx = bp_tx.get_indv_np_bx(MDP_AGENT, agent_idx, state_idx)
 
-  return np_bx[latent_idx]
+  return np_bx
 
 
 def get_result(var_inf_obj: VarInferDuo, test_samples):
@@ -173,17 +178,16 @@ def get_result(var_inf_obj: VarInferDuo, test_samples):
 
   def var_inf_Tx(agent_idx, latent_idx, state_idx, tuple_action_idx,
                  next_state_idx, latent_next_idx):
-    p = var_inf_obj.get_Tx_pr(agent_idx, latent_idx, state_idx,
-                              tuple_action_idx[0], tuple_action_idx[1],
-                              next_state_idx, latent_next_idx)
+    p = var_inf_obj.get_Tx(agent_idx, state_idx, tuple_action_idx[0],
+                           tuple_action_idx[1], next_state_idx)[latent_idx,
+                                                                latent_next_idx]
     return p
 
   np_results = np.zeros((len(test_samples), 3))
   for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(sample[0], sample[1], 2,
-                                           MDP_AGENT.num_latents,
-                                           var_inf_policy, var_inf_Tx,
-                                           initial_latent_pr)
+    mpseq_x_infer = most_probable_sequence(
+        sample[0], sample[1], 2, MDP_AGENT.num_latents, var_inf_policy,
+        var_inf_Tx, lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
     seq_x_per_agent = list(zip(*sample[2]))
     res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
     res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
@@ -200,9 +204,9 @@ def get_result(var_inf_obj: VarInferDuo, test_samples):
 def get_result_with_true(test_samples):
   np_results = np.zeros((len(test_samples), 3))
   for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(sample[0], sample[1], 2,
-                                           MDP_AGENT.num_latents, true_policy,
-                                           true_Tx, initial_latent_pr)
+    mpseq_x_infer = most_probable_sequence(
+        sample[0], sample[1], 2, MDP_AGENT.num_latents, true_policy, true_Tx,
+        lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
     seq_x_per_agent = list(zip(*sample[2]))
     # print(mpseq_x_infer)
     # print(seq_x_per_agent)
@@ -279,8 +283,8 @@ if __name__ == "__main__":
 
   # generate data
   #############################################################################
-  GEN_TRAIN_SET = True
-  GEN_TEST_SET = True
+  GEN_TRAIN_SET = False
+  GEN_TEST_SET = False
 
   SHOW_TRUE = True
   SHOW_SL_SMALL = True

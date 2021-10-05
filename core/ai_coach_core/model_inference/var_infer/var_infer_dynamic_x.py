@@ -81,8 +81,8 @@ class TransitionX:
     ln_Txi = digamma(self.np_lambda_Tx) - digamma(sum_lambda_Tx)[..., None]
     self.np_Tx = np.exp(ln_Txi)
 
-  def get_Tx_prop(self, x, s, a1, a2, sn, xn):
-    index = [x]
+  def get_Tx_prop(self, s, a1, a2, sn):
+    index = [slice(None)]
     if self.num_s:
       index.append(s)
     if self.num_a1:
@@ -91,7 +91,7 @@ class TransitionX:
       index.append(a2)
     if self.num_sn:
       index.append(sn)
-    index.append(xn)
+    index.append(slice(None))
     return self.np_Tx[tuple(index)]
 
   def conv_to_Tx(self):
@@ -144,12 +144,11 @@ class VarInferDuo:
   def set_load_save_file_name(self, file_name):
     self.file_name = file_name
 
-  def get_Tx_pr(self, agent_idx, xidx, sidx, aidx1, aidx2, sidx_n, xidx_n):
+  def get_Tx(self, agent_idx, sidx, aidx1, aidx2, sidx_n):
     if self.cb_Tx is not None:
-      return self.cb_Tx(agent_idx, xidx, sidx, aidx1, aidx2, sidx_n, xidx_n)
+      return self.cb_Tx(agent_idx, sidx, aidx1, aidx2, sidx_n)
     else:
-      return self.list_Tx[agent_idx].get_Tx_prop(xidx, sidx, aidx1, aidx2,
-                                                 sidx_n, xidx_n)
+      return self.list_Tx[agent_idx].get_Tx_prop(sidx, aidx1, aidx2, sidx_n)
 
   def set_dirichlet_prior(self, beta_pi: float, beta_T1: float, beta_T2: float):
     # beta
@@ -170,18 +169,20 @@ class VarInferDuo:
       # t = 0
       t = 0
       stt_p, joint_a_p, joint_x_p = trajectory[t]
-      possible_x1_p = (range(self.num_lstates)
-                       if joint_x_p[A1] is None else [joint_x_p[A1]])
-      possible_x2_p = (range(self.num_lstates)
-                       if joint_x_p[A2] is None else [joint_x_p[A2]])
+      idx_x1p, len_x1p = ((slice(None),
+                           self.num_lstates) if joint_x_p[A1] is None else
+                          (joint_x_p[A1], 1))
+      idx_x2p, len_x2p = ((slice(None),
+                           self.num_lstates) if joint_x_p[A2] is None else
+                          (joint_x_p[A2], 1))
 
-      for xidx1 in possible_x1_p:
-        for xidx2 in possible_x2_p:
-          seq_forward[t][xidx1, xidx2] = (
-              self.cb_bx(A1, stt_p, xidx1) * self.cb_bx(A2, stt_p, xidx2) *
-              # list_bx[A1][xidx1] * list_bx[A2][xidx2] *
-              list_policy[A1][xidx1, stt_p, joint_a_p[A1]] *
-              list_policy[A2][xidx2, stt_p, joint_a_p[A2]])
+      seq_forward[t][idx_x1p, idx_x2p] = (
+          self.cb_bx(A1, stt_p)[idx_x1p, None].reshape(len_x1p, 1) *
+          self.cb_bx(A2, stt_p)[None, idx_x2p].reshape(1, len_x2p) *
+          list_policy[A1][:, stt_p, joint_a_p[A1]][idx_x1p, None].reshape(
+              len_x1p, 1) *
+          list_policy[A2][:, stt_p, joint_a_p[A2]][None, idx_x2p].reshape(
+              1, len_x2p))
 
       # t = 1:N-1
       for t in range(1, len(trajectory)):
@@ -189,29 +190,37 @@ class VarInferDuo:
         stt, joint_a, joint_x = trajectory[t]
         a1_p = joint_a_p[A1]
         a2_p = joint_a_p[A2]
-        possible_x1 = (range(self.num_lstates)
-                       if joint_x[A1] is None else [joint_x[A1]])
-        possible_x2 = (range(self.num_lstates)
-                       if joint_x[A2] is None else [joint_x[A2]])
-        for xidx1 in possible_x1:
-          for xidx2 in possible_x2:
-            # prev
-            for xidx1_p in possible_x1_p:
-              for xidx2_p in possible_x2_p:
-                seq_forward[t][xidx1, xidx2] += (
-                    seq_forward[t_p][xidx1_p, xidx2_p] *
-                    self.get_Tx_pr(A1, xidx1_p, stt_p, a1_p, a2_p, stt, xidx1) *
-                    self.get_Tx_pr(A2, xidx2_p, stt_p, a1_p, a2_p, stt, xidx2) *
-                    # list_Tx[A1][xidx1_p, stt_p, a1_p, a2_p, xidx1] *
-                    # list_Tx[A2][xidx2_p, stt_p, a1_p, a2_p, xidx2] *
-                    self.cb_transition_s(stt_p, a1_p, a2_p, stt) *
-                    list_policy[A1][xidx1, stt, joint_a[A1]] *
-                    list_policy[A2][xidx2, stt, joint_a[A2]])
+        idx_x1, len_x1 = ((slice(None),
+                           self.num_lstates) if joint_x[A1] is None else
+                          (joint_x[A1], 1))
+        idx_x2, len_x2 = ((slice(None),
+                           self.num_lstates) if joint_x[A2] is None else
+                          (joint_x[A2], 1))
+
+        seq_for_tmp = (
+            seq_forward[t_p][idx_x1p, idx_x2p, None, None].reshape(
+                len_x1p, len_x2p, 1, 1) *
+            self.get_Tx(A1, stt_p, a1_p, a2_p, stt)[idx_x1p, None, idx_x1,
+                                                    None].reshape(
+                                                        len_x1p, 1, len_x1, 1) *
+            self.get_Tx(A2, stt_p, a1_p, a2_p,
+                        stt)[None, idx_x2p, None, idx_x2].reshape(
+                            1, len_x1p, 1, len_x2) *
+            self.cb_transition_s(stt_p, a1_p, a2_p, stt) *
+            list_policy[A1][:, stt, joint_a[A1]][None, None, idx_x1,
+                                                 None].reshape(1, 1, len_x1, 1)
+            * list_policy[A2][:, stt, joint_a[A2]][None, None, None,
+                                                   idx_x2].reshape(
+                                                       1, 1, 1, len_x2))
+
+        seq_forward[t][idx_x1, idx_x2] = np.sum(seq_for_tmp, axis=(0, 1))
         stt_p = stt
         joint_a_p = joint_a
         # joint_x_p = joint_x
-        possible_x1_p = possible_x1
-        possible_x2_p = possible_x2
+        idx_x1p = idx_x1
+        idx_x2p = idx_x2
+        len_x1p = len_x1
+        len_x2p = len_x2
 
       # Backward messaging
       seq_backward = np.zeros(
@@ -220,46 +229,57 @@ class VarInferDuo:
       t = len(trajectory) - 1
 
       stt_n, joint_a_n, joint_x_n = trajectory[t]
-      possible_x1_n = (range(self.num_lstates)
-                       if joint_x_n[A1] is None else [joint_x_n[A1]])
-      possible_x2_n = (range(self.num_lstates)
-                       if joint_x_n[A2] is None else [joint_x_n[A2]])
+      idx_x1n, len_x1n = ((slice(None),
+                           self.num_lstates) if joint_x_n[A1] is None else
+                          (joint_x_n[A1], 1))
+      idx_x2n, len_x2n = ((slice(None),
+                           self.num_lstates) if joint_x_n[A2] is None else
+                          (joint_x_n[A2], 1))
+      # possible_x1_n = (range(self.num_lstates)
+      #                  if joint_x_n[A1] is None else [joint_x_n[A1]])
+      # possible_x2_n = (range(self.num_lstates)
+      #                  if joint_x_n[A2] is None else [joint_x_n[A2]])
 
-      for xidx1 in possible_x1_n:
-        for xidx2 in possible_x2_n:
-          seq_backward[t][xidx1, xidx2] = 1
+      seq_backward[t][idx_x1n, idx_x2n] = 1
+      # for xidx1 in possible_x1_n:
+      #   for xidx2 in possible_x2_n:
+      #     seq_backward[t][xidx1, xidx2] = 1
 
       # t = 0:N-2
       for t in reversed(range(0, len(trajectory) - 1)):
         t_n = t + 1
         stt, joint_a, joint_x = trajectory[t]
-        # a1_n = joint_a_n[A1]
-        # a2_n = joint_a_n[A2]
         a1 = joint_a[A1]
         a2 = joint_a[A2]
-        possible_x1 = (range(self.num_lstates)
-                       if joint_x[A1] is None else [joint_x[A1]])
-        possible_x2 = (range(self.num_lstates)
-                       if joint_x[A2] is None else [joint_x[A2]])
-        for xidx1 in possible_x1:
-          for xidx2 in possible_x2:
-            # prev
-            for xidx1_n in possible_x1_n:
-              for xidx2_n in possible_x2_n:
-                seq_backward[t][xidx1, xidx2] += (
-                    seq_backward[t_n][xidx1_n, xidx2_n] *
-                    self.get_Tx_pr(A1, xidx1, stt, a1, a2, stt_n, xidx1_n) *
-                    self.get_Tx_pr(A2, xidx2, stt, a1, a2, stt_n, xidx2_n) *
-                    # list_Tx[A1][xidx1, stt, a1, a2, xidx1_n] *
-                    # list_Tx[A2][xidx2, stt, a1, a2, xidx2_n] *
-                    self.cb_transition_s(stt, a1, a2, stt_n) *
-                    list_policy[A1][xidx1_n, stt_n, joint_a_n[A1]] *
-                    list_policy[A2][xidx2_n, stt_n, joint_a_n[A2]])
+        idx_x1, len_x1 = ((slice(None),
+                           self.num_lstates) if joint_x[A1] is None else
+                          (joint_x[A1], 1))
+        idx_x2, len_x2 = ((slice(None),
+                           self.num_lstates) if joint_x[A2] is None else
+                          (joint_x[A2], 1))
+
+        seq_back_tmp = (seq_backward[t_n][None, None, idx_x1n, idx_x2n].reshape(
+            1, 1, len_x1n, len_x2n) * self.get_Tx(
+                A1, stt, a1, a2, stt_n)[idx_x1, None, idx_x1n, None].reshape(
+                    len_x1, 1, len_x1n, 1) *
+                        self.get_Tx(A2, stt, a1, a2,
+                                    stt_n)[None, idx_x2, None, idx_x2n].reshape(
+                                        1, len_x2, 1, len_x2n) *
+                        self.cb_transition_s(stt, a1, a2, stt_n) *
+                        list_policy[A1][:, stt_n, joint_a_n[A1]]
+                        [None, None, idx_x1n, None].reshape(1, 1, len_x1n, 1) *
+                        list_policy[A2][:, stt_n, joint_a_n[A2]]
+                        [None, None, None, idx_x2n].reshape(1, 1, 1, len_x2n))
+
+        seq_backward[t][idx_x1, idx_x2] = np.sum(seq_back_tmp, axis=(2, 3))
+
         stt_n = stt
         joint_a_n = joint_a
         # joint_x_n = joint_x
-        possible_x1_n = possible_x1
-        possible_x2_n = possible_x2
+        idx_x1n = idx_x1
+        idx_x2n = idx_x2
+        len_x1n = len_x1
+        len_x2n = len_x2
 
       # compute q_x, q_x_xp
       # z_partian = np.sum(seq_forward, axis=(1, 2))
