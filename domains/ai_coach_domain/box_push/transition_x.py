@@ -282,3 +282,34 @@ def get_Tx_team(mdp_agent: BoxPushTeamMDP_AlwaysTogether, agent_idx, latent,
                               replace=False,
                               p=np_Tx)[0]
   return mdp_agent.latent_space.idx_to_state[xidx_nxt]
+
+
+if __name__ == "__main__":
+  import ai_coach_domain.box_push.maps as bp_maps
+  import ai_coach_domain.box_push.mdp as bp_mdp
+
+  IS_TEAM = True
+  IS_TEST = False
+
+  if IS_TEAM:
+    BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
+  else:
+    BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
+
+  if IS_TEST:
+    GAME_MAP = bp_maps.TEST_MAP
+  else:
+    GAME_MAP = bp_maps.EXP1_MAP
+
+  MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
+
+  for a_i in [0, 1]:
+    for xidx in range(MDP_AGENT.num_latents):
+      print(xidx)
+      for sidx in range(MDP_AGENT.num_states):
+        for aidx1 in range(MDP_AGENT.a1_a_space.num_actions):
+          for aidx2 in range(MDP_AGENT.a2_a_space.num_actions):
+            for sidx_n in range(MDP_AGENT.num_states):
+              np_Tx = get_np_Tx_team(MDP_AGENT, a_i, xidx, sidx, (aidx1, aidx2),
+                                     sidx_n)
+              assert (np.sum(np_Tx) == 1)

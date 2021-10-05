@@ -17,7 +17,6 @@ from ai_coach_core.utils.result_utils import (norm_hamming_distance,
 import numpy as np
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-GAME_MAP = bp_maps.TEST_MAP
 TEMPERATURE = 1
 
 IS_TEAM = False
@@ -29,19 +28,23 @@ if IS_TEAM:
   BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
   get_box_push_Tx = bp_tx.get_Tx_team
   get_np_Tx = bp_tx.get_np_Tx_team
-  SAVE_PREFIX = GAME_MAP["name"] + "_team"
 else:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
   BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
   BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
   get_box_push_Tx = bp_tx.get_Tx_indv
   get_np_Tx = bp_tx.get_np_Tx_indv
-  SAVE_PREFIX = GAME_MAP["name"] + "_indv"
+
+if IS_TEST:
+  GAME_MAP = bp_maps.TEST_MAP
+else:
+  GAME_MAP = bp_maps.EXP1_MAP
 
 MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
 MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
 
 if IS_TEAM:
+  SAVE_PREFIX = GAME_MAP["name"] + "_team"
   if IS_TEST:
     get_box_push_action = bp_policy.get_test_team_action
     LIST_POLICY = bp_policy.get_test_team_policy(MDP_AGENT, TEMPERATURE)
@@ -49,6 +52,7 @@ if IS_TEAM:
     get_box_push_action = bp_policy.get_exp1_action
     LIST_POLICY = bp_policy.get_exp1_policy(MDP_AGENT, TEMPERATURE)
 else:
+  SAVE_PREFIX = GAME_MAP["name"] + "_indv"
   if IS_TEST:
     get_box_push_action = bp_policy.get_test_indv_action
     LIST_POLICY = bp_policy.get_test_indv_policy(MDP_AGENT, TEMPERATURE)
@@ -283,17 +287,17 @@ if __name__ == "__main__":
 
   # generate data
   #############################################################################
-  GEN_TRAIN_SET = False
-  GEN_TEST_SET = False
+  GEN_TRAIN_SET = True
+  GEN_TEST_SET = True
 
-  SHOW_TRUE = True
+  SHOW_TRUE = False
   SHOW_SL_SMALL = True
   SHOW_SL_LARGE = True
-  SHOW_SEMI = True
+  SHOW_SEMI = False
   VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI
 
-  TRAIN_DIR = os.path.join(DATA_DIR, 'box_push_train')
-  TEST_DIR = os.path.join(DATA_DIR, 'box_push_test')
+  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_box_push_train')
+  TEST_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_box_push_test')
 
   train_prefix = "train_"
   test_prefix = "test_"
@@ -380,9 +384,9 @@ if __name__ == "__main__":
 
     # true policy and transition
     ##################################################
-    BETA_PI = 1.01
-    BETA_TX1 = 1.01
-    BETA_TX2 = 1.01
+    BETA_PI = 1.5
+    BETA_TX1 = 1.5
+    BETA_TX2 = 1.5
     print("beta: %f, %f, %f" % (BETA_PI, BETA_TX1, BETA_TX2))
 
     num_a1_action, num_a2_action = ((MDP_AGENT.a1_a_space.num_actions,
@@ -467,10 +471,13 @@ if __name__ == "__main__":
     if SHOW_SEMI:
       print("Semi")
       # semi-supervised with 50:50 labeled and unlabeled samples
-      var_inf_semi = VarInferDuo(
-          traj_labeled_ver[0:idx_small] + traj_unlabel_ver[idx_small:],
-          MDP_TASK.num_states, MDP_AGENT.num_latents, joint_action,
-          transition_s)
+      var_inf_semi = VarInferDuo(traj_labeled_ver[0:idx_small] +
+                                 traj_unlabel_ver[idx_small:],
+                                 MDP_TASK.num_states,
+                                 MDP_AGENT.num_latents,
+                                 joint_action,
+                                 transition_s,
+                                 epsilon=0.01)
       var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
       var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
                                  cb_Tx=true_Tx_for_var_infer)

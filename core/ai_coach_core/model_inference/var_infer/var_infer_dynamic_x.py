@@ -214,6 +214,7 @@ class VarInferDuo:
                                                        1, 1, 1, len_x2))
 
         seq_forward[t][idx_x1, idx_x2] = np.sum(seq_for_tmp, axis=(0, 1))
+
         stt_p = stt
         joint_a_p = joint_a
         # joint_x_p = joint_x
@@ -235,15 +236,8 @@ class VarInferDuo:
       idx_x2n, len_x2n = ((slice(None),
                            self.num_lstates) if joint_x_n[A2] is None else
                           (joint_x_n[A2], 1))
-      # possible_x1_n = (range(self.num_lstates)
-      #                  if joint_x_n[A1] is None else [joint_x_n[A1]])
-      # possible_x2_n = (range(self.num_lstates)
-      #                  if joint_x_n[A2] is None else [joint_x_n[A2]])
 
       seq_backward[t][idx_x1n, idx_x2n] = 1
-      # for xidx1 in possible_x1_n:
-      #   for xidx2 in possible_x2_n:
-      #     seq_backward[t][xidx1, xidx2] = 1
 
       # t = 0:N-2
       for t in reversed(range(0, len(trajectory) - 1)):
@@ -340,15 +334,6 @@ class VarInferDuo:
     if self.cb_Tx is None and len(list_q_x_xn) > 0:
       self.list_Tx[A1].init_lambda_Tx(self.beta_T1)
       self.list_Tx[A2].init_lambda_Tx(self.beta_T2)
-      # list_lambda_Tx = []
-      # lambda_Ti_1 = np.full(
-      #     (self.num_lstates, self.num_ostates, self.tuple_num_actions[A1],
-      #      self.tuple_num_actions[A2], self.num_lstates), self.beta_T1)
-      # lambda_Ti_2 = np.full(
-      #     (self.num_lstates, self.num_ostates, self.tuple_num_actions[A1],
-      #      self.tuple_num_actions[A2], self.num_lstates), self.beta_T2)
-      # list_lambda_Tx.append(lambda_Ti_1)
-      # list_lambda_Tx.append(lambda_Ti_2)
 
       for m_th in range(len(self.trajectories)):
         q_x_xn1, q_x_xn2 = list_q_x_xn[m_th]
@@ -388,17 +373,17 @@ class VarInferDuo:
       np_q_x1 = np.zeros((len(traj), self.num_lstates))
       np_q_x2 = np.zeros((len(traj), self.num_lstates))
       for t in range(len(traj)):
-        _, _, joint_x = traj[t]
+        stt, _, joint_x = traj[t]
 
         if joint_x[A1] is not None:
           np_q_x1[t, joint_x[A1]] = 1
         else:
-          np_q_x1[t, :] = 1 / self.num_lstates
+          np_q_x1[t, :] = self.cb_bx(A1, stt)
 
         if joint_x[A2] is not None:
           np_q_x2[t, joint_x[A2]] = 1
         else:
-          np_q_x2[t, :] = 1 / self.num_lstates
+          np_q_x2[t, :] = self.cb_bx(A2, stt)
 
       list_q_x.append([np_q_x1, np_q_x2])
 
@@ -409,30 +394,32 @@ class VarInferDuo:
         np_q_x_xn1 = np.zeros((len(traj), self.num_lstates, self.num_lstates))
         np_q_x_xn2 = np.zeros((len(traj), self.num_lstates, self.num_lstates))
         for t in range(len(traj) - 1):
-          _, _, joint_x = traj[t]
-          _, _, joint_x_n = traj[t + 1]
+          stt, _, joint_x = traj[t]
+          sttn, _, joint_x_n = traj[t + 1]
 
           if joint_x[A1] is not None:
             if joint_x_n[A1] is not None:
               np_q_x_xn1[t, joint_x[A1], joint_x_n[A1]] = 1
             else:
-              np_q_x_xn1[t, joint_x[A1], :] = 1 / self.num_lstates
+              np_q_x_xn1[t, joint_x[A1], :] = self.cb_bx(A1, sttn)
           else:
             if joint_x_n[A1] is not None:
-              np_q_x_xn1[t, :, joint_x_n[A1]] = 1 / self.num_lstates
+              np_q_x_xn1[t, :, joint_x_n[A1]] = self.cb_bx(A1, stt)
             else:
-              np_q_x_xn1[t, :, :] = 1 / (self.num_lstates * self.num_lstates)
+              np_q_x_xn1[t, :, :] = (self.cb_bx(A1, stt)[:, None] *
+                                     self.cb_bx(A1, sttn)[None, :])
 
           if joint_x[A2] is not None:
             if joint_x_n[A2] is not None:
               np_q_x_xn2[t, joint_x[A2], joint_x_n[A2]] = 1
             else:
-              np_q_x_xn2[t, joint_x[A2], :] = 1 / self.num_lstates
+              np_q_x_xn2[t, joint_x[A2], :] = self.cb_bx(A2, sttn)
           else:
             if joint_x_n[A2] is not None:
-              np_q_x_xn2[t, :, joint_x_n[A2]] = 1 / self.num_lstates
+              np_q_x_xn2[t, :, joint_x_n[A2]] = self.cb_bx(A2, stt)
             else:
-              np_q_x_xn2[t, :, :] = 1 / (self.num_lstates * self.num_lstates)
+              np_q_x_xn2[t, :, :] = (self.cb_bx(A2, stt)[:, None] *
+                                     self.cb_bx(A2, sttn)[None, :])
 
         list_q_x_xn.append([np_q_x_xn1, np_q_x_xn2])
 
@@ -478,6 +465,7 @@ class VarInferDuo:
       list_lambda_pi_prev = list_lambda_pi
 
       list_pi_tilda = self.get_pi_tilda_from_lambda(list_lambda_pi)
+
       if self.list_Tx is not None:
         self.list_Tx[A1].conv_to_Tx_tilda()
         self.list_Tx[A2].conv_to_Tx_tilda()
