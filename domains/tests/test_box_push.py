@@ -1,6 +1,7 @@
 import glob
 import os
 import random
+import pickle
 
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
@@ -16,32 +17,34 @@ from ai_coach_core.utils.result_utils import (norm_hamming_distance,
 import numpy as np
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-GAME_MAP = bp_maps.TEST_MAP
-IS_TEAM = True
+GAME_MAP = bp_maps.EXP1_MAP
+IS_TEAM = False
 if IS_TEAM:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
   BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
   BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-  get_box_push_action = bp_policy.get_test_team_action
+  get_box_push_action = bp_policy.get_exp1_action
   get_box_push_Tx = bp_tx.get_Tx_team
   get_np_Tx = bp_tx.get_np_Tx_team
+  SAVED_TRANSITION = "mdp_exp1"
 else:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
   BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
   BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
-  get_box_push_action = bp_policy.get_test_indv_action
+  get_box_push_action = bp_policy.get_indv_action
   get_box_push_Tx = bp_tx.get_Tx_indv
   get_np_Tx = bp_tx.get_np_Tx_indv
+  SAVED_TRANSITION = "mdp_indv"
 
 MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
 MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
 
-TEMPERATURE = 0.3
+TEMPERATURE = 1
 
 if IS_TEAM:
-  LIST_POLICY = bp_policy.get_test_team_policy(MDP_AGENT, TEMPERATURE)
+  LIST_POLICY = bp_policy.get_exp1_policy(MDP_AGENT, TEMPERATURE)
 else:
-  LIST_POLICY = bp_policy.get_test_indv_policy(MDP_AGENT, TEMPERATURE)
+  LIST_POLICY = bp_policy.get_indv_policy(MDP_AGENT, TEMPERATURE)
 
 
 def cal_policy_kl_error(mdp_agent: BoxPushAgentMDP, trajectories, cb_pi_true,
@@ -205,10 +208,29 @@ def get_result_with_true(test_samples):
   return np_results
 
 
+loaded_transition_model = None
+
+
 def transition_s(sidx, aidx1, aidx2, sidx_n):
+  global loaded_transition_model
+  if loaded_transition_model is None:
+    pickle_trans_s = os.path.join(DATA_DIR, SAVED_TRANSITION + ".pickle")
+    if os.path.exists(pickle_trans_s):
+      with open(pickle_trans_s, 'rb') as handle:
+        loaded_transition_model = pickle.load(handle)
+      print("transition_s loaded by pickle")
+    else:
+      loaded_transition_model = MDP_TASK.np_transition_model
+      print("save transition_s by pickle")
+      with open(pickle_trans_s, 'wb') as handle:
+        pickle.dump(loaded_transition_model,
+                    handle,
+                    protocol=pickle.HIGHEST_PROTOCOL)
+
   # mdp_task.np_transition_model
   aidx_team = MDP_TASK.np_action_to_idx[aidx1, aidx2]
-  p = MDP_TASK.np_transition_model[sidx, aidx_team, sidx_n]
+  p = loaded_transition_model[sidx, aidx_team, sidx_n]
+  # p = MDP_TASK.np_transition_model[sidx, aidx_team, sidx_n]
   return p
 
 
@@ -247,8 +269,8 @@ if __name__ == "__main__":
 
   # generate data
   #############################################################################
-  GEN_TRAIN_SET = True
-  GEN_TEST_SET = True
+  GEN_TRAIN_SET = False
+  GEN_TEST_SET = False
 
   SHOW_TRUE = True
   SHOW_SL_SMALL = True
@@ -266,7 +288,7 @@ if __name__ == "__main__":
     for fmn in file_names:
       os.remove(fmn)
 
-    sim.run_simulation(1000, os.path.join(TRAIN_DIR, train_prefix), "header")
+    sim.run_simulation(500, os.path.join(TRAIN_DIR, train_prefix), "header")
 
   if GEN_TEST_SET:
     file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
@@ -344,9 +366,9 @@ if __name__ == "__main__":
 
     # true policy and transition
     ##################################################
-    BETA_PI = 1.1
-    BETA_TX1 = 1.1
-    BETA_TX2 = 1.1
+    BETA_PI = 1.01
+    BETA_TX1 = 1.01
+    BETA_TX2 = 1.01
     print("beta: %f, %f, %f" % (BETA_PI, BETA_TX1, BETA_TX2))
 
     num_a1_action, num_a2_action = ((MDP_AGENT.a1_a_space.num_actions,
@@ -354,26 +376,26 @@ if __name__ == "__main__":
                                     if IS_TEAM else (MDP_AGENT.num_actions,
                                                      MDP_AGENT.num_actions))
     joint_action = (num_a1_action, num_a2_action)
-    print(joint_action)
 
     # True policy
     if SHOW_TRUE:
       np_results = get_result_with_true(test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       print("%f, %f, %f" % (avg1, avg2, avg3))
-      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                     np_true_policy, np_true_policy)
-      print("kl1: %f, kl2: %f" % (kl1, kl2))
+      # kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+      #                                np_true_policy, np_true_policy)
+      # print("kl1: %f, kl2: %f" % (kl1, kl2))
 
     # fig1 = plt.figure(figsize=(8, 3))
     # ax1 = fig1.add_subplot(131)
     # ax2 = fig1.add_subplot(132)
     # ax3 = fig1.add_subplot(133)
 
+    idx_small = int(len(traj_labeled_ver) / 5)
+    print(idx_small)
     # supervised with small samples
-    print("Small")
     if SHOW_SL_SMALL:
-      idx_small = int(len(traj_labeled_ver) / 2)
+      print("Small")
       var_inf_small = VarInferDuo(traj_labeled_ver[0:idx_small],
                                   MDP_TASK.num_states, MDP_AGENT.num_latents,
                                   joint_action, transition_s)
@@ -399,8 +421,8 @@ if __name__ == "__main__":
       # plt.show()
 
     # supervised with large samples
-    print("Large")
     if SHOW_SL_LARGE:
+      print("Large")
       var_inf_large = VarInferDuo(traj_labeled_ver, MDP_TASK.num_states,
                                   MDP_AGENT.num_latents, joint_action,
                                   transition_s)
@@ -429,6 +451,7 @@ if __name__ == "__main__":
 
     # supervised with large samples
     if SHOW_SEMI:
+      print("Semi")
       # semi-supervised with 50:50 labeled and unlabeled samples
       var_inf_semi = VarInferDuo(
           traj_labeled_ver[0:idx_small] + traj_unlabel_ver[idx_small:],
@@ -437,6 +460,9 @@ if __name__ == "__main__":
       var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
       var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
                                  cb_Tx=true_Tx_for_var_infer)
+      save_path = os.path.join(
+          DATA_DIR, "indv_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1, BETA_TX2))
+      var_inf_semi.set_load_save_file_name(save_path)
       var_inf_semi.do_inference()
 
       np_results = get_result(var_inf_semi, test_traj)

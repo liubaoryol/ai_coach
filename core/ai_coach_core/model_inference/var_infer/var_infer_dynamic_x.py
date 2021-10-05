@@ -135,21 +135,14 @@ class VarInferDuo:
 
     self.max_iteration = max_iteration
     self.epsilon = epsilon
-
-    # num_agent x |X| x |S| x |A|
-    self.list_base_q_pi_hyper = []  # type: list[np.ndarray]
-
-    # num_agent x |X| x |S| x |A| x |A| x |X|   or
-    # num_agent x |X| x |A| x |A| x |X|
-    self.list_base_q_Ti_hyper = []  # type: list[np.ndarray]
-
-    self.list_mental_models = [
-        None for dummy_i in range(len(self.trajectories))
-    ]  # type: list[tuple[int, ...]]
+    self.file_name = None
 
   def set_bx_and_Tx(self, cb_bx, cb_Tx=None):
     self.cb_bx = cb_bx
     self.cb_Tx = cb_Tx
+
+  def set_load_save_file_name(self, file_name):
+    self.file_name = file_name
 
   def get_Tx_pr(self, agent_idx, xidx, sidx, aidx1, aidx2, sidx_n, xidx_n):
     if self.cb_Tx is not None:
@@ -438,11 +431,24 @@ class VarInferDuo:
       self.list_Tx[A1].init_lambda_Tx(self.beta_T1)
       self.list_Tx[A2].init_lambda_Tx(self.beta_T2)
 
-    list_lambda_pi = [
-        np.full(
-            (self.num_lstates, self.num_ostates, self.tuple_num_actions[i_a]),
-            self.beta_pi) for i_a in range(self.num_agents)
-    ]
+    list_lambda_pi = []
+    if self.file_name is not None:
+      try:
+        with np.load(self.file_name) as data:
+          list_lambda_pi.append(data['arr_0'])
+          list_lambda_pi.append(data['arr_1'])
+          print("lambda_pi loaded from disk")
+      except IOError:
+        pass
+
+    if len(list_lambda_pi) == 0:
+      print("initialize lambda_pi")
+      list_lambda_pi = [
+          np.full(
+              (self.num_lstates, self.num_ostates, self.tuple_num_actions[i_a]),
+              self.beta_pi) for i_a in range(self.num_agents)
+      ]
+
     list_lambda_pi_prev = None
 
     count = 0
@@ -460,6 +466,9 @@ class VarInferDuo:
       list_q_x, list_q_x_xn = self.estep_local_variables(list_pi_tilda)
       list_lambda_pi = self.mstep_global_variables(list_q_x, list_q_x_xn)
 
+      if self.file_name is not None and count % 1 == 0:
+        np.savez(self.file_name, list_lambda_pi[A1], list_lambda_pi[A2])
+
       # if callback:
       #   callback(self.num_agents, list_q_pi_hyper)
 
@@ -470,8 +479,8 @@ class VarInferDuo:
 
       if delta_team < self.epsilon:
         break
-      progress_bar.set_postfix({'delta': delta})
       progress_bar.update()
+      progress_bar.set_postfix({'delta': delta_team})
     progress_bar.close()
 
     for idx in range(self.num_agents):

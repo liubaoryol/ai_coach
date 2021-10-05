@@ -133,6 +133,40 @@ def get_indv_action(mdp_indv: BoxPushAgentMDP, agent_id, temperature,
                                           walls, drops, a1_latent, a2_latent)
 
 
+def get_exp1_policy(mdp: BoxPushTeamMDP, temperature):
+  global policy_exp1_list
+
+  if len(policy_exp1_list) == 0:
+    cur_dir = os.path.dirname(__file__)
+    for idx in range(mdp.num_latents):
+      str_q_val = os.path.join(
+          cur_dir,
+          "data/" + "box_push_np_q_value_exp1_" + "%d.pickle" % (idx, ))
+      with open(str_q_val, "rb") as f:
+        q_value = pickle.load(f)
+        policy_exp1_list.append(
+            mdp_lib.softmax_policy_from_q_value(q_value, temperature))
+
+  return policy_exp1_list
+
+
+def get_indv_policy(mdp: BoxPushAgentMDP, temperature):
+  global policy_indv_list
+
+  if len(policy_indv_list) == 0:
+    cur_dir = os.path.dirname(__file__)
+    for idx in range(mdp.num_latents):
+      str_q_val = os.path.join(
+          cur_dir,
+          "data/" + "box_push_np_q_value_indv_" + "%d.pickle" % (idx, ))
+      with open(str_q_val, "rb") as f:
+        q_value = pickle.load(f)
+        policy_indv_list.append(
+            mdp_lib.softmax_policy_from_q_value(q_value, temperature))
+
+  return policy_indv_list
+
+
 def get_simple_action(agent_id, box_states, a1_pos, a2_pos, x_grid, y_grid,
                       boxes, goals, walls, drops, a1_latent, a2_latent,
                       **kwargs):
@@ -243,7 +277,7 @@ def get_test_indv_policy(mdp: BoxPushAgentMDP, temperature):
   return policy_test_agent_list
 
 
-def get_test_team_policy(mdp: BoxPushAgentMDP, temperature):
+def get_test_team_policy(mdp: BoxPushTeamMDP, temperature):
   global policy_test_team_list
 
   if len(policy_test_team_list) == 0:
@@ -298,9 +332,9 @@ def get_test_indv_action(mdp: BoxPushAgentMDP, agent_id, temperature,
   return act1
 
 
-def get_test_team_action(mdp: BoxPushAgentMDP, agent_id, temperature,
-                         box_states, a1_pos, a2_pos, x_grid, y_grid, boxes,
-                         goals, walls, drops, a1_latent, a2_latent, **kwargs):
+def get_test_team_action(mdp: BoxPushTeamMDP, agent_id, temperature, box_states,
+                         a1_pos, a2_pos, x_grid, y_grid, boxes, goals, walls,
+                         drops, a1_latent, a2_latent, **kwargs):
   policy_list = get_test_team_policy(mdp, temperature)
 
   if ((mdp.x_grid != x_grid) or (mdp.y_grid != y_grid) or (mdp.boxes != boxes)

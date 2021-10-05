@@ -205,7 +205,7 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
     return update_dropped_box_state_impl(boxidx, coord, box_states_new,
                                          box_locations, drops, goals)
 
-  P_MOVE = 0.5
+  P_MOVE = 0.7
   list_next_env = []
   hold = hold_state()
   # both do not hold anything

@@ -1,5 +1,4 @@
 from typing import Hashable, Tuple
-import random
 from stand_alone.app import AppInterface
 from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
 import ai_coach_domain.box_push.maps as bp_maps
@@ -97,26 +96,6 @@ class BoxPushApp(AppInterface):
     elif key_sym == "p":
       agent_id = BoxPushSimulator.AGENT1
       action = EventType.HOLD
-    elif key_sym == "o":
-      agent_id = BoxPushSimulator.AGENT2
-      action = EventType.SET_LATENT
-
-      a2_hold = False
-      valid_boxes = []
-      for idx, bidx in enumerate(self.game.box_states):
-        bstate = conv_box_idx_2_state(bidx, len(self.game.drops),
-                                      len(self.game.goals))
-        if bstate[0] == BoxState.Original:
-          valid_boxes.append(idx)
-        elif bstate[0] in [BoxState.WithAgent2, BoxState.WithBoth]:
-          a2_hold = True
-          break
-
-      if a2_hold:
-        value = ("goal", 0)
-      else:
-        idx = random.choice(valid_boxes)
-        value = ("pickup", idx)
 
     return (agent_id, action, value)
 

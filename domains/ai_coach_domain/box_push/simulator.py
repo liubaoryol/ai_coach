@@ -368,7 +368,7 @@ if __name__ == "__main__":
   if exp1:
     from ai_coach_domain.box_push.maps import EXP1_MAP
     from ai_coach_domain.box_push.policy import get_exp1_action
-    from ai_coach_domain.box_push.team_mdp import BoxPushTeamMDP_AlwaysTogether
+    from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AlwaysTogether
 
     sim = BoxPushSimulator_AlwaysTogether(0)
     sim.init_game(**EXP1_MAP)
