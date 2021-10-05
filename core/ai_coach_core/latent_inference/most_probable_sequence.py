@@ -34,7 +34,10 @@ def most_probable_sequence(
 
       # probs[idx][0, x_i] = p_act_sum * p_x_sum
       # trackers[idx].append([x_i])
-      log_probs[idx][0, x_i] = np.log(p_act_sum) + np.log(p_x_sum)
+      if p_act_sum == 0 or p_x_sum == 0:
+        log_probs[idx][0, x_i] = -np.inf
+      else:
+        log_probs[idx][0, x_i] = np.log(p_act_sum) + np.log(p_x_sum)
       log_trackers[idx].append([x_i])
 
   for step in range(1, num_step):
@@ -61,7 +64,11 @@ def most_probable_sequence(
           # if p_tmp > max_val:
           #     max_idx = x_j
           #     max_val = p_tmp
-          log_p_tmp = log_probs[idx][step - 1, x_j] + np.log(p_x_n_sum)
+          if p_x_n_sum == 0:
+            log_p_tmp = -np.inf
+          else:
+            log_p_tmp = log_probs[idx][step - 1, x_j] + np.log(p_x_n_sum)
+
           if log_p_tmp > max_log_val:
             max_idx_log = x_j
             max_log_val = log_p_tmp
@@ -70,7 +77,10 @@ def most_probable_sequence(
         # best_track = list(prev_tracks[max_idx])
         # best_track.append(x_i)
         # new_tracks.append(best_track)
-        log_probs[idx][step, x_i] = np.log(p_act_sum) + max_log_val
+        if p_act_sum == 0:
+          log_probs[idx][step, x_i] = -np.inf
+        else:
+          log_probs[idx][step, x_i] = np.log(p_act_sum) + max_log_val
         best_track_log = list(prev_tracks_log[max_idx_log])
         best_track_log.append(x_i)
         new_tracks_log.append(best_track_log)

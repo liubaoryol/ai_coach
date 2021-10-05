@@ -16,6 +16,7 @@ A2 = 1
 
 
 class TransitionX:
+  # TODO: need to find a better way ...
   def __init__(self, num_x, num_s, num_a1, num_a2, num_sn, num_xn):
     assert (num_x > 0)
     assert (num_xn > 0)
@@ -469,7 +470,7 @@ class VarInferDuo:
 
       if delta_team < self.epsilon:
         break
-
+      progress_bar.set_postfix({'delta': delta})
       progress_bar.update()
     progress_bar.close()
 
