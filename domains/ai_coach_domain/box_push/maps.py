@@ -11,6 +11,8 @@ TUTORIAL_MAP = {
 }
 
 EXP1_MAP = {
+    "name":
+    "exp1",
     "x_grid":
     7,
     "y_grid":
@@ -26,6 +28,7 @@ EXP1_MAP = {
 }
 
 TEST_MAP = {
+    "name": "test1",
     "x_grid": 3,
     "y_grid": 3,
     "a1_init": (0, 1),
@@ -38,6 +41,7 @@ TEST_MAP = {
 }
 
 TEST_MAP2 = {
+    "name": "test2",
     "x_grid": 2,
     "y_grid": 2,
     "a1_init": (1, 0),

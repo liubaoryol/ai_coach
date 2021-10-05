@@ -17,34 +17,44 @@ from ai_coach_core.utils.result_utils import (norm_hamming_distance,
 import numpy as np
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-GAME_MAP = bp_maps.EXP1_MAP
+GAME_MAP = bp_maps.TEST_MAP
+TEMPERATURE = 1
+
 IS_TEAM = False
+IS_TEST = True
+
 if IS_TEAM:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
   BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
   BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-  get_box_push_action = bp_policy.get_exp1_action
   get_box_push_Tx = bp_tx.get_Tx_team
   get_np_Tx = bp_tx.get_np_Tx_team
-  SAVED_TRANSITION = "mdp_exp1"
+  SAVE_PREFIX = GAME_MAP["name"] + "_team"
 else:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
   BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
   BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
-  get_box_push_action = bp_policy.get_indv_action
   get_box_push_Tx = bp_tx.get_Tx_indv
   get_np_Tx = bp_tx.get_np_Tx_indv
-  SAVED_TRANSITION = "mdp_indv"
+  SAVE_PREFIX = GAME_MAP["name"] + "_indv"
 
 MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
 MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
 
-TEMPERATURE = 1
-
 if IS_TEAM:
-  LIST_POLICY = bp_policy.get_exp1_policy(MDP_AGENT, TEMPERATURE)
+  if IS_TEST:
+    get_box_push_action = bp_policy.get_test_team_action
+    LIST_POLICY = bp_policy.get_test_team_policy(MDP_AGENT, TEMPERATURE)
+  else:
+    get_box_push_action = bp_policy.get_exp1_action
+    LIST_POLICY = bp_policy.get_exp1_policy(MDP_AGENT, TEMPERATURE)
 else:
-  LIST_POLICY = bp_policy.get_indv_policy(MDP_AGENT, TEMPERATURE)
+  if IS_TEST:
+    get_box_push_action = bp_policy.get_test_indv_action
+    LIST_POLICY = bp_policy.get_test_indv_policy(MDP_AGENT, TEMPERATURE)
+  else:
+    get_box_push_action = bp_policy.get_indv_action
+    LIST_POLICY = bp_policy.get_indv_policy(MDP_AGENT, TEMPERATURE)
 
 
 def cal_policy_kl_error(mdp_agent: BoxPushAgentMDP, trajectories, cb_pi_true,
@@ -214,7 +224,7 @@ loaded_transition_model = None
 def transition_s(sidx, aidx1, aidx2, sidx_n):
   global loaded_transition_model
   if loaded_transition_model is None:
-    pickle_trans_s = os.path.join(DATA_DIR, SAVED_TRANSITION + ".pickle")
+    pickle_trans_s = os.path.join(DATA_DIR, SAVE_PREFIX + "_mdp.pickle")
     if os.path.exists(pickle_trans_s):
       with open(pickle_trans_s, 'rb') as handle:
         loaded_transition_model = pickle.load(handle)
@@ -269,8 +279,8 @@ if __name__ == "__main__":
 
   # generate data
   #############################################################################
-  GEN_TRAIN_SET = False
-  GEN_TEST_SET = False
+  GEN_TRAIN_SET = True
+  GEN_TEST_SET = True
 
   SHOW_TRUE = True
   SHOW_SL_SMALL = True
@@ -288,7 +298,7 @@ if __name__ == "__main__":
     for fmn in file_names:
       os.remove(fmn)
 
-    sim.run_simulation(500, os.path.join(TRAIN_DIR, train_prefix), "header")
+    sim.run_simulation(200, os.path.join(TRAIN_DIR, train_prefix), "header")
 
   if GEN_TEST_SET:
     file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
@@ -382,9 +392,9 @@ if __name__ == "__main__":
       np_results = get_result_with_true(test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       print("%f, %f, %f" % (avg1, avg2, avg3))
-      # kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-      #                                np_true_policy, np_true_policy)
-      # print("kl1: %f, kl2: %f" % (kl1, kl2))
+      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+                                     np_true_policy, np_true_policy)
+      print("kl1: %f, kl2: %f" % (kl1, kl2))
 
     # fig1 = plt.figure(figsize=(8, 3))
     # ax1 = fig1.add_subplot(131)
@@ -460,8 +470,10 @@ if __name__ == "__main__":
       var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
       var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
                                  cb_Tx=true_Tx_for_var_infer)
-      save_path = os.path.join(
-          DATA_DIR, "indv_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1, BETA_TX2))
+
+      save_name = SAVE_PREFIX + "_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
+                                                        BETA_TX2)
+      save_path = os.path.join(DATA_DIR, save_name)
       var_inf_semi.set_load_save_file_name(save_path)
       var_inf_semi.do_inference()
 
