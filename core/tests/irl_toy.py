@@ -33,7 +33,7 @@ def get_neighborhood(stt, set_state):
 
 class ToyMDP(MDP):
   def __init__(self):
-    super().__init__()
+    super().__init__(use_sparse=False)
 
   def init_statespace(self):
     '''

@@ -4,6 +4,7 @@ import numpy as np
 import ai_coach_core.model_inference.var_infer.var_infer_static_x as var_infer
 from ai_coach_core.latent_inference.bayesian_inference import (
     bayesian_mind_inference)
+from ai_coach_core.model_inference.IRL.maxent_irl import CMaxEntIRL
 
 from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
 from ai_coach_domain.box_push.maps import EXP1_MAP
@@ -93,10 +94,11 @@ if __name__ == "__main__":
   GEN_TEST_SET = False
 
   SHOW_TRUE = True
-  SHOW_SL_SMALL = True
-  SHOW_SL_LARGE = True
-  SHOW_SEMI = True
+  SHOW_SL_SMALL = False
+  SHOW_SL_LARGE = False
+  SHOW_SEMI = False
   VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI
+  BASE_LINE = True
 
   TRAIN_DIR = os.path.join(DATA_DIR, 'static_bp_train')
   TEST_DIR = os.path.join(DATA_DIR, 'static_bp_test')
@@ -124,6 +126,8 @@ if __name__ == "__main__":
     # load train set
     ##################################################
     trajectories = []
+    trajectories_x1 = []
+    trajectories_x2 = []
     latent_labels = []
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
     for idx, file_nm in enumerate(file_names):
@@ -141,8 +145,14 @@ if __name__ == "__main__":
 
       trajectories.append(traj)
       latent_labels.append((xidx1, xidx2))
+      if xidx1 == 0 and xidx2 == 0:
+        trajectories_x1.append(traj)
+      if xidx1 == 1 and xidx2 == 1:
+        trajectories_x2.append(traj)
 
     print(len(trajectories))
+    print(len(trajectories_x1))
+    print(len(trajectories_x2))
     print(len(latent_labels))
 
     # partial trajectory? for each traj, traj[sidx:eidx]
@@ -168,6 +178,37 @@ if __name__ == "__main__":
       test_traj.append(traj)
       test_labels.append((xidx1, xidx2))
     print(len(test_traj))
+
+    # train base line
+    ###########################################################################
+    if BASE_LINE:
+
+      def feature_extract_full_state(mdp, s_idx, a_idx):
+        np_feature = np.zeros(mdp.num_states)
+        np_feature[s_idx] = 1
+        return np_feature
+
+      init_prop = np.zeros((MDP_AGENT.num_states))
+      sid = MDP_AGENT.conv_sim_states_to_mdp_sidx(GAME_MAP["a1_init"],
+                                                  GAME_MAP["a2_init"],
+                                                  [0] * len(GAME_MAP["boxes"]))
+      init_prop[sid] = 1
+
+      irl_x1 = CMaxEntIRL(trajectories_x1,
+                          MDP_AGENT,
+                          feature_extractor=feature_extract_full_state,
+                          max_value_iter=100,
+                          initial_prop=init_prop)
+
+      irl_x1.do_inverseRL(epsilon=0.001, n_max_run=500)
+
+      irl_x2 = CMaxEntIRL(trajectories_x2,
+                          MDP_AGENT,
+                          feature_extractor=feature_extract_full_state,
+                          max_value_iter=100,
+                          initial_prop=init_prop)
+
+      irl_x2.do_inverseRL(epsilon=0.001, n_max_run=500)
 
     BETA_PI = 1.5
     joint_num_action = (MDP_AGENT.a1_a_space.num_actions,

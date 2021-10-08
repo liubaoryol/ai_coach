@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Tuple, Sequence
 import random
 import numpy as np
+import sparse
 from tqdm import tqdm
 from ai_coach_core.RL.planning import soft_value_iteration
 from ai_coach_core.models.mdp import MDP, softmax_policy_from_q_value
@@ -108,10 +109,22 @@ class CMaxEntIRL():
     iteration_idx = 0
     delta = self.eps + 1
     while (iteration_idx < self.max_value_iter) and (delta > self.eps):
-      d_s_sum_new = (
-          np.array(self.initial_prop) +
-          self.gamma * np.einsum('sa, san -> n', d_s_sum[:, np.newaxis] *
-                                 self.pi_est, self.mdp.np_transition_model))
+      # d_s_sum_new = (
+      #     np.array(self.initial_prop) +
+      #     self.gamma * np.einsum('sa, san -> n', d_s_sum[:, np.newaxis] *
+      #                            self.pi_est, self.mdp.np_transition_model))
+      if isinstance(self.mdp.np_transition_model, sparse.COO):
+        d_s_sum_new = (
+            np.array(self.initial_prop) +
+            self.gamma * sparse.tensordot(d_s_sum[:, np.newaxis] * self.pi_est,
+                                          self.mdp.np_transition_model,
+                                          axes=2))
+      else:
+        d_s_sum_new = (
+            np.array(self.initial_prop) +
+            self.gamma * np.tensordot(d_s_sum[:, np.newaxis] * self.pi_est,
+                                      self.mdp.np_transition_model,
+                                      axes=2))
 
       delta = np.linalg.norm(d_s_sum_new - d_s_sum)
       d_s_sum = d_s_sum_new

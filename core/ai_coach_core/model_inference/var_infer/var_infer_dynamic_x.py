@@ -116,7 +116,18 @@ class VarInferDuo:
     '''
 
     DIRICHLET_PARAM_PI = 3
-    self.trajectories = trajectories
+    self.trajectories = []
+    MAX_TRAJ_LEN = 30
+    for traj in trajectories:
+      num_split = int(len(traj) / MAX_TRAJ_LEN)
+      if num_split == 0:
+        self.trajectories.append(traj)
+      else:
+        len_split = int(len(traj) / num_split) + 1
+        for idx in range(num_split):
+          end_idx = min((idx + 1) * len_split, len(traj))
+          self.trajectories.append(traj[idx * len_split:end_idx])
+
     self.beta_pi = DIRICHLET_PARAM_PI
     self.beta_T1 = DIRICHLET_PARAM_PI
     self.beta_T2 = DIRICHLET_PARAM_PI
@@ -281,10 +292,17 @@ class VarInferDuo:
       q_x1 = np.sum(q_joint_x, axis=2)
       q_x2 = np.sum(q_joint_x, axis=1)
       q_x1 = q_x1 / np.sum(q_x1, axis=1)[:, None]
+      # if np.isnan(q_x1).any():
+      #   # print("Nan")
+      #   q_x1[np.isnan(q_x1)] = 1 / self.num_lstates
       q_x2 = q_x2 / np.sum(q_x2, axis=1)[:, None]
+      # if np.isnan(q_x2).any():
+      #   # print("Nan")
+      #   q_x2[np.isnan(q_x2)] = 1 / self.num_lstates
       list_q_x.append([q_x1, q_x2])
 
       if self.cb_Tx is None:
+        n_x = self.num_lstates
         q_xx_xnxn = np.zeros(
             (len(trajectory) - 1, self.num_lstates, self.num_lstates,
              self.num_lstates, self.num_lstates))
@@ -294,15 +312,16 @@ class VarInferDuo:
           a1 = joint_a[A1]
           a2 = joint_a[A2]
           q_xx_xnxn[t] = (
-              seq_forward[t, :, :, None, None] *
-              seq_backward[t + 1, None, None, :, :] *
-              self.list_Tx[A1].get_q_xxn(stt, a1, a2, sttn)[:, None, :, None] *
-              self.list_Tx[A2].get_q_xxn(stt, a1, a2, sttn)[None, :, None, :] *
+              seq_forward[t].reshape(n_x, n_x, 1, 1) *
+              seq_backward[t + 1].reshape(1, 1, n_x, n_x) *
+              self.list_Tx[A1].get_q_xxn(stt, a1, a2, sttn).reshape(
+                  n_x, 1, n_x, 1) * self.list_Tx[A2].get_q_xxn(
+                      stt, a1, a2, sttn).reshape(1, n_x, 1, n_x) *
               # list_Tx[A1][:, stt, a1, a2, :][:, None, :, None] *
               # list_Tx[A2][:, stt, a1, a2, :][None, :, None, :] *
               self.cb_transition_s(stt, a1, a2, sttn) *
-              list_policy[A1][:, sttn, joint_a_n[A1]][None, None, :, None] *
-              list_policy[A2][:, sttn, joint_a_n[A2]][None, None, None, :])
+              list_policy[A1][:, sttn, joint_a_n[A1]].reshape(1, 1, n_x, 1) *
+              list_policy[A2][:, sttn, joint_a_n[A2]].reshape(1, 1, 1, n_x))
 
         q_x_xn1 = np.sum(q_xx_xnxn, axis=(2, 4))
         q_x_xn1 = q_x_xn1 / np.sum(q_x_xn1, axis=(1, 2))[:, None, None]

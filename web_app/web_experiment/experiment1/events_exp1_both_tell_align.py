@@ -48,7 +48,7 @@ def run_game(msg):
     valid_boxes = event_impl.get_valid_box_to_pickup(game)
     if len(valid_boxes) > 0:
       box_idx = random.choice(valid_boxes)
-      game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", box_idx))
+      # game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", box_idx))
       game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
 
   event_impl.run_task_A_game(msg, g_id_2_game, set_init_latent, EXP1_MDP,

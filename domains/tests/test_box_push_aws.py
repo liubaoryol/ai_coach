@@ -15,14 +15,10 @@ from ai_coach_core.latent_inference.most_probable_sequence import (
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence)
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-TEMPERATURE = 1
+TEMPERATURE = 0.3
 
-IS_TEAM = True
-IS_TEST = False
+IS_TEAM = False
 
 if IS_TEAM:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
@@ -37,30 +33,19 @@ else:
   get_box_push_Tx = bp_tx.get_Tx_indv
   get_np_Tx = bp_tx.get_np_Tx_indv
 
-if IS_TEST:
-  GAME_MAP = bp_maps.TEST_MAP
-else:
-  GAME_MAP = bp_maps.EXP1_MAP
+GAME_MAP = bp_maps.EXP1_MAP
 
 MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
 MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
 
 if IS_TEAM:
   SAVE_PREFIX = GAME_MAP["name"] + "_team"
-  if IS_TEST:
-    get_box_push_action = bp_policy.get_test_team_action
-    LIST_POLICY = bp_policy.get_test_team_policy(MDP_AGENT, TEMPERATURE)
-  else:
-    get_box_push_action = bp_policy.get_exp1_action
-    LIST_POLICY = bp_policy.get_exp1_policy(MDP_AGENT, TEMPERATURE)
+  get_box_push_action = bp_policy.get_exp1_action
+  LIST_POLICY = bp_policy.get_exp1_policy(MDP_AGENT, TEMPERATURE)
 else:
   SAVE_PREFIX = GAME_MAP["name"] + "_indv"
-  if IS_TEST:
-    get_box_push_action = bp_policy.get_test_indv_action
-    LIST_POLICY = bp_policy.get_test_indv_policy(MDP_AGENT, TEMPERATURE)
-  else:
-    get_box_push_action = bp_policy.get_indv_action
-    LIST_POLICY = bp_policy.get_indv_policy(MDP_AGENT, TEMPERATURE)
+  get_box_push_action = bp_policy.get_indv_action
+  LIST_POLICY = bp_policy.get_indv_policy(MDP_AGENT, TEMPERATURE)
 
 
 def cal_policy_kl_error(mdp_agent: BoxPushAgentMDP, trajectories, cb_pi_true,
@@ -128,45 +113,6 @@ def np_true_policy(agent_idx, latent_idx, state_idx):
       return LIST_POLICY[latent_idx][sidx_2]
 
 
-def true_policy(agent_idx, latent_idx, state_idx, tuple_action_idx):
-  if IS_TEAM:
-    indices = None
-    if agent_idx == 0:
-      indices = MDP_TASK.np_action_to_idx[tuple_action_idx[agent_idx], :]
-    else:
-      indices = MDP_TASK.np_action_to_idx[:, tuple_action_idx[agent_idx]]
-    return np.sum(LIST_POLICY[latent_idx][state_idx, indices])
-  else:
-    if agent_idx == 0:
-      return LIST_POLICY[latent_idx][state_idx, tuple_action_idx[agent_idx]]
-    else:
-      pos1, pos2, bstates = MDP_AGENT.conv_mdp_sidx_to_sim_states(state_idx)
-      bstates_2 = bp_mdp.get_agent_switched_boxstates(bstates,
-                                                      len(MDP_AGENT.drops),
-                                                      len(MDP_AGENT.goals))
-      sidx_2 = MDP_AGENT.conv_sim_states_to_mdp_sidx(pos2, pos1, bstates_2)
-      return LIST_POLICY[latent_idx][sidx_2, tuple_action_idx[agent_idx]]
-
-
-def true_Tx(agent_idx, latent_idx, state_idx, tuple_action_idx, next_state_idx,
-            latent_next_idx):
-  np_Tx = get_np_Tx(MDP_AGENT, agent_idx, latent_idx, state_idx,
-                    tuple_action_idx, next_state_idx)
-  return np_Tx[latent_next_idx]
-
-
-def true_Tx_for_var_infer(agent_idx, state_idx, action1_idx, action2_idx,
-                          next_state_idx):
-  joint_action = (action1_idx, action2_idx)
-
-  np_Txx = np.zeros((MDP_AGENT.num_latents, MDP_AGENT.num_latents))
-  for xidx in range(MDP_AGENT.num_latents):
-    np_Txx[xidx, :] = get_np_Tx(MDP_AGENT, agent_idx, xidx, state_idx,
-                                joint_action, next_state_idx)
-
-  return np_Txx
-
-
 def initial_latent_pr(agent_idx, state_idx):
   if IS_TEAM:
     np_bx = bp_tx.get_team_np_bx(MDP_AGENT, agent_idx, state_idx)
@@ -207,57 +153,13 @@ def get_result(var_inf_obj: VarInferDuo, test_samples):
   return np_results
 
 
-def get_result_with_Tx(var_inf_obj: VarInferDuo, test_samples):
-  def var_inf_policy(agent_idx, latent_idx, state_idx, tuple_action_idx):
-    p = var_inf_obj.list_np_policy[agent_idx][latent_idx, state_idx,
-                                              tuple_action_idx[agent_idx]]
-    return p
-
-  np_results = np.zeros((len(test_samples), 3))
-  for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(
-        sample[0], sample[1], 2, MDP_AGENT.num_latents, var_inf_policy, true_Tx,
-        lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
-    seq_x_per_agent = list(zip(*sample[2]))
-    res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
-    res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
-
-    align_true = alignment_sequence(seq_x_per_agent[0], seq_x_per_agent[1])
-    align_infer = alignment_sequence(mpseq_x_infer[0], mpseq_x_infer[1])
-    res3 = norm_hamming_distance(align_true, align_infer)
-
-    np_results[idx, :] = [res1, res2, res3]
-
-  return np_results
-
-
-def get_result_with_true(test_samples):
-  np_results = np.zeros((len(test_samples), 3))
-  for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(
-        sample[0], sample[1], 2, MDP_AGENT.num_latents, true_policy, true_Tx,
-        lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
-    seq_x_per_agent = list(zip(*sample[2]))
-    # print(mpseq_x_infer)
-    # print(seq_x_per_agent)
-    res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
-    res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
-
-    align_true = alignment_sequence(seq_x_per_agent[0], seq_x_per_agent[1])
-    align_infer = alignment_sequence(mpseq_x_infer[0], mpseq_x_infer[1])
-    res3 = norm_hamming_distance(align_true, align_infer)
-
-    np_results[idx, :] = [res1, res2, res3]
-
-  return np_results
-
-
 loaded_transition_model = None
 
 
 def transition_s(sidx, aidx1, aidx2, sidx_n):
   global loaded_transition_model
   if loaded_transition_model is None:
+    DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
     pickle_trans_s = os.path.join(DATA_DIR, SAVE_PREFIX + "_mdp.pickle")
     if os.path.exists(pickle_trans_s):
       with open(pickle_trans_s, 'rb') as handle:
@@ -313,36 +215,19 @@ if __name__ == "__main__":
 
   # generate data
   #############################################################################
-  GEN_TRAIN_SET = False
-  GEN_TEST_SET = False
-
-  SHOW_TRUE = False
   SHOW_SL_SMALL = True
-  SHOW_SL_LARGE = True
-  SHOW_SEMI = True
-  VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI
-
-  PLOT = False
-
-  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_box_push_train')
-  TEST_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_box_push_test')
+  SHOW_SL_LARGE = False
+  SHOW_SEMI = False
+  SHOW_SEMI2 = False
+  VI_TRAIN = SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI
+  AWS_DIR = os.path.join(os.path.dirname(__file__), "aws_data/")
+  if IS_TEAM:
+    TRAIN_DIR = os.path.join(AWS_DIR, 'domain1')
+  else:
+    TRAIN_DIR = os.path.join(AWS_DIR, 'domain2')
 
   train_prefix = "train_"
   test_prefix = "test_"
-  if GEN_TRAIN_SET:
-    file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
-    for fmn in file_names:
-      os.remove(fmn)
-
-    sim.run_simulation(200, os.path.join(TRAIN_DIR, train_prefix), "header")
-
-  if GEN_TEST_SET:
-    file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
-    for fmn in file_names:
-      os.remove(fmn)
-
-    sim.run_simulation(100, os.path.join(TEST_DIR, test_prefix), "header")
-
   # train variational inference
   #############################################################################
   if VI_TRAIN:
@@ -357,14 +242,25 @@ if __name__ == "__main__":
     traj_unlabel_ver = []  # no labels
     traj_random_ver = []  # each time step is randomly labeled
     # traj_critical_ver = []  # labeled only at the critical points
-    file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
-    for idx, file_nm in enumerate(file_names):
+    file_names = glob.glob(os.path.join(TRAIN_DIR, '*.txt'))
+    random.shuffle(file_names)
+
+    idx_train = int(len(file_names) * 2 / 3)
+    print(idx_train)
+    train_files = file_names[:idx_train]
+    # train_files = [file_names[0]]
+    for idx, file_nm in enumerate(train_files):
+      print(file_nm)
       trj = BoxPushSimulator.read_file(file_nm)
       trj_labeled = []
       trj_unlabel = []
       trj_random = []
       # traj_critical = []
       for bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat in trj:
+        # print(
+        #     str(bstt) + " " + str(a1pos) + " " + str(a2pos) + " " + str(a1act) +
+        #     " " + str(a2act) + " " + str(a1lat) + " " + str(a2lat))
+
         sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(a1pos, a2pos, bstt)
         aidx1 = MDP_TASK.a1_a_space.action_to_idx[a1act]
         aidx2 = MDP_TASK.a2_a_space.action_to_idx[a2act]
@@ -391,11 +287,12 @@ if __name__ == "__main__":
       traj_labeled_ver.append(trj_labeled)
       traj_unlabel_ver.append(trj_unlabel)
       traj_random_ver.append(trj_random)
+
     print(len(traj_labeled_ver))
 
     # load test set
     ##################################################
-    test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
+    test_file_names = file_names[idx_train:]
     # test_file_names = [test_file_names[0]]
     test_traj = []
     for idx, file_nm in enumerate(test_file_names):
@@ -421,14 +318,9 @@ if __name__ == "__main__":
 
     # true policy and transition
     ##################################################
-    if IS_TEAM:
-      BETA_PI = 1.2
-      BETA_TX1 = 1.2
-      BETA_TX2 = 1.2
-    else:
-      BETA_PI = 1.01
-      BETA_TX1 = 1.01
-      BETA_TX2 = 1.01
+    BETA_PI = 1.3
+    BETA_TX1 = 1.3
+    BETA_TX2 = 1.3
     print("beta: %f, %f, %f" % (BETA_PI, BETA_TX1, BETA_TX2))
 
     num_a1_action, num_a2_action = ((MDP_AGENT.a1_a_space.num_actions,
@@ -437,27 +329,12 @@ if __name__ == "__main__":
                                                      MDP_AGENT.num_actions))
     joint_action = (num_a1_action, num_a2_action)
 
-    # True policy
-    if SHOW_TRUE:
-      print("#########")
-      print("True")
-      print("#########")
-      np_results = get_result_with_true(test_traj)
-      avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      std1, std2, std3 = np.std(np_results, axis=0)
-
-      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                     np_true_policy, np_true_policy)
-
-      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-      print("kl1, kl2: %f,%f" % (kl1, kl2))
-
     # fig1 = plt.figure(figsize=(8, 3))
     # ax1 = fig1.add_subplot(131)
     # ax2 = fig1.add_subplot(132)
     # ax3 = fig1.add_subplot(133)
 
-    list_idx_small = [20, 50, 100]
+    list_idx_small = [20, 40]
 
     print(list_idx_small)
     # supervised with small samples
@@ -474,23 +351,26 @@ if __name__ == "__main__":
                                     trans_x_dependency=(True, True, True,
                                                         False))
         var_inf_small.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-        var_inf_small.set_bx_and_Tx(cb_bx=initial_latent_pr,
-                                    cb_Tx=true_Tx_for_var_infer)
-        # var_inf_small.set_bx_and_Tx(cb_bx=initial_latent_pr)
+        # var_inf_small.set_bx_and_Tx(cb_bx=initial_latent_pr,
+        #                             cb_Tx=true_Tx_for_var_infer)
+        var_inf_small.set_bx_and_Tx(cb_bx=initial_latent_pr)
         var_inf_small.do_inference()
 
         np_results = get_result(var_inf_small, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
+        print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
 
         def np_infer_policy(agent_idx, xidx, sidx):
           return var_inf_small.list_np_policy[agent_idx][xidx, sidx]
 
         kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
                                        np_true_policy, np_infer_policy)
+        print("kl1: %f, kl2: %f" % (kl1, kl2))
 
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        # kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+        #                                np_true_policy, np_infer_policy)
+        # print("kl1: %f, kl2: %f" % (kl1, kl2))
 
       # ax1.plot(list_res1, 'r')
       # ax2.plot(list_res2, 'r')
@@ -509,22 +389,25 @@ if __name__ == "__main__":
                                   transition_s,
                                   trans_x_dependency=(True, True, True, False))
       var_inf_large.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-      var_inf_large.set_bx_and_Tx(cb_bx=initial_latent_pr,
-                                  cb_Tx=true_Tx_for_var_infer)
-      # var_inf_large.set_bx_and_Tx(cb_bx=initial_latent_pr)
+      # var_inf_large.set_bx_and_Tx(cb_bx=initial_latent_pr,
+      #                             cb_Tx=true_Tx_for_var_infer)
+      var_inf_large.set_bx_and_Tx(cb_bx=initial_latent_pr)
       var_inf_large.do_inference()
 
       np_results = get_result(var_inf_large, test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
+      print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
 
       def np_infer_policy(agent_idx, xidx, sidx):
         return var_inf_large.list_np_policy[agent_idx][xidx, sidx]
 
       kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
                                      np_true_policy, np_infer_policy)
-      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-      print("kl1, kl2: %f,%f" % (kl1, kl2))
+      print("kl1: %f, kl2: %f" % (kl1, kl2))
+      # kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+      #                                np_true_policy, np_infer_policy)
+      # print("kl1: %f, kl2: %f" % (kl1, kl2))
 
       # ax1.plot(list_res1)
       # ax2.plot(list_res2)
@@ -550,9 +433,9 @@ if __name__ == "__main__":
                                    epsilon=0.01,
                                    max_iteration=200)
         var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-        var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
-                                   cb_Tx=true_Tx_for_var_infer)
-        # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr)
+        # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
+        #                            cb_Tx=true_Tx_for_var_infer)
+        var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr)
 
         # save_name = SAVE_PREFIX + "_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
         #                                                   BETA_TX2)
@@ -563,151 +446,46 @@ if __name__ == "__main__":
         np_results = get_result(var_inf_semi, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-
-        np_results = get_result_with_Tx(var_inf_semi, test_traj)
-        avg1, avg2, avg3 = np.mean(np_results, axis=0)
-        std1, std2, std3 = np.std(np_results, axis=0)
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+        print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
 
         def np_infer_policy(agent_idx, xidx, sidx):
           return var_inf_semi.list_np_policy[agent_idx][xidx, sidx]
 
         kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
                                        np_true_policy, np_infer_policy)
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        print("kl1: %f, kl2: %f" % (kl1, kl2))
+    if SHOW_SEMI2:
+      print("#########")
+      print("Semi random 50%")
+      print("#########")
+      # semi-supervised with 50:50 labeled and unlabeled samples
+      var_inf_semi = VarInferDuo(traj_random_ver,
+                                 MDP_TASK.num_states,
+                                 MDP_AGENT.num_latents,
+                                 joint_action,
+                                 transition_s,
+                                 trans_x_dependency=(True, True, True, False),
+                                 epsilon=0.01,
+                                 max_iteration=200)
+      var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
+      # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
+      #                            cb_Tx=true_Tx_for_var_infer)
+      var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr)
 
-      # print("#########")
-      # print("Semi random 50%")
-      # print("#########")
-      # # semi-supervised with 50:50 labeled and unlabeled samples
-      # var_inf_semi = VarInferDuo(traj_random_ver,
-      #                            MDP_TASK.num_states,
-      #                            MDP_AGENT.num_latents,
-      #                            joint_action,
-      #                            transition_s,
-      #                            trans_x_dependency=(True, True, True, False),
-      #                            epsilon=0.01,
-      #                            max_iteration=200)
-      # var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-      # # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
-      # #                            cb_Tx=true_Tx_for_var_infer)
-      # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr)
+      var_inf_semi.do_inference()
 
-      # var_inf_semi.do_inference()
+      np_results = get_result(var_inf_semi, test_traj)
+      avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      std1, std2, std3 = np.std(np_results, axis=0)
+      print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
 
-      # np_results = get_result(var_inf_semi, test_traj)
-      # avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      # std1, std2, std3 = np.std(np_results, axis=0)
-      # print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
+      def np_infer_policy(agent_idx, xidx, sidx):
+        return var_inf_semi.list_np_policy[agent_idx][xidx, sidx]
 
-      # np_results = get_result_with_Tx(var_inf_semi, test_traj)
-      # avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      # std1, std2, std3 = np.std(np_results, axis=0)
-      # print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
-
-      # def np_infer_policy(agent_idx, xidx, sidx):
-      #   return var_inf_semi.list_np_policy[agent_idx][xidx, sidx]
-
-      # kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-      #                                np_true_policy, np_infer_policy)
-      # print("kl1: %f, kl2: %f" % (kl1, kl2))
-
+      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+                                     np_true_policy, np_infer_policy)
+      print("kl1: %f, kl2: %f" % (kl1, kl2))
       # ax1.plot(list_res1)
       # ax2.plot(list_res2)
       # ax3.plot(list_res3)
       # plt.show()
-
-  if PLOT:
-    # ##############################################
-    # # results
-
-    fig = plt.figure(figsize=(7.2, 3))
-    # str_title = (
-    #     "hyperparam: " + str(SEMISUPER_HYPERPARAM) +
-    #     ", # labeled: " + str(len(trajectories)) +
-    #     ", # unlabeled: " + str(len(unlabeled_traj)))
-    str_title = ("KL over beta")
-    list_kl1_team = [
-        0.211022, 0.209135, 0.198055, 0.164204, 0.157211, 0.157834, 0.166335,
-        0.196487
-    ]
-    list_kl2_team = [
-        0.207553, 0.205707, 0.194994, 0.163914, 0.159222, 0.161656, 0.172828,
-        0.20674
-    ]
-    list_kl_idx_team = [1.0001, 1.001, 1.01, 1.1, 1.2, 1.3, 1.5, 2.0]
-
-    list_kl1_indv = [0.188086, 0.185471, 0.183754, 0.225749, 0.340395]
-    list_kl2_indv = [0.153631, 0.151331, 0.152605, 0.203895, 0.33548]
-
-    list_kl_idx_indv = [1.0001, 1.001, 1.01, 1.04, 1.1]
-
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
-    ax1.grid(True)
-    ax2.grid(True)
-    ax1.plot(list_kl_idx_team,
-             list_kl1_team,
-             '.-',
-             label="Human",
-             clip_on=False,
-             fillstyle='none')
-    ax1.plot(list_kl_idx_team,
-             list_kl2_team,
-             '.-',
-             label="Robot",
-             clip_on=False,
-             fillstyle='none')
-    ax2.plot(list_kl_idx_indv,
-             list_kl1_indv,
-             '.-',
-             label="Human",
-             clip_on=False,
-             fillstyle='none')
-    ax2.plot(list_kl_idx_indv,
-             list_kl2_indv,
-             '.-',
-             label="Robot",
-             clip_on=False,
-             fillstyle='none')
-    # ax1.axhline(y=full_align_acc1, color='r', linestyle='-', label="SL-Small")
-    # ax1.axhline(y=full_align_acc2, color='g', linestyle='-', label="SL-Large")
-    FONT_SIZE = 16
-    # TITLE_FONT_SIZE = 12
-    # LEGENT_FONT_SIZE = 12
-    ax1.set_ylabel("KL-Divergence", fontsize=FONT_SIZE)
-    ax1.set_xlabel("Beta", fontsize=FONT_SIZE)
-    ax1.legend()
-    ax1.set_title("Movers and Packers", fontsize=FONT_SIZE)
-    ax2.set_ylabel("KL-Divergence", fontsize=FONT_SIZE)
-    ax2.set_xlabel("Beta", fontsize=FONT_SIZE)
-    ax2.legend()
-    ax2.set_title("Cleanup", fontsize=FONT_SIZE)
-
-    # ax1.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    # # ax1.set_ylim([70, 100])
-    # # ax1.set_xlim([0, 16])
-    # ax1.set_title("Full Sequence", fontsize=TITLE_FONT_SIZE)
-
-    #   ax2.plot(part_acc_history,
-    #            '.-',
-    #            label="SemiSL",
-    #            clip_on=False,
-    #            fillstyle='none')
-    #   if do_sup_infer:
-    #     ax2.axhline(y=part_align_acc1, color='r', linestyle='-', label="SL-Small")
-    #     ax2.axhline(y=part_align_acc2, color='g', linestyle='-', label="SL-Large")
-    #   ax2.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    #   # ax2.set_ylim([50, 80])
-    #   # ax2.set_xlim([0, 16])
-    #   ax2.set_title("Partial Sequence (5 Steps)", fontsize=TITLE_FONT_SIZE)
-    #   handles, labels = ax2.get_legend_handles_labels()
-    #   fig.legend(handles,
-    #              labels,
-    #              loc='center right',
-    #              prop={'size': LEGENT_FONT_SIZE})
-    #   fig.text(0.45, 0.04, 'Iteration', ha='center', fontsize=FONT_SIZE)
-    #   fig.tight_layout(pad=2.0)
-    #   fig.subplots_adjust(right=0.8, bottom=0.2)
-    plt.show()

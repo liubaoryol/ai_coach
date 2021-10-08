@@ -95,7 +95,23 @@ class BoxPushApp(AppInterface):
       action = EventType.DOWN
     elif key_sym == "p":
       agent_id = BoxPushSimulator.AGENT1
-      action = EventType.HOLD
+      action = EventType.STAY
+    # agent2 move
+    elif key_sym == "a":
+      agent_id = BoxPushSimulator.AGENT2
+      action = EventType.LEFT
+    elif key_sym == "d":
+      agent_id = BoxPushSimulator.AGENT2
+      action = EventType.RIGHT
+    elif key_sym == "w":
+      agent_id = BoxPushSimulator.AGENT2
+      action = EventType.UP
+    elif key_sym == "s":
+      agent_id = BoxPushSimulator.AGENT2
+      action = EventType.DOWN
+    elif key_sym == "f":
+      agent_id = BoxPushSimulator.AGENT2
+      action = EventType.STAY
 
     return (agent_id, action, value)
 
