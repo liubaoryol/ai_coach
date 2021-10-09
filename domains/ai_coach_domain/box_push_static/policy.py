@@ -5,9 +5,9 @@ import ai_coach_core.models.mdp as mdp_lib
 import ai_coach_core.RL.planning as plan_lib
 from ai_coach_domain.box_push.simulator import BoxPushSimulator
 from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
-from ai_coach_domain.box_push.maps import EXP1_MAP
+from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 
-GAME_MAP = EXP1_MAP
+GAME_MAP = TUTORIAL_MAP
 
 policy_static_list = []
 

@@ -19,7 +19,13 @@ def softmax_by_row(q_val, temperature=1.):
       if reward range is small, e.g. [0, 1], this is not neglectible
   """
   max_q = np.max(q_val, axis=1)
-  sub_q_val = q_val - max_q[:, np.newaxis]
+  mask_inf = np.isneginf(max_q)
+  if np.any(mask_inf):
+    sub_q_val = q_val - max_q[:, np.newaxis]
+    sub_q_val[mask_inf] = -np.inf
+
+  else:
+    sub_q_val = q_val - max_q[:, np.newaxis]
 
   max_idx = np.argmax(q_val, axis=1)
   sub_q_val[np.arange(q_val.shape[0]), max_idx] = 0
@@ -61,7 +67,7 @@ def soft_value_iteration(transition_model: Union[np.ndarray,
   while (iteration_idx < max_iteration) and (delta_v > epsilon):
     q_value = mdp_lib.q_value_from_v_value(v_value, transition_model,
                                            reward_model, discount_factor)
-    new_v_value = softmax_by_row(q_value, temperature)
+    new_v_value = softmax_by_row(np.nan_to_num(q_value), temperature)
     delta_v = np.linalg.norm(new_v_value[:] - v_value[:])
     iteration_idx += 1
     v_value = new_v_value

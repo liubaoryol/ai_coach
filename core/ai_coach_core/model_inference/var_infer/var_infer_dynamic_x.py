@@ -117,7 +117,7 @@ class VarInferDuo:
 
     DIRICHLET_PARAM_PI = 3
     self.trajectories = []
-    MAX_TRAJ_LEN = 30
+    MAX_TRAJ_LEN = 100
     for traj in trajectories:
       num_split = int(len(traj) / MAX_TRAJ_LEN)
       if num_split == 0:
@@ -483,15 +483,16 @@ class VarInferDuo:
       count += 1
       list_lambda_pi_prev = list_lambda_pi
 
+      # Don't know which is better to do between mstep and estp.
+      list_lambda_pi = self.mstep_global_variables(list_q_x, list_q_x_xn)
+
       list_pi_tilda = self.get_pi_tilda_from_lambda(list_lambda_pi)
 
       if self.list_Tx is not None:
         self.list_Tx[A1].conv_to_Tx_tilda()
         self.list_Tx[A2].conv_to_Tx_tilda()
 
-      # Don't know which is better to do between mstep and estp.
       list_q_x, list_q_x_xn = self.estep_local_variables(list_pi_tilda)
-      list_lambda_pi = self.mstep_global_variables(list_q_x, list_q_x_xn)
 
       if self.file_name is not None and count % 1 == 0:
         np.savez(self.file_name, list_lambda_pi[A1], list_lambda_pi[A2])

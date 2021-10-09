@@ -1,25 +1,71 @@
 import glob
 import os
 import numpy as np
+import pickle
 import ai_coach_core.model_inference.var_infer.var_infer_static_x as var_infer
 from ai_coach_core.latent_inference.bayesian_inference import (
     bayesian_mind_inference)
 from ai_coach_core.model_inference.IRL.maxent_irl import CMaxEntIRL
 
 from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
-from ai_coach_domain.box_push.maps import EXP1_MAP
+from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 from ai_coach_domain.box_push_static.policy import (get_static_policy,
                                                     get_static_action)
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
+import matplotlib.pyplot as plt
 
 BoxPushSimulator = BoxPushSimulator_AloneOrTogether
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-GAME_MAP = EXP1_MAP
+GAME_MAP = TUTORIAL_MAP
 
 MDP_AGENT = StaticBoxPushMDP(**GAME_MAP)  # MDP for agent policy
 TEMPERATURE = 1
 LIST_POLICY = get_static_policy(MDP_AGENT, TEMPERATURE)
+
+
+def compute_relative_freq(num_states, num_latents, trajectories, labels,
+                          agent_idx):
+  rel_freq = np.zeros((num_latents, num_states))
+  count = 0
+  for idx, traj in enumerate(trajectories):
+    for s, _ in traj:
+      rel_freq[labels[idx][agent_idx], s] += 1
+      count += 1
+
+  rel_freq = rel_freq / count
+
+  return rel_freq
+
+
+def cal_policy_error(rel_freq: np.ndarray, mdp: StaticBoxPushMDP, np_pi_irl,
+                     pi_true: np.ndarray):
+  def compute_kl(x_idx, s_idx):
+    np_p_inf = np_pi_irl(x_idx, s_idx)
+    np_p_true = pi_true(x_idx, s_idx)
+
+    sum_val = 0
+    for idx in range(len(np_p_inf)):
+      if np_p_inf[idx] != 0 and np_p_true[idx] != 0:
+        sum_val += np_p_inf[idx] * (np.log(np_p_inf[idx]) -
+                                    np.log(np_p_true[idx]))
+    return sum_val
+
+  sum_kl = 0
+  for x_idx in range(mdp.num_latents):
+    for s_idx in range(mdp.num_states):
+      sum_kl += rel_freq[x_idx, s_idx] * compute_kl(x_idx, s_idx)
+
+  return sum_kl
+
+
+def np_true_policy(agent_idx, latent_idx, state_idx):
+  np_joint_act_p = LIST_POLICY[latent_idx][state_idx].reshape(
+      MDP_AGENT.a1_a_space.num_actions, MDP_AGENT.a2_a_space.num_actions)
+  if agent_idx == 0:
+    return np.sum(np_joint_act_p, axis=1)
+  else:
+    return np.sum(np_joint_act_p, axis=0)
 
 
 def get_bayesian_infer_result(num_agent, cb_n_xsa_policy, num_lstate,
@@ -93,12 +139,12 @@ if __name__ == "__main__":
   GEN_TRAIN_SET = False
   GEN_TEST_SET = False
 
-  SHOW_TRUE = True
+  SHOW_TRUE = False
   SHOW_SL_SMALL = False
   SHOW_SL_LARGE = False
   SHOW_SEMI = False
-  VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI
   BASE_LINE = True
+  VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI or BASE_LINE
 
   TRAIN_DIR = os.path.join(DATA_DIR, 'static_bp_train')
   TEST_DIR = os.path.join(DATA_DIR, 'static_bp_test')
@@ -110,7 +156,7 @@ if __name__ == "__main__":
     for fmn in file_names:
       os.remove(fmn)
 
-    sim.run_simulation(500, os.path.join(TRAIN_DIR, train_prefix), "header")
+    sim.run_simulation(100, os.path.join(TRAIN_DIR, train_prefix), "header")
 
   if GEN_TEST_SET:
     file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
@@ -179,13 +225,20 @@ if __name__ == "__main__":
       test_labels.append((xidx1, xidx2))
     print(len(test_traj))
 
+    idx_small = int(len(trajectories) / 5)
+    print(idx_small)
+    num_agents = sim.get_num_agents()
+
+    BETA_PI = 1.5
+    joint_num_action = (MDP_AGENT.a1_a_space.num_actions,
+                        MDP_AGENT.a2_a_space.num_actions)
     # train base line
     ###########################################################################
     if BASE_LINE:
 
       def feature_extract_full_state(mdp, s_idx, a_idx):
         np_feature = np.zeros(mdp.num_states)
-        np_feature[s_idx] = 1
+        np_feature[s_idx] = 100
         return np_feature
 
       init_prop = np.zeros((MDP_AGENT.num_states))
@@ -194,13 +247,24 @@ if __name__ == "__main__":
                                                   [0] * len(GAME_MAP["boxes"]))
       init_prop[sid] = 1
 
+      list_pi_est = []
+      list_w_est = []
       irl_x1 = CMaxEntIRL(trajectories_x1,
                           MDP_AGENT,
                           feature_extractor=feature_extract_full_state,
                           max_value_iter=100,
                           initial_prop=init_prop)
+      print("Do irl1")
+      irl_x1.do_inverseRL(epsilon=0.001, n_max_run=100)
+      list_pi_est.append(irl_x1.pi_est)
+      list_w_est.append(irl_x1.weights)
 
-      irl_x1.do_inverseRL(epsilon=0.001, n_max_run=500)
+      save_name = os.path.join(DATA_DIR, 'static_box_irl_weight_1.pickle')
+      with open(save_name, 'wb') as f:
+        pickle.dump(irl_x1.weights, f, pickle.HIGHEST_PROTOCOL)
+      save_name2 = os.path.join(DATA_DIR, 'static_box_irl_pi_1.pickle')
+      with open(save_name2, 'wb') as f:
+        pickle.dump(irl_x1.pi_est, f, pickle.HIGHEST_PROTOCOL)
 
       irl_x2 = CMaxEntIRL(trajectories_x2,
                           MDP_AGENT,
@@ -208,15 +272,55 @@ if __name__ == "__main__":
                           max_value_iter=100,
                           initial_prop=init_prop)
 
-      irl_x2.do_inverseRL(epsilon=0.001, n_max_run=500)
+      print("Do irl2")
+      irl_x2.do_inverseRL(epsilon=0.001, n_max_run=100)
+      list_pi_est.append(irl_x2.pi_est)
+      list_w_est.append(irl_x2.weights)
 
-    BETA_PI = 1.5
-    joint_num_action = (MDP_AGENT.a1_a_space.num_actions,
-                        MDP_AGENT.a2_a_space.num_actions)
+      save_name = os.path.join(DATA_DIR, 'static_box_irl_weight_2.pickle')
+      with open(save_name, 'wb') as f:
+        pickle.dump(irl_x2.weights, f, pickle.HIGHEST_PROTOCOL)
+      save_name2 = os.path.join(DATA_DIR, 'static_box_irl_pi_2.pickle')
+      with open(save_name2, 'wb') as f:
+        pickle.dump(irl_x2.pi_est, f, pickle.HIGHEST_PROTOCOL)
 
-    idx_small = int(len(trajectories) / 5)
-    print(idx_small)
-    num_agents = sim.get_num_agents()
+      print("joint policy")
+      # joint policy to individual policy
+      irl_np_policy = []
+      for idx in range(2):
+        irl_np_policy.append(
+            np.zeros((MDP_AGENT.num_latents, MDP_AGENT.num_states,
+                      joint_num_action[idx])))
+
+      for x_idx in range(MDP_AGENT.num_latents):
+        for a_idx in range(MDP_AGENT.num_actions):
+          a_cn_i, a_sn_i = MDP_AGENT.np_idx_to_action[a_idx]
+          irl_np_policy[0][x_idx, :, a_cn_i] += list_pi_est[x_idx][:, a_idx]
+          irl_np_policy[1][x_idx, :, a_sn_i] += list_pi_est[x_idx][:, a_idx]
+
+      save_name2 = os.path.join(DATA_DIR, 'static_box_irl_pi_list.pickle')
+      with open(save_name2, 'wb') as f:
+        pickle.dump(irl_np_policy, f, pickle.HIGHEST_PROTOCOL)
+
+      def irl_pol(ag, x, s, joint_action):
+        return irl_np_policy[ag][x, s, joint_action[ag]]
+
+      sup_conf_true, full_acc_true = (get_bayesian_infer_result(
+          num_agents, irl_pol, MDP_AGENT.num_latents, test_traj, test_labels))
+      # policy: joint
+
+      print("Full - IRL")
+      print_conf(sup_conf_true)
+      print("4by4 Acc: " + str(full_acc_true))
+
+      for ai in range(2):
+        rel_freq = compute_relative_freq(MDP_AGENT.num_states,
+                                         MDP_AGENT.num_latents, trajectories,
+                                         latent_labels, ai)
+        kl1 = cal_policy_error(rel_freq, MDP_AGENT,
+                               lambda x, s: irl_np_policy[ai][x, s, :],
+                               lambda x, s: np_true_policy(ai, x, s))
+        print("agent %d: KL %f" % (ai, kl1))
 
     if SHOW_TRUE:
 
@@ -250,6 +354,16 @@ if __name__ == "__main__":
       print_conf(sup_conf_full1)
       print("4by4 Acc: " + str(full_acc1))
 
+      for ai in range(2):
+        rel_freq = compute_relative_freq(MDP_AGENT.num_states,
+                                         MDP_AGENT.num_latents, trajectories,
+                                         latent_labels, ai)
+        kl1 = cal_policy_error(
+            rel_freq, MDP_AGENT,
+            lambda x, s: var_infer_small.list_np_policy[ai][x, s, :],
+            lambda x, s: np_true_policy(ai, x, s))
+        print("agent %d: KL %f" % (ai, kl1))
+
     if SHOW_SL_LARGE:
       var_infer_large = var_infer.VarInferStaticX_SL(trajectories,
                                                      latent_labels, num_agents,
@@ -265,9 +379,36 @@ if __name__ == "__main__":
       print("Full - SL_LARGE")
       print_conf(sup_conf_full2)
       print("4by4 Acc: " + str(full_acc2))
+      for ai in range(2):
+        rel_freq = compute_relative_freq(MDP_AGENT.num_states,
+                                         MDP_AGENT.num_latents, trajectories,
+                                         latent_labels, ai)
+        kl1 = cal_policy_error(
+            rel_freq, MDP_AGENT,
+            lambda x, s: var_infer_large.list_np_policy[ai][x, s, :],
+            lambda x, s: np_true_policy(ai, x, s))
+        print("agent %d: KL %f" % (ai, kl1))
 
     # ##############################################
     # # semisupervised policy learning
+    full_acc_history = []
+
+    def accuracy_history(num_agent, pi_hyper):
+      list_np_policies = [None for dummy_i in range(num_agents)]
+      # if np.isnan(pi_hyper[0].sum()):
+      #   print("Nan acc_hist 1-1")
+      for idx in range(num_agents):
+        numerator = pi_hyper[idx] - 1
+        action_sums = np.sum(numerator, axis=2)
+        list_np_policies[idx] = numerator / action_sums[:, :, np.newaxis]
+      conf_full, full_acc = get_bayesian_infer_result(
+          num_agent,
+          (lambda m, x, s, joint: list_np_policies[m][x, s, joint[m]]),
+          MDP_AGENT.num_latents, test_traj, test_labels)
+      # full_acc_history.append(full_acc)
+      # part_acc_history.append(part_acc)
+      full_acc_history.append(full_acc)
+
     if SHOW_SEMI:
       var_infer_semi = var_infer.VarInferStaticX_SemiSL(
           trajectories[idx_small:len(trajectories)],
@@ -282,7 +423,7 @@ if __name__ == "__main__":
 
       var_infer_semi.set_dirichlet_prior(BETA_PI)
 
-      var_infer_semi.do_inference()
+      var_infer_semi.do_inference(callback=accuracy_history)
 
       semi_conf_full, semi_full_acc = get_bayesian_infer_result(
           num_agents, (lambda m, x, s, joint: var_infer_semi.list_np_policy[m][
@@ -290,3 +431,40 @@ if __name__ == "__main__":
       print("Full - SEMI")
       print_conf(semi_conf_full)
       print("4by4 Acc: " + str(semi_full_acc))
+
+      for ai in range(2):
+        rel_freq = compute_relative_freq(MDP_AGENT.num_states,
+                                         MDP_AGENT.num_latents, trajectories,
+                                         latent_labels, ai)
+        kl1 = cal_policy_error(
+            rel_freq, MDP_AGENT,
+            lambda x, s: var_infer_semi.list_np_policy[ai][x, s, :],
+            lambda x, s: np_true_policy(ai, x, s))
+        print("agent %d: KL %f" % (ai, kl1))
+
+      fig = plt.figure(figsize=(3, 3))
+      # str_title = (
+      #     "hyperparam: " + str(SEMISUPER_HYPERPARAM) +
+      #     ", # labeled: " + str(len(trajectories)) +
+      #     ", # unlabeled: " + str(len(unlabeled_traj)))
+      # fig.suptitle(str_title)
+      ax1 = fig.add_subplot(111)
+      ax1.grid(True)
+      ax1.plot(full_acc_history,
+               '.-',
+               label="SemiSL",
+               clip_on=False,
+               fillstyle='none')
+      plt.show()
+      # if SHOW_SL_SMALL:
+      #   ax1.axhline(y=full_align_acc1, color='r', linestyle='-', label="SL-Small")
+      # if SHOW_SL_LARGE:
+      #   ax1.axhline(y=full_align_acc2, color='g', linestyle='-', label="SL-Large")
+      # FONT_SIZE = 16
+      # TITLE_FONT_SIZE = 12
+      # LEGENT_FONT_SIZE = 12
+      # ax1.set_ylabel("Accuracy (%)", fontsize=FONT_SIZE)
+      # ax1.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+      # # ax1.set_ylim([70, 100])
+      # # ax1.set_xlim([0, 16])
+      # ax1.set_title("Full Sequence", fontsize=TITLE_FONT_SIZE)

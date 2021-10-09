@@ -394,6 +394,9 @@ if __name__ == "__main__":
   num_ostates = toy_mdp.num_states
   num_actions = toy_mdp.num_actions
 
+  print(num_ostates)
+  print(num_actions)
+
   gamma = 0.9
 
   pi, np_v_value, np_q_value = value_iteration(toy_mdp.np_transition_model,
@@ -447,6 +450,13 @@ if __name__ == "__main__":
   irl.do_inverseRL(epsilon=0.001,
                    n_max_run=500,
                    callback_reward_pi=compute_errors)
+
+  kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
+  print(kl_irl)
+  from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
+  pi_bc = behavior_cloning(trajectories, num_ostates, num_actions)
+  kl_bc = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_bc[s, a], sto_pi)
+  print(kl_bc)
 
   f = plt.figure(figsize=(10, 5))
   ax1 = f.add_subplot(121)

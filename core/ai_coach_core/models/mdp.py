@@ -495,4 +495,4 @@ def softmax_policy_from_q_value(q_value: np.ndarray,
     stochastic_policy[np.arange(num_states), policy] = 1.
     return stochastic_policy
   else:
-    return sc.softmax(q_value / temperature, axis=-1)
+    return sc.softmax(np.nan_to_num(q_value) / temperature, axis=-1)
