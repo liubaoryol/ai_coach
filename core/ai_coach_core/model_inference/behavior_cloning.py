@@ -46,4 +46,4 @@ if __name__ == "__main__":
     trajectories.append(traj)
 
   pi = behavior_cloning(trajectories, 45, 10)
-  print(pi)
+  # print(pi)

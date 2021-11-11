@@ -116,49 +116,52 @@ if __name__ == "__main__":
     ax1.plot(sl_ticks,
              sl_x1_Tx,
              'g.-',
-             label="SL w/ Tx",
+             label="SL w/ Tx for x1",
              clip_on=False,
              fillstyle='none')
     ax1.plot(sl_ticks,
              bc_x1_Tx,
              'b.-',
-             label="BC",
+             label="BC for x1",
              clip_on=False,
              fillstyle='none')
     ax1.plot(sl_ticks,
              sl_x1_noTx,
              'r.-',
-             label="SL w/o Tx",
+             label="SL w/o Tx for x1",
              clip_on=False,
              fillstyle='none')
 
-    ax1n = ax1.twinx()
-    ax1n.plot(sl_ticks,
-              sl_x2_Tx,
-              'g.--',
-              label="SL w/ Tx",
-              clip_on=False,
-              fillstyle='none')
-    ax1n.plot(sl_ticks,
-              bc_x2_Tx,
-              'b.--',
-              label="BC",
-              clip_on=False,
-              fillstyle='none')
-    ax1n.plot(sl_ticks,
-              sl_x2_noTx,
-              'r.--',
-              label="SL w/o Tx",
-              clip_on=False,
-              fillstyle='none')
+    ax1.plot(sl_ticks,
+             sl_x2_Tx,
+             'g.--',
+             label="SL w/ Tx for x2",
+             clip_on=False,
+             fillstyle='none')
+    ax1.plot(sl_ticks,
+             bc_x2_Tx,
+             'b.--',
+             label="BC for x2",
+             clip_on=False,
+             fillstyle='none')
+    ax1.plot(sl_ticks,
+             sl_x2_noTx,
+             'r.--',
+             label="SL w/o Tx for x2",
+             clip_on=False,
+             fillstyle='none')
 
     FONT_SIZE = 14
     # TITLE_FONT_SIZE = 12
     # LEGENT_FONT_SIZE = 12
     ax1.set_ylabel("Norm. Hamming Dist.", fontsize=FONT_SIZE)
     ax1.set_xlabel("Samples", fontsize=FONT_SIZE)
-    ax1.legend(bbox_to_anchor=(1.1, 1), loc="upper left", title="x1")
-    ax1n.legend(bbox_to_anchor=(1.1, 0.7), loc="upper left", title="x2")
+    # ax1.legend(bbox_to_anchor=(1.1, 1), loc="upper left")
+    # ax1.legend(loc="center", frameon=False)
+    ax1.legend(loc='upper center',
+               bbox_to_anchor=(0.5, -0.2),
+               fancybox=True,
+               ncol=3)
     ax1.set_title("Latent Inference Performance with Supervised Learning",
                   fontsize=FONT_SIZE)
 
@@ -190,22 +193,20 @@ if __name__ == "__main__":
             width=bar_width,
             label="Semi w/o Tx")
 
-    ax2n = ax2.twinx()
-
     # bar_idx = bar_idx + bar_width + 0.05
     bar_idx = np.arange(3) + 3.5
-    ax2n.bar(bar_idx, sl_x2_Tx[0:3], color='b', width=bar_width)
+    ax2.bar(bar_idx, sl_x2_Tx[0:3], color='b', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax2n.bar(
+    ax2.bar(
         bar_idx,
         semi_x2_Tx[0:3],
         color='g',
         width=bar_width,
     )
     bar_idx = bar_idx + bar_width + 0.05
-    ax2n.bar(bar_idx, sl_x2_noTx[0:3], color='r', width=bar_width)
+    ax2.bar(bar_idx, sl_x2_noTx[0:3], color='r', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax2n.bar(bar_idx, semi_x2_noTx[0:3], color='m', width=bar_width)
+    ax2.bar(bar_idx, semi_x2_noTx[0:3], color='m', width=bar_width)
     ax2.set_xticks([
         1.5 * bar_width + 0.025, 1 + 1.5 * bar_width + 0.025,
         2 + 1.5 * bar_width + 0.025, 3.5 + 1.5 * bar_width + 0.025,
@@ -214,13 +215,18 @@ if __name__ == "__main__":
     ax2.set_xticklabels(["10%", "25%", "50%", "10%", "25%", "50%"])
     ax2.set_ylabel("Norm. Hamming Dist.", fontsize=FONT_SIZE)
     ax2.set_xlabel("Percentage of Labeled Samples", fontsize=FONT_SIZE)
-    ax2.legend(bbox_to_anchor=(1.1, 1), loc="upper left")
+    ax2.legend(loc='upper center',
+               bbox_to_anchor=(0.5, -0.2),
+               fancybox=True,
+               ncol=4)
     ax2.set_title("Performance with Augmented Unlabeled Samples",
                   fontsize=FONT_SIZE)
+    ax2.text(1.25, 0.32, 'x1', fontsize=16)
+    ax2.text(4.5, 0.32, 'x2', fontsize=16)
 
     fig3 = plt.figure(figsize=(4.5, 3))
     ax3 = fig3.add_subplot(111)
-    bar_width = 0.2
+    bar_width = 0.3
     bar_idx = np.arange(4)
     ax3.bar(bar_idx, bc_kl1, color='black', width=bar_width, label="BC")
     bar_idx = bar_idx + bar_width
@@ -233,17 +239,13 @@ if __name__ == "__main__":
             label="Semi")
 
     x12_space = 4.5
-    ax3n = ax3.twinx()
+
     bar_idx = np.arange(4) + x12_space
-    ax3n.bar(bar_idx, bc_kl2, color='black', width=bar_width, label="BC")
+    ax3.bar(bar_idx, bc_kl2, color='black', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax3n.bar(bar_idx, sl_kl2_noTx, color='b', width=bar_width, label="SL")
+    ax3.bar(bar_idx, sl_kl2_noTx, color='b', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax3n.bar(bar_idx[0:3],
-             semi_kl2_noTx[0:3],
-             color='g',
-             width=bar_width,
-             label="Semi")
+    ax3.bar(bar_idx[0:3], semi_kl2_noTx[0:3], color='g', width=bar_width)
     ax3.set_xticks([
         bar_width, 1 + bar_width, 2 + bar_width, 3 + bar_width,
         x12_space + bar_width, x12_space + 1 + bar_width,
@@ -252,8 +254,13 @@ if __name__ == "__main__":
     ax3.set_xticklabels(["20", "50", "100", "200", "20", "50", "100", "200"])
     ax3.set_ylabel("Weighted KL-Divergence.", fontsize=FONT_SIZE)
     ax3.set_xlabel("Number of Labeled Samples", fontsize=FONT_SIZE)
-    ax3.legend(bbox_to_anchor=(1.1, 1), loc="upper left")
+    ax3.legend(loc='upper center',
+               bbox_to_anchor=(0.5, -0.2),
+               fancybox=True,
+               ncol=3)
     ax3.set_title("Policy Learning Performance", fontsize=FONT_SIZE)
+    ax3.text(1.5, 0.55, 'x1', fontsize=16)
+    ax3.text(6, 0.55, 'x2', fontsize=16)
 
     # ax2.set_xticks([20, 50, 100])
     fig1.tight_layout()
@@ -362,49 +369,52 @@ if __name__ == "__main__":
     ax1.plot(sl_ticks,
              sl_x1_Tx,
              'g.-',
-             label="SL w/ Tx",
+             label="SL w/ Tx for x1",
              clip_on=False,
              fillstyle='none')
     ax1.plot(sl_ticks,
              bc_x1_Tx,
              'b.-',
-             label="BC",
+             label="BC for x1",
              clip_on=False,
              fillstyle='none')
     ax1.plot(sl_ticks,
              sl_x1_noTx,
              'r.-',
-             label="SL w/o Tx",
+             label="SL w/o Tx for x1",
              clip_on=False,
              fillstyle='none')
 
-    ax1n = ax1.twinx()
-    ax1n.plot(sl_ticks,
-              sl_x2_Tx,
-              'g.--',
-              label="SL w/ Tx",
-              clip_on=False,
-              fillstyle='none')
-    ax1n.plot(sl_ticks,
-              bc_x2_Tx,
-              'b.--',
-              label="BC",
-              clip_on=False,
-              fillstyle='none')
-    ax1n.plot(sl_ticks,
-              sl_x2_noTx,
-              'r.--',
-              label="SL w/o Tx",
-              clip_on=False,
-              fillstyle='none')
+    ax1.plot(sl_ticks,
+             sl_x2_Tx,
+             'g.--',
+             label="SL w/ Tx for x2",
+             clip_on=False,
+             fillstyle='none')
+    ax1.plot(sl_ticks,
+             bc_x2_Tx,
+             'b.--',
+             label="BC for x2",
+             clip_on=False,
+             fillstyle='none')
+    ax1.plot(sl_ticks,
+             sl_x2_noTx,
+             'r.--',
+             label="SL w/o Tx for x2",
+             clip_on=False,
+             fillstyle='none')
 
     FONT_SIZE = 14
     # TITLE_FONT_SIZE = 12
     # LEGENT_FONT_SIZE = 12
     ax1.set_ylabel("Norm. Hamming Dist.", fontsize=FONT_SIZE)
     ax1.set_xlabel("Samples", fontsize=FONT_SIZE)
-    ax1.legend(bbox_to_anchor=(1.1, 1), loc="upper left", title="x1")
-    ax1n.legend(bbox_to_anchor=(1.1, 0.7), loc="upper left", title="x2")
+    # ax1.legend(bbox_to_anchor=(1.1, 1), loc="upper left")
+    # ax1.legend(loc="center", frameon=False)
+    ax1.legend(loc='upper center',
+               bbox_to_anchor=(0.5, -0.2),
+               fancybox=True,
+               ncol=3)
     ax1.set_title("Latent Inference Performance with Supervised Learning",
                   fontsize=FONT_SIZE)
 
@@ -436,22 +446,20 @@ if __name__ == "__main__":
             width=bar_width,
             label="Semi w/o Tx")
 
-    ax2n = ax2.twinx()
-
     # bar_idx = bar_idx + bar_width + 0.05
     bar_idx = np.arange(3) + 3.5
-    ax2n.bar(bar_idx, sl_x2_Tx[0:3], color='b', width=bar_width)
+    ax2.bar(bar_idx, sl_x2_Tx[0:3], color='b', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax2n.bar(
+    ax2.bar(
         bar_idx,
         semi_x2_Tx[0:3],
         color='g',
         width=bar_width,
     )
     bar_idx = bar_idx + bar_width + 0.05
-    ax2n.bar(bar_idx, sl_x2_noTx[0:3], color='r', width=bar_width)
+    ax2.bar(bar_idx, sl_x2_noTx[0:3], color='r', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax2n.bar(bar_idx, semi_x2_noTx[0:3], color='m', width=bar_width)
+    ax2.bar(bar_idx, semi_x2_noTx[0:3], color='m', width=bar_width)
     ax2.set_xticks([
         1.5 * bar_width + 0.025, 1 + 1.5 * bar_width + 0.025,
         2 + 1.5 * bar_width + 0.025, 3.5 + 1.5 * bar_width + 0.025,
@@ -460,13 +468,18 @@ if __name__ == "__main__":
     ax2.set_xticklabels(["10%", "25%", "50%", "10%", "25%", "50%"])
     ax2.set_ylabel("Norm. Hamming Dist.", fontsize=FONT_SIZE)
     ax2.set_xlabel("Percentage of Labeled Samples", fontsize=FONT_SIZE)
-    ax2.legend(bbox_to_anchor=(1.1, 1), loc="upper left")
+    ax2.legend(loc='upper center',
+               bbox_to_anchor=(0.5, -0.2),
+               fancybox=True,
+               ncol=4)
     ax2.set_title("Performance with Augmented Unlabeled Samples",
                   fontsize=FONT_SIZE)
+    ax2.text(1.25, 0.5, 'x1', fontsize=16)
+    ax2.text(4.5, 0.5, 'x2', fontsize=16)
 
     fig3 = plt.figure(figsize=(4.5, 3))
     ax3 = fig3.add_subplot(111)
-    bar_width = 0.2
+    bar_width = 0.3
     bar_idx = np.arange(4)
     ax3.bar(bar_idx, bc_kl1, color='black', width=bar_width, label="BC")
     bar_idx = bar_idx + bar_width
@@ -479,17 +492,13 @@ if __name__ == "__main__":
             label="Semi")
 
     x12_space = 4.5
-    ax3n = ax3.twinx()
+
     bar_idx = np.arange(4) + x12_space
-    ax3n.bar(bar_idx, bc_kl2, color='black', width=bar_width, label="BC")
+    ax3.bar(bar_idx, bc_kl2, color='black', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax3n.bar(bar_idx, sl_kl2_noTx, color='b', width=bar_width, label="SL")
+    ax3.bar(bar_idx, sl_kl2_noTx, color='b', width=bar_width)
     bar_idx = bar_idx + bar_width
-    ax3n.bar(bar_idx[0:3],
-             semi_kl2_noTx[0:3],
-             color='g',
-             width=bar_width,
-             label="Semi")
+    ax3.bar(bar_idx[0:3], semi_kl2_noTx[0:3], color='g', width=bar_width)
     ax3.set_xticks([
         bar_width, 1 + bar_width, 2 + bar_width, 3 + bar_width,
         x12_space + bar_width, x12_space + 1 + bar_width,
@@ -498,8 +507,13 @@ if __name__ == "__main__":
     ax3.set_xticklabels(["20", "50", "100", "200", "20", "50", "100", "200"])
     ax3.set_ylabel("Weighted KL-Divergence.", fontsize=FONT_SIZE)
     ax3.set_xlabel("Number of Labeled Samples", fontsize=FONT_SIZE)
-    ax3.legend(bbox_to_anchor=(1.1, 1), loc="upper left")
+    ax3.legend(loc='upper center',
+               bbox_to_anchor=(0.5, -0.2),
+               fancybox=True,
+               ncol=3)
     ax3.set_title("Policy Learning Performance", fontsize=FONT_SIZE)
+    ax3.text(1.5, 1.7, 'x1', fontsize=16)
+    ax3.text(6, 1.7, 'x2', fontsize=16)
 
     # ax2.set_xticks([20, 50, 100])
     fig1.tight_layout()

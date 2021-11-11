@@ -541,7 +541,7 @@ if __name__ == "__main__":
         pi_a1 = np.zeros(
             (num_latent, MDP_AGENT.num_states, joint_action_num[0]))
         pi_a2 = np.zeros(
-            (num_latent, MDP_AGENT.num_states, joint_action_num[0]))
+            (num_latent, MDP_AGENT.num_states, joint_action_num[1]))
         for xidx in range(num_latent):
           pi_a1[xidx] = behavior_cloning([list_a1_by_x[xidx]],
                                          MDP_AGENT.num_states,

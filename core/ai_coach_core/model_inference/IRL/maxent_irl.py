@@ -31,6 +31,7 @@ class CMaxEntIRL():
     self.trajectories = trajectories
     self.max_value_iter = max_value_iter
     self.pi_est = None
+    self.empirical_feature_cnt = None
 
     self.initial_prop = np.zeros((mdp.num_states))
     if initial_prop is not None:
@@ -66,10 +67,11 @@ class CMaxEntIRL():
     return feature_bar
 
   def get_gradient(self):
-    empirical_feature_cnt = self.calc_empirical_feature_cnt()
+    if self.empirical_feature_cnt is None:
+      self.empirical_feature_cnt = self.calc_empirical_feature_cnt()
     optimal_feature_cnt = self.calc_optimal_feature_cnt(self.eps)
 
-    gradient = empirical_feature_cnt - optimal_feature_cnt
+    gradient = self.empirical_feature_cnt - optimal_feature_cnt
 
     return gradient
 
@@ -109,10 +111,6 @@ class CMaxEntIRL():
     iteration_idx = 0
     delta = self.eps + 1
     while (iteration_idx < self.max_value_iter) and (delta > self.eps):
-      # d_s_sum_new = (
-      #     np.array(self.initial_prop) +
-      #     self.gamma * np.einsum('sa, san -> n', d_s_sum[:, np.newaxis] *
-      #                            self.pi_est, self.mdp.np_transition_model))
       if isinstance(self.mdp.np_transition_model, sparse.COO):
         d_s_sum_new = (
             np.array(self.initial_prop) +
@@ -182,6 +180,7 @@ class CMaxEntIRL():
       self.iteration += 1
       # print("Delta-" + str(delta) + ", cnt-" + str(self.iteration))
       # print(self.weights)
+      progress_bar.set_postfix({'delta': delta})
       progress_bar.update()
     progress_bar.close()
 

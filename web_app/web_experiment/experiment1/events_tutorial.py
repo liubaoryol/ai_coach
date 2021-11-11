@@ -100,6 +100,7 @@ def run_game(msg):
     game.set_autonomous_agent()
     game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 2))
 
+  game.event_input(AGENT1, EventType.SET_LATENT, None)
   dict_update = game.get_env_info()
   dict_update["wall_dir"] = GAME_MAP["wall_dir"]
   if dict_update is not None:

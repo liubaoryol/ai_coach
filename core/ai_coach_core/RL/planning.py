@@ -8,6 +8,7 @@ from typing import Optional, Union
 
 import numpy as np
 from tqdm import tqdm
+import scipy.special as sc
 
 import ai_coach_core.models.mdp as mdp_lib
 
@@ -15,31 +16,48 @@ import ai_coach_core.models.mdp as mdp_lib
 def softmax_by_row(q_val, temperature=1.):
   """
   Note: softmax problem
-    - it continuously adds non-necessary term log(blah) to v-values.
-      if reward range is small, e.g. [0, 1], this is not neglectible
+    - it continuously adds non-necessary term log(blah) to v-values, even if 
+      initial v-value was 0.
+      If reward range is small, e.g. [0, 1], this is not neglectible
+    - q_val should not include any invalid number (-inf, nan, inf) 
   """
-  max_q = np.max(q_val, axis=1)
-  mask_inf = np.isneginf(max_q)
-  if np.any(mask_inf):
-    sub_q_val = q_val - max_q[:, np.newaxis]
-    sub_q_val[mask_inf] = -np.inf
-
+  USE_SCIPY_SOFTMAX = False
+  if USE_SCIPY_SOFTMAX:
+    # scipy version is slower.
+    # but maybe this is numerically more stable as it's widely-used library
+    return temperature * sc.logsumexp(q_val, axis=-1, b=(1 / temperature))
   else:
+    max_q = np.max(q_val, axis=1)
     sub_q_val = q_val - max_q[:, np.newaxis]
 
-  max_idx = np.argmax(q_val, axis=1)
-  sub_q_val[np.arange(q_val.shape[0]), max_idx] = 0
-
-  return max_q + temperature * np.log(
-      np.sum(np.exp(sub_q_val / temperature), axis=1))
+    return max_q + temperature * np.log(
+        np.sum(np.exp(sub_q_val / temperature), axis=1))
 
 
-def mellowmax_by_row(q_val):
+def mellowmax_by_row(q_val, temperature=1.):
   """
   An alternative for softmax
   Note: not working well
   """
-  return softmax_by_row(q_val) - np.log(q_val.shape[1])
+  return (softmax_by_row(q_val, temperature) -
+          temperature * np.log(q_val.shape[1]))
+
+
+def sparsemax_by_row(q_val):
+  """
+  An alternative for softmax
+  TODO: implementation needs to be verified. not test yet.
+  """
+  sorted_qval = np.flip(np.sort(q_val, axis=-1), axis=-1)
+
+  cumsum = np.cumsum(sorted_qval, axis=-1)
+  k = np.arange(1, sorted_qval.shape[1] + 1)
+  one_plus_kz = 1 + k[None, :] * sorted_qval
+  is_support = one_plus_kz > cumsum
+  k_max = np.sum(is_support, axis=-1)
+
+  tau_z = (cumsum[np.arange(q_val.shape[0])[..., None], k_max - 1] - 1) / k_max
+  return (q_val - tau_z).clip(0)
 
 
 def soft_value_iteration(transition_model: Union[np.ndarray,

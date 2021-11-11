@@ -336,53 +336,8 @@ def feature_extract(mdp, s_idx, a_idx):
 
 def feature_extract_full_state(mdp, s_idx, a_idx):
   np_feature = np.zeros(mdp.num_states)
-  np_feature[s_idx] = 1
+  np_feature[s_idx] = 10
   return np_feature
-
-
-def feature_extract_updated(state, action):
-  x, y, h = state
-
-  def manhattan_dist(x1, y1, x2, y2):
-    return abs(x1 - x2) + abs(y1 - y2)
-
-  DIST_D1 = "dist_d1"
-  DIST_D2 = "dist_d2"
-  DIST_D3 = "dist_d3"
-
-  DIST_ORIG = "dist_orig"
-  DIST_TOOL = "dist_tool"
-  TOOL_STAT = "tool_stat"
-  GRID_TYPE = "grid_type"
-  GRID_ZONE = "grid_zone"
-  TOOL_PICK = "pick_tool"
-  BAIS = "bais"
-
-  feature = {}
-  feature[BAIS] = 1
-  feature[DIST_ORIG] = manhattan_dist(x, y, 0, 0)
-  feature[DIST_TOOL] = manhattan_dist(x, y, 3, 3) if h == 0 else 0
-  feature[DIST_D1] = manhattan_dist(x, y, 1, 3)
-  feature[DIST_D2] = manhattan_dist(x, y, 4, 1)
-  feature[DIST_D3] = manhattan_dist(x, y, 4, 2)
-  feature[TOOL_STAT] = h
-  if (x, y) in DANGER_GRIDS:
-    feature[GRID_TYPE] = 2
-  elif (x, y) in [(2, 1), (2, 2), (2, 3)]:
-    feature[GRID_TYPE] = 1
-  else:
-    feature[GRID_TYPE] = 0
-
-  if x == 0 or x == 1:
-    feature[GRID_ZONE] = 0
-  elif x == 2:
-    feature[GRID_ZONE] = 1
-  else:
-    feature[GRID_ZONE] = 2
-
-  feature[TOOL_PICK] = 1 if state == (3, 3, 0) and action == PICK else 0
-
-  return feature
 
 
 if __name__ == "__main__":
@@ -435,8 +390,8 @@ if __name__ == "__main__":
 
   irl = CMaxEntIRL(trajectories,
                    toy_mdp,
-                   feature_extractor=feature_extract,
-                   max_value_iter=100,
+                   feature_extractor=feature_extract_full_state,
+                   max_value_iter=500,
                    initial_prop=init_prop)
 
   rel_freq = compute_relative_freq(num_ostates, trajectories)

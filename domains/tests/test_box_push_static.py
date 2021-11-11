@@ -13,6 +13,7 @@ from ai_coach_domain.box_push_static.policy import (get_static_policy,
                                                     get_static_action)
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
 import matplotlib.pyplot as plt
+from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
 
 BoxPushSimulator = BoxPushSimulator_AloneOrTogether
 
@@ -139,12 +140,13 @@ if __name__ == "__main__":
   GEN_TRAIN_SET = False
   GEN_TEST_SET = False
 
-  SHOW_TRUE = False
-  SHOW_SL_SMALL = False
-  SHOW_SL_LARGE = False
-  SHOW_SEMI = False
-  BASE_LINE = True
-  VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI or BASE_LINE
+  SHOW_TRUE = True
+  SHOW_SL_SMALL = True
+  SHOW_SL_LARGE = True
+  SHOW_SEMI = True
+  IRL = False
+  BC = True
+  VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI or IRL or BC
 
   TRAIN_DIR = os.path.join(DATA_DIR, 'static_bp_train')
   TEST_DIR = os.path.join(DATA_DIR, 'static_bp_test')
@@ -174,6 +176,8 @@ if __name__ == "__main__":
     trajectories = []
     trajectories_x1 = []
     trajectories_x2 = []
+    trajectories_bc1 = [[], []]
+    trajectories_bc2 = [[], []]
     latent_labels = []
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
     for idx, file_nm in enumerate(file_names):
@@ -188,6 +192,8 @@ if __name__ == "__main__":
 
         xidx1 = MDP_AGENT.latent_space.state_to_idx[a1lat]
         xidx2 = MDP_AGENT.latent_space.state_to_idx[a2lat]
+        trajectories_bc1[xidx1].append((sidx, aidx1))
+        trajectories_bc2[xidx2].append((sidx, aidx2))
 
       trajectories.append(traj)
       latent_labels.append((xidx1, xidx2))
@@ -232,9 +238,38 @@ if __name__ == "__main__":
     BETA_PI = 1.5
     joint_num_action = (MDP_AGENT.a1_a_space.num_actions,
                         MDP_AGENT.a2_a_space.num_actions)
+    if BC:
+      pi_a1 = np.zeros((2, MDP_AGENT.num_states, joint_num_action[0]))
+      pi_a2 = np.zeros((2, MDP_AGENT.num_states, joint_num_action[1]))
+      for xidx in range(2):
+        pi_a1[xidx] = behavior_cloning([trajectories_bc1[xidx]],
+                                       MDP_AGENT.num_states,
+                                       joint_num_action[0])
+        pi_a2[xidx] = behavior_cloning([trajectories_bc2[xidx]],
+                                       MDP_AGENT.num_states,
+                                       joint_num_action[1])
+      list_pi_bc = [pi_a1, pi_a2]
+      print(np.sum(pi_a1 != 1 / 6))
+
+      sup_conf_full1, full_acc1 = get_bayesian_infer_result(
+          num_agents, (lambda m, x, s, joint: list_pi_bc[m][x, s, joint[m]]),
+          MDP_AGENT.num_latents, test_traj, test_labels)
+
+      print("Full - BC")
+      print_conf(sup_conf_full1)
+      print("4by4 Acc: " + str(full_acc1))
+
+      for ai in range(2):
+        rel_freq = compute_relative_freq(MDP_AGENT.num_states,
+                                         MDP_AGENT.num_latents, trajectories,
+                                         latent_labels, ai)
+        kl1 = cal_policy_error(rel_freq, MDP_AGENT,
+                               lambda x, s: list_pi_bc[ai][x, s, :],
+                               lambda x, s: np_true_policy(ai, x, s))
+        print("agent %d: KL %f" % (ai, kl1))
     # train base line
     ###########################################################################
-    if BASE_LINE:
+    if IRL:
 
       def feature_extract_full_state(mdp, s_idx, a_idx):
         np_feature = np.zeros(mdp.num_states)
