@@ -4,23 +4,27 @@ from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
 import ai_coach_domain.box_push.mdp as bp_mdp
-import ai_coach_domain.box_push.policy as bp_policy
-import ai_coach_domain.box_push.transition_x as bp_tx
+import ai_coach_domain.box_push.mdppolicy as bp_policy
+import ai_coach_domain.box_push.agent as bp_agent
 
-GAME_MAP = bp_maps.TEST_MAP
-IS_TEAM = False
+IS_TESTMAP = False
+IS_TEAM = True
+
+if IS_TESTMAP:
+  GAME_MAP = bp_maps.TEST_MAP
+  BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamTest
+  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvTest
+else:
+  GAME_MAP = bp_maps.EXP1_MAP
+  BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamExp1
+  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvExp1
+
 if IS_TEAM:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
   BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-  get_box_push_action = bp_policy.get_test_team_action
-  get_box_push_Tx = bp_tx.get_Tx_team
 else:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
   BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
-  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
-  get_box_push_action = bp_policy.get_test_indv_action
-  get_box_push_Tx = bp_tx.get_Tx_indv
 
 
 class BoxPushApp(AppInterface):
@@ -30,44 +34,29 @@ class BoxPushApp(AppInterface):
   def _init_game(self):
     'define game related variables and objects'
     GAME_ENV_ID = 0
-    # game_map["a2_init"] = (1, 2)
     self.x_grid = GAME_MAP["x_grid"]
     self.y_grid = GAME_MAP["y_grid"]
     self.game = BoxPushSimulator(GAME_ENV_ID)
     self.mdp_agent = BoxPushAgentMDP(**GAME_MAP)
-    self.game.max_steps = 100
+    self.game.max_steps = 200
+
+    temperature = 0.3
+    if IS_TEAM:
+      policy1 = BoxPushPolicyTeam(self.mdp_agent,
+                                  temperature=temperature,
+                                  agent_idx=0)
+      policy2 = BoxPushPolicyTeam(self.mdp_agent,
+                                  temperature=temperature,
+                                  agent_idx=1)
+      agent1 = bp_agent.BoxPushAIAgent_Team1(policy1)
+      agent2 = bp_agent.BoxPushAIAgent_Team2(policy2)
+    else:
+      policy = BoxPushPolicyIndv(self.mdp_agent, temperature=temperature)
+      agent1 = bp_agent.BoxPushAIAgent_Indv1(policy)
+      agent2 = bp_agent.BoxPushAIAgent_Indv2(policy)
 
     self.game.init_game(**GAME_MAP)
-    temperature = 0.3
-
-    def get_a1_action(**kwargs):
-      return get_box_push_action(self.mdp_agent, BoxPushSimulator.AGENT1,
-                                 temperature, **kwargs)
-
-    def get_a2_action(**kwargs):
-      return get_box_push_action(self.mdp_agent, BoxPushSimulator.AGENT2,
-                                 temperature, **kwargs)
-
-    def get_a1_latent(cur_state, a1_action, a2_action, a1_latent, next_state):
-      return get_box_push_Tx(self.mdp_agent, 0, a1_latent, cur_state, a1_action,
-                             a2_action, next_state)
-
-    def get_a2_latent(cur_state, a1_action, a2_action, a2_latent, next_state):
-      return get_box_push_Tx(self.mdp_agent, 1, a2_latent, cur_state, a1_action,
-                             a2_action, next_state)
-
-    def get_init_x(box_states, a1_pos, a2_pos):
-      return bp_tx.get_init_x(self.mdp_agent, box_states, a1_pos, a2_pos,
-                              IS_TEAM)
-
-    self.game.set_autonomous_agent(cb_get_A1_action=get_a1_action,
-                                   cb_get_A2_action=get_a2_action,
-                                   cb_get_A1_mental_state=get_a1_latent,
-                                   cb_get_A2_mental_state=get_a2_latent,
-                                   cb_get_init_mental_state=get_init_x)
-
-  # self.game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
-  #                       ("pickup", 0))
+    self.game.set_autonomous_agent(agent1=agent1, agent2=agent2)
 
   def _init_gui(self):
     self.main_window.title("Box Push")
@@ -95,7 +84,7 @@ class BoxPushApp(AppInterface):
       action = EventType.DOWN
     elif key_sym == "p":
       agent_id = BoxPushSimulator.AGENT1
-      action = EventType.STAY
+      action = EventType.HOLD
     # agent2 move
     elif key_sym == "a":
       agent_id = BoxPushSimulator.AGENT2
@@ -111,19 +100,13 @@ class BoxPushApp(AppInterface):
       action = EventType.DOWN
     elif key_sym == "f":
       agent_id = BoxPushSimulator.AGENT2
-      action = EventType.STAY
+      action = EventType.HOLD
 
     return (agent_id, action, value)
 
   def _conv_mouse_to_agent_event(
       self, is_left: bool,
       cursor_pos: Tuple[float, float]) -> Tuple[Hashable, Hashable, Hashable]:
-    # find the target hit by the cursor
-    # self.canvas_width
-    # self.canvas_height
-
-    # latent = 0
-
     return (None, None, None)
 
   def _update_canvas_scene(self):
@@ -135,8 +118,6 @@ class BoxPushApp(AppInterface):
     walls = data["walls"]
     a1_pos = data["a1_pos"]
     a2_pos = data["a2_pos"]
-    # a1_latent = data["a1_latent"]
-    # a2_latent = data["a2_latent"]
 
     x_unit = int(self.canvas_width / self.x_grid)
     y_unit = int(self.canvas_height / self.y_grid)

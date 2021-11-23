@@ -9,6 +9,7 @@ from typing import Optional, Union
 import numpy as np
 from tqdm import tqdm
 import scipy.special as sc
+import sparse
 
 import ai_coach_core.models.mdp as mdp_lib
 
@@ -60,8 +61,7 @@ def sparsemax_by_row(q_val):
   return (q_val - tau_z).clip(0)
 
 
-def soft_value_iteration(transition_model: Union[np.ndarray,
-                                                 mdp_lib.sparse.COO],
+def soft_value_iteration(transition_model: Union[np.ndarray, sparse.COO],
                          reward_model: np.ndarray,
                          discount_factor: float = 0.95,
                          max_iteration: int = 20,
@@ -96,7 +96,7 @@ def soft_value_iteration(transition_model: Union[np.ndarray,
 
 
 def value_iteration(
-    transition_model: Union[np.ndarray, mdp_lib.sparse.COO],
+    transition_model: Union[np.ndarray, sparse.COO],
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
     max_iteration: int = 20,
@@ -145,7 +145,7 @@ def value_iteration(
 
 
 def policy_iteration(
-    transition_model: Union[np.ndarray, mdp_lib.sparse.COO],
+    transition_model: Union[np.ndarray, sparse.COO],
     reward_model: np.ndarray,
     discount_factor: float = 0.95,
     max_iteration: int = 20,

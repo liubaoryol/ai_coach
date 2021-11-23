@@ -17,8 +17,8 @@ class StaticBoxPushMDP(BoxPushTeamMDP_AloneOrTogether):
     len_s_space = len(self.dict_factored_statespace)
     state_vec = self.conv_idx_to_state(state_idx)
 
-    a1_pos = self.a1_pos_space.idx_to_state[state_vec[0]]
-    a2_pos = self.a2_pos_space.idx_to_state[state_vec[1]]
+    a1_pos = self.pos1_space.idx_to_state[state_vec[0]]
+    a2_pos = self.pos2_space.idx_to_state[state_vec[1]]
 
     box_states = []
     for idx in range(2, len_s_space):
@@ -26,7 +26,7 @@ class StaticBoxPushMDP(BoxPushTeamMDP_AloneOrTogether):
       box_state = self.dict_factored_statespace[idx].idx_to_state[box_sidx]
       box_states.append(box_state)
 
-    act1, act2 = self.conv_mdp_aidx_to_sim_action(action_idx)
+    act1, act2 = self.conv_mdp_aidx_to_sim_actions(action_idx)
     latent = self.latent_space.idx_to_state[latent_idx]
 
     with_a1 = -1

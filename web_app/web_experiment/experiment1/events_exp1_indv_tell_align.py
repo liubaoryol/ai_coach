@@ -3,7 +3,9 @@ import random
 from ai_coach_domain.box_push import EventType
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.maps import EXP1_MAP
-from ai_coach_domain.box_push.mdp import (BoxPushAgentMDP_AlwaysAlone)
+from ai_coach_domain.box_push.mdp import BoxPushAgentMDP_AlwaysAlone
+from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyIndvExp1
+from ai_coach_domain.box_push.agent import BoxPushAIAgent_Host
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
@@ -15,6 +17,9 @@ EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
 
 AGENT1 = BoxPushSimulator_AlwaysAlone.AGENT1
 AGENT2 = BoxPushSimulator_AlwaysAlone.AGENT2
+
+TEMPERATURE = 0.3
+TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_MDP, TEMPERATURE)
 
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)
@@ -44,6 +49,8 @@ def test_disconnect():
 
 @socketio.on('run_game', namespace=EXP1_NAMESPACE)
 def run_game(msg):
+  agent2 = BoxPushAIAgent_Host(TEAMMATE_POLICY, True)
+
   def set_init_latent(game: BoxPushSimulator_AlwaysAlone):
     valid_boxes = event_impl.get_valid_box_to_pickup(game)
     if len(valid_boxes) > 0:
@@ -51,9 +58,9 @@ def run_game(msg):
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", box_idx))
       game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
 
-  event_impl.run_task_B_game(msg, g_id_2_game, set_init_latent, EXP1_MDP,
-                             EXP1_MAP, event_impl.NOT_ASK_LATENT,
-                             EXP1_NAMESPACE)
+  event_impl.run_task_game(msg, g_id_2_game, agent2, set_init_latent, EXP1_MDP,
+                           EXP1_MAP, event_impl.NOT_ASK_LATENT, EXP1_NAMESPACE,
+                           False)
 
 
 @socketio.on('action_event', namespace=EXP1_NAMESPACE)
@@ -65,9 +72,10 @@ def action_event(msg):
                         "BoxPushSimulator_AlwaysAlone", EXP1_MAP, name_space,
                         False)
 
-  def hold_changed(game, a1_hold_changed, a2_hold_changed, a1_box, a2_box):
-    a1_latent_prev = game.a1_latent
-    a2_latent_prev = game.a2_latent
+  def hold_changed(game: BoxPushSimulator_AlwaysAlone, a1_hold_changed,
+                   a2_hold_changed, a1_box, a2_box):
+    a1_latent_prev = game.agent_1.get_current_latent()
+    a2_latent_prev = game.agent_2.get_current_latent()
 
     a1_pickup = a1_hold_changed and (a1_box >= 0)
     a1_drop = a1_hold_changed and not (a1_box >= 0)
@@ -96,7 +104,7 @@ def action_event(msg):
         game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", a2_box))
       game.event_input(AGENT2, EventType.SET_LATENT, ("goal", 0))
 
-    elif a1_drop and a2_drop:
+    elif a1_drop and a2_drop:  # TODO: agent1 follows agent2 latent
       valid_boxes = event_impl.get_valid_box_to_pickup(game)
       if len(valid_boxes) > 0:
         box_idx = random.choice(valid_boxes)

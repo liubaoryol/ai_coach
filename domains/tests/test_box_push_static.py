@@ -2,27 +2,28 @@ import glob
 import os
 import numpy as np
 import pickle
+
 import ai_coach_core.model_inference.var_infer.var_infer_static_x as var_infer
 from ai_coach_core.latent_inference.bayesian_inference import (
     bayesian_mind_inference)
 from ai_coach_core.model_inference.IRL.maxent_irl import CMaxEntIRL
-
-from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
-from ai_coach_domain.box_push.maps import TUTORIAL_MAP
-from ai_coach_domain.box_push_static.policy import (get_static_policy,
-                                                    get_static_action)
-from ai_coach_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
-import matplotlib.pyplot as plt
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
 
+from ai_coach_domain.box_push.maps import TUTORIAL_MAP
+from ai_coach_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
+from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
+from ai_coach_domain.box_push_static.agent import (StaticBoxPushPolicy,
+                                                   StaticBoxPushAgent)
+import matplotlib.pyplot as plt
+
 BoxPushSimulator = BoxPushSimulator_AloneOrTogether
+BoxPushPolicy = StaticBoxPushPolicy
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
 GAME_MAP = TUTORIAL_MAP
 
 MDP_AGENT = StaticBoxPushMDP(**GAME_MAP)  # MDP for agent policy
 TEMPERATURE = 1
-LIST_POLICY = get_static_policy(MDP_AGENT, TEMPERATURE)
 
 
 def compute_relative_freq(num_states, num_latents, trajectories, labels,
@@ -58,15 +59,6 @@ def cal_policy_error(rel_freq: np.ndarray, mdp: StaticBoxPushMDP, np_pi_irl,
       sum_kl += rel_freq[x_idx, s_idx] * compute_kl(x_idx, s_idx)
 
   return sum_kl
-
-
-def np_true_policy(agent_idx, latent_idx, state_idx):
-  np_joint_act_p = LIST_POLICY[latent_idx][state_idx].reshape(
-      MDP_AGENT.a1_a_space.num_actions, MDP_AGENT.a2_a_space.num_actions)
-  if agent_idx == 0:
-    return np.sum(np_joint_act_p, axis=1)
-  else:
-    return np.sum(np_joint_act_p, axis=0)
 
 
 def get_bayesian_infer_result(num_agent, cb_n_xsa_policy, num_lstate,
@@ -116,24 +108,18 @@ if __name__ == "__main__":
   sim.init_game(**GAME_MAP)
   sim.max_steps = 200
 
-  def get_a1_action(**kwargs):
-    return get_static_action(MDP_AGENT, BoxPushSimulator.AGENT1, TEMPERATURE,
-                             **kwargs)
+  policy1 = BoxPushPolicy(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT1)
+  policy2 = BoxPushPolicy(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT2)
+  agent1 = StaticBoxPushAgent(policy1, BoxPushSimulator.AGENT1)
+  agent2 = StaticBoxPushAgent(policy2, BoxPushSimulator.AGENT2)
 
-  def get_a2_action(**kwargs):
-    return get_static_action(MDP_AGENT, BoxPushSimulator.AGENT2, TEMPERATURE,
-                             **kwargs)
+  sim.set_autonomous_agent(agent1, agent2)
 
-  def get_init_x(box_states, a1_pos, a2_pos):
-    a1_latent = ("together", 0) if np.random.randint(2) == 0 else ("alone", 0)
-    a2_latent = ("together", 0) if np.random.randint(2) == 0 else ("alone", 0)
-    return a1_latent, a2_latent
-
-  sim.set_autonomous_agent(cb_get_A1_action=get_a1_action,
-                           cb_get_A2_action=get_a2_action,
-                           cb_get_A1_mental_state=None,
-                           cb_get_A2_mental_state=None,
-                           cb_get_init_mental_state=get_init_x)
+  def get_true_policy(agent_idx, latent_idx, state_idx):
+    if agent_idx == 0:
+      return agent1.policy_from_task_mdp_POV(state_idx, latent_idx)
+    else:
+      return agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
 
   # generate data
   #############################################################################
@@ -146,7 +132,8 @@ if __name__ == "__main__":
   SHOW_SEMI = True
   IRL = False
   BC = True
-  VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI or IRL or BC
+  VI_TRAIN = (SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI or IRL
+              or BC)
 
   TRAIN_DIR = os.path.join(DATA_DIR, 'static_bp_train')
   TEST_DIR = os.path.join(DATA_DIR, 'static_bp_test')
@@ -265,7 +252,7 @@ if __name__ == "__main__":
                                          latent_labels, ai)
         kl1 = cal_policy_error(rel_freq, MDP_AGENT,
                                lambda x, s: list_pi_bc[ai][x, s, :],
-                               lambda x, s: np_true_policy(ai, x, s))
+                               lambda x, s: get_true_policy(ai, x, s))
         print("agent %d: KL %f" % (ai, kl1))
     # train base line
     ###########################################################################
@@ -354,14 +341,14 @@ if __name__ == "__main__":
                                          latent_labels, ai)
         kl1 = cal_policy_error(rel_freq, MDP_AGENT,
                                lambda x, s: irl_np_policy[ai][x, s, :],
-                               lambda x, s: np_true_policy(ai, x, s))
+                               lambda x, s: get_true_policy(ai, x, s))
         print("agent %d: KL %f" % (ai, kl1))
 
     if SHOW_TRUE:
 
       def policy_true(agent_idx, x_idx, state_idx, joint_action):
-        return np.sum(LIST_POLICY[x_idx][state_idx].reshape(joint_num_action),
-                      axis=(1 - agent_idx))[joint_action[agent_idx]]
+        return get_true_policy(agent_idx, x_idx,
+                               state_idx)[joint_action[agent_idx]]
 
       sup_conf_true, full_acc_true = get_bayesian_infer_result(
           num_agents, policy_true, MDP_AGENT.num_latents, test_traj,
@@ -396,7 +383,7 @@ if __name__ == "__main__":
         kl1 = cal_policy_error(
             rel_freq, MDP_AGENT,
             lambda x, s: var_infer_small.list_np_policy[ai][x, s, :],
-            lambda x, s: np_true_policy(ai, x, s))
+            lambda x, s: get_true_policy(ai, x, s))
         print("agent %d: KL %f" % (ai, kl1))
 
     if SHOW_SL_LARGE:
@@ -421,7 +408,7 @@ if __name__ == "__main__":
         kl1 = cal_policy_error(
             rel_freq, MDP_AGENT,
             lambda x, s: var_infer_large.list_np_policy[ai][x, s, :],
-            lambda x, s: np_true_policy(ai, x, s))
+            lambda x, s: get_true_policy(ai, x, s))
         print("agent %d: KL %f" % (ai, kl1))
 
     # ##############################################
@@ -474,7 +461,7 @@ if __name__ == "__main__":
         kl1 = cal_policy_error(
             rel_freq, MDP_AGENT,
             lambda x, s: var_infer_semi.list_np_policy[ai][x, s, :],
-            lambda x, s: np_true_policy(ai, x, s))
+            lambda x, s: get_true_policy(ai, x, s))
         print("agent %d: KL %f" % (ai, kl1))
 
       fig = plt.figure(figsize=(3, 3))
@@ -492,9 +479,11 @@ if __name__ == "__main__":
                fillstyle='none')
       plt.show()
       # if SHOW_SL_SMALL:
-      #   ax1.axhline(y=full_align_acc1, color='r', linestyle='-', label="SL-Small")
+      #   ax1.axhline(
+      # y=full_align_acc1, color='r', linestyle='-', label="SL-Small")
       # if SHOW_SL_LARGE:
-      #   ax1.axhline(y=full_align_acc2, color='g', linestyle='-', label="SL-Large")
+      #   ax1.axhline(
+      # y=full_align_acc2, color='g', linestyle='-', label="SL-Large")
       # FONT_SIZE = 16
       # TITLE_FONT_SIZE = 12
       # LEGENT_FONT_SIZE = 12

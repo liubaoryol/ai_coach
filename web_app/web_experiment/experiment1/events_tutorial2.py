@@ -4,7 +4,8 @@ from flask import request, session
 from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.maps import TUTORIAL_MAP
-from ai_coach_domain.box_push.policy import get_simple_action
+from ai_coach_domain.box_push.agent import (BoxPushSimpleAgent,
+                                            BoxPushInteractiveAgent)
 from web_experiment import socketio
 from web_experiment.models import db, User
 import web_experiment.experiment1.events_impl as event_impl
@@ -55,27 +56,33 @@ def run_game(msg):
   game = g_id_2_game[env_id]
   game.init_game(**GAME_MAP)
 
+  agent1 = BoxPushInteractiveAgent()
+
   ask_latent = False
   if "type" in msg:
     game_type = msg["type"]
     PICKUP_BOX = 2
     if game_type == "to_box":
-      game.set_autonomous_agent()
+      agent2 = BoxPushInteractiveAgent()
+      game.set_autonomous_agent(agent1, agent2)
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
     elif game_type == "box_pickup":
-      game.set_autonomous_agent()
+      agent2 = BoxPushInteractiveAgent()
+      game.set_autonomous_agent(agent1, agent2)
       game.a1_pos = game.boxes[PICKUP_BOX]
       game.current_step = int(msg["score"])
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
     elif game_type == "to_goal":
-      game.set_autonomous_agent()
+      agent2 = BoxPushInteractiveAgent()
+      game.set_autonomous_agent(agent1, agent2)
       game.a1_pos = game.boxes[PICKUP_BOX]
       game.box_states[PICKUP_BOX] = conv_box_state_2_idx(
           (BoxState.WithAgent1, None), len(game.drops))
       game.current_step = int(msg["score"])
       game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
     elif game_type == "trapped_scenario":
-      game.set_autonomous_agent()
+      agent2 = BoxPushInteractiveAgent()
+      game.set_autonomous_agent(agent1, agent2)
       # make scenario
       bidx1 = 1
       game.a1_pos = game.boxes[bidx1]
@@ -88,15 +95,20 @@ def run_game(msg):
 
       game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
     elif game_type == "auto_prompt":
-      game.set_autonomous_agent(
-          cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
+      agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
+                                  GAME_MAP["goals"], GAME_MAP["walls"],
+                                  GAME_MAP["drops"])
+      game.set_autonomous_agent(agent1, agent2)
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
     else:  # "normal"
-      game.set_autonomous_agent(
-          cb_get_A2_action=lambda **kwargs: get_simple_action(AGENT2, **kwargs))
+      agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
+                                  GAME_MAP["goals"], GAME_MAP["walls"],
+                                  GAME_MAP["drops"])
+      game.set_autonomous_agent(agent1, agent2)
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
   else:
-    game.set_autonomous_agent()
+    agent2 = BoxPushInteractiveAgent()
+    game.set_autonomous_agent(agent1, agent2)
 
   dict_update = game.get_env_info()
   dict_update["wall_dir"] = GAME_MAP["wall_dir"]

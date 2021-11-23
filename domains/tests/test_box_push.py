@@ -2,12 +2,9 @@ import glob
 import os
 import random
 import pickle
+import numpy as np
+import matplotlib.pyplot as plt
 
-import ai_coach_domain.box_push.maps as bp_maps
-import ai_coach_domain.box_push.simulator as bp_sim
-import ai_coach_domain.box_push.mdp as bp_mdp
-import ai_coach_domain.box_push.policy as bp_policy
-import ai_coach_domain.box_push.transition_x as bp_tx
 from ai_coach_core.model_inference.var_infer.var_infer_dynamic_x import (
     VarInferDuo)
 from ai_coach_core.latent_inference.most_probable_sequence import (
@@ -15,53 +12,41 @@ from ai_coach_core.latent_inference.most_probable_sequence import (
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence)
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
+
+import ai_coach_domain.box_push.maps as bp_maps
+import ai_coach_domain.box_push.simulator as bp_sim
+import ai_coach_domain.box_push.mdp as bp_mdp
+import ai_coach_domain.box_push.mdppolicy as bp_policy
+import ai_coach_domain.box_push.agent as bp_agent
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
 TEMPERATURE = 1
 
-IS_TEAM = True
 IS_TEST = False
-
-if IS_TEAM:
-  BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
-  BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-  get_box_push_Tx = bp_tx.get_Tx_team
-  get_np_Tx = bp_tx.get_np_Tx_team
-else:
-  BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
-  BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
-  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
-  get_box_push_Tx = bp_tx.get_Tx_indv
-  get_np_Tx = bp_tx.get_np_Tx_indv
+IS_TEAM = True
 
 if IS_TEST:
   GAME_MAP = bp_maps.TEST_MAP
+  BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamTest
+  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvTest
 else:
   GAME_MAP = bp_maps.EXP1_MAP
-
-MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
-MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
+  BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamExp1
+  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvExp1
 
 if IS_TEAM:
   SAVE_PREFIX = GAME_MAP["name"] + "_team"
-  if IS_TEST:
-    get_box_push_action = bp_policy.get_test_team_action
-    LIST_POLICY = bp_policy.get_test_team_policy(MDP_AGENT, TEMPERATURE)
-  else:
-    get_box_push_action = bp_policy.get_exp1_action
-    LIST_POLICY = bp_policy.get_exp1_policy(MDP_AGENT, TEMPERATURE)
+  BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
+  BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
+  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
 else:
   SAVE_PREFIX = GAME_MAP["name"] + "_indv"
-  if IS_TEST:
-    get_box_push_action = bp_policy.get_test_indv_action
-    LIST_POLICY = bp_policy.get_test_indv_policy(MDP_AGENT, TEMPERATURE)
-  else:
-    get_box_push_action = bp_policy.get_indv_action
-    LIST_POLICY = bp_policy.get_indv_policy(MDP_AGENT, TEMPERATURE)
+  BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
+  BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
+  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
+
+MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
+MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
 
 
 def cal_policy_kl_error(mdp_agent: BoxPushAgentMDP, trajectories, cb_pi_true,
@@ -109,162 +94,23 @@ def cal_policy_kl_error(mdp_agent: BoxPushAgentMDP, trajectories, cb_pi_true,
   return sum_kl1, sum_kl2
 
 
-def np_true_policy(agent_idx, latent_idx, state_idx):
-  if IS_TEAM:
-    np_joint_act_p = LIST_POLICY[latent_idx][state_idx].reshape(
-        MDP_AGENT.a1_a_space.num_actions, MDP_AGENT.a2_a_space.num_actions)
-    if agent_idx == 0:
-      return np.sum(np_joint_act_p, axis=1)
-    else:
-      return np.sum(np_joint_act_p, axis=0)
-  else:
-    if agent_idx == 0:
-      return LIST_POLICY[latent_idx][state_idx]
-    else:
-      pos1, pos2, bstates = MDP_AGENT.conv_mdp_sidx_to_sim_states(state_idx)
-      bstates_2 = bp_mdp.get_agent_switched_boxstates(bstates,
-                                                      len(MDP_AGENT.drops),
-                                                      len(MDP_AGENT.goals))
-      sidx_2 = MDP_AGENT.conv_sim_states_to_mdp_sidx(pos2, pos1, bstates_2)
-      return LIST_POLICY[latent_idx][sidx_2]
+def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
+               cb_get_np_init_latent_ns, test_samples):
+  def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
+    return cb_get_np_policy_nxs(nidx, xidx, sidx)[tuple_aidx[nidx]]
 
+  def Tx_nxsasx(nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
+    return cb_get_np_Tx_nxsas(nidx, xidx, sidx, tuple_aidx, sidx_n)[xidx_n]
 
-def true_policy(agent_idx, latent_idx, state_idx, tuple_action_idx):
-  if IS_TEAM:
-    indices = None
-    if agent_idx == 0:
-      indices = MDP_TASK.np_action_to_idx[tuple_action_idx[agent_idx], :]
-    else:
-      indices = MDP_TASK.np_action_to_idx[:, tuple_action_idx[agent_idx]]
-    return np.sum(LIST_POLICY[latent_idx][state_idx, indices])
-  else:
-    if agent_idx == 0:
-      return LIST_POLICY[latent_idx][state_idx, tuple_action_idx[agent_idx]]
-    else:
-      pos1, pos2, bstates = MDP_AGENT.conv_mdp_sidx_to_sim_states(state_idx)
-      bstates_2 = bp_mdp.get_agent_switched_boxstates(bstates,
-                                                      len(MDP_AGENT.drops),
-                                                      len(MDP_AGENT.goals))
-      sidx_2 = MDP_AGENT.conv_sim_states_to_mdp_sidx(pos2, pos1, bstates_2)
-      return LIST_POLICY[latent_idx][sidx_2, tuple_action_idx[agent_idx]]
-
-
-def true_Tx(agent_idx, latent_idx, state_idx, tuple_action_idx, next_state_idx,
-            latent_next_idx):
-  np_Tx = get_np_Tx(MDP_AGENT, agent_idx, latent_idx, state_idx,
-                    tuple_action_idx, next_state_idx)
-  return np_Tx[latent_next_idx]
-
-
-def true_Tx_for_var_infer(agent_idx, state_idx, action1_idx, action2_idx,
-                          next_state_idx):
-  joint_action = (action1_idx, action2_idx)
-
-  np_Txx = np.zeros((MDP_AGENT.num_latents, MDP_AGENT.num_latents))
-  for xidx in range(MDP_AGENT.num_latents):
-    np_Txx[xidx, :] = get_np_Tx(MDP_AGENT, agent_idx, xidx, state_idx,
-                                joint_action, next_state_idx)
-
-  return np_Txx
-
-
-def initial_latent_pr(agent_idx, state_idx):
-  if IS_TEAM:
-    np_bx = bp_tx.get_team_np_bx(MDP_AGENT, agent_idx, state_idx)
-  else:
-    np_bx = bp_tx.get_indv_np_bx(MDP_AGENT, agent_idx, state_idx)
-
-  return np_bx
-
-
-def get_result(var_inf_obj: VarInferDuo, test_samples):
-  def var_inf_policy(agent_idx, latent_idx, state_idx, tuple_action_idx):
-    p = var_inf_obj.list_np_policy[agent_idx][latent_idx, state_idx,
-                                              tuple_action_idx[agent_idx]]
-    return p
-
-  def var_inf_Tx(agent_idx, latent_idx, state_idx, tuple_action_idx,
-                 next_state_idx, latent_next_idx):
-    p = var_inf_obj.get_Tx(agent_idx, state_idx, tuple_action_idx[0],
-                           tuple_action_idx[1], next_state_idx)[latent_idx,
-                                                                latent_next_idx]
-    return p
+  def init_latent_nxs(nidx, xidx, sidx):
+    return cb_get_np_init_latent_ns(nidx, sidx)[xidx]
 
   np_results = np.zeros((len(test_samples), 3))
   for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(
-        sample[0], sample[1], 2, MDP_AGENT.num_latents, var_inf_policy,
-        var_inf_Tx, lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
+    mpseq_x_infer = most_probable_sequence(sample[0], sample[1], 2,
+                                           MDP_AGENT.num_latents, policy_nxsa,
+                                           Tx_nxsasx, init_latent_nxs)
     seq_x_per_agent = list(zip(*sample[2]))
-    res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
-    res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
-
-    align_true = alignment_sequence(seq_x_per_agent[0], seq_x_per_agent[1])
-    align_infer = alignment_sequence(mpseq_x_infer[0], mpseq_x_infer[1])
-    res3 = norm_hamming_distance(align_true, align_infer)
-
-    np_results[idx, :] = [res1, res2, res3]
-
-  return np_results
-
-
-def get_result_with_Tx(var_inf_obj: VarInferDuo, test_samples):
-  def var_inf_policy(agent_idx, latent_idx, state_idx, tuple_action_idx):
-    p = var_inf_obj.list_np_policy[agent_idx][latent_idx, state_idx,
-                                              tuple_action_idx[agent_idx]]
-    return p
-
-  np_results = np.zeros((len(test_samples), 3))
-  for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(
-        sample[0], sample[1], 2, MDP_AGENT.num_latents, var_inf_policy, true_Tx,
-        lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
-    seq_x_per_agent = list(zip(*sample[2]))
-    res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
-    res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
-
-    align_true = alignment_sequence(seq_x_per_agent[0], seq_x_per_agent[1])
-    align_infer = alignment_sequence(mpseq_x_infer[0], mpseq_x_infer[1])
-    res3 = norm_hamming_distance(align_true, align_infer)
-
-    np_results[idx, :] = [res1, res2, res3]
-
-  return np_results
-
-
-def bc_get_result_with_Tx(list_policy, test_samples):
-  def get_policy(agent_idx, latent_idx, state_idx, tuple_action_idx):
-    p = list_policy[agent_idx][latent_idx, state_idx,
-                               tuple_action_idx[agent_idx]]
-    return p
-
-  np_results = np.zeros((len(test_samples), 3))
-  for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(
-        sample[0], sample[1], 2, MDP_AGENT.num_latents, get_policy, true_Tx,
-        lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
-    seq_x_per_agent = list(zip(*sample[2]))
-    res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
-    res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
-
-    align_true = alignment_sequence(seq_x_per_agent[0], seq_x_per_agent[1])
-    align_infer = alignment_sequence(mpseq_x_infer[0], mpseq_x_infer[1])
-    res3 = norm_hamming_distance(align_true, align_infer)
-
-    np_results[idx, :] = [res1, res2, res3]
-
-  return np_results
-
-
-def get_result_with_true(test_samples):
-  np_results = np.zeros((len(test_samples), 3))
-  for idx, sample in enumerate(test_samples):
-    mpseq_x_infer = most_probable_sequence(
-        sample[0], sample[1], 2, MDP_AGENT.num_latents, true_policy, true_Tx,
-        lambda ai, si, xi: initial_latent_pr(ai, si)[xi])
-    seq_x_per_agent = list(zip(*sample[2]))
-    # print(mpseq_x_infer)
-    # print(seq_x_per_agent)
     res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
     res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
 
@@ -311,30 +157,63 @@ if __name__ == "__main__":
   sim.init_game(**GAME_MAP)
   sim.max_steps = 200
 
-  def get_a1_action(**kwargs):
-    return get_box_push_action(MDP_AGENT, BoxPushSimulator.AGENT1, TEMPERATURE,
-                               **kwargs)
+  if IS_TEAM:
+    policy1 = BoxPushPolicyTeam(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT1)
+    policy2 = BoxPushPolicyTeam(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT2)
+    agent1 = bp_agent.BoxPushAIAgent_Team1(policy1)
+    agent2 = bp_agent.BoxPushAIAgent_Team2(policy2)
+  else:
+    policy = BoxPushPolicyIndv(MDP_AGENT, TEMPERATURE)
+    agent1 = bp_agent.BoxPushAIAgent_Indv1(policy)
+    agent2 = bp_agent.BoxPushAIAgent_Indv2(policy)
 
-  def get_a2_action(**kwargs):
-    return get_box_push_action(MDP_AGENT, BoxPushSimulator.AGENT2, TEMPERATURE,
-                               **kwargs)
+  sim.set_autonomous_agent(agent1, agent2)
 
-  def get_a1_latent(cur_state, a1_action, a2_action, a1_latent, next_state):
-    return get_box_push_Tx(MDP_AGENT, 0, a1_latent, cur_state, a1_action,
-                           a2_action, next_state)
+  def get_true_policy(agent_idx, latent_idx, state_idx):
+    if agent_idx == 0:
+      return agent1.policy_from_task_mdp_POV(state_idx, latent_idx)
+    else:
+      return agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
 
-  def get_a2_latent(cur_state, a1_action, a2_action, a2_latent, next_state):
-    return get_box_push_Tx(MDP_AGENT, 1, a2_latent, cur_state, a1_action,
-                           a2_action, next_state)
+  def get_true_Tx_nxsas(agent_idx, latent_idx, state_idx, tuple_action_idx,
+                        next_state_idx):
+    if agent_idx == 0:
+      return agent1.transition_model_from_task_mdp_POV(latent_idx, state_idx,
+                                                       tuple_action_idx,
+                                                       next_state_idx)
+    else:
+      return agent2.transition_model_from_task_mdp_POV(latent_idx, state_idx,
+                                                       tuple_action_idx,
+                                                       next_state_idx)
 
-  def get_init_x(box_states, a1_pos, a2_pos):
-    return bp_tx.get_init_x(MDP_AGENT, box_states, a1_pos, a2_pos, IS_TEAM)
+  def get_init_latent_dist(agent_idx, state_idx):
+    if agent_idx == 0:
+      return agent1.init_latent_dist_from_task_mdp_POV(state_idx)
+    else:
+      return agent2.init_latent_dist_from_task_mdp_POV(state_idx)
 
-  sim.set_autonomous_agent(cb_get_A1_action=get_a1_action,
-                           cb_get_A2_action=get_a2_action,
-                           cb_get_A1_mental_state=get_a1_latent,
-                           cb_get_A2_mental_state=get_a2_latent,
-                           cb_get_init_mental_state=get_init_x)
+  def true_Tx_for_var_infer(agent_idx, state_idx, action1_idx, action2_idx,
+                            next_state_idx):
+    joint_action = (action1_idx, action2_idx)
+    np_Txx = np.zeros((MDP_AGENT.num_latents, MDP_AGENT.num_latents))
+    for xidx in range(MDP_AGENT.num_latents):
+      np_Txx[xidx, :] = get_true_Tx_nxsas(agent_idx, xidx, state_idx,
+                                          joint_action, next_state_idx)
+
+    return np_Txx
+
+  class VarInfConverter:
+    def __init__(self, var_inf_obj: VarInferDuo) -> None:
+      self.var_inf_obj = var_inf_obj
+
+    def policy_nxs(self, agent_idx, latent_idx, state_idx):
+      return self.var_inf_obj.list_np_policy[agent_idx][latent_idx, state_idx]
+
+    def Tx_nxsas(self, agent_idx, latent_idx, state_idx, tuple_action_idx,
+                 next_state_idx):
+      return self.var_inf_obj.get_Tx(agent_idx, state_idx, tuple_action_idx[0],
+                                     tuple_action_idx[1],
+                                     next_state_idx)[latent_idx]
 
   # generate data
   #############################################################################
@@ -343,8 +222,8 @@ if __name__ == "__main__":
 
   SHOW_TRUE = False
   SHOW_SL_SMALL = False
-  SHOW_SL_LARGE = False
-  SHOW_SEMI = False
+  SHOW_SL_LARGE = True
+  SHOW_SEMI = True
 
   BC = True
   VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI or BC
@@ -469,12 +348,13 @@ if __name__ == "__main__":
       print("#########")
       print("True")
       print("#########")
-      np_results = get_result_with_true(test_traj)
+      np_results = get_result(get_true_policy, get_true_Tx_nxsas,
+                              get_init_latent_dist, test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
 
       kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                     np_true_policy, np_true_policy)
+                                     get_true_policy, get_true_policy)
 
       print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
       print("kl1, kl2: %f,%f" % (kl1, kl2))
@@ -501,20 +381,21 @@ if __name__ == "__main__":
                                     trans_x_dependency=(True, True, True,
                                                         False))
         var_inf_small.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-        var_inf_small.set_bx_and_Tx(cb_bx=initial_latent_pr,
+        var_inf_small.set_bx_and_Tx(cb_bx=get_init_latent_dist,
                                     cb_Tx=true_Tx_for_var_infer)
         # var_inf_small.set_bx_and_Tx(cb_bx=initial_latent_pr)
         var_inf_small.do_inference()
 
-        np_results = get_result(var_inf_small, test_traj)
+        var_inf_small_conv = VarInfConverter(var_inf_small)
+        np_results = get_result(var_inf_small_conv.policy_nxs,
+                                var_inf_small_conv.Tx_nxsas,
+                                get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
 
-        def np_infer_policy(agent_idx, xidx, sidx):
-          return var_inf_small.list_np_policy[agent_idx][xidx, sidx]
-
         kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                       np_true_policy, np_infer_policy)
+                                       get_true_policy,
+                                       var_inf_small_conv.policy_nxs)
 
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
         print("kl1, kl2: %f,%f" % (kl1, kl2))
@@ -551,15 +432,16 @@ if __name__ == "__main__":
                                          joint_action_num[1])
         list_pi_bc = [pi_a1, pi_a2]
 
-        np_results = bc_get_result_with_Tx(list_pi_bc, test_traj)
+        def bc_policy_nxs(agent_idx, latent_idx, state_idx):
+          return list_pi_bc[agent_idx][latent_idx, state_idx]
+
+        np_results = get_result(bc_policy_nxs, get_true_Tx_nxsas,
+                                get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
 
-        def np_infer_policy(agent_idx, xidx, sidx):
-          return list_pi_bc[agent_idx][xidx, sidx]
-
         kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                       np_true_policy, np_infer_policy)
+                                       get_true_policy, bc_policy_nxs)
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
         print("kl1, kl2: %f,%f" % (kl1, kl2))
 
@@ -575,20 +457,21 @@ if __name__ == "__main__":
                                   transition_s,
                                   trans_x_dependency=(True, True, True, False))
       var_inf_large.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-      var_inf_large.set_bx_and_Tx(cb_bx=initial_latent_pr,
+      var_inf_large.set_bx_and_Tx(cb_bx=get_init_latent_dist,
                                   cb_Tx=true_Tx_for_var_infer)
-      # var_inf_large.set_bx_and_Tx(cb_bx=initial_latent_pr)
+      # var_inf_large.set_bx_and_Tx(cb_bx=init_latent_dist)
       var_inf_large.do_inference()
 
-      np_results = get_result(var_inf_large, test_traj)
+      var_inf_large_conv = VarInfConverter(var_inf_large)
+      np_results = get_result(var_inf_large_conv.policy_nxs,
+                              var_inf_large_conv.Tx_nxsas, get_init_latent_dist,
+                              test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
 
-      def np_infer_policy(agent_idx, xidx, sidx):
-        return var_inf_large.list_np_policy[agent_idx][xidx, sidx]
-
       kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                     np_true_policy, np_infer_policy)
+                                     get_true_policy,
+                                     var_inf_large_conv.policy_nxs)
       print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
       print("kl1, kl2: %f,%f" % (kl1, kl2))
 
@@ -616,7 +499,7 @@ if __name__ == "__main__":
                                    epsilon=0.01,
                                    max_iteration=100)
         var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-        var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
+        var_inf_semi.set_bx_and_Tx(cb_bx=get_init_latent_dist,
                                    cb_Tx=true_Tx_for_var_infer)
         # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr)
 
@@ -626,21 +509,23 @@ if __name__ == "__main__":
         # var_inf_semi.set_load_save_file_name(save_path)
         var_inf_semi.do_inference()
 
-        np_results = get_result(var_inf_semi, test_traj)
+        var_inf_semi_conv = VarInfConverter(var_inf_semi)
+        np_results = get_result(var_inf_semi_conv.policy_nxs,
+                                var_inf_semi_conv.Tx_nxsas,
+                                get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-        np_results = get_result_with_Tx(var_inf_semi, test_traj)
+        np_results = get_result(var_inf_semi_conv.policy_nxs, get_true_Tx_nxsas,
+                                get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-
-        def np_infer_policy(agent_idx, xidx, sidx):
-          return var_inf_semi.list_np_policy[agent_idx][xidx, sidx]
 
         kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                       np_true_policy, np_infer_policy)
+                                       get_true_policy,
+                                       var_inf_semi_conv.policy_nxs)
         print("kl1, kl2: %f,%f" % (kl1, kl2))
 
       # print("#########")
@@ -762,8 +647,10 @@ if __name__ == "__main__":
     #            clip_on=False,
     #            fillstyle='none')
     #   if do_sup_infer:
-    #     ax2.axhline(y=part_align_acc1, color='r', linestyle='-', label="SL-Small")
-    #     ax2.axhline(y=part_align_acc2, color='g', linestyle='-', label="SL-Large")
+    #     ax2.axhline(
+    # y=part_align_acc1, color='r', linestyle='-', label="SL-Small")
+    #     ax2.axhline(
+    # y=part_align_acc2, color='g', linestyle='-', label="SL-Large")
     #   ax2.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     #   # ax2.set_ylim([50, 80])
     #   # ax2.set_xlim([0, 16])

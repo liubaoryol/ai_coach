@@ -1,103 +1,18 @@
 import numpy as np
-from ai_coach_core.models.latent_mdp import LatentMDP
-from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
+from ai_coach_core.utils.mdp_utils import ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
 from ai_coach_domain.box_push.helper import (transition_alone_and_together,
-                                             transition_always_alone,
-                                             get_possible_latent_states)
+                                             transition_always_alone)
+from ai_coach_domain.box_push.mdp import BoxPushMDP
 
 
-class BoxPushAgentMDP(LatentMDP):
-  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, cb_transition,
-               **kwargs):
-    self.x_grid = x_grid
-    self.y_grid = y_grid
-    self.boxes = boxes
-    self.goals = goals
-    self.walls = walls
-    self.drops = drops
-    self.transition_fn = cb_transition
-    super().__init__(use_sparse=True)
-
-  def init_statespace(self):
-    '''
-    To disable dummy states, set self.dummy_states = None
-    '''
-
-    self.dict_factored_statespace = {}
-
-    set_grid = set()
-    for i in range(self.x_grid):
-      for j in range(self.y_grid):
-        state = (i, j)
-        if state not in self.walls:
-          set_grid.add(state)
-    self.my_pos_space = StateSpace(statespace=set_grid)
-    self.teammate_pos_space = StateSpace(statespace=set_grid)
-    self.dict_factored_statespace = {
-        0: self.my_pos_space,
-        1: self.teammate_pos_space
-    }
-
-    box_states = self.get_possible_box_states()
-
-    for dummy_i in range(len(self.boxes)):
-      self.dict_factored_statespace[dummy_i +
-                                    2] = StateSpace(statespace=box_states)
-
-    self.dummy_states = None
-
+class BoxPushAgentMDP(BoxPushMDP):
   def init_actionspace(self):
     self.dict_factored_actionspace = {}
     action_states = [EventType(idx) for idx in range(6)]
     self.my_act_space = ActionSpace(actionspace=action_states)
     self.dict_factored_actionspace = {0: self.my_act_space}
-
-  def init_latentspace(self):
-    latent_states = get_possible_latent_states(len(self.boxes), len(self.drops),
-                                               len(self.goals))
-    self.latent_space = StateSpace(latent_states)
-
-  def get_possible_box_states(self):
-    raise NotImplementedError
-
-  def is_terminal(self, state_idx):
-    len_s_space = len(self.dict_factored_statespace)
-    state_vec = self.conv_idx_to_state(state_idx)
-
-    for idx in range(2, len_s_space):
-      box_sidx = state_vec[idx]
-      box_state = self.dict_factored_statespace[idx].idx_to_state[box_sidx]
-      if box_state[0] != BoxState.OnGoalLoc:
-        return False
-    return True
-
-  def legal_actions(self, state_idx):
-    if self.is_terminal(state_idx):
-      return []
-
-    len_s_space = len(self.dict_factored_statespace)
-    state_vec = self.conv_idx_to_state(state_idx)
-
-    my_pos = self.my_pos_space.idx_to_state[state_vec[0]]
-    teammate_pos = self.teammate_pos_space.idx_to_state[state_vec[1]]
-
-    box_states = []
-    for idx in range(2, len_s_space):
-      box_sidx = state_vec[idx]
-      box_state = self.dict_factored_statespace[idx].idx_to_state[box_sidx]
-      box_states.append(box_state)
-
-    holding_box = -1
-    for idx, bstate in enumerate(box_states):
-      if bstate[0] == BoxState.WithBoth:
-        holding_box = idx
-
-    if holding_box >= 0 and my_pos != teammate_pos:  # illegal state
-      return []
-
-    return super().legal_actions(state_idx)
 
   def transition_model(self, state_idx: int, action_idx: int) -> np.ndarray:
     if self.is_terminal(state_idx):
@@ -105,7 +20,7 @@ class BoxPushAgentMDP(LatentMDP):
 
     my_pos, teammate_pos, box_states = self.conv_mdp_sidx_to_sim_states(
         state_idx)
-    my_act = self.conv_mdp_aidx_to_sim_action(action_idx)
+    my_act, = self.conv_mdp_aidx_to_sim_actions(action_idx)
 
     # assume a2 has the same possible actions as a1
     list_p_next_env = []
@@ -119,6 +34,7 @@ class BoxPushAgentMDP(LatentMDP):
     for p, box_states_list, my_pos_n, teammate_pos_n in list_p_next_env:
       sidx_n = self.conv_sim_states_to_mdp_sidx(my_pos_n, teammate_pos_n,
                                                 box_states_list)
+      # assume a2 choose an action uniformly
       map_next_state[sidx_n] = (map_next_state.get(sidx_n, 0) +
                                 p / self.num_actions)
 
@@ -128,43 +44,6 @@ class BoxPushAgentMDP(LatentMDP):
 
     return np.array(list_next_p_state)
 
-  def conv_sim_states_to_mdp_sidx(self, my_pos, teammate_pos, box_states):
-    len_s_space = len(self.dict_factored_statespace)
-    my_next_idx = self.my_pos_space.state_to_idx[my_pos]
-    teammate_next_idx = self.teammate_pos_space.state_to_idx[teammate_pos]
-    list_states = [int(my_next_idx), int(teammate_next_idx)]
-    for idx in range(2, len_s_space):
-      box_sidx_n = box_states[idx - 2]
-      box_state_n = conv_box_idx_2_state(box_sidx_n, len(self.drops),
-                                         len(self.goals))
-      box_sidx = self.dict_factored_statespace[idx].state_to_idx[box_state_n]
-      list_states.append(int(box_sidx))
-
-    return self.conv_state_to_idx(tuple(list_states))
-
-  def conv_mdp_sidx_to_sim_states(self, state_idx):
-    'return: my_pos, teammate_pos, box_states'
-    len_s_space = len(self.dict_factored_statespace)
-    state_vec = self.conv_idx_to_state(state_idx)
-
-    my_pos = self.my_pos_space.idx_to_state[state_vec[0]]
-    teammate_pos = self.teammate_pos_space.idx_to_state[state_vec[1]]
-
-    box_states = []
-    for idx in range(2, len_s_space):
-      box_sidx = state_vec[idx]
-      box_state = self.dict_factored_statespace[idx].idx_to_state[box_sidx]
-      box_states.append(conv_box_state_2_idx(box_state, len(self.drops)))
-
-    return my_pos, teammate_pos, box_states
-
-  def conv_mdp_aidx_to_sim_action(self, action_idx):
-    aidx, = self.conv_idx_to_action(action_idx)
-    return self.my_act_space.idx_to_action[aidx]
-
-  def conv_sim_action_to_mdp_aidx(self, action):
-    return self.my_act_space.action_to_idx[action]
-
   def reward(self, latent_idx: int, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
@@ -172,8 +51,8 @@ class BoxPushAgentMDP(LatentMDP):
     len_s_space = len(self.dict_factored_statespace)
     state_vec = self.conv_idx_to_state(state_idx)
 
-    my_pos = self.my_pos_space.idx_to_state[state_vec[0]]
-    # teammate_pos = self.teammate_pos_space.idx_to_state[state_vec[1]]
+    my_pos = self.pos1_space.idx_to_state[state_vec[0]]
+    # teammate_pos = self.pos2_space.idx_to_state[state_vec[1]]
 
     box_states = []
     for idx in range(2, len_s_space):
@@ -181,7 +60,7 @@ class BoxPushAgentMDP(LatentMDP):
       box_state = self.dict_factored_statespace[idx].idx_to_state[box_sidx]
       box_states.append(box_state)
 
-    my_act = self.conv_mdp_aidx_to_sim_action(action_idx)
+    my_act, = self.conv_mdp_aidx_to_sim_actions(action_idx)
     latent = self.latent_space.idx_to_state[latent_idx]
 
     holding_box = -1

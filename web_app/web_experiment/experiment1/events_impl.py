@@ -1,9 +1,8 @@
-from typing import Mapping, Hashable
+from typing import Mapping, Hashable, Callable
 import os
 import time
 import json
 import logging
-import random
 import copy
 from flask import session, request, copy_current_request_context, current_app
 from flask_socketio import emit, disconnect
@@ -11,7 +10,8 @@ from ai_coach_domain.box_push import BoxState, conv_box_idx_2_state, EventType
 from ai_coach_domain.box_push.simulator import (BoxPushSimulator,
                                                 BoxPushSimulator_AlwaysTogether,
                                                 BoxPushSimulator_AlwaysAlone)
-from ai_coach_domain.box_push.policy import (get_exp1_action, get_indv_action)
+from ai_coach_domain.box_push.agent import (BoxPushInteractiveAgent,
+                                            BoxPushAIAgent_Abstract)
 from web_experiment import socketio
 from web_experiment.models import db, User
 
@@ -179,31 +179,6 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
   return valid_box
 
 
-def change_a2_latent_based_on_a1(game: BoxPushSimulator):
-  a2_latent = game.a2_latent
-  if a2_latent[0] != "pickup":
-    return
-
-  closest_idx = None
-  dist = 100000
-
-  a1_pos = game.a1_pos
-  for idx, bidx in enumerate(game.box_states):
-    bstate = conv_box_idx_2_state(bidx, len(game.drops), len(game.goals))
-    if bstate[0] == BoxState.Original:
-      box_pos = game.boxes[idx]
-      dist_cur = abs(a1_pos[0] - box_pos[0]) + abs(a1_pos[1] - box_pos[1])
-      if dist > dist_cur:
-        dist = dist_cur
-        closest_idx = idx
-
-  if closest_idx is not None and dist < 2 and a2_latent[1] != closest_idx:
-    prop = 0.1
-    if prop > random.uniform(0, 1):
-      game.event_input(BoxPushSimulator.AGENT2, EventType.SET_LATENT,
-                       ("pickup", closest_idx))
-
-
 def action_event(msg, id_2_game, cb_on_hold_change, cb_game_finished,
                  name_space, prompt_on_change, auto_prompt, prompt_freq):
   env_id = request.sid
@@ -292,7 +267,7 @@ def set_latent(msg, id_2_game, name_space):
   env_id = request.sid
   latent = msg["data"]
 
-  game = id_2_game[env_id]
+  game = id_2_game[env_id]  # type: BoxPushSimulator
   if game.is_finished():
     return
 
@@ -303,51 +278,32 @@ def set_latent(msg, id_2_game, name_space):
   update_html_canvas(dict_update, env_id, NOT_ASK_LATENT, name_space)
 
 
-def run_task_A_game(msg, id_2_game, cb_set_init_latent, mdp, game_map,
-                    ask_latent, name_space):
+def run_task_game(msg: Mapping, id_2_game: Mapping,
+                  teammate_agent: BoxPushAIAgent_Abstract,
+                  cb_set_init_latent: Callable[[BoxPushSimulator], None], mdp,
+                  game_map, ask_latent, name_space, is_a):
   env_id = request.sid
 
   # run a game
   if env_id not in id_2_game:
-    id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
+    if is_a:
+      id_2_game[env_id] = BoxPushSimulator_AlwaysTogether(env_id)
+    else:
+      id_2_game[env_id] = BoxPushSimulator_AlwaysAlone(env_id)
 
   game = id_2_game[env_id]  # type: BoxPushSimulator
   game.init_game(**game_map)
-  temperature = 0.3
-  game.set_autonomous_agent(cb_get_A2_action=lambda **kwargs: get_exp1_action(
-      mdp, BoxPushSimulator.AGENT2, temperature, **kwargs))
+
+  agent1 = BoxPushInteractiveAgent()
+  agent2 = teammate_agent
+  game.set_autonomous_agent(agent1, agent2)
 
   if cb_set_init_latent:
     cb_set_init_latent(game)
 
   dict_update = game.get_env_info()
   dict_update["wall_dir"] = game_map["wall_dir"]
-  dict_update["best_score"] = get_best_score(msg["user_id"], True)
-  if dict_update is not None:
-    session["action_count"] = 0
-    update_html_canvas(dict_update, env_id, ask_latent, name_space)
-
-
-def run_task_B_game(msg, id_2_game, cb_set_init_latent, mdp, game_map,
-                    ask_latent, name_space):
-  env_id = request.sid
-
-  # run a game
-  if env_id not in id_2_game:
-    id_2_game[env_id] = BoxPushSimulator_AlwaysAlone(env_id)
-
-  game = id_2_game[env_id]  # type: BoxPushSimulator
-  game.init_game(**game_map)
-  temperature = 0.3
-  game.set_autonomous_agent(cb_get_A2_action=lambda **kwargs: get_indv_action(
-      mdp, BoxPushSimulator.AGENT2, temperature, **kwargs))
-
-  if cb_set_init_latent:
-    cb_set_init_latent(game)
-
-  dict_update = game.get_env_info()
-  dict_update["wall_dir"] = game_map["wall_dir"]
-  dict_update["best_score"] = get_best_score(msg["user_id"], False)
+  dict_update["best_score"] = get_best_score(msg["user_id"], is_a)
   if dict_update is not None:
     session["action_count"] = 0
     update_html_canvas(dict_update, env_id, ask_latent, name_space)

@@ -30,7 +30,7 @@ def most_probable_sequence(
     for x_i in range(num_latent):
       p_act_sum = cb_policy(idx, x_i, s_0, tuple_action)
 
-      p_x_sum = cb_prior(idx, s_0, x_i)
+      p_x_sum = cb_prior(idx, x_i, s_0)
 
       # probs[idx][0, x_i] = p_act_sum * p_x_sum
       # trackers[idx].append([x_i])

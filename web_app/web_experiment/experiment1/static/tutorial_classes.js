@@ -424,16 +424,19 @@ class PageScore extends PageGameTutorial {
 }
 
 class PageTrappedScenario extends PageGameTutorial {
-  constructor(object_kind) {
+  constructor(object_kind, aligned) {
     super();
 
     this.object_kind = object_kind;
+    this.aligned = aligned;
   }
 
   _set_emit_data() {
     super._set_emit_data();
     this.initial_emit_data.type = "trapped_scenario";
-    this.action_event_data.aligned = true;
+    if (this.aligned) {
+      this.action_event_data.aligned = this.aligned;
+    }
   }
 
   _set_instruction() {

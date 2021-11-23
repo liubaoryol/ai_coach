@@ -1,9 +1,9 @@
 from typing import Mapping, Hashable
-import random
-from ai_coach_domain.box_push import EventType
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysTogether
 from ai_coach_domain.box_push.maps import EXP1_MAP
-from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether)
+from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AlwaysTogether
+from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyTeamExp1
+from ai_coach_domain.box_push.agent import BoxPushAIAgent_Team2
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
@@ -15,6 +15,9 @@ EXP1_MDP = BoxPushTeamMDP_AlwaysTogether(**EXP1_MAP)
 
 AGENT1 = BoxPushSimulator_AlwaysTogether.AGENT1
 AGENT2 = BoxPushSimulator_AlwaysTogether.AGENT2
+
+TEMPERATURE = 0.3
+TEAMMATE_POLICY = BoxPushPolicyTeamExp1(EXP1_MDP, TEMPERATURE, AGENT2)
 
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)
@@ -44,14 +47,9 @@ def test_disconnect():
 
 @socketio.on('run_game', namespace=EXP1_NAMESPACE)
 def run_game(msg):
-  def set_init_latent(game: BoxPushSimulator_AlwaysTogether):
-    valid_boxes = event_impl.get_valid_box_to_pickup(game)
-    if len(valid_boxes) > 0:
-      box_idx = random.choice(valid_boxes)
-      game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
-
-  event_impl.run_task_A_game(msg, g_id_2_game, set_init_latent, EXP1_MDP,
-                             EXP1_MAP, event_impl.ASK_LATENT, EXP1_NAMESPACE)
+  agent2 = BoxPushAIAgent_Team2(TEAMMATE_POLICY)
+  event_impl.run_task_game(msg, g_id_2_game, agent2, None, EXP1_MDP, EXP1_MAP,
+                           event_impl.ASK_LATENT, EXP1_NAMESPACE, True)
 
 
 @socketio.on('action_event', namespace=EXP1_NAMESPACE)
@@ -63,22 +61,9 @@ def action_event(msg):
                         "BoxPushSimulator_AlwaysTogether", EXP1_MAP, name_space,
                         True)
 
-  def hold_changed(game, a1_hold_changed, a2_hold_changed, a1_box, a2_box):
-    if a2_hold_changed:
-      if a2_box >= 0:
-        game.event_input(AGENT2, EventType.SET_LATENT, ("goal", 0))
-      else:
-        valid_boxes = event_impl.get_valid_box_to_pickup(game)
-        if len(valid_boxes) > 0:
-          box_idx = random.choice(valid_boxes)
-          game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
-    else:
-      if a2_box < 0:
-        event_impl.change_a2_latent_based_on_a1(game)
-
   ASK_LATENT_FREQUENCY = 5
-  event_impl.action_event(msg, g_id_2_game, hold_changed, game_finished,
-                          EXP1_NAMESPACE, True, True, ASK_LATENT_FREQUENCY)
+  event_impl.action_event(msg, g_id_2_game, None, game_finished, EXP1_NAMESPACE,
+                          True, True, ASK_LATENT_FREQUENCY)
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)

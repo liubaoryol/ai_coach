@@ -6,21 +6,20 @@ from ai_coach_domain.box_push.helper import (EventType,
                                              transition_alone_and_together,
                                              transition_always_together,
                                              transition_always_alone)
+from ai_coach_domain.box_push.agent import (BoxPushSimulatorAgent,
+                                            BoxPushInteractiveAgent)
 
 Coord = Tuple[int, int]
 
 
 class BoxPushSimulator(Simulator):
-  AGENT1 = 0
+  AGENT1 = 0  # must be defined in a way that aligns with agent idx for policy
   AGENT2 = 1
 
   def __init__(self, id: Hashable, cb_transition: Callable) -> None:
     super().__init__(id)
-    self.cb_get_A1_action = None
-    self.cb_get_A2_action = None
-    self.cb_get_A1_mental_state = None
-    self.cb_get_A2_mental_state = None
-    self.cb_get_init_mental_state = None
+    self.agent_1 = None
+    self.agent_2 = None
     self.transition_fn = cb_transition
 
   def init_game(self,
@@ -44,20 +43,15 @@ class BoxPushSimulator(Simulator):
 
     self.reset_game()
 
-  def set_autonomous_agent(self,
-                           cb_get_A1_action=None,
-                           cb_get_A2_action=None,
-                           cb_get_A1_mental_state=None,
-                           cb_get_A2_mental_state=None,
-                           cb_get_init_mental_state=None):
-    self.cb_get_A1_action = cb_get_A1_action
-    self.cb_get_A2_action = cb_get_A2_action
-    self.cb_get_A1_mental_state = cb_get_A1_mental_state
-    self.cb_get_A2_mental_state = cb_get_A2_mental_state
-    self.cb_get_init_mental_state = cb_get_init_mental_state
-    if self.cb_get_init_mental_state:
-      self.a1_latent, self.a2_latent = self.cb_get_init_mental_state(
-          self.box_states, self.a1_pos, self.a2_pos)
+  def set_autonomous_agent(
+      self,
+      agent1: BoxPushSimulatorAgent = BoxPushInteractiveAgent(),
+      agent2: BoxPushSimulatorAgent = BoxPushInteractiveAgent()):
+    self.agent_1 = agent1
+    self.agent_2 = agent2
+
+    self.agent_1.init_latent(self.box_states, self.a1_pos, self.a2_pos)
+    self.agent_2.init_latent(self.box_states, self.a1_pos, self.a2_pos)
 
   def reset_game(self):
     super().reset_game()
@@ -66,14 +60,11 @@ class BoxPushSimulator(Simulator):
     self.a2_pos = self.a2_init
     # starts with their original locations
     self.box_states = [0] * len(self.boxes)
-    self.a1_action_event = None
-    self.a2_action_event = None
 
-    self.a1_latent = None
-    self.a2_latent = None
-    if self.cb_get_init_mental_state:
-      self.a1_latent, self.a2_latent = self.cb_get_init_mental_state(
-          self.box_states, self.a1_pos, self.a2_pos)
+    if self.agent_1 is not None:
+      self.agent_1.init_latent(self.box_states, self.a1_pos, self.a2_pos)
+    if self.agent_2 is not None:
+      self.agent_2.init_latent(self.box_states, self.a1_pos, self.a2_pos)
     self.changed_state = []
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
@@ -81,35 +72,30 @@ class BoxPushSimulator(Simulator):
     a1_action = None
     if BoxPushSimulator.AGENT1 in map_agent_2_action:
       a1_action = map_agent_2_action[BoxPushSimulator.AGENT1]
-
     a2_action = None
     if BoxPushSimulator.AGENT2 in map_agent_2_action:
       a2_action = map_agent_2_action[BoxPushSimulator.AGENT2]
 
     if a1_action is None and a2_action is None:
       return
-
     if a1_action is None:
       a1_action = EventType.STAY
-
     if a2_action is None:
       a2_action = EventType.STAY
 
-    a1_lat = None
-    a2_lat = None
-    if self.a1_latent is None:
+    a1_lat = self.agent_1.get_current_latent()
+    if a1_lat is None:
       a1_lat = ("NA", 0)
-    else:
-      a1_lat_0 = self.a1_latent[0] if self.a1_latent[0] is not None else "NA"
-      a1_lat_1 = self.a1_latent[1] if self.a1_latent[1] is not None else 0
-      a1_lat = (a1_lat_0, a1_lat_1)
+    a1_lat_0 = a1_lat[0] if a1_lat[0] is not None else "NA"
+    a1_lat_1 = a1_lat[1] if a1_lat[1] is not None else 0
+    a1_lat = (a1_lat_0, a1_lat_1)
 
-    if self.a2_latent is None:
+    a2_lat = self.agent_2.get_current_latent()
+    if a2_lat is None:
       a2_lat = ("NA", 0)
-    else:
-      a2_lat_0 = self.a2_latent[0] if self.a2_latent[0] is not None else "NA"
-      a2_lat_1 = self.a2_latent[1] if self.a2_latent[1] is not None else 0
-      a2_lat = (a2_lat_0, a2_lat_1)
+    a2_lat_0 = a2_lat[0] if a2_lat[0] is not None else "NA"
+    a2_lat_1 = a2_lat[1] if a2_lat[1] is not None else 0
+    a2_lat = (a2_lat_0, a2_lat_1)
 
     cur_state = [tuple(self.box_states), tuple(self.a1_pos), tuple(self.a2_pos)]
 
@@ -123,16 +109,11 @@ class BoxPushSimulator(Simulator):
     super().take_a_step(map_agent_2_action)
     self.changed_state.append("current_step")
 
-    if self.cb_get_A1_mental_state:
-      next_state = [self.box_states, self.a1_pos, self.a2_pos]
-      self.a1_latent = self.cb_get_A1_mental_state(cur_state, a1_action,
-                                                   a2_action, self.a1_latent,
-                                                   next_state)
-    if self.cb_get_A2_mental_state:
-      next_state = [self.box_states, self.a1_pos, self.a2_pos]
-      self.a2_latent = self.cb_get_A2_mental_state(cur_state, a1_action,
-                                                   a2_action, self.a2_latent,
-                                                   next_state)
+    # update mental model
+    next_state = [self.box_states, self.a1_pos, self.a2_pos]
+    tuple_actions = (a1_action, a2_action)
+    self.agent_1.update_mental_state(cur_state, tuple_actions, next_state)
+    self.agent_2.update_mental_state(cur_state, tuple_actions, next_state)
 
   def __transition(self, a1_action, a2_action):
     list_next_env = self.transition_fn(self.box_states, self.a1_pos,
@@ -166,60 +147,32 @@ class BoxPushSimulator(Simulator):
   def get_num_agents(self):
     return 2
 
-  def get_num_latents(self):
-    '''
-    in the order of each box, each drop, and each goal
-    '''
-    return len(self.boxes) + len(self.drops) + len(self.goals)
-
-  def get_latent_idx(self, type, idx):
-    if type == "box":
-      return idx
-    elif type == "drop":
-      return len(self.boxes) + idx
-    elif type == "goal":
-      return len(self.boxes) + len(self.drops) + idx
-    else:
-      return -1
-
   def event_input(self, agent: Hashable, event_type: Hashable, value):
     if (agent is None) or (event_type is None):
       return
 
     if agent == BoxPushSimulator.AGENT1:
       if event_type != EventType.SET_LATENT:
-        self.a1_action_event = event_type
+        self.agent_1.set_action(event_type)
       else:
-        self.a1_latent = value
+        self.agent_1.set_latent(value)
         self.changed_state.append("a1_latent")
     elif agent == BoxPushSimulator.AGENT2:
       if event_type != EventType.SET_LATENT:
-        self.a2_action_event = event_type
+        self.agent_2.set_action(event_type)
       else:
-        self.a2_latent = value
+        self.agent_2.set_latent(value)
         self.changed_state.append("a2_latent")
 
   def get_joint_action(self) -> Mapping[Hashable, Hashable]:
     # TODO: need to think about logic.. for now let's assume at least one agent
     # is always a human
-    # if self.a1_action_event is None and self.a2_action_event is None:
-    #   return {}
 
     map_a2a = {}
-    if self.cb_get_A1_action:
-      map_a2a[BoxPushSimulator.AGENT1] = self.cb_get_A1_action(
-          **self.get_env_info())
-    else:
-      map_a2a[BoxPushSimulator.AGENT1] = self.a1_action_event
-
-    if self.cb_get_A2_action:
-      map_a2a[BoxPushSimulator.AGENT2] = self.cb_get_A2_action(
-          **self.get_env_info())
-    else:
-      map_a2a[BoxPushSimulator.AGENT2] = self.a2_action_event
-
-    self.a1_action_event = None
-    self.a2_action_event = None
+    map_a2a[BoxPushSimulator.AGENT1] = self.agent_1.get_action(
+        self.box_states, self.a1_pos, self.a2_pos)
+    map_a2a[BoxPushSimulator.AGENT2] = self.agent_2.get_action(
+        self.box_states, self.a1_pos, self.a2_pos)
 
     return map_a2a
 
@@ -234,23 +187,21 @@ class BoxPushSimulator(Simulator):
         "walls": self.walls,
         "a1_pos": self.a1_pos,
         "a2_pos": self.a2_pos,
-        "a1_latent": self.a1_latent,
-        "a2_latent": self.a2_latent,
+        "a1_latent": self.agent_1.get_current_latent(),
+        "a2_latent": self.agent_2.get_current_latent(),
         "current_step": self.current_step
     }
 
   def get_changed_objects(self):
     dict_changed_obj = {}
     for state in self.changed_state:
-      dict_changed_obj[state] = getattr(self, state)
+      if state == "a1_latent":
+        dict_changed_obj[state] = self.agent_1.get_current_latent()
+      elif state == "a2_latent":
+        dict_changed_obj[state] = self.agent_2.get_current_latent()
+      else:
+        dict_changed_obj[state] = getattr(self, state)
     return dict_changed_obj
-    # return {
-    #     "box_states": self.box_states,
-    #     "a1_pos": self.a1_pos,
-    #     "a2_pos": self.a2_pos,
-    #     "a1_latent": self.a1_latent,
-    #     "a2_latent": self.a2_latent
-    # }
 
   def save_history(self, file_name, header):
     dir_path = os.path.dirname(file_name)
@@ -353,29 +304,32 @@ if __name__ == "__main__":
   exp1 = False
   if test:
     from ai_coach_domain.box_push.maps import TEST_MAP
-    from ai_coach_domain.box_push.policy import get_simple_action
+    from ai_coach_domain.box_push.agent import BoxPushSimpleAgent
 
     sim = BoxPushSimulator_AlwaysAlone(0)
     sim.init_game(**TEST_MAP)
+    agent1 = BoxPushSimpleAgent(0, sim.x_grid, sim.y_grid, sim.boxes, sim.goals,
+                                sim.walls, sim.drops)
+    agent2 = BoxPushSimpleAgent(1, sim.x_grid, sim.y_grid, sim.boxes, sim.goals,
+                                sim.walls, sim.drops)
 
-    sim.set_autonomous_agent(
-        cb_get_A1_action=lambda **kwargs: get_simple_action(
-            BoxPushSimulator.AGENT1, **kwargs),
-        cb_get_A2_action=lambda **kwargs: get_simple_action(
-            BoxPushSimulator.AGENT2, **kwargs))
+    sim.set_autonomous_agent(agent1=agent1, agent2=agent2)
     sim.run_simulation(1, "test_file_name", "text")
 
   if exp1:
     from ai_coach_domain.box_push.maps import EXP1_MAP
-    from ai_coach_domain.box_push.policy import get_exp1_action
+    from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team1,
+                                                BoxPushAIAgent_Team2)
+    from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyTeamExp1
     from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AlwaysTogether
 
     sim = BoxPushSimulator_AlwaysTogether(0)
     sim.init_game(**EXP1_MAP)
     mdp = BoxPushTeamMDP_AlwaysTogether(**EXP1_MAP)
+    policy1 = BoxPushPolicyTeamExp1(mdp, temperature=0.3, agent_idx=0)
+    policy2 = BoxPushPolicyTeamExp1(mdp, temperature=0.3, agent_idx=1)
+    agent1 = BoxPushAIAgent_Team1(policy1)
+    agent2 = BoxPushAIAgent_Team2(policy2)
 
-    sim.set_autonomous_agent(cb_get_A1_action=lambda **kwargs: get_exp1_action(
-        mdp, BoxPushSimulator.AGENT1, 0.3, **kwargs),
-                             cb_get_A2_action=lambda **kwargs: get_exp1_action(
-                                 mdp, BoxPushSimulator.AGENT2, 0.3, **kwargs))
+    sim.set_autonomous_agent(agent1=agent1, agent2=agent2)
     sim.run_simulation(1, "exp_file_name", "text_exp")

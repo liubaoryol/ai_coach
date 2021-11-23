@@ -1,5 +1,5 @@
 import numpy as np
-import ai_coach_core.models.latent_mdp as mdp_lib
+import ai_coach_core.models.mdp as mdp_lib
 import ai_coach_core.RL.planning as plan_lib
 from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 
