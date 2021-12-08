@@ -212,6 +212,38 @@ class LatentFrozenLakeMDP(mdp_lib.LatentMDP):
     return -np.inf
 
 
+def get_grid_v_values(mdp: LatentFrozenLakeMDP,
+                      pi=None,
+                      np_v_value_input=None,
+                      soft_pi_value=None):
+  v_table = np.zeros((mdp.width, mdp.height))
+  pi_table = np.zeros((mdp.width, mdp.height), dtype=object)
+  np_soft_pi = np.zeros((mdp.width, mdp.height, mdp.num_actions))
+  for i in range(mdp.width):
+    for j in range(mdp.height):
+      state = (i, j)
+      si = mdp.s_space.state_to_idx[state]
+      if np_v_value_input is not None:
+        v_table[i, j] = np_v_value_input[si]
+      if pi is not None:
+        if pi[si] == 0:
+          pi_table[i, j] = "Left"
+        elif pi[si] == 1:
+          pi_table[i, j] = "Down"
+        elif pi[si] == 2:
+          pi_table[i, j] = "Right"
+        elif pi[si] == 3:
+          pi_table[i, j] = "Up"
+      if soft_pi_value is not None:
+        np_soft_pi[state][:] = soft_pi_value[si, :]
+  pi_table[(1, 1)] = "Hole"
+  pi_table[(3, 1)] = "Hole"
+  pi_table[(3, 2)] = "Hole"
+  pi_table[(0, 3)] = "Hole"
+  return (pi_table.transpose(), v_table.transpose(),
+          np_soft_pi.transpose((1, 0, 2)))
+
+
 def test_value_iteration_toy():
   toy_mdp = LatentFrozenLakeMDP()
   gamma = 0.9
@@ -224,19 +256,19 @@ def test_value_iteration_toy():
         discount_factor=gamma,
         max_iteration=100,
         epsilon=0.001)
-    list_np_v_values.append(np_v_value)
 
-  true_v_values_0 = [
-      -0.01097586, 0.01453205, 0.13558896, 0.23484232, -1., -1., -1.,
-      0.72640975, 0.99582544, 0.02182906, -0.00544168, 0., 0.03216008,
-      0.33592657, -1., 0.01780635, 0.
-  ]
+    pi_table, v_table, _ = get_grid_v_values(toy_mdp, pi, np_v_value)
+    list_np_v_values.append(v_table)
 
-  true_v_values_1 = [
-      -0.10419266, 0.4472244, -0.07147478, -0.12001599, -1., -1., -1.,
-      -0.12160987, -0.2624663, 0.7730932, 0.10260667, 1., 0.38091477,
-      -0.26155562, -1., 0.62459619, 0.
-  ]
+  true_v_values_0 = [[0.23484232, 0.33592657, 0.72640975, 0.99582544],
+                     [-0.01097586, -1., 0.13558896, -1.],
+                     [-0.00544168, 0.01453205, 0.03216008, -1.],
+                     [-1., 0.01780635, 0.02182906, 0.]]
+
+  true_v_values_1 = [[-0.12001599, -0.26155562, -0.12160987, -0.2624663],
+                     [-0.10419266, -1., -0.07147478, -1.],
+                     [0.10260667, 0.4472244, 0.38091477, -1.],
+                     [-1., 0.62459619, 0.7730932, 1.]]
 
   assert np.allclose(true_v_values_0, list_np_v_values[0], atol=0.0001, rtol=0.)
   assert np.allclose(true_v_values_1, list_np_v_values[1], atol=0.0001, rtol=0.)
@@ -254,19 +286,19 @@ def test_value_iteration_toy_sparse():
         discount_factor=gamma,
         max_iteration=100,
         epsilon=0.001)
-    list_np_v_values.append(np_v_value)
 
-  true_v_values_0 = [
-      -0.01097586, 0.01453205, 0.13558896, 0.23484232, -1., -1., -1.,
-      0.72640975, 0.99582544, 0.02182906, -0.00544168, 0., 0.03216008,
-      0.33592657, -1., 0.01780635, 0.
-  ]
+    pi_table, v_table, _ = get_grid_v_values(toy_mdp, pi, np_v_value)
+    list_np_v_values.append(v_table)
 
-  true_v_values_1 = [
-      -0.10419266, 0.4472244, -0.07147478, -0.12001599, -1., -1., -1.,
-      -0.12160987, -0.2624663, 0.7730932, 0.10260667, 1., 0.38091477,
-      -0.26155562, -1., 0.62459619, 0.
-  ]
+  true_v_values_0 = [[0.23484232, 0.33592657, 0.72640975, 0.99582544],
+                     [-0.01097586, -1., 0.13558896, -1.],
+                     [-0.00544168, 0.01453205, 0.03216008, -1.],
+                     [-1., 0.01780635, 0.02182906, 0.]]
+
+  true_v_values_1 = [[-0.12001599, -0.26155562, -0.12160987, -0.2624663],
+                     [-0.10419266, -1., -0.07147478, -1.],
+                     [0.10260667, 0.4472244, 0.38091477, -1.],
+                     [-1., 0.62459619, 0.7730932, 1.]]
 
   assert np.allclose(true_v_values_0, list_np_v_values[0], atol=0.0001, rtol=0.)
   assert np.allclose(true_v_values_1, list_np_v_values[1], atol=0.0001, rtol=0.)
@@ -275,32 +307,6 @@ def test_value_iteration_toy_sparse():
 if __name__ == "__main__":
   toy_mdp = LatentFrozenLakeMDP(use_sparse=False)
   gamma = 0.9
-
-  def get_grid_v_values(pi=None, np_v_value_input=None):
-    v_table = np.zeros((toy_mdp.width, toy_mdp.height))
-    pi_table = np.zeros((toy_mdp.width, toy_mdp.height), dtype=object)
-    for i in range(toy_mdp.width):
-      for j in range(toy_mdp.height):
-        state = (i, j)
-        si = toy_mdp.s_space.state_to_idx[state]
-        if np_v_value_input is not None:
-          v_table[i, j] = np_v_value_input[si]
-        if pi is not None:
-          if pi[si] == 0:
-            pi_table[i, j] = "Left"
-          elif pi[si] == 1:
-            pi_table[i, j] = "Down"
-          elif pi[si] == 2:
-            pi_table[i, j] = "Right"
-          elif pi[si] == 3:
-            pi_table[i, j] = "Up"
-          elif pi[si] == 4:
-            pi_table[i, j] = "Stay"
-    pi_table[(1, 1)] = "Hole"
-    pi_table[(3, 1)] = "Hole"
-    pi_table[(3, 2)] = "Hole"
-    pi_table[(0, 3)] = "Hole"
-    return pi_table.transpose(), v_table.transpose()
 
   for idx in range(toy_mdp.num_latents):
     pi, np_v_value, np_q_value = plan_lib.value_iteration(
@@ -311,8 +317,6 @@ if __name__ == "__main__":
         epsilon=0.001)
 
     print("V-Value latent-%d" % (idx, ))
-    print(pi)
-    print(np_v_value)
-    pi_table, v_table = get_grid_v_values(pi, np_v_value)
+    pi_table, v_table, _ = get_grid_v_values(toy_mdp, pi, np_v_value)
     print(pi_table)
     print(v_table)

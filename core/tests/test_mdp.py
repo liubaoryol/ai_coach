@@ -203,6 +203,38 @@ class FrozenLakeMDPLargeReward(FrozenLakeMDP):
       return 0
 
 
+def get_grid_v_values(mdp: FrozenLakeMDP,
+                      pi=None,
+                      np_v_value_input=None,
+                      soft_pi_value=None):
+  v_table = np.zeros((mdp.width, mdp.height))
+  pi_table = np.zeros((mdp.width, mdp.height), dtype=object)
+  np_soft_pi = np.zeros((mdp.width, mdp.height, mdp.num_actions))
+  for i in range(mdp.width):
+    for j in range(mdp.height):
+      state = (i, j)
+      si = mdp.s_space.state_to_idx[state]
+      if np_v_value_input is not None:
+        v_table[i, j] = np_v_value_input[si]
+      if pi is not None:
+        if pi[si] == 0:
+          pi_table[i, j] = "Left"
+        elif pi[si] == 1:
+          pi_table[i, j] = "Down"
+        elif pi[si] == 2:
+          pi_table[i, j] = "Right"
+        elif pi[si] == 3:
+          pi_table[i, j] = "Up"
+      if soft_pi_value is not None:
+        np_soft_pi[state][:] = soft_pi_value[si, :]
+  pi_table[(1, 1)] = "Hole"
+  pi_table[(3, 1)] = "Hole"
+  pi_table[(3, 2)] = "Hole"
+  pi_table[(0, 3)] = "Hole"
+  return (pi_table.transpose(), v_table.transpose(),
+          np_soft_pi.transpose((1, 0, 2)))
+
+
 def test_value_iteration_toy():
   toy_mdp = FrozenLakeMDP()
 
@@ -214,29 +246,33 @@ def test_value_iteration_toy():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = [
-      -0.10419714, 0.44722222, -0.07147563, -0.12002533, -1., -1., -1.,
-      -0.12161469, -0.2624726, 0.77309292, 0.10260353, 1., 0.38091399,
-      -0.26156758, -1., 0.62459513, 0.
-  ]
-
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
-
   soft_pi = mdp_lib.softmax_policy_from_q_value(np_q_value)
-  true_soft_pi = [[0., 0.40285736, 0.24471172, 0.35243092],
-                  [0.23122445, 0.35976952, 0.27326633, 0.1357397],
-                  [0.2066682, 0.33723388, 0.2066682, 0.24942972],
-                  [0., 0.51772445, 0.48227555, 0.], [1., 0., 0., 0.],
-                  [1., 0., 0., 0.], [1., 0., 0., 0.],
-                  [0.32611822, 0.34788286, 0.32599892, 0.],
-                  [0.59753234, 0.40246766, 0., 0.],
-                  [0.31448087, 0., 0.39394004, 0.2915791],
-                  [0., 0.21878471, 0.40677427, 0.37444101], [1., 0., 0., 0.],
-                  [0.32959284, 0.33204518, 0.13832293, 0.20003904],
-                  [0.37221262, 0.25587745, 0.37190993, 0.], [1., 0., 0., 0.],
-                  [0.17069074, 0., 0.49457589, 0.33473337], [1., 0., 0., 0.]]
 
-  assert np.allclose(true_soft_pi, soft_pi, atol=0.0001, rtol=0.)
+  pi_table, v_table, soft_pi_table = get_grid_v_values(toy_mdp, pi, np_v_value,
+                                                       soft_pi)
+
+  true_v_table = [[-0.12002533, -0.26156758, -0.12161469, -0.2624726],
+                  [-0.10419714, -1., -0.07147563, -1.],
+                  [0.10260353, 0.44722222, 0.38091399, -1.],
+                  [-1., 0.62459513, 0.77309292, 1.]]
+
+  assert np.allclose(true_v_table, v_table, atol=0.0001, rtol=0.)
+
+  true_soft_pi = [[[0., 0.51772445, 0.48227555, 0.],
+                   [0.37221262, 0.25587745, 0.37190993, 0.],
+                   [0.32611822, 0.34788286, 0.32599892, 0.],
+                   [0.59753234, 0.40246766, 0., 0.]],
+                  [[0., 0.40285736, 0.24471172, 0.35243092], [1., 0., 0., 0.],
+                   [0.2066682, 0.33723388, 0.2066682, 0.24942972],
+                   [1., 0., 0., 0.]],
+                  [[0., 0.21878471, 0.40677427, 0.37444101],
+                   [0.23122445, 0.35976952, 0.27326633, 0.1357397],
+                   [0.32959284, 0.33204518, 0.13832293, 0.20003904],
+                   [1., 0., 0., 0.]],
+                  [[1., 0., 0., 0.], [0.17069074, 0., 0.49457589, 0.33473337],
+                   [0.31448087, 0., 0.39394004, 0.2915791], [1., 0., 0., 0.]]]
+
+  assert np.allclose(true_soft_pi, soft_pi_table, atol=0.0001, rtol=0.)
 
 
 def test_soft_value_iteration_toy():
@@ -250,13 +286,14 @@ def test_soft_value_iteration_toy():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = [
-      3.49651174, 4.60783148, 3.15563615, 3.90679818, -1., -1., -1., 4.0435257,
-      2.79330297, 4.61366732, 4.00216669, 1., 4.51553684, 3.51108191, -1.,
-      4.52279111, 0.
-  ]
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+  true_v_values = [[3.90679818, 3.51108191, 4.0435257, 2.79330297],
+                   [3.49651174, -1., 3.15563615, -1.],
+                   [4.00216669, 4.60783148, 4.51553684, -1.],
+                   [-1., 4.52279111, 4.61366732, 1.]]
+
+  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
 
 
 def test_policy_iteration_toy():
@@ -277,13 +314,14 @@ def test_policy_iteration_toy():
       policy_initial=policy_init,
   )
 
-  true_v_values = [
-      -0.1038797, 0.44737575, -0.07141636, -0.11934478, -1., -1., -1.,
-      -0.12141501, -0.26241833, 0.77311281, 0.10284152, 1., 0.38097357,
-      -0.26072438, -1., 0.6246746, 0.
-  ]
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+  true_v_values = [[-0.11934478, -0.26072438, -0.12141501, -0.26241833],
+                   [-0.1038797, -1., -0.07141636, -1.],
+                   [0.10284152, 0.44737575, 0.38097357, -1.],
+                   [-1., 0.6246746, 0.77311281, 1.]]
+
+  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
 
 
 def test_value_iteration_toy_sparse():
@@ -297,13 +335,14 @@ def test_value_iteration_toy_sparse():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = [
-      -0.10419714, 0.44722222, -0.07147563, -0.12002533, -1., -1., -1.,
-      -0.12161469, -0.2624726, 0.77309292, 0.10260353, 1., 0.38091399,
-      -0.26156758, -1., 0.62459513, 0.
-  ]
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+  true_v_table = [[-0.12002533, -0.26156758, -0.12161469, -0.2624726],
+                  [-0.10419714, -1., -0.07147563, -1.],
+                  [0.10260353, 0.44722222, 0.38091399, -1.],
+                  [-1., 0.62459513, 0.77309292, 1.]]
+
+  assert np.allclose(true_v_table, v_table, atol=0.0001, rtol=0.)
 
 
 def test_soft_value_iteration_toy_sparse():
@@ -317,13 +356,14 @@ def test_soft_value_iteration_toy_sparse():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = [
-      3.49651174, 4.60783148, 3.15563615, 3.90679818, -1., -1., -1., 4.0435257,
-      2.79330297, 4.61366732, 4.00216669, 1., 4.51553684, 3.51108191, -1.,
-      4.52279111, 0.
-  ]
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+  true_v_values = [[3.90679818, 3.51108191, 4.0435257, 2.79330297],
+                   [3.49651174, -1., 3.15563615, -1.],
+                   [4.00216669, 4.60783148, 4.51553684, -1.],
+                   [-1., 4.52279111, 4.61366732, 1.]]
+
+  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
 
 
 def test_policy_iteration_toy_sparse():
@@ -344,13 +384,14 @@ def test_policy_iteration_toy_sparse():
       policy_initial=policy_init,
   )
 
-  true_v_values = [
-      -0.1038797, 0.44737575, -0.07141636, -0.11934478, -1., -1., -1.,
-      -0.12141501, -0.26241833, 0.77311281, 0.10284152, 1., 0.38097357,
-      -0.26072438, -1., 0.6246746, 0.
-  ]
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+  true_v_values = [[-0.11934478, -0.26072438, -0.12141501, -0.26241833],
+                   [-0.1038797, -1., -0.07141636, -1.],
+                   [0.10284152, 0.44737575, 0.38097357, -1.],
+                   [-1., 0.6246746, 0.77311281, 1.]]
+
+  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
 
 
 def test_value_iteration_toy_large_r():
@@ -364,13 +405,14 @@ def test_value_iteration_toy_large_r():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = [
-      -10.38749348, 44.7378058, -7.14154661, -11.93329614, -100., -100., -100.,
-      -12.12675995, -26.20729746, 77.31131124, 10.28450564, 100., 38.09744522,
-      -26.07084431, -100., 62.46757813, 0.
-  ]
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+  true_v_values = [[-11.93329614, -26.07084431, -12.12675995, -26.20729746],
+                   [-10.38749348, -100., -7.14154661, -100.],
+                   [10.28450564, 44.7378058, 38.09744522, -100.],
+                   [-100., 62.46757813, 77.31131124, 100.]]
+
+  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
 
 
 def test_soft_value_iteration_toy_large_r():
@@ -384,13 +426,14 @@ def test_soft_value_iteration_toy_large_r():
       max_iteration=100,
       epsilon=0.001)
 
-  true_v_values = [
-      -10.32205029, 44.87600258, -6.84860371, -11.71808827, -100., -100., -100.,
-      -11.76685238, -25.95336616, 77.39746581, 10.37739743, 100., 38.58577821,
-      -25.12065333, -100., 62.55272753, 0.
-  ]
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  assert np.allclose(true_v_values, np_v_value, atol=0.0001, rtol=0.)
+  true_v_values = [[-11.71808827, -25.12065333, -11.76685238, -25.95336616],
+                   [-10.32205029, -100., -6.84860371, -100.],
+                   [10.37739743, 44.87600258, 38.58577821, -100.],
+                   [-100., 62.55272753, 77.39746581, 100.]]
+
+  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
 
 
 def test_transition_validity_toy():
@@ -399,39 +442,16 @@ def test_transition_validity_toy():
 
 
 if __name__ == "__main__":
-  logging.basicConfig(filename='myapp.log',
-                      level=logging.INFO,
-                      format='%(asctime)s:[%(levelname)s]%(message)s')
+  import sys
+  logging.basicConfig(  # filename='myapp.log',
+      level=logging.DEBUG,
+      stream=sys.stdout,
+      format='%(asctime)s:[%(levelname)s]%(message)s')
   logging.info("Started")
 
   toy_mdp = FrozenLakeMDP(use_sparse=False)
 
   gamma = 0.9
-
-  def get_grid_v_values(pi=None, np_v_value_input=None):
-    v_table = np.zeros((toy_mdp.width, toy_mdp.height))
-    pi_table = np.zeros((toy_mdp.width, toy_mdp.height), dtype=object)
-    for i in range(toy_mdp.width):
-      for j in range(toy_mdp.height):
-        state = (i, j)
-        si = toy_mdp.s_space.state_to_idx[state]
-        if np_v_value_input is not None:
-          v_table[i, j] = np_v_value_input[si]
-        if pi is not None:
-          if pi[si] == 0:
-            pi_table[i, j] = "Left"
-          elif pi[si] == 1:
-            pi_table[i, j] = "Down"
-          elif pi[si] == 2:
-            pi_table[i, j] = "Right"
-          elif pi[si] == 3:
-            pi_table[i, j] = "Up"
-    pi_table[(1, 1)] = "Hole"
-    pi_table[(3, 1)] = "Hole"
-    pi_table[(3, 2)] = "Hole"
-    pi_table[(0, 3)] = "Hole"
-    return pi_table.transpose(), v_table.transpose()
-
   pi, np_v_value, np_q_value = plan_lib.value_iteration(
       toy_mdp.np_transition_model,
       toy_mdp.np_reward_model,
@@ -439,15 +459,14 @@ if __name__ == "__main__":
       max_iteration=100,
       epsilon=0.001)
 
-  print("Value Iteration")
-  print(pi)
-  print(np_v_value)
-  pi_table, v_table = get_grid_v_values(pi, np_v_value)
-  print(pi_table)
-  print(v_table)
+  logging.debug("Value Iteration")
 
   soft_pi = mdp_lib.softmax_policy_from_q_value(np_q_value, temperature=1)
-  print(soft_pi)
+  pi_table, v_table, soft_pi_table = get_grid_v_values(toy_mdp, pi, np_v_value,
+                                                       soft_pi)
+  logging.debug(pi_table)
+  logging.debug(v_table)
+  logging.debug(soft_pi_table)
 
   np_v_value, np_q_value = plan_lib.soft_value_iteration(
       toy_mdp.np_transition_model,
@@ -459,11 +478,10 @@ if __name__ == "__main__":
 
   pi = mdp_lib.deterministic_policy_from_q_value(np_q_value)
 
-  print("Soft Value Iteration")
-  print(np_v_value)
-  pi_table, v_table = get_grid_v_values(pi, np_v_value)
-  print(pi_table)
-  print(v_table)
+  logging.debug("Soft Value Iteration")
+  pi_table, v_table, _ = get_grid_v_values(toy_mdp, pi, np_v_value)
+  logging.debug(pi_table)
+  logging.debug(v_table)
 
   policy_init = np.zeros(toy_mdp.num_states, dtype=int)
   for idx in range(toy_mdp.num_states):
@@ -479,12 +497,10 @@ if __name__ == "__main__":
       policy_initial=policy_init,
   )
 
-  print("Policy Iteration")
-  print(pi)
-  print(np_v_value)
-  pi_table, v_table = get_grid_v_values(pi, np_v_value)
-  print(pi_table)
-  print(v_table)
+  logging.debug("Policy Iteration")
+  pi_table, v_table, _ = get_grid_v_values(toy_mdp, pi, np_v_value)
+  logging.debug(pi_table)
+  logging.debug(v_table)
 
   toy_mdp_large_reward = FrozenLakeMDPLargeReward(use_sparse=False)
 
@@ -495,12 +511,10 @@ if __name__ == "__main__":
       max_iteration=100,
       epsilon=0.001)
 
-  print("Value Iteration-large")
-  print(pi)
-  print(np_v_value)
-  pi_table, v_table = get_grid_v_values(pi, np_v_value)
-  print(pi_table)
-  print(v_table)
+  logging.debug("Value Iteration-large")
+  pi_table, v_table, _ = get_grid_v_values(toy_mdp_large_reward, pi, np_v_value)
+  logging.debug(pi_table)
+  logging.debug(v_table)
 
   np_v_value, np_q_value = plan_lib.soft_value_iteration(
       toy_mdp_large_reward.np_transition_model,
@@ -512,8 +526,7 @@ if __name__ == "__main__":
 
   pi = mdp_lib.deterministic_policy_from_q_value(np_q_value)
 
-  print("Soft Value Iteration-large")
-  print(np_v_value)
-  pi_table, v_table = get_grid_v_values(pi, np_v_value)
-  print(pi_table)
-  print(v_table)
+  logging.debug("Soft Value Iteration-large")
+  pi_table, v_table, _ = get_grid_v_values(toy_mdp_large_reward, pi, np_v_value)
+  logging.debug(pi_table)
+  logging.debug(v_table)
