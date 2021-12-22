@@ -1,7 +1,9 @@
+from typing import List
 import glob
 import os
-import random
 import pickle
+import tempfile
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,6 +14,8 @@ from ai_coach_core.latent_inference.most_probable_sequence import (
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence)
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
+from ai_coach_core.model_inference.sb3_algorithms import (behavior_cloning_sb3,
+                                                          gail_on_agent)
 
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
@@ -23,7 +27,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
 TEMPERATURE = 1
 
 IS_TEST = False
-IS_TEAM = True
+IS_TEAM = False
 
 if IS_TEST:
   GAME_MAP = bp_maps.TEST_MAP
@@ -57,6 +61,8 @@ def cal_policy_kl_error(mdp_agent: BoxPushAgentMDP, trajectories, cb_pi_true,
     count = 0
     for traj in trajs:
       for s, joint_a, joint_x in traj:
+        if joint_x[0] is None or joint_x[1] is None:
+          continue
         rel_freq_a1[joint_x[0], s] += 1
         rel_freq_a2[joint_x[1], s] += 1
         count += 1
@@ -123,30 +129,275 @@ def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
   return np_results
 
 
-loaded_transition_model = None
+g_loaded_transition_model = None
 
 
-def transition_s(sidx, aidx1, aidx2, sidx_n):
-  global loaded_transition_model
-  if loaded_transition_model is None:
+def transition_s(sidx, aidx1, aidx2, sidx_n=None):
+  global g_loaded_transition_model
+  if g_loaded_transition_model is None:
     pickle_trans_s = os.path.join(DATA_DIR, SAVE_PREFIX + "_mdp.pickle")
     if os.path.exists(pickle_trans_s):
       with open(pickle_trans_s, 'rb') as handle:
-        loaded_transition_model = pickle.load(handle)
+        g_loaded_transition_model = pickle.load(handle)
       print("transition_s loaded by pickle")
     else:
-      loaded_transition_model = MDP_TASK.np_transition_model
+      g_loaded_transition_model = MDP_TASK.np_transition_model
       print("save transition_s by pickle")
       with open(pickle_trans_s, 'wb') as handle:
-        pickle.dump(loaded_transition_model,
+        pickle.dump(g_loaded_transition_model,
                     handle,
                     protocol=pickle.HIGHEST_PROTOCOL)
 
   # mdp_task.np_transition_model
   aidx_team = MDP_TASK.np_action_to_idx[aidx1, aidx2]
-  p = loaded_transition_model[sidx, aidx_team, sidx_n]
-  # p = MDP_TASK.np_transition_model[sidx, aidx_team, sidx_n]
-  return p
+  if sidx_n is None:
+    return g_loaded_transition_model[sidx, aidx_team].todense()
+  else:
+    p = g_loaded_transition_model[sidx, aidx_team, sidx_n]
+    # p = MDP_TASK.np_transition_model[sidx, aidx_team, sidx_n]
+    return p
+
+
+class TrueModelConverter:
+  def __init__(self, agent1: bp_agent.BoxPushAIAgent_Abstract,
+               agent2: bp_agent.BoxPushAIAgent_Abstract, num_latents) -> None:
+    self.agent1 = agent1
+    self.agent2 = agent2
+    self.num_latents = num_latents
+
+  def get_true_policy(self, agent_idx, latent_idx, state_idx):
+    if agent_idx == 0:
+      return self.agent1.policy_from_task_mdp_POV(state_idx, latent_idx)
+    else:
+      return self.agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
+
+  def get_true_Tx_nxsas(self, agent_idx, latent_idx, state_idx,
+                        tuple_action_idx, next_state_idx):
+    if agent_idx == 0:
+      return self.agent1.transition_model_from_task_mdp_POV(
+          latent_idx, state_idx, tuple_action_idx, next_state_idx)
+    else:
+      return self.agent2.transition_model_from_task_mdp_POV(
+          latent_idx, state_idx, tuple_action_idx, next_state_idx)
+
+  def get_init_latent_dist(self, agent_idx, state_idx):
+    if agent_idx == 0:
+      return self.agent1.init_latent_dist_from_task_mdp_POV(state_idx)
+    else:
+      return self.agent2.init_latent_dist_from_task_mdp_POV(state_idx)
+
+  def true_Tx_for_var_infer(self, agent_idx, state_idx, action1_idx,
+                            action2_idx, next_state_idx):
+    joint_action = (action1_idx, action2_idx)
+    np_Txx = np.zeros((self.num_latents, self.num_latents))
+    for xidx in range(self.num_latents):
+      np_Txx[xidx, :] = self.get_true_Tx_nxsas(agent_idx, xidx, state_idx,
+                                               joint_action, next_state_idx)
+
+    return np_Txx
+
+
+class VarInfConverter:
+  def __init__(self, var_inf_obj: VarInferDuo) -> None:
+    self.var_inf_obj = var_inf_obj
+
+  def policy_nxs(self, agent_idx, latent_idx, state_idx):
+    return self.var_inf_obj.list_np_policy[agent_idx][latent_idx, state_idx]
+
+  def Tx_nxsas(self, agent_idx, latent_idx, state_idx, tuple_action_idx,
+               next_state_idx):
+    return self.var_inf_obj.get_Tx(agent_idx, state_idx, tuple_action_idx[0],
+                                   tuple_action_idx[1],
+                                   next_state_idx)[latent_idx]
+
+
+class Trajectories:
+  EPISODE_END = -1
+  DUMMY = -2
+
+  def __init__(self, tuple_num_sax_factors, num_latents) -> None:
+    self.list_np_trajectory = []  # type: List[np.ndarray]
+    self.num_latents = num_latents
+
+    # TODO: make more generic
+    self.num_state_factors = tuple_num_sax_factors[0]
+    self.num_action_factors = tuple_num_sax_factors[1]
+    self.num_latent_factors = tuple_num_sax_factors[2]
+
+  def get_width(self):
+    return (self.num_state_factors + self.num_action_factors +
+            self.num_latent_factors)
+
+  def is_episode_end(self, np_row):
+    '''
+    can be the terminal of episode or
+    just a normal state in case episode ended early due to max step count
+    '''
+    return np_row[self.num_state_factors] == Trajectories.EPISODE_END
+
+  def get_as_row_lists(self, no_latent_label: bool, include_terminal: bool):
+    list_list_SAX = []
+    for np_trj in self.list_np_trajectory:
+      list_SAX = []
+      for idx in range(np_trj.shape[0]):
+        list_tmp = []
+        # TODO: make more generic
+        # state
+        start_idx, end_idx = 0, self.num_state_factors
+        if self.num_state_factors == 1:
+          list_tmp.append(np_trj[idx][start_idx:end_idx][0])
+        else:
+          list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
+
+        if self.is_episode_end(np_trj[idx]):
+          if include_terminal:
+            list_tmp.append(None)
+            list_tmp.append(None)
+          else:
+            break
+        else:
+          # action
+          start_idx, end_idx = end_idx, end_idx + self.num_action_factors
+          if self.num_action_factors == 1:
+            list_tmp.append(np_trj[idx][start_idx:end_idx][0])
+          else:
+            list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
+          # latent
+          if no_latent_label:
+            if self.num_latent_factors == 1:
+              list_tmp.append(None)
+            else:
+              list_tmp.append((None, ) * self.num_latent_factors)
+          else:
+            start_idx, end_idx = end_idx, end_idx + self.num_latent_factors
+            if self.num_latent_factors == 1:
+              list_tmp.append(np_trj[idx][start_idx:end_idx][0])
+            else:
+              list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
+
+        list_SAX.append(list_tmp)
+      list_list_SAX.append(list_SAX)
+    return list_list_SAX
+
+  def get_as_column_lists(self, include_terminal: bool):
+    list_trajectories = []
+    for np_trj in self.list_np_trajectory:
+      is_terminal = self.is_episode_end(np_trj[-1, :])
+
+      row_end_idx = (-1 if is_terminal and not include_terminal else
+                     np_trj.shape[0])
+      start_idx, end_idx = 0, self.num_state_factors
+      if self.num_state_factors == 1:
+        list_states = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
+      else:
+        list_states = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
+
+      row_end_idx = -1 if is_terminal else np_trj.shape[0]
+      start_idx, end_idx = end_idx, end_idx + self.num_action_factors
+      if self.num_action_factors == 1:
+        list_actions = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
+      else:
+        list_actions = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
+
+      start_idx, end_idx = end_idx, end_idx + self.num_latent_factors
+      if self.num_latent_factors == 1:
+        list_latents = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
+      else:
+        list_latents = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
+
+      list_trajectories.append([list_states, list_actions, list_latents])
+
+    return list_trajectories
+
+  def get_trajectories_fragmented_by_latent(self,
+                                            include_next_state: bool,
+                                            num_training_samples=None):
+    '''
+    num_training_samples: set the number of trajectories to use for training
+                          if None, all data are assumed to be used
+    return: trajectories fragmented by latents for each agent
+            can be accessed as list_name[agent][latent][trajectory][time_step]
+    only works when num_action_factors == num_latent_factors
+    '''
+    num_samples = (len(self.list_np_trajectory)
+                   if num_training_samples is None else num_training_samples)
+
+    list_by_agent = []
+    idx_lat_start = self.num_state_factors + self.num_action_factors
+    for nidx in range(self.num_action_factors):
+      list_lat = [list() for dummy in range(self.num_latents)]
+      for np_trj in self.list_np_trajectory[:num_samples]:
+        if np_trj.shape[0] < 2:
+          continue
+
+        list_frag_trj = []
+        for tidx in range(np_trj.shape[0] - 1):
+          tidx_n = tidx + 1
+
+          np_sidx = np_trj[tidx, 0:self.num_state_factors]
+          sidx = np_sidx[0] if self.num_state_factors == 1 else tuple(np_sidx)
+
+          np_sidx_n = np_trj[tidx_n, 0:self.num_state_factors]
+          sidx_n = (np_sidx_n[0]
+                    if self.num_state_factors == 1 else tuple(np_sidx_n))
+
+          aidx = np_trj[tidx, self.num_state_factors + nidx]
+          aidx_n = np_trj[tidx_n, self.num_state_factors + nidx]
+
+          xidx = np_trj[tidx, idx_lat_start + nidx]
+          xidx_n = np_trj[tidx_n, idx_lat_start + nidx]
+
+          list_frag_trj.append((sidx, aidx))
+          if xidx != xidx_n:
+            if include_next_state:
+              if self.is_episode_end(np_trj[tidx_n]):
+                list_frag_trj.append((sidx_n, Trajectories.EPISODE_END))
+              else:
+                list_frag_trj.append((sidx_n, Trajectories.DUMMY))
+
+            list_lat[xidx].append(list_frag_trj)
+            list_frag_trj = []
+          # handle the last element if not handled yet
+          # this cannot be terminal as the case is already handled above
+          elif tidx == np_trj.shape[0] - 2:
+            if include_next_state:
+              list_frag_trj.append((sidx_n, Trajectories.DUMMY))
+            else:
+              list_frag_trj.append((sidx_n, aidx_n))
+            list_lat[xidx].append(list_frag_trj)
+
+      list_by_agent.append(list_lat)
+    return list_by_agent
+
+
+class BoxPushTrajectories(Trajectories):
+  def __init__(self, num_latents) -> None:
+    super().__init__(tuple_num_sax_factors=(1, 2, 2), num_latents=num_latents)
+
+  def load_from_files(self, file_names):
+    for file_nm in file_names:
+      trj = BoxPushSimulator.read_file(file_nm)
+      if len(trj) == 0:
+        continue
+
+      np_trj = np.zeros((len(trj), self.get_width()), dtype=np.int32)
+      for tidx, vec_state_action in enumerate(trj):
+        bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = vec_state_action
+
+        sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(a1pos, a2pos, bstt)
+        aidx1 = (MDP_TASK.a1_a_space.action_to_idx[a1act]
+                 if a1act is not None else Trajectories.EPISODE_END)
+        aidx2 = (MDP_TASK.a2_a_space.action_to_idx[a2act]
+                 if a2act is not None else Trajectories.EPISODE_END)
+
+        xidx1 = (MDP_AGENT.latent_space.state_to_idx[a1lat]
+                 if a1lat is not None else Trajectories.EPISODE_END)
+        xidx2 = (MDP_AGENT.latent_space.state_to_idx[a2lat]
+                 if a2lat is not None else Trajectories.EPISODE_END)
+
+        np_trj[tidx, :] = [sidx, aidx1, aidx2, xidx1, xidx2]
+
+      self.list_np_trajectory.append(np_trj)
 
 
 if __name__ == "__main__":
@@ -169,51 +420,7 @@ if __name__ == "__main__":
 
   sim.set_autonomous_agent(agent1, agent2)
 
-  def get_true_policy(agent_idx, latent_idx, state_idx):
-    if agent_idx == 0:
-      return agent1.policy_from_task_mdp_POV(state_idx, latent_idx)
-    else:
-      return agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
-
-  def get_true_Tx_nxsas(agent_idx, latent_idx, state_idx, tuple_action_idx,
-                        next_state_idx):
-    if agent_idx == 0:
-      return agent1.transition_model_from_task_mdp_POV(latent_idx, state_idx,
-                                                       tuple_action_idx,
-                                                       next_state_idx)
-    else:
-      return agent2.transition_model_from_task_mdp_POV(latent_idx, state_idx,
-                                                       tuple_action_idx,
-                                                       next_state_idx)
-
-  def get_init_latent_dist(agent_idx, state_idx):
-    if agent_idx == 0:
-      return agent1.init_latent_dist_from_task_mdp_POV(state_idx)
-    else:
-      return agent2.init_latent_dist_from_task_mdp_POV(state_idx)
-
-  def true_Tx_for_var_infer(agent_idx, state_idx, action1_idx, action2_idx,
-                            next_state_idx):
-    joint_action = (action1_idx, action2_idx)
-    np_Txx = np.zeros((MDP_AGENT.num_latents, MDP_AGENT.num_latents))
-    for xidx in range(MDP_AGENT.num_latents):
-      np_Txx[xidx, :] = get_true_Tx_nxsas(agent_idx, xidx, state_idx,
-                                          joint_action, next_state_idx)
-
-    return np_Txx
-
-  class VarInfConverter:
-    def __init__(self, var_inf_obj: VarInferDuo) -> None:
-      self.var_inf_obj = var_inf_obj
-
-    def policy_nxs(self, agent_idx, latent_idx, state_idx):
-      return self.var_inf_obj.list_np_policy[agent_idx][latent_idx, state_idx]
-
-    def Tx_nxsas(self, agent_idx, latent_idx, state_idx, tuple_action_idx,
-                 next_state_idx):
-      return self.var_inf_obj.get_Tx(agent_idx, state_idx, tuple_action_idx[0],
-                                     tuple_action_idx[1],
-                                     next_state_idx)[latent_idx]
+  true_methods = TrueModelConverter(agent1, agent2, MDP_AGENT.num_latents)
 
   # generate data
   #############################################################################
@@ -221,12 +428,19 @@ if __name__ == "__main__":
   GEN_TEST_SET = False
 
   SHOW_TRUE = False
-  SHOW_SL_SMALL = False
-  SHOW_SL_LARGE = True
-  SHOW_SEMI = True
 
-  BC = True
-  VI_TRAIN = SHOW_TRUE or SHOW_SL_SMALL or SHOW_SL_LARGE or SHOW_SEMI or BC
+  BC = False
+  TEST_SB3_BC = False
+
+  SHOW_SL = True
+  SL_TRUE_TX = False
+
+  SHOW_SEMI = False
+  SEMI_TRUE_TX = False
+
+  GAIL = False
+
+  VI_TRAIN = SHOW_TRUE or SHOW_SL or SHOW_SEMI or BC or GAIL
 
   PLOT = False
 
@@ -239,14 +453,12 @@ if __name__ == "__main__":
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
     for fmn in file_names:
       os.remove(fmn)
-
     sim.run_simulation(200, os.path.join(TRAIN_DIR, train_prefix), "header")
 
   if GEN_TEST_SET:
     file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
     for fmn in file_names:
       os.remove(fmn)
-
     sim.run_simulation(100, os.path.join(TEST_DIR, test_prefix), "header")
 
   # train variational inference
@@ -256,73 +468,24 @@ if __name__ == "__main__":
 
     # load train set
     ##################################################
-    len_max = 0
-    len_min = 99999
-    len_tot = 0
-    traj_labeled_ver = []  # labels
-    traj_unlabel_ver = []  # no labels
-    traj_random_ver = []  # each time step is randomly labeled
-    # traj_critical_ver = []  # labeled only at the critical points
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
-    for idx, file_nm in enumerate(file_names):
-      trj = BoxPushSimulator.read_file(file_nm)
-      trj_labeled = []
-      trj_unlabel = []
-      trj_random = []
-      # traj_critical = []
-      for bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat in trj:
-        sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(a1pos, a2pos, bstt)
-        aidx1 = MDP_TASK.a1_a_space.action_to_idx[a1act]
-        aidx2 = MDP_TASK.a2_a_space.action_to_idx[a2act]
 
-        # # to remove labels
-        xidx1 = MDP_AGENT.latent_space.state_to_idx[a1lat]
-        xidx2 = MDP_AGENT.latent_space.state_to_idx[a2lat]
+    train_data = BoxPushTrajectories(MDP_AGENT.num_latents)
+    train_data.load_from_files(file_names)
+    traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
+                                                   include_terminal=False)
+    traj_unlabel_ver = train_data.get_as_row_lists(no_latent_label=True,
+                                                   include_terminal=False)
 
-        trj_labeled.append([sidx, (aidx1, aidx2), (xidx1, xidx2)])
-        trj_unlabel.append([sidx, (aidx1, aidx2), (None, None)])
-        xidx1_r = xidx1
-        xidx2_r = xidx2
-        if random.uniform(0, 1) < 0.5:
-          xidx1_r = None
-          xidx2_r = None
-        trj_random.append([sidx, (aidx1, aidx2), (xidx1_r, xidx2_r)])
-
-      if len(trj_labeled) > len_max:
-        len_max = len(trj_labeled)
-      if len(trj_labeled) < len_min:
-        len_min = len(trj_labeled)
-      len_tot += len(trj_labeled)
-
-      traj_labeled_ver.append(trj_labeled)
-      traj_unlabel_ver.append(trj_unlabel)
-      traj_random_ver.append(trj_random)
     print(len(traj_labeled_ver))
 
     # load test set
     ##################################################
     test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
-    # test_file_names = [test_file_names[0]]
-    test_traj = []
-    for idx, file_nm in enumerate(test_file_names):
-      trj = BoxPushSimulator.read_file(file_nm)
-      traj_states = []
-      traj_actions = []
-      traj_labels = []
-      # traj_critical = []
-      for bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat in trj:
-        sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(a1pos, a2pos, bstt)
-        traj_states.append(sidx)
 
-        aidx1 = MDP_TASK.a1_a_space.action_to_idx[a1act]
-        aidx2 = MDP_TASK.a2_a_space.action_to_idx[a2act]
-        traj_actions.append((aidx1, aidx2))
-
-        xidx1 = MDP_AGENT.latent_space.state_to_idx[a1lat]
-        xidx2 = MDP_AGENT.latent_space.state_to_idx[a2lat]
-        traj_labels.append((xidx1, xidx2))
-
-      test_traj.append([traj_states, traj_actions, traj_labels])
+    test_data = BoxPushTrajectories(MDP_AGENT.num_latents)
+    test_data.load_from_files(test_file_names)
+    test_traj = test_data.get_as_column_lists(include_terminal=False)
     print(len(test_traj))
 
     # true policy and transition
@@ -337,24 +500,24 @@ if __name__ == "__main__":
       BETA_TX2 = 1.01
     print("beta: %f, %f, %f" % (BETA_PI, BETA_TX1, BETA_TX2))
 
-    num_a1_action, num_a2_action = ((MDP_AGENT.a1_a_space.num_actions,
-                                     MDP_AGENT.a2_a_space.num_actions)
-                                    if IS_TEAM else (MDP_AGENT.num_actions,
-                                                     MDP_AGENT.num_actions))
-    joint_action_num = (num_a1_action, num_a2_action)
+    joint_action_num = ((MDP_AGENT.a1_a_space.num_actions,
+                         MDP_AGENT.a2_a_space.num_actions) if IS_TEAM else
+                        (MDP_AGENT.num_actions, MDP_AGENT.num_actions))
 
     # True policy
     if SHOW_TRUE:
       print("#########")
       print("True")
       print("#########")
-      np_results = get_result(get_true_policy, get_true_Tx_nxsas,
-                              get_init_latent_dist, test_traj)
+      np_results = get_result(true_methods.get_true_policy,
+                              true_methods.get_true_Tx_nxsas,
+                              true_methods.get_init_latent_dist, test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
 
       kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                     get_true_policy, get_true_policy)
+                                     true_methods.get_true_policy,
+                                     true_methods.get_true_policy)
 
       print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
       print("kl1, kl2: %f,%f" % (kl1, kl2))
@@ -364,38 +527,148 @@ if __name__ == "__main__":
     # ax2 = fig1.add_subplot(132)
     # ax3 = fig1.add_subplot(133)
 
-    list_idx_small = [20, 50, 100]
+    list_idx = [20, 50, 100, len(traj_labeled_ver)]
 
-    print(list_idx_small)
-    # supervised with small samples
-    if SHOW_SL_SMALL:
-      for idx in list_idx_small:
+    print(list_idx)
+    if BC:
+      for idx in list_idx:
         print("#########")
-        print("Small %d" % (idx, ))
+        print("BC %d" % (idx, ))
         print("#########")
-        var_inf_small = VarInferDuo(traj_labeled_ver[0:idx],
-                                    MDP_TASK.num_states,
-                                    MDP_AGENT.num_latents,
-                                    joint_action_num,
-                                    transition_s,
-                                    trans_x_dependency=(True, True, True,
-                                                        False))
-        var_inf_small.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-        var_inf_small.set_bx_and_Tx(cb_bx=get_init_latent_dist,
-                                    cb_Tx=true_Tx_for_var_infer)
-        # var_inf_small.set_bx_and_Tx(cb_bx=initial_latent_pr)
-        var_inf_small.do_inference()
 
-        var_inf_small_conv = VarInfConverter(var_inf_small)
-        np_results = get_result(var_inf_small_conv.policy_nxs,
-                                var_inf_small_conv.Tx_nxsas,
-                                get_init_latent_dist, test_traj)
+        pi_a1 = np.zeros(
+            (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[0]))
+        pi_a2 = np.zeros(
+            (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
+
+        if TEST_SB3_BC:
+          list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
+              include_next_state=True, num_training_samples=idx)
+
+          for xidx in range(MDP_AGENT.num_latents):
+            pi_a1[xidx] = behavior_cloning_sb3(list_frag_traj[0][xidx],
+                                               MDP_AGENT.num_states,
+                                               joint_action_num[0])
+            pi_a2[xidx] = behavior_cloning_sb3(list_frag_traj[1][xidx],
+                                               MDP_AGENT.num_states,
+                                               joint_action_num[1])
+        else:
+          list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
+              include_next_state=False, num_training_samples=idx)
+
+          for xidx in range(MDP_AGENT.num_latents):
+            pi_a1[xidx] = behavior_cloning(list_frag_traj[0][xidx],
+                                           MDP_AGENT.num_states,
+                                           joint_action_num[0])
+            pi_a2[xidx] = behavior_cloning(list_frag_traj[1][xidx],
+                                           MDP_AGENT.num_states,
+                                           joint_action_num[1])
+        list_pi_bc = [pi_a1, pi_a2]
+
+        def bc_policy_nxs(agent_idx, latent_idx, state_idx):
+          return list_pi_bc[agent_idx][latent_idx, state_idx]
+
+        np_results = get_result(bc_policy_nxs, true_methods.get_true_Tx_nxsas,
+                                true_methods.get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
 
         kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                       get_true_policy,
-                                       var_inf_small_conv.policy_nxs)
+                                       true_methods.get_true_policy,
+                                       bc_policy_nxs)
+        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+        print("kl1, kl2: %f,%f" % (kl1, kl2))
+
+    if GAIL:
+      tempdir = tempfile.TemporaryDirectory(prefix="gail")
+      tempdir_path = pathlib.Path(tempdir.name)
+
+      list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
+          include_next_state=True, num_training_samples=None)
+
+      def transition_for_gail_agent_1(sidx, aidx):
+        aidx2 = np.random.choice(joint_action_num[1])
+        next_sidx_dist = transition_s(sidx, aidx, aidx2)
+        sidx_n = np.random.choice(MDP_TASK.num_states, p=next_sidx_dist)
+        return sidx_n
+
+      def transition_for_gail_agent_2(sidx, aidx):
+        aidx1 = np.random.choice(joint_action_num[0])
+        next_sidx_dist = transition_s(sidx, aidx1, aidx)
+        sidx_n = np.random.choice(MDP_TASK.num_states, p=next_sidx_dist)
+        return sidx_n
+
+      def is_terminal(sidx):
+        return MDP_TASK.is_terminal(sidx)
+
+      init_sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(
+          sim.a1_init, sim.a2_init, [0] * len(GAME_MAP["boxes"]))
+
+      pi_a1 = np.zeros(
+          (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[0]))
+      pi_a2 = np.zeros(
+          (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
+      for xidx in range(MDP_AGENT.num_latents):
+        log_path = tempdir_path / ("A1_x" + str(xidx))
+        pi_a1[xidx] = gail_on_agent(MDP_AGENT.num_states, joint_action_num[0],
+                                    transition_for_gail_agent_1, is_terminal,
+                                    init_sidx, list_frag_traj[0][xidx],
+                                    Trajectories.EPISODE_END, log_path)
+        log_path = tempdir_path / ("A2_x" + str(xidx))
+        pi_a2[xidx] = gail_on_agent(MDP_AGENT.num_states, joint_action_num[1],
+                                    transition_for_gail_agent_2, is_terminal,
+                                    init_sidx, list_frag_traj[1][xidx],
+                                    Trajectories.EPISODE_END, log_path)
+        print("Done %d-th latent" % xidx)
+      list_pi_gail = [pi_a1, pi_a2]
+
+      def gail_policy_nxs(agent_idx, latent_idx, state_idx):
+        return list_pi_gail[agent_idx][latent_idx, state_idx]
+
+      np_results = get_result(gail_policy_nxs, true_methods.get_true_Tx_nxsas,
+                              true_methods.get_init_latent_dist, test_traj)
+      avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      std1, std2, std3 = np.std(np_results, axis=0)
+
+      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+                                     true_methods.get_true_policy,
+                                     gail_policy_nxs)
+      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+      print("kl1, kl2: %f,%f" % (kl1, kl2))
+
+    # supervised variational inference
+    if SHOW_SL:
+      for idx in list_idx:
+        print("#########")
+        print("SL with %d" % (idx, ))
+        print("#########")
+        var_inf_sl = VarInferDuo(traj_labeled_ver[0:idx],
+                                 MDP_TASK.num_states,
+                                 MDP_AGENT.num_latents,
+                                 joint_action_num,
+                                 transition_s,
+                                 trans_x_dependency=(True, True, True, False))
+        var_inf_sl.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
+        if SL_TRUE_TX:
+          print("Train with true Tx")
+          var_inf_sl.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
+                                   cb_Tx=true_methods.true_Tx_for_var_infer)
+        else:
+          print("Train without true Tx")
+          var_inf_sl.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
+
+        var_inf_sl.do_inference()
+
+        var_inf_sl_conv = VarInfConverter(var_inf_sl)
+        np_results = get_result(var_inf_sl_conv.policy_nxs,
+                                var_inf_sl_conv.Tx_nxsas,
+                                true_methods.get_init_latent_dist, test_traj)
+        avg1, avg2, avg3 = np.mean(np_results, axis=0)
+        std1, std2, std3 = np.std(np_results, axis=0)
+
+        kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+                                       true_methods.get_true_policy,
+                                       var_inf_sl_conv.policy_nxs)
 
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
         print("kl1, kl2: %f,%f" % (kl1, kl2))
@@ -404,87 +677,10 @@ if __name__ == "__main__":
       # ax2.plot(list_res2, 'r')
       # ax3.plot(list_res3, 'r')
       # plt.show()
-    if BC:
-      for idx in list_idx_small:
-        print("#########")
-        print("BC %d" % (idx, ))
-        print("#########")
-        num_latent = MDP_AGENT.num_latents
-        list_a1_by_x = [[] for dummy_id in range(num_latent)]
-        list_a2_by_x = [[] for dummy_id in range(num_latent)]
 
-        #  [sidx, (aidx1, aidx2), (xidx1, xidx2)]
-        for tj in traj_labeled_ver[0:idx]:
-          for sidx, (aidx1, aidx2), (xidx1, xidx2) in tj:
-            list_a1_by_x[xidx1].append((sidx, aidx1))
-            list_a2_by_x[xidx2].append((sidx, aidx2))
-
-        pi_a1 = np.zeros(
-            (num_latent, MDP_AGENT.num_states, joint_action_num[0]))
-        pi_a2 = np.zeros(
-            (num_latent, MDP_AGENT.num_states, joint_action_num[1]))
-        for xidx in range(num_latent):
-          pi_a1[xidx] = behavior_cloning([list_a1_by_x[xidx]],
-                                         MDP_AGENT.num_states,
-                                         joint_action_num[0])
-          pi_a2[xidx] = behavior_cloning([list_a2_by_x[xidx]],
-                                         MDP_AGENT.num_states,
-                                         joint_action_num[1])
-        list_pi_bc = [pi_a1, pi_a2]
-
-        def bc_policy_nxs(agent_idx, latent_idx, state_idx):
-          return list_pi_bc[agent_idx][latent_idx, state_idx]
-
-        np_results = get_result(bc_policy_nxs, get_true_Tx_nxsas,
-                                get_init_latent_dist, test_traj)
-        avg1, avg2, avg3 = np.mean(np_results, axis=0)
-        std1, std2, std3 = np.std(np_results, axis=0)
-
-        kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                       get_true_policy, bc_policy_nxs)
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
-
-    # supervised with large samples
-    if SHOW_SL_LARGE:
-      print("#########")
-      print("Large")
-      print("#########")
-      var_inf_large = VarInferDuo(traj_labeled_ver,
-                                  MDP_TASK.num_states,
-                                  MDP_AGENT.num_latents,
-                                  joint_action_num,
-                                  transition_s,
-                                  trans_x_dependency=(True, True, True, False))
-      var_inf_large.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-      var_inf_large.set_bx_and_Tx(cb_bx=get_init_latent_dist,
-                                  cb_Tx=true_Tx_for_var_infer)
-      # var_inf_large.set_bx_and_Tx(cb_bx=init_latent_dist)
-      var_inf_large.do_inference()
-
-      var_inf_large_conv = VarInfConverter(var_inf_large)
-      np_results = get_result(var_inf_large_conv.policy_nxs,
-                              var_inf_large_conv.Tx_nxsas, get_init_latent_dist,
-                              test_traj)
-      avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      std1, std2, std3 = np.std(np_results, axis=0)
-
-      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                     get_true_policy,
-                                     var_inf_large_conv.policy_nxs)
-      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-      print("kl1, kl2: %f,%f" % (kl1, kl2))
-
-      # ax1.plot(list_res1)
-      # ax2.plot(list_res2)
-      # ax3.plot(list_res3)
-      # plt.show()
-
-      # print(mdp_agent.num_latents)
-
-    # supervised with large samples
+    # semi-supervised
     if SHOW_SEMI:
-      for idx in list_idx_small:
+      for idx in list_idx[:-1]:
         print("#########")
         print("Semi %d" % (idx, ))
         print("#########")
@@ -499,75 +695,44 @@ if __name__ == "__main__":
                                    epsilon=0.01,
                                    max_iteration=100)
         var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-        var_inf_semi.set_bx_and_Tx(cb_bx=get_init_latent_dist,
-                                   cb_Tx=true_Tx_for_var_infer)
-        # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr)
 
-        # save_name = SAVE_PREFIX + "_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
-        #                                                   BETA_TX2)
-        # save_path = os.path.join(DATA_DIR, save_name)
-        # var_inf_semi.set_load_save_file_name(save_path)
+        if SEMI_TRUE_TX:
+          print("Train with true Tx")
+          var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
+                                     cb_Tx=true_methods.true_Tx_for_var_infer)
+        else:
+          print("Train without true Tx")
+          var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
+
+          save_name = SAVE_PREFIX + "_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
+                                                            BETA_TX2)
+          save_path = os.path.join(DATA_DIR, save_name)
+          var_inf_semi.set_load_save_file_name(save_path)
+
         var_inf_semi.do_inference()
 
         var_inf_semi_conv = VarInfConverter(var_inf_semi)
-        np_results = get_result(var_inf_semi_conv.policy_nxs,
-                                var_inf_semi_conv.Tx_nxsas,
-                                get_init_latent_dist, test_traj)
-        avg1, avg2, avg3 = np.mean(np_results, axis=0)
-        std1, std2, std3 = np.std(np_results, axis=0)
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+        if not SEMI_TRUE_TX:
+          np_results = get_result(var_inf_semi_conv.policy_nxs,
+                                  var_inf_semi_conv.Tx_nxsas,
+                                  true_methods.get_init_latent_dist, test_traj)
+          avg1, avg2, avg3 = np.mean(np_results, axis=0)
+          std1, std2, std3 = np.std(np_results, axis=0)
+          print("Prediction of latent with learned Tx")
+          print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-        np_results = get_result(var_inf_semi_conv.policy_nxs, get_true_Tx_nxsas,
-                                get_init_latent_dist, test_traj)
+        np_results = get_result(var_inf_semi_conv.policy_nxs,
+                                true_methods.get_true_Tx_nxsas,
+                                true_methods.get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
+        print("Prediction of latent with true Tx")
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
         kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                       get_true_policy,
+                                       true_methods.get_true_policy,
                                        var_inf_semi_conv.policy_nxs)
         print("kl1, kl2: %f,%f" % (kl1, kl2))
-
-      # print("#########")
-      # print("Semi random 50%")
-      # print("#########")
-      # # semi-supervised with 50:50 labeled and unlabeled samples
-      # var_inf_semi = VarInferDuo(traj_random_ver,
-      #                            MDP_TASK.num_states,
-      #                            MDP_AGENT.num_latents,
-      #                            joint_action,
-      #                            transition_s,
-      #                            trans_x_dependency=(True, True, True, False),
-      #                            epsilon=0.01,
-      #                            max_iteration=200)
-      # var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-      # # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr,
-      # #                            cb_Tx=true_Tx_for_var_infer)
-      # var_inf_semi.set_bx_and_Tx(cb_bx=initial_latent_pr)
-
-      # var_inf_semi.do_inference()
-
-      # np_results = get_result(var_inf_semi, test_traj)
-      # avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      # std1, std2, std3 = np.std(np_results, axis=0)
-      # print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
-
-      # np_results = get_result_with_Tx(var_inf_semi, test_traj)
-      # avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      # std1, std2, std3 = np.std(np_results, axis=0)
-      # print("%f (%f), %f(%f), %f(%f)" % (avg1, std1, avg2, std2, avg3, std3))
-
-      # def np_infer_policy(agent_idx, xidx, sidx):
-      #   return var_inf_semi.list_np_policy[agent_idx][xidx, sidx]
-
-      # kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-      #                                np_true_policy, np_infer_policy)
-      # print("kl1: %f, kl2: %f" % (kl1, kl2))
-
-      # ax1.plot(list_res1)
-      # ax2.plot(list_res2)
-      # ax3.plot(list_res3)
-      # plt.show()
 
   if PLOT:
     # ##############################################

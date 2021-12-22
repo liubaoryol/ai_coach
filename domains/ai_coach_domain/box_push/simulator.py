@@ -268,17 +268,30 @@ class BoxPushSimulator(Simulator):
         line = lines[i_r]
         states = line.rstrip()[:-1].split("; ")
         if len(states) < 8:
-          break
+          for dummy in range(8 - len(states)):
+            states.append(None)
         step, bstate, a1pos, a2pos, a1act, a2act, a1lat, a2lat = states
         box_state = tuple([int(elem) for elem in bstate.split(", ")])
         a1_pos = tuple([int(elem) for elem in a1pos.split(", ")])
         a2_pos = tuple([int(elem) for elem in a2pos.split(", ")])
-        a1_act = EventType(int(a1act))
-        a2_act = EventType(int(a2act))
-        a1lat_tmp = a1lat.split(", ")
-        a1_lat = (a1lat_tmp[0], int(a1lat_tmp[1]))
-        a2lat_tmp = a2lat.split(", ")
-        a2_lat = (a2lat_tmp[0], int(a2lat_tmp[1]))
+        if a1act is None:
+          a1_act = None
+        else:
+          a1_act = EventType(int(a1act))
+        if a2act is None:
+          a2_act = None
+        else:
+          a2_act = EventType(int(a2act))
+        if a1lat is None:
+          a1_lat = None
+        else:
+          a1lat_tmp = a1lat.split(", ")
+          a1_lat = (a1lat_tmp[0], int(a1lat_tmp[1]))
+        if a2lat is None:
+          a2_lat = None
+        else:
+          a2lat_tmp = a2lat.split(", ")
+          a2_lat = (a2lat_tmp[0], int(a2lat_tmp[1]))
         traj.append([box_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat])
 
     return traj

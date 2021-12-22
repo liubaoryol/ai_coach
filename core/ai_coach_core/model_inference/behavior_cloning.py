@@ -1,5 +1,3 @@
-import os
-import glob
 import numpy as np
 
 
@@ -17,6 +15,8 @@ def read_trajectory(file_name):
 
 
 def behavior_cloning(sa_trajectories, num_states, num_actions):
+  if len(sa_trajectories) == 0:
+    return np.zeros((num_states, num_actions)) / num_actions
 
   pi = np.zeros((num_states, num_actions))
 
@@ -37,13 +37,13 @@ def behavior_cloning(sa_trajectories, num_states, num_actions):
 if __name__ == "__main__":
 
   trajectories = []
-  len_sum = 0
-  file_names = glob.glob(
-      os.path.join("tests/data/irl_toy_trajectories/", '*.txt'))
-  for file_nm in file_names:
-    traj = read_trajectory(file_nm)
-    len_sum += len(traj)
-    trajectories.append(traj)
+  num_states = 5
+  num_actions = 3
+  trajectories = [
+      [(3, 0), (1, 2), (2, 2), (2, 2), (1, 1)],
+      [(0, 1), (0, 2), (1, 2), (3, 1), (2, 2), (3, 1)],
+      [(3, 1), (0, 1)],
+  ]
 
-  pi = behavior_cloning(trajectories, 45, 10)
-  # print(pi)
+  pi = behavior_cloning(trajectories, num_states, num_actions)
+  print(pi)

@@ -151,10 +151,15 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
                                          tuple_action_idx, next_state_idx):
     mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
     pos1, pos2, bstate = mdp.conv_mdp_sidx_to_sim_states(state_idx)
+    pos1_n, pos2_n, bstate_n = mdp.conv_mdp_sidx_to_sim_states(next_state_idx)
+
     sidx = self._conv_sim_states_to_mdp_sidx(bstate, pos1, pos2)
+    sidx_n = self._conv_sim_states_to_mdp_sidx(bstate_n, pos1_n, pos2_n)
+
+    tuple_reversed_action = (tuple_action_idx[1], tuple_action_idx[0])
     return self.agent_model.transition_mental_state(latent_idx, sidx,
-                                                    tuple_action_idx,
-                                                    next_state_idx)
+                                                    tuple_reversed_action,
+                                                    sidx_n)
 
   def init_latent_dist_from_task_mdp_POV(self, state_idx):
     mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
