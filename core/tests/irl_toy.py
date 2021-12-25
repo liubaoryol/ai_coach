@@ -11,6 +11,7 @@ from ai_coach_core.models.mdp import MDP
 from ai_coach_core.RL.planning import value_iteration
 from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
 from ai_coach_core.utils.exceptions import InvalidTransitionError
+from ai_coach_core.utils.data_utils import Trajectories
 
 DANGER_GRIDS = [(1, 3), (4, 1), (4, 2)]
 TERMINAL_STATE = -1
@@ -242,6 +243,7 @@ def gen_trajectory(mdp, stochastic_pi):
   cur_s_idx = init_state_idx
   while True:
     if mdp.is_terminal(cur_s_idx):
+      trajectory.append((cur_s_idx, -1))
       break
 
     act = random.choices(range(stochastic_pi.shape[1]),
@@ -340,6 +342,23 @@ def feature_extract_full_state(mdp, s_idx, a_idx):
   return np_feature
 
 
+class ToyMDPTrajectories(Trajectories):
+  def __init__(self) -> None:
+    super().__init__(num_state_factors=1, num_action_factors=1)
+
+  def load_from_files(self, file_names):
+    for file_nm in file_names:
+      trj = read_trajectory(file_nm)
+      if len(trj) == 0:
+        continue
+
+      np_trj = np.zeros((len(trj), self.get_width()), dtype=np.int32)
+      for tidx, vec_state_action in enumerate(trj):
+        np_trj[tidx, :] = vec_state_action
+
+      self.list_np_trajectory.append(np_trj)
+
+
 if __name__ == "__main__":
   # data_dir = './toy_traj/'
   # file_prefix = 'toy_'
@@ -375,51 +394,114 @@ if __name__ == "__main__":
   trajectories = []
   len_sum = 0
   file_names = glob.glob(os.path.join(DATA_DIR, '*.txt'))
-  for file_nm in file_names:
-    traj = read_trajectory(file_nm)
-    len_sum += len(traj)
-    trajectories.append(traj)
 
-  avg_len = int(len_sum / len(trajectories)) + 1
-  # print(avg_len)
+  train_data = ToyMDPTrajectories()
+  train_data.load_from_files(file_names)
+  trajectories = train_data.get_as_row_lists(no_latent_label=False,
+                                             include_terminal=False)
 
   init_prop = np.zeros((toy_mdp.num_states))
   sid = toy_mdp.s_space.state_to_idx[(0, 0, 0)]
   s_idx = toy_mdp.np_state_to_idx[sid]
   init_prop[s_idx] = 1
 
-  irl = CMaxEntIRL(trajectories,
-                   toy_mdp,
-                   feature_extractor=feature_extract_full_state,
-                   max_value_iter=500,
-                   initial_prop=init_prop)
-
   rel_freq = compute_relative_freq(num_ostates, trajectories)
-  reward_error = []
-  policy_error = []
+  DO_IRL = False
+  if DO_IRL:
+    irl = CMaxEntIRL(trajectories,
+                     toy_mdp,
+                     feature_extractor=feature_extract_full_state,
+                     max_value_iter=500,
+                     initial_prop=init_prop)
 
-  def compute_errors(reward_fn, policy_fn):
-    reward_error.append(cal_reward_error(toy_mdp, reward_fn))
-    policy_error.append(cal_policy_error(rel_freq, toy_mdp, policy_fn, sto_pi))
+    reward_error = []
+    policy_error = []
 
-  irl.do_inverseRL(epsilon=0.001,
-                   n_max_run=500,
-                   callback_reward_pi=compute_errors)
+    def compute_errors(reward_fn, policy_fn):
+      reward_error.append(cal_reward_error(toy_mdp, reward_fn))
+      policy_error.append(cal_policy_error(rel_freq, toy_mdp, policy_fn,
+                                           sto_pi))
 
-  kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
-  print(kl_irl)
-  from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
-  pi_bc = behavior_cloning(trajectories, num_ostates, num_actions)
-  kl_bc = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_bc[s, a], sto_pi)
-  print(kl_bc)
+    irl.do_inverseRL(epsilon=0.001,
+                     n_max_run=500,
+                     callback_reward_pi=compute_errors)
 
-  f = plt.figure(figsize=(10, 5))
-  ax1 = f.add_subplot(121)
-  ax2 = f.add_subplot(122)
-  ax1.plot(reward_error)
-  ax1.set_ylabel('reward_error')
-  # plt.show()
+    kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
+    print(kl_irl)
 
-  ax2.plot(policy_error)
-  ax2.set_ylabel('policy_error')
-  plt.show()
+    f = plt.figure(figsize=(10, 5))
+    ax1 = f.add_subplot(121)
+    ax2 = f.add_subplot(122)
+    ax1.plot(reward_error)
+    ax1.set_ylabel('reward_error')
+    # plt.show()
+
+    ax2.plot(policy_error)
+    ax2.set_ylabel('policy_error')
+    plt.show()
+
+  DO_BC = False
+  if DO_BC:
+    from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
+    pi_bc = behavior_cloning(trajectories, num_ostates, num_actions)
+    kl_bc = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_bc[s, a],
+                             sto_pi)
+    print(kl_bc)
+
+  sa_trajs = train_data.get_as_row_lists(no_latent_label=False,
+                                         include_terminal=True)
+
+  DO_SB3_BC = False
+  if DO_SB3_BC:
+    from ai_coach_core.model_inference.sb3_algorithms import (
+        behavior_cloning_sb3)
+
+    pi_bc_sb3 = behavior_cloning_sb3(sa_trajs, num_ostates, num_actions)
+    kl_bc_sb3 = cal_policy_error(rel_freq, toy_mdp,
+                                 lambda s, a: pi_bc_sb3[s, a], sto_pi)
+    print(kl_bc_sb3)
+
+  # gail
+  DO_SB3_GAIL = True
+  if DO_SB3_GAIL:
+    from ai_coach_core.model_inference.sb3_algorithms import gail_sb3
+
+    list_kl = []
+
+    def get_kl_each_round(np_pol):
+      kl_gail_round = cal_policy_error(rel_freq, toy_mdp,
+                                       lambda s, a: np_pol[s, a], sto_pi)
+      list_kl.append(kl_gail_round)
+
+    pi_gail = gail_sb3(num_ostates,
+                       num_actions,
+                       toy_mdp.transition,
+                       toy_mdp.is_terminal,
+                       toy_mdp.legal_actions,
+                       sid,
+                       sa_trajs,
+                       -1,
+                       logpath=None,
+                       demo_batch_size=2,
+                       n_steps=16,
+                       ppo_batch_size=2,
+                       total_timesteps=960,
+                       callback_policy=get_kl_each_round)
+    kl_gail = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_gail[s, a],
+                               sto_pi)
+    print(kl_gail)
+
+    f = plt.figure(figsize=(5, 5))
+    ax1 = f.add_subplot(111)
+    ax1.plot(list_kl)
+    ax1.set_ylabel('policy_error')
+    plt.show()
+
+  # gail
+  DO_TORCH_GAIL = False
+  if DO_TORCH_GAIL:
+    from ai_coach_core.model_inference.gail import gail_w_ppo_pytorch
+    pi_gail_torch = gail_w_ppo_pytorch(toy_mdp, sid, trajectories)
+    kl_gail_torch = cal_policy_error(rel_freq, toy_mdp,
+                                     lambda s, a: pi_gail_torch[s, a], sto_pi)
+    print(kl_gail_torch)

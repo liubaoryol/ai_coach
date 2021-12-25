@@ -1,4 +1,3 @@
-from typing import List
 import glob
 import os
 import pickle
@@ -15,7 +14,8 @@ from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence)
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
 from ai_coach_core.model_inference.sb3_algorithms import (behavior_cloning_sb3,
-                                                          gail_on_agent)
+                                                          gail_sb3)
+from ai_coach_core.utils.data_utils import Trajectories
 
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
@@ -211,168 +211,12 @@ class VarInfConverter:
                                    next_state_idx)[latent_idx]
 
 
-class Trajectories:
-  EPISODE_END = -1
-  DUMMY = -2
-
-  def __init__(self, tuple_num_sax_factors, num_latents) -> None:
-    self.list_np_trajectory = []  # type: List[np.ndarray]
-    self.num_latents = num_latents
-
-    # TODO: make more generic
-    self.num_state_factors = tuple_num_sax_factors[0]
-    self.num_action_factors = tuple_num_sax_factors[1]
-    self.num_latent_factors = tuple_num_sax_factors[2]
-
-  def get_width(self):
-    return (self.num_state_factors + self.num_action_factors +
-            self.num_latent_factors)
-
-  def is_episode_end(self, np_row):
-    '''
-    can be the terminal of episode or
-    just a normal state in case episode ended early due to max step count
-    '''
-    return np_row[self.num_state_factors] == Trajectories.EPISODE_END
-
-  def get_as_row_lists(self, no_latent_label: bool, include_terminal: bool):
-    list_list_SAX = []
-    for np_trj in self.list_np_trajectory:
-      list_SAX = []
-      for idx in range(np_trj.shape[0]):
-        list_tmp = []
-        # TODO: make more generic
-        # state
-        start_idx, end_idx = 0, self.num_state_factors
-        if self.num_state_factors == 1:
-          list_tmp.append(np_trj[idx][start_idx:end_idx][0])
-        else:
-          list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
-
-        if self.is_episode_end(np_trj[idx]):
-          if include_terminal:
-            list_tmp.append(None)
-            list_tmp.append(None)
-          else:
-            break
-        else:
-          # action
-          start_idx, end_idx = end_idx, end_idx + self.num_action_factors
-          if self.num_action_factors == 1:
-            list_tmp.append(np_trj[idx][start_idx:end_idx][0])
-          else:
-            list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
-          # latent
-          if no_latent_label:
-            if self.num_latent_factors == 1:
-              list_tmp.append(None)
-            else:
-              list_tmp.append((None, ) * self.num_latent_factors)
-          else:
-            start_idx, end_idx = end_idx, end_idx + self.num_latent_factors
-            if self.num_latent_factors == 1:
-              list_tmp.append(np_trj[idx][start_idx:end_idx][0])
-            else:
-              list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
-
-        list_SAX.append(list_tmp)
-      list_list_SAX.append(list_SAX)
-    return list_list_SAX
-
-  def get_as_column_lists(self, include_terminal: bool):
-    list_trajectories = []
-    for np_trj in self.list_np_trajectory:
-      is_terminal = self.is_episode_end(np_trj[-1, :])
-
-      row_end_idx = (-1 if is_terminal and not include_terminal else
-                     np_trj.shape[0])
-      start_idx, end_idx = 0, self.num_state_factors
-      if self.num_state_factors == 1:
-        list_states = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
-      else:
-        list_states = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
-
-      row_end_idx = -1 if is_terminal else np_trj.shape[0]
-      start_idx, end_idx = end_idx, end_idx + self.num_action_factors
-      if self.num_action_factors == 1:
-        list_actions = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
-      else:
-        list_actions = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
-
-      start_idx, end_idx = end_idx, end_idx + self.num_latent_factors
-      if self.num_latent_factors == 1:
-        list_latents = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
-      else:
-        list_latents = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
-
-      list_trajectories.append([list_states, list_actions, list_latents])
-
-    return list_trajectories
-
-  def get_trajectories_fragmented_by_latent(self,
-                                            include_next_state: bool,
-                                            num_training_samples=None):
-    '''
-    num_training_samples: set the number of trajectories to use for training
-                          if None, all data are assumed to be used
-    return: trajectories fragmented by latents for each agent
-            can be accessed as list_name[agent][latent][trajectory][time_step]
-    only works when num_action_factors == num_latent_factors
-    '''
-    num_samples = (len(self.list_np_trajectory)
-                   if num_training_samples is None else num_training_samples)
-
-    list_by_agent = []
-    idx_lat_start = self.num_state_factors + self.num_action_factors
-    for nidx in range(self.num_action_factors):
-      list_lat = [list() for dummy in range(self.num_latents)]
-      for np_trj in self.list_np_trajectory[:num_samples]:
-        if np_trj.shape[0] < 2:
-          continue
-
-        list_frag_trj = []
-        for tidx in range(np_trj.shape[0] - 1):
-          tidx_n = tidx + 1
-
-          np_sidx = np_trj[tidx, 0:self.num_state_factors]
-          sidx = np_sidx[0] if self.num_state_factors == 1 else tuple(np_sidx)
-
-          np_sidx_n = np_trj[tidx_n, 0:self.num_state_factors]
-          sidx_n = (np_sidx_n[0]
-                    if self.num_state_factors == 1 else tuple(np_sidx_n))
-
-          aidx = np_trj[tidx, self.num_state_factors + nidx]
-          aidx_n = np_trj[tidx_n, self.num_state_factors + nidx]
-
-          xidx = np_trj[tidx, idx_lat_start + nidx]
-          xidx_n = np_trj[tidx_n, idx_lat_start + nidx]
-
-          list_frag_trj.append((sidx, aidx))
-          if xidx != xidx_n:
-            if include_next_state:
-              if self.is_episode_end(np_trj[tidx_n]):
-                list_frag_trj.append((sidx_n, Trajectories.EPISODE_END))
-              else:
-                list_frag_trj.append((sidx_n, Trajectories.DUMMY))
-
-            list_lat[xidx].append(list_frag_trj)
-            list_frag_trj = []
-          # handle the last element if not handled yet
-          # this cannot be terminal as the case is already handled above
-          elif tidx == np_trj.shape[0] - 2:
-            if include_next_state:
-              list_frag_trj.append((sidx_n, Trajectories.DUMMY))
-            else:
-              list_frag_trj.append((sidx_n, aidx_n))
-            list_lat[xidx].append(list_frag_trj)
-
-      list_by_agent.append(list_lat)
-    return list_by_agent
-
-
 class BoxPushTrajectories(Trajectories):
   def __init__(self, num_latents) -> None:
-    super().__init__(tuple_num_sax_factors=(1, 2, 2), num_latents=num_latents)
+    super().__init__(num_state_factors=1,
+                     num_action_factors=2,
+                     num_latent_factors=2,
+                     num_latents=num_latents)
 
   def load_from_files(self, file_names):
     for file_nm in file_names:
@@ -432,13 +276,13 @@ if __name__ == "__main__":
   BC = False
   TEST_SB3_BC = False
 
-  SHOW_SL = True
+  SHOW_SL = False
   SL_TRUE_TX = False
 
   SHOW_SEMI = False
   SEMI_TRUE_TX = False
 
-  GAIL = False
+  GAIL = True
 
   VI_TRAIN = SHOW_TRUE or SHOW_SL or SHOW_SEMI or BC or GAIL
 
@@ -542,8 +386,9 @@ if __name__ == "__main__":
             (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
 
         if TEST_SB3_BC:
+          train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
-              include_next_state=True, num_training_samples=idx)
+              include_next_state=True)
 
           for xidx in range(MDP_AGENT.num_latents):
             pi_a1[xidx] = behavior_cloning_sb3(list_frag_traj[0][xidx],
@@ -553,8 +398,9 @@ if __name__ == "__main__":
                                                MDP_AGENT.num_states,
                                                joint_action_num[1])
         else:
+          train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
-              include_next_state=False, num_training_samples=idx)
+              include_next_state=False)
 
           for xidx in range(MDP_AGENT.num_latents):
             pi_a1[xidx] = behavior_cloning(list_frag_traj[0][xidx],
@@ -583,8 +429,9 @@ if __name__ == "__main__":
       tempdir = tempfile.TemporaryDirectory(prefix="gail")
       tempdir_path = pathlib.Path(tempdir.name)
 
+      train_data.set_num_samples_to_use(None)
       list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
-          include_next_state=True, num_training_samples=None)
+          include_next_state=True)
 
       def transition_for_gail_agent_1(sidx, aidx):
         aidx2 = np.random.choice(joint_action_num[1])
@@ -610,15 +457,17 @@ if __name__ == "__main__":
           (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
       for xidx in range(MDP_AGENT.num_latents):
         log_path = tempdir_path / ("A1_x" + str(xidx))
-        pi_a1[xidx] = gail_on_agent(MDP_AGENT.num_states, joint_action_num[0],
-                                    transition_for_gail_agent_1, is_terminal,
-                                    init_sidx, list_frag_traj[0][xidx],
-                                    Trajectories.EPISODE_END, log_path)
+        pi_a1[xidx] = gail_sb3(MDP_AGENT.num_states, joint_action_num[0],
+                               transition_for_gail_agent_1, is_terminal,
+                               MDP_AGENT.legal_actions, init_sidx,
+                               list_frag_traj[0][xidx],
+                               Trajectories.EPISODE_END, log_path)
         log_path = tempdir_path / ("A2_x" + str(xidx))
-        pi_a2[xidx] = gail_on_agent(MDP_AGENT.num_states, joint_action_num[1],
-                                    transition_for_gail_agent_2, is_terminal,
-                                    init_sidx, list_frag_traj[1][xidx],
-                                    Trajectories.EPISODE_END, log_path)
+        pi_a2[xidx] = gail_sb3(MDP_AGENT.num_states, joint_action_num[1],
+                               transition_for_gail_agent_2, is_terminal,
+                               MDP_AGENT.legal_actions, init_sidx,
+                               list_frag_traj[1][xidx],
+                               Trajectories.EPISODE_END, log_path)
         print("Done %d-th latent" % xidx)
       list_pi_gail = [pi_a1, pi_a2]
 
