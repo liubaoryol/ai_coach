@@ -11,10 +11,10 @@ from ai_coach_core.model_inference.var_infer.var_infer_dynamic_x import (
 from ai_coach_core.latent_inference.most_probable_sequence import (
     most_probable_sequence)
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,
-                                              alignment_sequence)
+                                              alignment_sequence,
+                                              cal_policy_kl_error)
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
-from ai_coach_core.model_inference.sb3_algorithms import (behavior_cloning_sb3,
-                                                          gail_sb3)
+from ai_coach_core.model_inference.sb3_algorithms import behavior_cloning_sb3
 from ai_coach_core.utils.data_utils import Trajectories
 
 import ai_coach_domain.box_push.maps as bp_maps
@@ -51,53 +51,6 @@ else:
 
 MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
 MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
-
-
-def cal_policy_kl_error(mdp_agent: BoxPushAgentMDP, trajectories, cb_pi_true,
-                        cb_pi_infer):
-  def compute_relative_freq(num_latents, num_states, trajs):
-    rel_freq_a1 = np.zeros((num_latents, num_states))
-    rel_freq_a2 = np.zeros((num_latents, num_states))
-    count = 0
-    for traj in trajs:
-      for s, joint_a, joint_x in traj:
-        if joint_x[0] is None or joint_x[1] is None:
-          continue
-        rel_freq_a1[joint_x[0], s] += 1
-        rel_freq_a2[joint_x[1], s] += 1
-        count += 1
-
-    rel_freq_a1 = rel_freq_a1 / count
-    rel_freq_a2 = rel_freq_a2 / count
-
-    return rel_freq_a1, rel_freq_a2
-
-  def compute_kl(agent_idx, x_idx, s_idx):
-    np_p_inf = cb_pi_infer(agent_idx, x_idx, s_idx)
-    np_p_true = cb_pi_true(agent_idx, x_idx, s_idx)
-
-    sum_val = 0
-    for idx in range(len(np_p_inf)):
-      if np_p_inf[idx] != 0 and np_p_true[idx] != 0:
-        sum_val += np_p_inf[idx] * (np.log(np_p_inf[idx]) -
-                                    np.log(np_p_true[idx]))
-    return sum_val
-
-  rel_freq_a1, rel_freq_a2 = compute_relative_freq(mdp_agent.num_latents,
-                                                   mdp_agent.num_states,
-                                                   trajectories)
-
-  sum_kl1 = 0
-  sum_kl2 = 0
-  for xidx in range(mdp_agent.num_latents):
-    for sidx in range(mdp_agent.num_states):
-      if rel_freq_a1[xidx, sidx] > 0:
-        sum_kl1 += rel_freq_a1[xidx, sidx] * compute_kl(0, xidx, sidx)
-
-      if rel_freq_a2[xidx, sidx] > 0:
-        sum_kl2 += rel_freq_a2[xidx, sidx] * compute_kl(1, xidx, sidx)
-
-  return sum_kl1, sum_kl2
 
 
 def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
@@ -251,6 +204,7 @@ if __name__ == "__main__":
   sim = BoxPushSimulator(0)
   sim.init_game(**GAME_MAP)
   sim.max_steps = 200
+  NUM_AGENT = 2
 
   if IS_TEAM:
     policy1 = BoxPushPolicyTeam(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT1)
@@ -273,7 +227,7 @@ if __name__ == "__main__":
 
   SHOW_TRUE = False
 
-  BC = False
+  BC = True
   TEST_SB3_BC = False
 
   SHOW_SL = False
@@ -282,7 +236,7 @@ if __name__ == "__main__":
   SHOW_SEMI = False
   SEMI_TRUE_TX = False
 
-  GAIL = True
+  GAIL = False
 
   VI_TRAIN = SHOW_TRUE or SHOW_SL or SHOW_SEMI or BC or GAIL
 
@@ -359,7 +313,8 @@ if __name__ == "__main__":
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
 
-      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+      kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
+                                     MDP_AGENT.num_latents, traj_labeled_ver,
                                      true_methods.get_true_policy,
                                      true_methods.get_true_policy)
 
@@ -419,71 +374,12 @@ if __name__ == "__main__":
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
 
-        kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+        kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
+                                       MDP_AGENT.num_latents, traj_labeled_ver,
                                        true_methods.get_true_policy,
                                        bc_policy_nxs)
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
         print("kl1, kl2: %f,%f" % (kl1, kl2))
-
-    if GAIL:
-      tempdir = tempfile.TemporaryDirectory(prefix="gail")
-      tempdir_path = pathlib.Path(tempdir.name)
-
-      train_data.set_num_samples_to_use(None)
-      list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
-          include_next_state=True)
-
-      def transition_for_gail_agent_1(sidx, aidx):
-        aidx2 = np.random.choice(joint_action_num[1])
-        next_sidx_dist = transition_s(sidx, aidx, aidx2)
-        sidx_n = np.random.choice(MDP_TASK.num_states, p=next_sidx_dist)
-        return sidx_n
-
-      def transition_for_gail_agent_2(sidx, aidx):
-        aidx1 = np.random.choice(joint_action_num[0])
-        next_sidx_dist = transition_s(sidx, aidx1, aidx)
-        sidx_n = np.random.choice(MDP_TASK.num_states, p=next_sidx_dist)
-        return sidx_n
-
-      def is_terminal(sidx):
-        return MDP_TASK.is_terminal(sidx)
-
-      init_sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(
-          sim.a1_init, sim.a2_init, [0] * len(GAME_MAP["boxes"]))
-
-      pi_a1 = np.zeros(
-          (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[0]))
-      pi_a2 = np.zeros(
-          (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
-      for xidx in range(MDP_AGENT.num_latents):
-        log_path = tempdir_path / ("A1_x" + str(xidx))
-        pi_a1[xidx] = gail_sb3(MDP_AGENT.num_states, joint_action_num[0],
-                               transition_for_gail_agent_1, is_terminal,
-                               MDP_AGENT.legal_actions, init_sidx,
-                               list_frag_traj[0][xidx],
-                               Trajectories.EPISODE_END, log_path)
-        log_path = tempdir_path / ("A2_x" + str(xidx))
-        pi_a2[xidx] = gail_sb3(MDP_AGENT.num_states, joint_action_num[1],
-                               transition_for_gail_agent_2, is_terminal,
-                               MDP_AGENT.legal_actions, init_sidx,
-                               list_frag_traj[1][xidx],
-                               Trajectories.EPISODE_END, log_path)
-        print("Done %d-th latent" % xidx)
-      list_pi_gail = [pi_a1, pi_a2]
-
-      def gail_policy_nxs(agent_idx, latent_idx, state_idx):
-        return list_pi_gail[agent_idx][latent_idx, state_idx]
-
-      np_results = get_result(gail_policy_nxs, true_methods.get_true_Tx_nxsas,
-                              true_methods.get_init_latent_dist, test_traj)
-      avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      std1, std2, std3 = np.std(np_results, axis=0)
-
-      kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
-                                     true_methods.get_true_policy,
-                                     gail_policy_nxs)
-      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-      print("kl1, kl2: %f,%f" % (kl1, kl2))
 
     # supervised variational inference
     if SHOW_SL:
@@ -515,7 +411,8 @@ if __name__ == "__main__":
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
 
-        kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+        kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
+                                       MDP_AGENT.num_latents, traj_labeled_ver,
                                        true_methods.get_true_policy,
                                        var_inf_sl_conv.policy_nxs)
 
@@ -578,7 +475,8 @@ if __name__ == "__main__":
         print("Prediction of latent with true Tx")
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-        kl1, kl2 = cal_policy_kl_error(MDP_AGENT, traj_labeled_ver,
+        kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
+                                       MDP_AGENT.num_latents, traj_labeled_ver,
                                        true_methods.get_true_policy,
                                        var_inf_semi_conv.policy_nxs)
         print("kl1, kl2: %f,%f" % (kl1, kl2))

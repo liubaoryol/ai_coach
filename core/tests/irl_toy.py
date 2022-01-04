@@ -451,21 +451,21 @@ if __name__ == "__main__":
   sa_trajs = train_data.get_as_row_lists(no_latent_label=False,
                                          include_terminal=True)
 
+  import ai_coach_core.model_inference.sb3_algorithms as sb3_algs
   DO_SB3_BC = False
   if DO_SB3_BC:
-    from ai_coach_core.model_inference.sb3_algorithms import (
-        behavior_cloning_sb3)
 
-    pi_bc_sb3 = behavior_cloning_sb3(sa_trajs, num_ostates, num_actions)
+    pi_bc_sb3 = sb3_algs.behavior_cloning_sb3(sa_trajs, num_ostates,
+                                              num_actions)
     kl_bc_sb3 = cal_policy_error(rel_freq, toy_mdp,
                                  lambda s, a: pi_bc_sb3[s, a], sto_pi)
     print(kl_bc_sb3)
 
   # gail
-  DO_SB3_GAIL = True
-  if DO_SB3_GAIL:
-    from ai_coach_core.model_inference.sb3_algorithms import gail_sb3
-
+  DO_GAIL = True
+  SB3_GAIL = False
+  ONLY_PRETRAIN = False
+  if DO_GAIL:
     list_kl = []
 
     def get_kl_each_round(np_pol):
@@ -473,35 +473,47 @@ if __name__ == "__main__":
                                        lambda s, a: np_pol[s, a], sto_pi)
       list_kl.append(kl_gail_round)
 
-    pi_gail = gail_sb3(num_ostates,
-                       num_actions,
-                       toy_mdp.transition,
-                       toy_mdp.is_terminal,
-                       toy_mdp.legal_actions,
-                       sid,
-                       sa_trajs,
-                       -1,
-                       logpath=None,
-                       demo_batch_size=2,
-                       n_steps=16,
-                       ppo_batch_size=2,
-                       total_timesteps=960,
-                       callback_policy=get_kl_each_round)
-    kl_gail = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_gail[s, a],
-                               sto_pi)
-    print(kl_gail)
+    if SB3_GAIL:
+      pi_gail = sb3_algs.gail_w_ppo(num_ostates,
+                                    num_actions,
+                                    toy_mdp.transition,
+                                    toy_mdp.is_terminal,
+                                    toy_mdp.legal_actions,
+                                    sid,
+                                    sa_trajs,
+                                    -1,
+                                    logpath=None,
+                                    demo_batch_size=2,
+                                    n_steps=16,
+                                    ppo_batch_size=2,
+                                    total_timesteps=1920,
+                                    do_pretrain=True,
+                                    only_pretrain=ONLY_PRETRAIN,
+                                    callback_policy=get_kl_each_round)
+      kl_gail = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_gail[s, a],
+                                 sto_pi)
+      print(kl_gail)
 
-    f = plt.figure(figsize=(5, 5))
-    ax1 = f.add_subplot(111)
-    ax1.plot(list_kl)
-    ax1.set_ylabel('policy_error')
-    plt.show()
+    # gail
+    else:
+      import ai_coach_core.model_inference.ikostrikov_gail as ikostrikov
+      pi_gail_torch = ikostrikov.gail_w_ppo(toy_mdp,
+                                            sid,
+                                            trajectories,
+                                            demo_batch_size=2,
+                                            n_steps=16,
+                                            ppo_batch_size=2,
+                                            total_timesteps=1920,
+                                            do_pretrain=True,
+                                            only_pretrain=ONLY_PRETRAIN,
+                                            callback_policy=get_kl_each_round)
+      kl_gail_torch = cal_policy_error(rel_freq, toy_mdp,
+                                       lambda s, a: pi_gail_torch[s, a], sto_pi)
+      print(kl_gail_torch)
 
-  # gail
-  DO_TORCH_GAIL = False
-  if DO_TORCH_GAIL:
-    from ai_coach_core.model_inference.gail import gail_w_ppo_pytorch
-    pi_gail_torch = gail_w_ppo_pytorch(toy_mdp, sid, trajectories)
-    kl_gail_torch = cal_policy_error(rel_freq, toy_mdp,
-                                     lambda s, a: pi_gail_torch[s, a], sto_pi)
-    print(kl_gail_torch)
+    if not ONLY_PRETRAIN:
+      f = plt.figure(figsize=(5, 5))
+      ax1 = f.add_subplot(111)
+      ax1.plot(list_kl)
+      ax1.set_ylabel('policy_error')
+      plt.show()

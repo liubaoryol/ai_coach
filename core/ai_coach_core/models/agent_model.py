@@ -7,6 +7,8 @@ from ai_coach_core.models.mdp import LatentMDP
 class PolicyInterface:
   __metaclass__ = abc.ABCMeta
 
+  # TODO: make PolicyInterface class dependent on original mdp
+  # and define new methods that handle latent states
   def __init__(self, mdp: LatentMDP) -> None:
     self.mdp = mdp
 

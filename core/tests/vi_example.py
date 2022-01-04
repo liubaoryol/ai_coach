@@ -152,15 +152,15 @@ if __name__ == "__main__":
   ##############################################
   # RESULT OPTIONS
 
-  load_task_model = True
-  do_sup_infer = True
-  do_semi_infer = True
-  gen_train_set = False
-  gen_test_set = False
+  LOAD_TASK_MODEL = True
+  SL_VAR = True
+  SEMI_VAR = True
+  GEN_TRAIN_SET = False
+  GEN_TEST_SET = False
 
   ##############################################
 
-  if load_task_model:
+  if LOAD_TASK_MODEL:
     data_dir = os.path.join(os.path.dirname(__file__),
                             "data/tooldelivery_v3_train_data/")
     file_prefix = 'td3_train_'
@@ -172,7 +172,7 @@ if __name__ == "__main__":
     possible_lstates = tooldelivery_env.policy.get_possible_latstate_indices()
     num_lstates = len(possible_lstates)
 
-    if gen_train_set:
+    if GEN_TRAIN_SET:
       file_names = glob.glob(os.path.join(data_dir, file_prefix + '*.txt'))
       for fmn in file_names:
         os.remove(fmn)
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                             "data/tooldelivery_v3_test_data/")
     test_file_prefix = 'td3_test_'
 
-    if gen_test_set:
+    if GEN_TEST_SET:
       file_names = glob.glob(os.path.join(test_dir, test_file_prefix + '*.txt'))
       for fmn in file_names:
         os.remove(fmn)
@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
   ##############################################
   # supervised policy learning
-  if do_sup_infer:
+  if SL_VAR:
     sup_infer1 = var_infer.VarInferStaticX_SL(trajectories[0:num_labeled1],
                                               latent_labels[0:num_labeled1],
                                               num_agents, num_ostates,
@@ -328,7 +328,7 @@ if __name__ == "__main__":
                                                   true_latent_labels)
   # ##############################################
   # # semisupervised policy learning
-  if do_semi_infer:
+  if SEMI_VAR:
     semisup_infer = var_infer.VarInferStaticX_SemiSL(
         trajectories[num_labeled1:len(trajectories)],
         trajectories[0:num_labeled1],
@@ -355,7 +355,7 @@ if __name__ == "__main__":
 
   ##############################################
   # results
-  if do_sup_infer:
+  if SL_VAR:
     print("Full - super1")
     print_conf(sup_conf_full1)
     print("4by4 Acc: " + str(full_acc1))
@@ -374,7 +374,7 @@ if __name__ == "__main__":
     print("4by4 Acc: " + str(part_acc2))
     print("2by2 Acc: " + str(part_align_acc2))
 
-  if do_semi_infer:
+  if SEMI_VAR:
     print("Full - semi")
     print_conf(semi_conf_full)
     print("4by4 Acc: " + str(semi_full_acc))
@@ -400,7 +400,7 @@ if __name__ == "__main__":
              label="SemiSL",
              clip_on=False,
              fillstyle='none')
-    if do_sup_infer:
+    if SL_VAR:
       ax1.axhline(y=full_align_acc1, color='r', linestyle='-', label="SL-Small")
       ax1.axhline(y=full_align_acc2, color='g', linestyle='-', label="SL-Large")
     FONT_SIZE = 16
@@ -417,7 +417,7 @@ if __name__ == "__main__":
              label="SemiSL",
              clip_on=False,
              fillstyle='none')
-    if do_sup_infer:
+    if SL_VAR:
       ax2.axhline(y=part_align_acc1, color='r', linestyle='-', label="SL-Small")
       ax2.axhline(y=part_align_acc2, color='g', linestyle='-', label="SL-Large")
     ax2.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))

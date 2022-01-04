@@ -27,20 +27,22 @@ def get_sb3_policy(sb3_policy: ActorCriticPolicy, num_states: int,
   return np_policy
 
 
-def gail_sb3(num_states,
-             num_actions,
-             cb_transition,
-             cb_is_terminal,
-             cb_legal_actions,
-             init_state,
-             sa_trajectories,
-             terminal_value,
-             logpath=None,
-             demo_batch_size=32,
-             ppo_batch_size=64,
-             n_steps=64,
-             total_timesteps=32000,
-             callback_policy=None):
+def gail_w_ppo(num_states,
+               num_actions,
+               cb_transition,
+               cb_is_terminal,
+               cb_legal_actions,
+               init_state,
+               sa_trajectories,
+               terminal_value,
+               logpath=None,
+               demo_batch_size=64,
+               ppo_batch_size=32,
+               n_steps=64,
+               total_timesteps=32000,
+               do_pretrain=True,
+               only_pretrain=False,
+               callback_policy=None):
   if len(sa_trajectories) == 0:
     return np.zeros((num_states, num_actions)) / num_actions
 
@@ -58,7 +60,7 @@ def gail_sb3(num_states,
                     num_actions=num_actions,
                     cb_transition=cb_transition,
                     cb_is_terminal=cb_is_terminal,
-                    cb_legal_actions=cb_legal_actions,
+                    cb_is_legal_action=lambda s, a: a in cb_legal_actions(s),
                     init_state=init_state)
 
   venv = make_vec_env('envfrommdp-v0', n_envs=1, env_make_kwargs=env_kwargs)
@@ -94,6 +96,24 @@ def gail_sb3(num_states,
                            custom_logger=gail_logger,
                            normalize_obs=False,
                            allow_variable_horizon=True)
+
+  # Pretrain
+  if do_pretrain:
+    bc_trainer = bc.BC(observation_space=venv.observation_space,
+                       action_space=venv.action_space,
+                       demonstrations=transitions,
+                       policy=gail_trainer.gen_algo.policy,
+                       custom_logger=gail_logger)
+    bc_trainer.train(n_epochs=1)
+
+    if only_pretrain:
+      return get_sb3_policy(gail_trainer.policy, num_states, num_actions)
+
+    # policy after bc
+    if callback_policy is not None:
+      np_policy_bc = get_sb3_policy(gail_trainer.policy, num_states,
+                                    num_actions)
+      callback_policy(np_policy_bc)
 
   def each_round(r):
     if callback_policy is not None:

@@ -8,7 +8,7 @@ import ai_coach_domain.box_push.mdppolicy as bp_policy
 import ai_coach_domain.box_push.agent as bp_agent
 
 IS_TESTMAP = False
-IS_TEAM = False
+IS_TEAM = True
 
 if IS_TESTMAP:
   GAME_MAP = bp_maps.TEST_MAP
@@ -40,7 +40,7 @@ class BoxPushApp(AppInterface):
     self.mdp_agent = BoxPushAgentMDP(**GAME_MAP)
     self.game.max_steps = 200
 
-    temperature = 0.3
+    temperature = 1
     if IS_TEAM:
       policy1 = BoxPushPolicyTeam(self.mdp_agent,
                                   temperature=temperature,

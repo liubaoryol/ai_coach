@@ -1,3 +1,5 @@
+from typing import Union, Sequence
+import collections.abc
 import gym
 from gym import spaces
 
@@ -6,28 +8,37 @@ class GymEnvFromMDP(gym.Env):
   # uncomment below line if you need to render the environment
   # metadata = {'render.modes': ['console']}
 
-  def __init__(self, num_states, num_actions, cb_transition, cb_is_terminal,
-               cb_legal_actions, init_state):
+  def __init__(self, num_states: int, num_actions: Union[int, Sequence[int]],
+               cb_transition, cb_is_terminal, cb_is_legal_action, init_state):
+    '''
+    num_actions: can be either int or tuple
+    '''
     super().__init__()
     # Define action and observation space
     # They must be gym.spaces objects
     # Example when using discrete actions:
-    self.action_space = spaces.Discrete(num_actions)
+    if isinstance(num_actions, collections.abc.Sequence):
+      if len(num_actions) == 1:
+        self.action_space = spaces.Discrete(num_actions[0])
+      else:
+        self.action_space = spaces.MultiDiscrete(num_actions)
+    else:
+      self.action_space = spaces.Discrete(num_actions)
+
     # Example for using image as input (channel-first; channel-last also works):
     self.observation_space = spaces.Discrete(num_states)
 
     # new members for custom env
-    self.num_states = num_states
-    self.num_actions = num_actions
     self.cb_transition = cb_transition
     self.cb_is_terminal = cb_is_terminal
-    self.cb_legal_actions = cb_legal_actions
+    self.cb_is_legal_action = cb_is_legal_action
     self.init_state = init_state
     self.cur_state = init_state
 
   def step(self, action):
     info = {}
-    if action not in self.cb_legal_actions(self.cur_state):
+    if not self.cb_is_legal_action(self.cur_state, action):
+      info["invalid_transition"] = True
       return self.cur_state, 0, False, info
 
     self.cur_state = self.cb_transition(self.cur_state, action)

@@ -1,5 +1,7 @@
 from typing import List
 import numpy as np
+import torch
+import torch.utils.data as torch_data
 
 
 class Trajectories:
@@ -179,3 +181,68 @@ class Trajectories:
 
       list_by_agent.append(list_lat)
     return list_by_agent
+
+  def get_as_row_lists_for_static_x(self, include_terminal: bool = False):
+    list_list_SA = []
+    list_X = []
+    for np_trj in self.list_np_trajectory[:self.get_num_samples_to_use()]:
+      list_SA = []
+      for idx in range(np_trj.shape[0]):
+        list_tmp = []
+        # TODO: make more generic
+        # state
+        start_idx, end_idx = 0, self.num_state_factors
+        if self.num_state_factors == 1:
+          list_tmp.append(np_trj[idx][start_idx:end_idx][0])
+        else:
+          list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
+
+        if self.is_episode_end(np_trj[idx]):
+          if include_terminal:
+            list_tmp.append(None)  # action
+          else:
+            break
+        else:
+          # action
+          start_idx, end_idx = end_idx, end_idx + self.num_action_factors
+          if self.num_action_factors == 1:
+            list_tmp.append(np_trj[idx][start_idx:end_idx][0])
+          else:
+            list_tmp.append(tuple(np_trj[idx][start_idx:end_idx]))
+
+        list_SA.append(list_tmp)
+
+      # latent
+      if self.num_latent_factors > 0:
+        start_idx = self.num_state_factors + self.num_action_factors
+        end_idx = (self.num_state_factors + self.num_action_factors +
+                   self.num_latent_factors)
+
+        if self.num_latent_factors == 1:
+          list_X.append(np_trj[0][start_idx:end_idx][0])
+        else:
+          list_X.append(tuple(np_trj[0][start_idx:end_idx]))
+
+      list_list_SA.append(list_SA)
+    return list_list_SA, list_X
+
+
+class TorchDatasetConverter(torch_data.Dataset):
+  def __init__(self, sa_trajectories_no_terminal) -> None:
+    super().__init__()
+    self.states = []
+    self.actions = []
+    for traj in sa_trajectories_no_terminal:
+      for state, action in traj:
+        self.states.append(state)
+        self.actions.append(action)
+
+    self.length = len(self.states)
+
+  def __getitem__(self, index):
+
+    return (torch.Tensor([self.states[index]]).long(),
+            torch.Tensor([self.actions[index]]).long())
+
+  def __len__(self):
+    return self.length

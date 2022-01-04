@@ -23,12 +23,12 @@ class BoxPushPolicyInterface(PolicyInterface):
       file_prefix: str,
       list_policy: list,
       temperature: float,
-      action_factor_indices: Sequence[int] = (0, )) -> None:
+      queried_agent_indices: Sequence[int] = (0, )) -> None:
     super().__init__(mdp)
     self.list_policy = list_policy
     self.file_prefix = file_prefix
     self.temperature = temperature
-    self.action_factor_indices = action_factor_indices
+    self.queried_agent_indices = queried_agent_indices
 
   def prepare_policy(self):
     if (self.list_policy is None) or len(self.list_policy) == 0:
@@ -67,7 +67,7 @@ class BoxPushPolicyInterface(PolicyInterface):
 
     axis2sum = [
         idx for idx in range(self.mdp.num_action_factors)
-        if idx not in self.action_factor_indices
+        if idx not in self.queried_agent_indices
     ]
     np_action_dist = np_action_dist.sum(
         axis=tuple(axis2sum))  # type: np.ndarray
@@ -82,11 +82,11 @@ class BoxPushPolicyInterface(PolicyInterface):
         replace=False,
         p=self.list_policy[latstate_idx][obstate_idx, :])[0]
     vector_indv_aidx = self.mdp.conv_idx_to_action(joint_aidx)
-    return vector_indv_aidx[list(self.action_factor_indices)]
+    return vector_indv_aidx[list(self.queried_agent_indices)]
 
   def conv_idx_to_action(self, tuple_aidx: Sequence[int]):
     list_actions = []
-    for idx, fidx in enumerate(self.action_factor_indices):
+    for idx, fidx in enumerate(self.queried_agent_indices):
       list_actions.append(
           self.mdp.dict_factored_actionspace[fidx].idx_to_action[
               tuple_aidx[idx]])
@@ -95,7 +95,7 @@ class BoxPushPolicyInterface(PolicyInterface):
 
   def conv_action_to_idx(self, tuple_actions: Sequence) -> Sequence[int]:
     list_aidx = []
-    for idx, fidx in enumerate(self.action_factor_indices):
+    for idx, fidx in enumerate(self.queried_agent_indices):
       list_aidx.append(self.mdp.dict_factored_actionspace[fidx].action_to_idx[
           tuple_actions[idx]])
 

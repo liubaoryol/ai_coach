@@ -21,7 +21,7 @@ class StaticBoxPushPolicy(BoxPushPolicyInterface):
                      str_fileprefix,
                      policy_static_list,
                      temperature,
-                     action_factor_indices=(agent_idx, ))
+                     queried_agent_indices=(agent_idx, ))
 
 
 class StaticBoxPushMDPAgent(BoxPushMDPAgent):
