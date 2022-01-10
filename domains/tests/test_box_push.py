@@ -262,8 +262,8 @@ if __name__ == "__main__":
 
   SHOW_TRUE = False
 
-  BC = False
-  TEST_SB3_BC = False
+  BC = True
+  DNN_BC = False
 
   SHOW_SL = False
   SL_TRUE_TX = False
@@ -274,7 +274,7 @@ if __name__ == "__main__":
   SHOW_UL = False
   UL_TRUE_TX = False
 
-  GAIL = True
+  GAIL = False
 
   VI_TRAIN = SHOW_TRUE or SHOW_SL or SHOW_SEMI or BC or GAIL or SHOW_UL
 
@@ -379,18 +379,34 @@ if __name__ == "__main__":
         pi_a2 = np.zeros(
             (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
 
-        if TEST_SB3_BC:
+        if DNN_BC:
+          import ai_coach_core.model_inference.ikostrikov_gail as ikostrikov
+          print("BC by DNN")
           train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
-              include_next_state=True)
+              include_next_state=False)
 
           for xidx in range(MDP_AGENT.num_latents):
-            pi_a1[xidx] = behavior_cloning_sb3(list_frag_traj[0][xidx],
-                                               MDP_AGENT.num_states,
-                                               joint_action_num[0])
-            pi_a2[xidx] = behavior_cloning_sb3(list_frag_traj[1][xidx],
-                                               MDP_AGENT.num_states,
-                                               joint_action_num[1])
+            pi_a1[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
+                                            joint_action_num[0],
+                                            list_frag_traj[0][xidx],
+                                            demo_batch_size=128,
+                                            ppo_batch_size=32,
+                                            bc_pretrain_steps=300)
+            pi_a2[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
+                                            joint_action_num[1],
+                                            list_frag_traj[1][xidx],
+                                            demo_batch_size=128,
+                                            ppo_batch_size=32,
+                                            bc_pretrain_steps=300)
+
+          # for xidx in range(MDP_AGENT.num_latents):
+          #   pi_a1[xidx] = behavior_cloning_sb3(list_frag_traj[0][xidx],
+          #                                      MDP_AGENT.num_states,
+          #                                      joint_action_num[0])
+          #   pi_a2[xidx] = behavior_cloning_sb3(list_frag_traj[1][xidx],
+          #                                      MDP_AGENT.num_states,
+          #                                      joint_action_num[1])
         else:
           train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(

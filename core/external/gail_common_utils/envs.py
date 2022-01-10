@@ -82,11 +82,11 @@ def make_vec_envs(env_name,
   else:
     envs = DummyVecEnv(envs)
 
-  if len(envs.observation_space.shape) == 1:
-    if gamma is None:
-      envs = VecNormalize(envs, norm_reward=False)
-    else:
-      envs = VecNormalize(envs, gamma=gamma)
+  # if len(envs.observation_space.shape) == 1:
+  #   if gamma is None:
+  #     envs = VecNormalize(envs, norm_reward=False)
+  #   else:
+  #     envs = VecNormalize(envs, gamma=gamma)
 
   envs = VecPyTorch(envs, device)
 
@@ -155,7 +155,10 @@ class VecPyTorch(VecEnvWrapper):
 
   def reset(self):
     obs = self.venv.reset()
-    obs = torch.from_numpy(obs).unsqueeze(dim=1).to(self.device)
+    if len(obs.shape) == 1:
+      obs = torch.from_numpy(obs).unsqueeze(dim=1).to(self.device)
+    else:
+      obs = torch.from_numpy(obs).to(self.device)
     return obs
 
   def step_async(self, actions):
@@ -170,7 +173,10 @@ class VecPyTorch(VecEnvWrapper):
 
   def step_wait(self):
     obs, reward, done, info = self.venv.step_wait()
-    obs = torch.from_numpy(obs).unsqueeze(dim=1).to(self.device)
+    if len(obs.shape) == 1:
+      obs = torch.from_numpy(obs).unsqueeze(dim=1).to(self.device)
+    else:
+      obs = torch.from_numpy(obs).to(self.device)
     reward = torch.from_numpy(reward).unsqueeze(dim=1).float()
     return obs, reward, done, info
 

@@ -3,33 +3,34 @@ import tqdm
 import numpy as np
 import random
 import torch
-import external.magail.algo.gail as magail_gail
-import external.magail.algo as magail_algo
-import external.magail.model as magail_model
-import external.magail.storage as magail_storage
+import external.magail_latent.algo.gail as lmagail_gail
+import external.magail_latent.algo as lmagail_algo
+import external.magail_latent.model as lmagail_model
+import external.magail_latent.storage as lmagail_storage
 import external.gail_common_utils.utils as gail_utils
 import external.gail_common_utils.envs as gail_env
 import gym_aicoach  # noqa: F401
 import ai_coach_core.models.mdp as mdp_lib
 
 
-def magail_w_ppo(mdp: mdp_lib.MDP,
-                 possible_init_states,
-                 sa_trajectories_no_terminal,
-                 num_processes=1,
-                 demo_batch_size=64,
-                 ppo_batch_size=32,
-                 num_iterations=100,
-                 do_pretrain=True,
-                 bc_pretrain_steps=10,
-                 only_pretrain=False,
-                 use_ce=False,
-                 callback_loss=None):
+def lmagail_w_ppo(mdp: mdp_lib.MDP,
+                  possible_init_states,
+                  agents,
+                  sax_trajectories_no_terminal,
+                  num_processes=1,
+                  demo_batch_size=64,
+                  ppo_batch_size=32,
+                  num_iterations=100,
+                  do_pretrain=True,
+                  bc_pretrain_steps=10,
+                  only_pretrain=False,
+                  use_ce=False,
+                  callback_loss=None):
 
-  assert len(sa_trajectories_no_terminal) != 0
+  assert len(sax_trajectories_no_terminal) != 0
 
   num_sa_pairs = 0
-  for traj in sa_trajectories_no_terminal:
+  for traj in sax_trajectories_no_terminal:
     num_sa_pairs += len(traj)
   print(num_sa_pairs)
 
@@ -75,9 +76,11 @@ def magail_w_ppo(mdp: mdp_lib.MDP,
   device = torch.device("cuda:0" if args.cuda else "cpu")
 
   # ---------- create vec env from mdp ----------
-  env_kwargs = dict(mdp=mdp, possible_init_states=possible_init_states)
+  env_kwargs = dict(mdp=mdp,
+                    possible_init_states=possible_init_states,
+                    agents=agents)
 
-  venv = gail_env.make_vec_envs('envfrommdp-v0',
+  venv = gail_env.make_vec_envs('envfromboxpush-v0',
                                 seed=args.seed,
                                 num_processes=args.num_processes,
                                 gamma=args.gamma,
@@ -87,34 +90,39 @@ def magail_w_ppo(mdp: mdp_lib.MDP,
                                 env_make_kwargs=env_kwargs)
 
   tuple_num_actions = tuple(mdp.list_num_actions)
+  tuple_num_latent = (venv.observation_space.nvec[1],
+                      venv.observation_space.nvec[2])
   # ---------- policy net ----------
   # assumed observation space is discrete
-  actor_critic = magail_model.Policy(venv.observation_space,
-                                     venv.action_space,
-                                     base_kwargs={'recurrent': False})
+  actor_critic = lmagail_model.Policy(venv.observation_space,
+                                      venv.action_space,
+                                      base_kwargs={'recurrent': False})
   actor_critic.to(device)
 
   # ---------- policy learner ----------
-  agent = magail_algo.PPO(actor_critic,
-                          args.ppo_clip_param,
-                          args.ppo_epoch,
-                          args.ppo_num_mini_batch,
-                          args.ppo_value_loss_coef,
-                          args.ppo_entropy_coef,
-                          lr=args.ppo_lr,
-                          eps=args.ppo_eps,
-                          max_grad_norm=args.ppo_max_grad_norm)
+  agent = lmagail_algo.PPO(actor_critic,
+                           args.ppo_clip_param,
+                           args.ppo_epoch,
+                           args.ppo_num_mini_batch,
+                           args.ppo_value_loss_coef,
+                           args.ppo_entropy_coef,
+                           lr=args.ppo_lr,
+                           eps=args.ppo_eps,
+                           max_grad_norm=args.ppo_max_grad_norm)
 
   # ---------- gail discriminator ----------
-  discriminator = magail_gail.Discriminator(num_obs=venv.observation_space.n,
-                                            tuple_num_actions=tuple_num_actions,
-                                            hidden_dim=args.discr_hidden_dim,
-                                            device=device,
-                                            use_ce=use_ce)
+  discriminator = lmagail_gail.Discriminator(
+      num_obs=venv.observation_space.nvec[0],
+      tuple_num_latent=tuple_num_latent,
+      tuple_num_actions=tuple_num_actions,
+      hidden_dim=args.discr_hidden_dim,
+      device=device,
+      use_ce=use_ce)
 
   # ---------- set data loader ----------
   # TODO: need to convert this to compatible with my data
-  expert_data = gail_utils.TorchDatasetConverter(sa_trajectories_no_terminal)
+  expert_data = gail_utils.TorchLatentDatasetConverter(
+      sax_trajectories_no_terminal)
   drop_last = len(expert_data) > args.gail_batch_size
   gail_train_loader = torch.utils.data.DataLoader(
       dataset=expert_data,
@@ -123,7 +131,7 @@ def magail_w_ppo(mdp: mdp_lib.MDP,
       drop_last=drop_last)
 
   # rollout storage
-  rollouts = magail_storage.RolloutStorage(
+  rollouts = lmagail_storage.RolloutStorage(
       args.num_steps, args.num_processes, venv.observation_space,
       venv.action_space, actor_critic.recurrent_hidden_state_size)
 
@@ -214,13 +222,15 @@ def magail_w_ppo(mdp: mdp_lib.MDP,
     if callback_loss is not None:
       callback_loss(disc_loss, value_loss, action_loss, dist_entropy)
 
-  return get_np_policy(actor_critic, mdp.num_states, tuple_num_actions, device)
+  return get_np_policy(actor_critic, mdp.num_states, tuple_num_latent,
+                       tuple_num_actions, device)
 
 
-def get_np_policy(actor_critic: magail_model.Policy, num_states: int,
-                  tuple_num_actions: tuple, device):
+def get_np_policy(actor_critic: lmagail_model.Policy, num_states: int,
+                  tuple_num_latent: tuple, tuple_num_actions: tuple, device):
   list_np_policy = [
-      np.zeros((num_states, tuple_num_actions[idx])) for idx in range(2)
+      np.zeros((tuple_num_latent[idx], num_states, tuple_num_actions[idx]))
+      for idx in range(2)
   ]
 
   # to boost speed, compute probs by batch
@@ -229,17 +239,22 @@ def get_np_policy(actor_critic: magail_model.Policy, num_states: int,
   batch_size = int((MAX_MEMORY / 8) / num_states)  # 8Byte = double type
 
   with torch.no_grad():
-    for batch_idx in range(0, num_states, batch_size):
-      end_idx = min(batch_idx + batch_size, num_states)
+    for xidx in range(tuple_num_latent[0]):
+      for batch_idx in range(0, num_states, batch_size):
+        end_idx = min(batch_idx + batch_size, num_states)
 
-      state_input = torch.Tensor(
-          np.arange(batch_idx, end_idx).reshape((-1, 1))).long()
-      state_input = state_input.to(device)
-      dist1, dist2 = actor_critic.get_distribution(state_input, None, None)
-      probs1 = dist1.probs.cpu().numpy()
-      probs2 = dist2.probs.cpu().numpy()
+        obs = torch.Tensor(np.arange(batch_idx, end_idx).reshape(
+            (-1, 1))).long()
 
-      list_np_policy[0][batch_idx:end_idx] = probs1
-      list_np_policy[1][batch_idx:end_idx] = probs2
+        ls = torch.Tensor([xidx, xidx]).expand(end_idx - batch_idx, 2).long()
+        state_input = torch.cat([obs, ls], dim=1)
+
+        state_input = state_input.to(device)
+        dist1, dist2 = actor_critic.get_distribution(state_input, None, None)
+        probs1 = dist1.probs.cpu().numpy()
+        probs2 = dist2.probs.cpu().numpy()
+
+        list_np_policy[0][xidx, batch_idx:end_idx] = probs1
+        list_np_policy[1][xidx, batch_idx:end_idx] = probs2
 
   return list_np_policy

@@ -1,8 +1,5 @@
 from typing import List
 import numpy as np
-import collections.abc
-import torch
-import torch.utils.data as torch_data
 
 
 class Trajectories:
@@ -235,33 +232,3 @@ class Trajectories:
 
       list_list_SA.append(list_SA)
     return list_list_SA, list_X
-
-
-class TorchDatasetConverter(torch_data.Dataset):
-  def __init__(self, sa_trajectories_no_terminal) -> None:
-    super().__init__()
-    self.states = []
-    self.actions = []
-    for traj in sa_trajectories_no_terminal:
-      for state, action in traj:
-        self.states.append(state)
-        self.actions.append(action)
-
-    self.length = len(self.states)
-
-  def __getitem__(self, index):
-
-    state = self.states[index]
-    if not isinstance(state, collections.abc.Sequence):
-      state = [state]
-
-    action = self.actions[index]
-    if not isinstance(action, collections.abc.Sequence):
-      action = [action]
-
-    return (torch.Tensor(state).long(), torch.Tensor(action).long())
-    # return (torch.Tensor([self.states[index]]).long(),
-    #         torch.Tensor([self.actions[index]]).long())
-
-  def __len__(self):
-    return self.length

@@ -10,7 +10,6 @@ import external.gail_common_utils.utils as gail_utils
 import external.gail_common_utils.envs as gail_env
 import gym_aicoach  # noqa: F401
 import ai_coach_core.models.mdp as mdp_lib
-from ai_coach_core.utils.data_utils import TorchDatasetConverter
 from gym import spaces
 
 
@@ -76,7 +75,7 @@ def bc_dnn(num_states,
                               max_grad_norm=args.ppo_max_grad_norm)
 
   # ---------- set data loader ----------
-  expert_data = TorchDatasetConverter(sa_trajectories_no_terminal)
+  expert_data = gail_utils.TorchDatasetConverter(sa_trajectories_no_terminal)
   drop_last = len(expert_data) > args.gail_batch_size
   gail_train_loader = torch.utils.data.DataLoader(
       dataset=expert_data,
@@ -195,7 +194,7 @@ def gail_w_ppo(mdp: mdp_lib.MDP,
       num_action=venv.action_space.n)
 
   # ---------- set data loader ----------
-  expert_data = TorchDatasetConverter(sa_trajectories_no_terminal)
+  expert_data = gail_utils.TorchDatasetConverter(sa_trajectories_no_terminal)
   drop_last = len(expert_data) > args.gail_batch_size
   gail_train_loader = torch.utils.data.DataLoader(
       dataset=expert_data,

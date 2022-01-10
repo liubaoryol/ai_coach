@@ -11,7 +11,6 @@ import external.gail_common_utils.utils as gail_utils
 import external.gail_common_utils.envs as gail_env
 import gym_aicoach  # noqa: F401
 import ai_coach_core.models.mdp as mdp_lib
-from ai_coach_core.utils.data_utils import TorchDatasetConverter
 
 
 def cogail_w_ppo(mdp: mdp_lib.MDP,
@@ -106,7 +105,7 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
 
   # ---------- set data loader ----------
   # TODO: need to convert this to compatible with my data
-  expert_data = TorchDatasetConverter(sa_trajectories_no_terminal)
+  expert_data = gail_utils.TorchDatasetConverter(sa_trajectories_no_terminal)
   drop_last = len(expert_data) > args.gail_batch_size
   gail_train_loader = torch.utils.data.DataLoader(
       dataset=expert_data,

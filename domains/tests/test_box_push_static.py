@@ -133,11 +133,12 @@ if __name__ == "__main__":
   SHOW_SL = False
   SHOW_SEMI = False
   IRL = False
-  BC = True
+  BC = False
   COGAIL = False
   MAGAIL = False
-  VI_TRAIN = (SHOW_TRUE or SHOW_SL or SHOW_SEMI or IRL or BC or COGAIL
-              or MAGAIL)
+  MG_LATENT = True
+  VI_TRAIN = (SHOW_TRUE or SHOW_SL or SHOW_SEMI or IRL or BC or COGAIL or MAGAIL
+              or MG_LATENT)
 
   TRAIN_DIR = os.path.join(DATA_DIR, 'static_bp_train')
   TEST_DIR = os.path.join(DATA_DIR, 'static_bp_test')
@@ -539,12 +540,12 @@ if __name__ == "__main__":
           list_entropy.clear()
           list_policies = magail_w_ppo(MDP_AGENT, [init_state],
                                        trajs,
-                                       num_processes=4,
+                                       num_processes=1,
                                        demo_batch_size=64,
                                        ppo_batch_size=32,
                                        num_iterations=500,
                                        do_pretrain=True,
-                                       bc_pretrain_steps=100,
+                                       bc_pretrain_steps=300,
                                        only_pretrain=ONLY_PRETRAIN,
                                        callback_loss=get_loss_each_round)
           pi_by_combination.append(list_policies)
@@ -604,3 +605,67 @@ if __name__ == "__main__":
             lambda ai, x, s: list_pi_magail[ai][x, s, :])
 
         print(policy_errors)
+
+    if MG_LATENT:
+      from ai_coach_core.model_inference.latent_magail import lmagail_w_ppo
+      print("#########")
+      print("LatentMAGAIL")
+      print("#########")
+
+      list_disc_loss = []
+      list_value_loss = []
+      list_action_loss = []
+      list_entropy = []
+
+      def get_loss_each_round(disc_loss, value_loss, action_loss, entropy):
+        if disc_loss is not None:
+          list_disc_loss.append(disc_loss)
+        if value_loss is not None:
+          list_value_loss.append(value_loss)
+        if action_loss is not None:
+          list_action_loss.append(action_loss)
+        if entropy is not None:
+          list_entropy.append(entropy)
+
+      list_pi_magail = lmagail_w_ppo(MDP_AGENT, [init_state], [agent1, agent2],
+                                     sax_trajs,
+                                     num_processes=4,
+                                     demo_batch_size=64,
+                                     ppo_batch_size=32,
+                                     num_iterations=1,
+                                     do_pretrain=True,
+                                     bc_pretrain_steps=1,
+                                     use_ce=True,
+                                     only_pretrain=False,
+                                     callback_loss=get_loss_each_round)
+
+      sup_conf_full1, full_acc1 = get_bayesian_infer_result(
+          num_agents,
+          (lambda m, x, s, joint: list_pi_magail[m][x, s, joint[m]]),
+          MDP_AGENT.num_latents, test_traj, test_labels)
+
+      print_conf(sup_conf_full1)
+      print("4by4(Full) Acc: " + str(full_acc1))
+
+      policy_errors = cal_latent_policy_error(
+          num_agents, MDP_AGENT.num_states, MDP_AGENT.num_latents, sax_trajs,
+          lambda ai, x, s: get_true_policy(ai, x, s),
+          lambda ai, x, s: list_pi_magail[ai][x, s, :])
+
+      print(policy_errors)
+
+      f = plt.figure(figsize=(15, 5))
+      ax0 = f.add_subplot(141)
+      ax0.plot(list_disc_loss)
+      ax0.set_ylabel('disc_loss')
+      ax1 = f.add_subplot(142)
+      ax1.plot(list_value_loss)
+      ax1.set_ylabel('value_loss')
+      ax2 = f.add_subplot(143)
+      ax2.plot(list_action_loss)
+      ax2.set_ylabel('action_loss')
+      ax3 = f.add_subplot(144)
+      ax3.plot(list_entropy)
+      ax3.set_ylabel('entropy')
+      # plt.show()
+      plt.savefig('latent_magail loss (%d).png' % (100, ))

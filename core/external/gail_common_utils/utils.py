@@ -7,6 +7,9 @@ import torch.nn.functional as F
 
 from .envs import VecNormalize
 
+import collections.abc
+import torch.utils.data as torch_data
+
 
 # Get a render function
 def get_render_func(venv):
@@ -68,3 +71,63 @@ def cleanup_log_dir(log_dir):
 
 def conv_discrete_2_onehot(indices: torch.Tensor, num_classes):
   return F.one_hot(indices.squeeze(1), num_classes=num_classes).float()
+
+
+class TorchDatasetConverter(torch_data.Dataset):
+  def __init__(self, sa_trajectories_no_terminal) -> None:
+    super().__init__()
+    self.states = []
+    self.actions = []
+    for traj in sa_trajectories_no_terminal:
+      for state, action in traj:
+        self.states.append(state)
+        self.actions.append(action)
+
+    self.length = len(self.states)
+
+  def __getitem__(self, index):
+
+    state = self.states[index]
+    if not isinstance(state, collections.abc.Sequence):
+      state = [state]
+
+    action = self.actions[index]
+    if not isinstance(action, collections.abc.Sequence):
+      action = [action]
+
+    return (torch.Tensor(state).long(), torch.Tensor(action).long())
+    # return (torch.Tensor([self.states[index]]).long(),
+    #         torch.Tensor([self.actions[index]]).long())
+
+  def __len__(self):
+    return self.length
+
+
+class TorchLatentDatasetConverter(torch_data.Dataset):
+  def __init__(self, sax_trajectories_no_terminal) -> None:
+    super().__init__()
+    self.states = []
+    self.actions = []
+    for traj in sax_trajectories_no_terminal:
+      for state, action, latent in traj:
+        self.states.append((state, *latent))
+        self.actions.append(action)
+
+    self.length = len(self.states)
+
+  def __getitem__(self, index):
+
+    state = self.states[index]
+    if not isinstance(state, collections.abc.Sequence):
+      state = [state]
+
+    action = self.actions[index]
+    if not isinstance(action, collections.abc.Sequence):
+      action = [action]
+
+    return (torch.Tensor(state).long(), torch.Tensor(action).long())
+    # return (torch.Tensor([self.states[index]]).long(),
+    #         torch.Tensor([self.actions[index]]).long())
+
+  def __len__(self):
+    return self.length
