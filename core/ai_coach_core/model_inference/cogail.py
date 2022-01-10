@@ -241,7 +241,7 @@ def get_np_policy(actor_critic: cogail_model.Policy, num_code: int,
 
   # to boost speed, compute probs by batch
   # --> needed to change max memory depending on machine
-  MAX_MEMORY = 536870912  # 512MiB
+  MAX_MEMORY = 67108864  # 512MiB
   batch_size = int((MAX_MEMORY / 8) / num_states)  # 8Byte = double type
 
   with torch.no_grad():

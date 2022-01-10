@@ -225,9 +225,17 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--use_true_tx", type=bool, default=True, help="")
 @click.option("--magail", type=bool, default=False, help="")
+@click.option("--num_processes", type=int, default=4, help="")
+@click.option("--gail_batch_size", type=int, default=64, help="")
+@click.option("--ppo_batch_size", type=int, default=32, help="")
+@click.option("--num_iterations", type=int, default=300, help="")
+@click.option("--pretrain_steps", type=int, default=100, help="")
+@click.option("--use_ce", type=bool, default=False, help="")
 # yapf: enable
 def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
-         dnn_bc, show_sl, show_semi, show_ul, use_true_tx, magail):
+         dnn_bc, show_sl, show_semi, show_ul, use_true_tx, magail,
+         num_processes, gail_batch_size, ppo_batch_size, num_iterations,
+         pretrain_steps, use_ce):
   global MDP_AGENT, MDP_TASK, SAVE_PREFIX, BoxPushSimulator
 
   if is_test:
@@ -386,15 +394,15 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
           pi_a1[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
                                           joint_action_num[0],
                                           list_frag_traj[0][xidx],
-                                          demo_batch_size=128,
-                                          ppo_batch_size=32,
-                                          bc_pretrain_steps=300)
+                                          demo_batch_size=gail_batch_size,
+                                          ppo_batch_size=ppo_batch_size,
+                                          bc_pretrain_steps=pretrain_steps)
           pi_a2[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
                                           joint_action_num[1],
                                           list_frag_traj[1][xidx],
-                                          demo_batch_size=128,
-                                          ppo_batch_size=32,
-                                          bc_pretrain_steps=300)
+                                          demo_batch_size=gail_batch_size,
+                                          ppo_batch_size=ppo_batch_size,
+                                          bc_pretrain_steps=pretrain_steps)
 
         # for xidx in range(MDP_AGENT.num_latents):
         #   pi_a1[xidx] = behavior_cloning_sb3(list_frag_traj[0][xidx],

@@ -225,7 +225,7 @@ def get_np_policy(actor_critic: magail_model.Policy, num_states: int,
 
   # to boost speed, compute probs by batch
   # --> needed to change max memory depending on machine
-  MAX_MEMORY = 536870912  # 512MiB
+  MAX_MEMORY = 67108864  # 64MiB
   batch_size = int((MAX_MEMORY / 8) / num_states)  # 8Byte = double type
 
   with torch.no_grad():
