@@ -4,8 +4,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import random
-from external.cogail.model import CodePosterior, Policy
-from external.gail_common_utils.utils import conv_discrete_2_onehot
+from external.magail.model import Policy
 
 
 class PPO():
@@ -35,38 +34,36 @@ class PPO():
 
     self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr, eps=eps)
 
-    self.MSEloss = nn.MSELoss()
-
   def pretrain(self, gail_train_loader, device):
     all_loss = []
+    ENT_WEIGHT = 1e-3
+    L2_WEIGHT = 0.0
     for expert_batch in gail_train_loader:
       expert_state, expert_action = expert_batch
 
       expert_state = torch.as_tensor(expert_state, device=device)
-      expert_action1 = torch.as_tensor(expert_action[:, 0].unsqueeze(1),
-                                       device=device)
-      expert_action2 = torch.as_tensor(expert_action[:, 1].unsqueeze(1),
-                                       device=device)
+      expert_action = torch.as_tensor(expert_action, device=device)
+      # expert_action1 = torch.as_tensor(expert_action[:, 0].unsqueeze(1),
+      #                                  device=device)
+      # expert_action2 = torch.as_tensor(expert_action[:, 1].unsqueeze(1),
+      #                                  device=device)
 
-      bs = len(expert_state)
-      expert_seed = torch.Tensor(
-          np.array([[random.randrange(self.actor_critic.num_code)]
-                    for _ in range(bs)])).long().view(bs, 1).to(device)
+      _, log_prob, dist_entropy, _ = self.actor_critic.evaluate_actions(
+          expert_state, None, None, expert_action)
 
-      expert_seed = conv_discrete_2_onehot(expert_seed,
-                                           self.actor_critic.num_code)
+      log_prob = log_prob.mean()
+      dist_entropy = dist_entropy.mean()
 
-      pred_act = self.actor_critic.act(expert_state,
-                                       expert_seed,
-                                       None,
-                                       None,
-                                       deterministic=True)[1]
-      # NOTE: need to rethink this loss term...
-      loss1 = self.MSEloss(expert_action1.float(),
-                           pred_act[:, 0].unsqueeze(1).float())
-      loss2 = self.MSEloss(expert_action2.float(),
-                           pred_act[:, 1].unsqueeze(1).float())
-      loss = loss1 + loss2
+      l2_norms = [
+          torch.sum(torch.square(w)) for w in self.actor_critic.parameters()
+      ]
+      l2_norm = sum(l2_norms) / 2
+
+      ent_loss = -ENT_WEIGHT * dist_entropy
+      neglogp = -log_prob
+      l2_loss = L2_WEIGHT * l2_norm
+      loss = neglogp + ent_loss + l2_loss
+
       all_loss.append(loss.item())
 
       self.optimizer.zero_grad()
@@ -75,15 +72,13 @@ class PPO():
 
     return np.mean(all_loss)
 
-  def update(self, rollouts, expert_loader, device):
+  def update(self, rollouts):
     advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]
     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
 
     value_loss_epoch = 0
     action_loss_epoch = 0
     dist_entropy_epoch = 0
-    code_loss_epoch = 0
-    inv_loss_epoch = 0
 
     for e in range(self.ppo_epoch):
       if self.actor_critic.is_recurrent:
@@ -93,37 +88,15 @@ class PPO():
         data_generator = rollouts.feed_forward_generator(
             advantages, self.num_mini_batch)
 
-      for expert_batch, sample in zip(expert_loader, data_generator):
-        obs_batch, random_seed_batch, recurrent_hidden_states_batch, actions_batch, \
+      for sample in data_generator:
+        obs_batch, recurrent_hidden_states_batch, actions_batch, \
            value_preds_batch, return_batch, masks_batch, old_action_log_probs_batch, \
                 adv_targ = sample
 
         # Reshape to do in a single forward pass for all steps
-        values, action_log_probs, dist_entropy, _, pred_code = self.actor_critic.evaluate_actions(
-            obs_batch, random_seed_batch, recurrent_hidden_states_batch,
-            masks_batch, actions_batch)
-
-        code_loss = torch.norm(pred_code - random_seed_batch,
-                               dim=1).mean() * 0.1
-
-        expert_state, expert_action = expert_batch
-        expert_state = expert_state.to(device)
-        expert_action = expert_action.to(device)
-
-        pred_codes = self.actor_critic.evaluate_code(expert_state,
-                                                     expert_action)
-
-        pred_action_dist1, _ = self.actor_critic.get_distribution(
-            expert_state, pred_codes, None, None)
-
-        expert_action_1hot_1 = conv_discrete_2_onehot(
-            expert_action[:, 0].unsqueeze(1),
-            self.actor_critic.tuple_num_outputs[0])
-
-        # NOTE: need to rethink this...
-        # might not be suitalbe for discrete space
-        inv_loss = torch.norm(expert_action_1hot_1 - pred_action_dist1.probs,
-                              dim=1).mean() * 0.1
+        values, action_log_probs, dist_entropy, _ = self.actor_critic.evaluate_actions(
+            obs_batch, recurrent_hidden_states_batch, masks_batch,
+            actions_batch)
 
         ratio = torch.exp(action_log_probs - old_action_log_probs_batch)
         surr1 = ratio * adv_targ
@@ -142,8 +115,8 @@ class PPO():
           value_loss = 0.5 * (return_batch - values).pow(2).mean()
 
         self.optimizer.zero_grad()
-        (value_loss * self.value_loss_coef + action_loss + code_loss +
-         inv_loss - dist_entropy * self.entropy_coef).backward()
+        (value_loss * self.value_loss_coef + action_loss -
+         dist_entropy * self.entropy_coef).backward()
 
         nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
                                  self.max_grad_norm)
@@ -152,15 +125,11 @@ class PPO():
         value_loss_epoch += value_loss.item()
         action_loss_epoch += action_loss.item()
         dist_entropy_epoch += dist_entropy.item()
-        code_loss_epoch += code_loss.item()
-        inv_loss_epoch += inv_loss.item()
 
     num_updates = self.ppo_epoch * self.num_mini_batch
 
     value_loss_epoch /= num_updates
     action_loss_epoch /= num_updates
     dist_entropy_epoch /= num_updates
-    code_loss_epoch /= num_updates
-    inv_loss_epoch /= num_updates
 
-    return value_loss_epoch, action_loss_epoch, dist_entropy_epoch, code_loss_epoch, inv_loss_epoch
+    return value_loss_epoch, action_loss_epoch, dist_entropy_epoch

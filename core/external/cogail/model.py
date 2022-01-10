@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from gym import spaces
 
-from external.cogail.distributions import (Bernoulli, Categorical, DiagGaussian,
-                                           FixedCategorical)
-from external.cogail.utils import init, conv_discrete_2_onehot
+from external.gail_common_utils.distributions import (Bernoulli, Categorical,
+                                                      DiagGaussian)
+from external.gail_common_utils.utils import init, conv_discrete_2_onehot
 
 
 class Flatten(nn.Module):
@@ -103,8 +103,8 @@ class Policy(nn.Module):
     dist1 = self.dist1(actor_features)
     dist2 = self.dist2(actor_features)
 
-    action_log_probs1 = dist1.log_probs(action[:, 0])
-    action_log_probs2 = dist2.log_probs(action[:, 1])
+    action_log_probs1 = dist1.log_probs(action[:, 0].unsqueeze(1))
+    action_log_probs2 = dist2.log_probs(action[:, 1].unsqueeze(1))
     action_log_probs = action_log_probs1 + action_log_probs2
 
     dist_entropy1 = dist1.entropy().mean()
@@ -122,7 +122,8 @@ class Policy(nn.Module):
 
   def evaluate_code(self, inputs, action):
     inputs = conv_discrete_2_onehot(inputs, self.num_obs)
-    action1 = conv_discrete_2_onehot(action[:, 0], self.tuple_num_outputs[0])
+    action1 = conv_discrete_2_onehot(action[:, 0].unsqueeze(1),
+                                     self.tuple_num_outputs[0])
     input_code = torch.cat((inputs, action1), dim=1)
     pred_code = self.recode(input_code)
 
@@ -130,7 +131,8 @@ class Policy(nn.Module):
 
   def process_exp_dataset_no_balance(self, inputs, action):
     inputs = conv_discrete_2_onehot(inputs, self.num_obs)
-    action1 = conv_discrete_2_onehot(action[:, 0], self.tuple_num_outputs[0])
+    action1 = conv_discrete_2_onehot(action[:, 0].unsqueeze(1),
+                                     self.tuple_num_outputs[0])
 
     input_code = torch.cat((inputs, action1), dim=1)
     pred_code = self.recode(input_code).detach()
@@ -140,18 +142,18 @@ class Policy(nn.Module):
 
 class CodePosterior(nn.Module):
   def __init__(self, num_inputs, num_outputs):
-    super(Categorical, self).__init__()
+    super(CodePosterior, self).__init__()
 
     init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(
         x, 0), np.sqrt(2))
     self.recode = nn.Sequential(init_(nn.Linear(num_inputs, 64)), nn.ReLU(),
-                                init_(nn.Linear(64, num_outputs)), nn.Softmax())
+                                init_(nn.Linear(64, num_outputs)),
+                                nn.Softmax(1))
 
     self.train()
 
   def forward(self, x):
     return self.recode(x)
-    # return FixedCategorical(logits=x)
 
 
 class NNBase(nn.Module):
@@ -201,11 +203,7 @@ class NNBase(nn.Module):
 
       # Let's figure out which steps in the sequence have a zero for any agent
       # We will always assume t=0 has a zero in it as that makes the logic cleaner
-      has_zeros = ((masks[1:] == 0.0) \
-                      .any(dim=-1)
-                      .nonzero()
-                      .squeeze()
-                      .cpu())
+      has_zeros = ((masks[1:] == 0.0).any(dim=-1).nonzero().squeeze().cpu())
 
       # +1 to correct the masks[1:]
       if has_zeros.dim() == 0:

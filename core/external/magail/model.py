@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from gym import spaces
 
 from external.gail_common_utils.distributions import (Bernoulli, Categorical,
                                                       DiagGaussian)
@@ -17,44 +18,30 @@ class Policy(nn.Module):
   def __init__(self,
                observation_space,
                action_space,
+               num_history=1,
                base=None,
                base_kwargs=None):
     super(Policy, self).__init__()
     if base_kwargs is None:
       base_kwargs = {}
 
-    self.is_discrete_obs = False
-    self.num_obs = 0
-    if observation_space.__class__.__name__ == "Discrete":
-      self.is_discrete_obs = True
-      self.num_obs = observation_space.n
-      if base is None:
-        base = MLPBase
-    elif observation_space.__class__.__name__ == "Box":
-      self.num_obs = observation_space.shape[0]
-      if base is None:
-        if len(observation_space.shape) == 3:
-          base = CNNBase
-        elif len(observation_space.shapce) == 1:
-          base = MLPBase
-        else:
-          raise NotImplementedError
-    else:
+    if not isinstance(observation_space, spaces.Discrete):
       raise NotImplementedError
+    self.num_obs = observation_space.n
+    if base is None:
+      base = MLPBase
 
     self.base = base(self.num_obs, **base_kwargs)
 
-    if action_space.__class__.__name__ == "Discrete":
-      num_outputs = action_space.n
-      self.dist = Categorical(self.base.output_size, num_outputs)
-    elif action_space.__class__.__name__ == "Box":
-      num_outputs = action_space.shape[0]
-      self.dist = DiagGaussian(self.base.output_size, num_outputs)
-    elif action_space.__class__.__name__ == "MultiBinary":
-      num_outputs = action_space.shape[0]
-      self.dist = Bernoulli(self.base.output_size, num_outputs)
-    else:
+    if not isinstance(action_space, spaces.MultiDiscrete):
       raise NotImplementedError
+
+    self.num_agents = action_space.shape[0]
+    assert self.num_agents == 2
+
+    self.tuple_num_outputs = tuple(action_space.nvec)
+    self.dist1 = Categorical(self.base.output_size, self.tuple_num_outputs[0])
+    self.dist2 = Categorical(self.base.output_size, self.tuple_num_outputs[1])
 
   @property
   def is_recurrent(self):
@@ -69,39 +56,53 @@ class Policy(nn.Module):
     raise NotImplementedError
 
   def act(self, inputs, rnn_hxs, masks, deterministic=False):
-    inputs = conv_discrete_2_onehot(inputs, num_classes=self.num_obs)
+    # print(inputs)
+    inputs = conv_discrete_2_onehot(inputs, self.num_obs)
     value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-    dist = self.dist(actor_features)
+    dist1 = self.dist1(actor_features)
+    dist2 = self.dist1(actor_features)
 
     if deterministic:
-      action = dist.mode()
+      action1 = dist1.mode()
+      action2 = dist2.mode()
     else:
-      action = dist.sample()
+      action1 = dist1.sample()
+      action2 = dist2.sample()
+    action = torch.cat((action1, action2), dim=1)
 
-    action_log_probs = dist.log_probs(action)
-    dist_entropy = dist.entropy().mean()
+    action_log_probs1 = dist1.log_probs(action1)
+    action_log_probs2 = dist2.log_probs(action2)
+    action_log_probs = action_log_probs1 + action_log_probs2
+
+    dist_entropy1 = dist1.entropy().mean()
+    dist_entropy2 = dist2.entropy().mean()
+    dist_entropy = dist_entropy1 + dist_entropy2
 
     return value, action, action_log_probs, rnn_hxs
 
   def get_distribution(self, inputs, rnn_hxs, masks):
-    inputs = conv_discrete_2_onehot(inputs, num_classes=self.num_obs)
+    inputs = conv_discrete_2_onehot(inputs, self.num_obs)
     _, actor_features, _ = self.base(inputs, rnn_hxs, masks)
-    return self.dist(actor_features)
+    return self.dist1(actor_features), self.dist2(actor_features)
 
   def get_value(self, inputs, rnn_hxs, masks):
-    inputs = conv_discrete_2_onehot(inputs, num_classes=self.num_obs)
-
+    inputs = conv_discrete_2_onehot(inputs, self.num_obs)
     value, _, _ = self.base(inputs, rnn_hxs, masks)
     return value
 
   def evaluate_actions(self, inputs, rnn_hxs, masks, action):
-    inputs = conv_discrete_2_onehot(inputs, num_classes=self.num_obs)
-
+    inputs = conv_discrete_2_onehot(inputs, self.num_obs)
     value, actor_features, rnn_hxs = self.base(inputs, rnn_hxs, masks)
-    dist = self.dist(actor_features)
+    dist1 = self.dist1(actor_features)
+    dist2 = self.dist2(actor_features)
 
-    action_log_probs = dist.log_probs(action)
-    dist_entropy = dist.entropy().mean()
+    action_log_probs1 = dist1.log_probs(action[:, 0].unsqueeze(1))
+    action_log_probs2 = dist2.log_probs(action[:, 1].unsqueeze(1))
+    action_log_probs = action_log_probs1 + action_log_probs2
+
+    dist_entropy1 = dist1.entropy().mean()
+    dist_entropy2 = dist2.entropy().mean()
+    dist_entropy = dist_entropy1 + dist_entropy2
 
     return value, action_log_probs, dist_entropy, rnn_hxs
 
@@ -219,39 +220,41 @@ class CNNBase(NNBase):
 
 
 class MLPBase(NNBase):
-  def __init__(self, num_inputs, recurrent=False, hidden_size=64):
+  def __init__(self,
+               num_inputs,
+               recurrent=False,
+               hidden_size=64,
+               base_net_small=False):
     super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
 
-    if recurrent:
-      num_inputs = hidden_size
+    self.hidden_size = hidden_size
+    self.base_net_small = base_net_small
 
     init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(
         x, 0), np.sqrt(2))
 
-    # self.actor = nn.Sequential(init_(nn.Linear(num_inputs, hidden_size)),
-    #                            nn.Tanh(),
-    #                            init_(nn.Linear(hidden_size, hidden_size)),
-    #                            nn.Tanh())
+    if self.base_net_small:
+      self.actor = nn.Sequential(init_(nn.Linear(num_inputs, hidden_size)),
+                                 nn.Tanh(),
+                                 init_(nn.Linear(hidden_size, hidden_size)),
+                                 nn.Tanh())
 
-    # self.critic = nn.Sequential(init_(nn.Linear(num_inputs, hidden_size)),
-    #                             nn.Tanh(),
-    #                             init_(nn.Linear(hidden_size, hidden_size)),
-    #                             nn.Tanh())
+      self.critic = nn.Sequential(init_(nn.Linear(num_inputs, hidden_size)),
+                                  nn.Tanh(),
+                                  init_(nn.Linear(hidden_size, hidden_size)),
+                                  nn.Tanh())
+    else:
+      self.actor = nn.Sequential(
+          init_(nn.Linear(num_inputs, hidden_size)), nn.ReLU(),
+          init_(nn.Linear(hidden_size, hidden_size * 2)), nn.ReLU(),
+          init_(nn.Linear(hidden_size * 2, hidden_size * 2)), nn.Tanh(),
+          init_(nn.Linear(hidden_size * 2, hidden_size)), nn.Tanh())
 
-    # init2_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(
-    #     x, 0), 1)
-    # self.critic_linear = init2_(nn.Linear(hidden_size, 1))
-    self.actor = nn.Sequential(
-        init_(nn.Linear(num_inputs, hidden_size)), nn.ReLU(),
-        init_(nn.Linear(hidden_size, hidden_size * 2)), nn.ReLU(),
-        init_(nn.Linear(hidden_size * 2, hidden_size * 2)), nn.Tanh(),
-        init_(nn.Linear(hidden_size * 2, hidden_size)), nn.Tanh())
-
-    self.critic = nn.Sequential(
-        init_(nn.Linear(num_inputs, hidden_size)), nn.ReLU(),
-        init_(nn.Linear(hidden_size, hidden_size * 2)), nn.ReLU(),
-        init_(nn.Linear(hidden_size * 2, hidden_size * 2)), nn.Tanh(),
-        init_(nn.Linear(hidden_size * 2, hidden_size)), nn.Tanh())
+      self.critic = nn.Sequential(
+          init_(nn.Linear(num_inputs, hidden_size)), nn.ReLU(),
+          init_(nn.Linear(hidden_size, hidden_size * 2)), nn.ReLU(),
+          init_(nn.Linear(hidden_size * 2, hidden_size * 2)), nn.Tanh(),
+          init_(nn.Linear(hidden_size * 2, hidden_size)), nn.Tanh())
 
     self.critic_linear = init_(nn.Linear(hidden_size, 1))
 

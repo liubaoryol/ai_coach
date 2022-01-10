@@ -3,10 +3,10 @@ import tqdm
 import numpy as np
 import random
 import torch
-import external.cogail.algo.gail as cogail_gail
-import external.cogail.algo as cogail_algo
-import external.cogail.model as cogail_model
-import external.cogail.storage as cogail_storage
+import external.magail.algo.gail as magail_gail
+import external.magail.algo as magail_algo
+import external.magail.model as magail_model
+import external.magail.storage as magail_storage
 import external.gail_common_utils.utils as gail_utils
 import external.gail_common_utils.envs as gail_env
 import gym_aicoach  # noqa: F401
@@ -14,18 +14,27 @@ import ai_coach_core.models.mdp as mdp_lib
 from ai_coach_core.utils.data_utils import TorchDatasetConverter
 
 
-def cogail_w_ppo(mdp: mdp_lib.MDP,
-                 num_latent,
+def magail_w_ppo(mdp: mdp_lib.MDP,
                  possible_init_states,
                  sa_trajectories_no_terminal,
+                 num_processes=1,
                  demo_batch_size=64,
                  ppo_batch_size=32,
-                 n_steps=64,
-                 total_timesteps=32000,
+                 num_iterations=100,
                  do_pretrain=True,
-                 callback_policy=None):
+                 bc_pretrain_steps=10,
+                 only_pretrain=False,
+                 callback_loss=None):
 
   assert len(sa_trajectories_no_terminal) != 0
+
+  num_sa_pairs = 0
+  for traj in sa_trajectories_no_terminal:
+    num_sa_pairs += len(traj)
+  print(num_sa_pairs)
+
+  n_steps = max(int(num_sa_pairs / num_processes), 200)
+  total_timesteps = num_processes * n_steps * num_iterations
 
   args = SimpleNamespace()
   args.seed = 1  # random seed (default: 1)
@@ -41,7 +50,7 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
   args.ppo_max_grad_norm = 0.5  # max norm of gradients (default: 0.5)
   args.gail_batch_size = demo_batch_size  # gail batch size (default: 128)
   args.num_steps = n_steps  # number of forward steps in A2C (default: 5)
-  args.num_processes = 1  # how many training CPU processes to use (default: 16)
+  args.num_processes = num_processes  # how many training CPU processes to use (default: 16)  # noqa: E501
   args.num_env_steps = total_timesteps  # number of environment steps to train (default: 10e6) # noqa: E501
   args.use_linear_lr_decay = False  # use a linear schedule on the learning rate
   args.gail_epoch = 5  # gail epochs (default: 5)
@@ -49,14 +58,14 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
   args.gamma = 0.95  # discount factor for rewards (default: 0.99)
   args.gae_lambda = 0.95  # gae lambda parameter (default: 0.95)
   args.use_proper_time_limits = False  # compute returns taking into account time limits # noqa: E501
-  args.discr_hidden_dim = 100
-  args.bc_pretrain_steps = 1
+  args.discr_hidden_dim = 64
+  args.bc_pretrain_steps = bc_pretrain_steps
 
   # ---------- seed for random ----------
   torch.manual_seed(args.seed)
   torch.cuda.manual_seed_all(args.seed)
-  # np.random.seed(args.seed)
-  # random.seed(args.seed)
+  np.random.seed(args.seed)
+  random.seed(args.seed)
 
   if args.cuda and torch.cuda.is_available() and args.cuda_deterministic:
     torch.backends.cudnn.benchmark = False
@@ -80,14 +89,13 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
   tuple_num_actions = tuple(mdp.list_num_actions)
   # ---------- policy net ----------
   # assumed observation space is discrete
-  actor_critic = cogail_model.Policy(venv.observation_space,
+  actor_critic = magail_model.Policy(venv.observation_space,
                                      venv.action_space,
-                                     num_latent,
                                      base_kwargs={'recurrent': False})
   actor_critic.to(device)
 
   # ---------- policy learner ----------
-  agent = cogail_algo.PPO(actor_critic,
+  agent = magail_algo.PPO(actor_critic,
                           args.ppo_clip_param,
                           args.ppo_epoch,
                           args.ppo_num_mini_batch,
@@ -98,7 +106,7 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
                           max_grad_norm=args.ppo_max_grad_norm)
 
   # ---------- gail discriminator ----------
-  discriminator = cogail_gail.Discriminator(num_obs=venv.observation_space.n,
+  discriminator = magail_gail.Discriminator(num_obs=venv.observation_space.n,
                                             tuple_num_actions=tuple_num_actions,
                                             hidden_dim=args.discr_hidden_dim,
                                             device=device,
@@ -114,33 +122,27 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
       shuffle=True,
       drop_last=drop_last)
 
-  # NOTE: don't know what it is ... num_processes? recurrent_hidden_state_size?
-  # NOTE: I guess it's just to store state, action, and any other info
-  # that are happening at each step to log and to use for next step
-  rollouts = cogail_storage.RolloutStorage(
-      args.num_steps, args.num_processes, venv.observation_space, num_latent,
+  # rollout storage
+  rollouts = magail_storage.RolloutStorage(
+      args.num_steps, args.num_processes, venv.observation_space,
       venv.action_space, actor_critic.recurrent_hidden_state_size)
 
   # reset env
   obs = venv.reset()
-  random_seed = random.randrange(num_latent)
-  random_seed = torch.Tensor([[random_seed]]).long()
-  random_seed = gail_utils.conv_discrete_2_onehot(random_seed, num_latent)
 
   rollouts.obs[0].copy_(obs)
-  rollouts.random_seed[0].copy_(random_seed)
   rollouts.to(device)
 
   if do_pretrain:
-    for j in range(args.bc_pretrain_steps):
+    for j in tqdm.tqdm(range(args.bc_pretrain_steps)):
       loss = agent.pretrain(gail_train_loader, device)
-      print("Pretrain round {0}: loss {1}".format(j, loss))
+      if only_pretrain and callback_loss:
+        callback_loss(loss, None, None, None)
+        # print("Pretrain round {0}: loss {1}".format(j, loss))
 
-    # policy after bc
-    if callback_policy is not None:
-      callback_policy(
-          get_np_policy(actor_critic, num_latent, mdp.num_states,
-                        tuple_num_actions, device))
+    if only_pretrain:
+      return get_np_policy(actor_critic, mdp.num_states, tuple_num_actions,
+                           device)
 
   # episode_rewards = deque(maxlen=10)  # I think this is just for info
   # start = time.time()
@@ -158,59 +160,45 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
       with torch.no_grad():
         (value, action, action_log_prob,
          recurrent_hidden_states) = actor_critic.act(
-             rollouts.obs[step], rollouts.random_seed[step],
-             rollouts.recurrent_hidden_states[step], rollouts.masks[step])
+             rollouts.obs[step], rollouts.recurrent_hidden_states[step],
+             rollouts.masks[step])
 
       # Obser reward and next obs
       # NOTE: info? does info include 'bad_transition' and 'episode' keyword?
       obs, reward, done, infos = venv.step(action)
-      if done:
-        random_seed = random.randrange(num_latent)
-        random_seed = torch.Tensor([[random_seed]]).long()
-        random_seed = gail_utils.conv_discrete_2_onehot(random_seed, num_latent)
 
-      # NOTE: what's this for?
-      # for info in infos:
-      #   if 'episode' in info.keys():
-      #     episode_rewards.append(info['episode']['r'])
-
-      # If done then clean the history of observations. (?????)
-      # NOTE: FloatTensor..?
       masks = torch.FloatTensor([[0.0] if done_ else [1.0] for done_ in done])
       bad_masks = torch.FloatTensor(
           [[0.0] if 'bad_transition' in info.keys() else [1.0]
            for info in infos])
       rollouts.insert(obs, recurrent_hidden_states, action, action_log_prob,
-                      value, reward, masks, bad_masks, random_seed)
+                      value, reward, masks, bad_masks)
 
     # !!!!! after collecting rollouts !!!!!
     with torch.no_grad():
       next_value = actor_critic.get_value(rollouts.obs[-1],
-                                          rollouts.random_seed[-1],
                                           rollouts.recurrent_hidden_states[-1],
                                           rollouts.masks[-1]).detach()
 
-    # NOTE: don't know what this is. I feel this is not needed.
+    # # NOTE: don't know what this is. I feel this is not needed.
     # if j >= 10:
     #   venv.venv.eval()
 
     gail_epoch = args.gail_epoch
-    # if j < 10:
-    #   gail_epoch = 100  # Warm up
+    if j < 10:
+      gail_epoch = 100  # Warm up
 
     # !!!!! gail update !!!!!
     # discriminate expert data (gail_train_loader) and generated data (rollouts)
     # NOTE: don't know what obfilt is.
     for _ in range(gail_epoch):
-      # NOTE: need to change update function to work with discrete spaces
-      discriminator.update(gail_train_loader, rollouts)
-      #  gail_utils.get_vec_normalize(venv)._obfilt)
+      disc_loss = discriminator.update(gail_train_loader, rollouts)
 
     # !!!!! predict rewards from discriminator !!!!!
     for step in range(args.num_steps):
       rollouts.rewards[step] = discriminator.predict_reward(
-          rollouts.obs[step], rollouts.actions[step],
-          rollouts.random_seed[step], args.gamma, rollouts.masks[step])
+          rollouts.obs[step], rollouts.actions[step], args.gamma,
+          rollouts.masks[step])
 
     # NOTE: what are returns for?
     # NOTE: what's the meaning of each paramter?
@@ -219,25 +207,20 @@ def cogail_w_ppo(mdp: mdp_lib.MDP,
 
     # !!!!! udpate agent with rewards(return?) from discriminator !!!!!
     # NOTE: need to change update function to work with discrete spaces
-    value_loss, action_loss, dist_entropy, code_loss, inv_loss = agent.update(
-        rollouts, gail_train_loader, device)
+    value_loss, action_loss, dist_entropy = agent.update(rollouts)
 
     rollouts.after_update()
 
-    if callback_policy is not None:
-      callback_policy(
-          get_np_policy(actor_critic, num_latent, mdp.num_states,
-                        tuple_num_actions, device))
+    if callback_loss is not None:
+      callback_loss(disc_loss, value_loss, action_loss, dist_entropy)
 
-  return get_np_policy(actor_critic, num_latent, mdp.num_states,
-                       tuple_num_actions, device)
+  return get_np_policy(actor_critic, mdp.num_states, tuple_num_actions, device)
 
 
-def get_np_policy(actor_critic: cogail_model.Policy, num_code: int,
-                  num_states: int, tuple_num_actions: tuple, device):
+def get_np_policy(actor_critic: magail_model.Policy, num_states: int,
+                  tuple_num_actions: tuple, device):
   list_np_policy = [
-      np.zeros((num_code, num_states, tuple_num_actions[idx]))
-      for idx in range(2)
+      np.zeros((num_states, tuple_num_actions[idx])) for idx in range(2)
   ]
 
   # to boost speed, compute probs by batch
@@ -246,24 +229,17 @@ def get_np_policy(actor_critic: cogail_model.Policy, num_code: int,
   batch_size = int((MAX_MEMORY / 8) / num_states)  # 8Byte = double type
 
   with torch.no_grad():
-    for xidx in range(num_code):
-      code = torch.Tensor([[xidx]]).long()
-      for batch_idx in range(0, num_states, batch_size):
-        end_idx = min(batch_idx + batch_size, num_states)
+    for batch_idx in range(0, num_states, batch_size):
+      end_idx = min(batch_idx + batch_size, num_states)
 
-        state_input = torch.Tensor(
-            np.arange(batch_idx, end_idx).reshape(-1, 1)).long()
-        state_input = state_input.to(device)
+      state_input = torch.Tensor(
+          np.arange(batch_idx, end_idx).reshape((-1, 1))).long()
+      state_input = state_input.to(device)
+      dist1, dist2 = actor_critic.get_distribution(state_input, None, None)
+      probs1 = dist1.probs.cpu().numpy()
+      probs2 = dist2.probs.cpu().numpy()
 
-        code_1hot = gail_utils.conv_discrete_2_onehot(code, num_code).to(device)
-        code_1hot = code_1hot.expand(end_idx - batch_idx, num_code)
-
-        dist1, dist2 = actor_critic.get_distribution(state_input, code_1hot,
-                                                     None, None)
-        probs1 = dist1.probs.cpu().numpy()
-        probs2 = dist2.probs.cpu().numpy()
-
-        list_np_policy[0][xidx, batch_idx:end_idx] = probs1
-        list_np_policy[1][xidx, batch_idx:end_idx] = probs2
+      list_np_policy[0][batch_idx:end_idx] = probs1
+      list_np_policy[1][batch_idx:end_idx] = probs2
 
   return list_np_policy

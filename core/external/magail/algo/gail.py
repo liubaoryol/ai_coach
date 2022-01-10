@@ -44,6 +44,7 @@ class Discriminator(nn.Module):
     self.num_obs = num_obs
     self.tuple_num_actions = tuple_num_actions
 
+  # grad penalty (?)
   def compute_grad_pen(self,
                        expert_state,
                        expert_action1,
@@ -86,7 +87,7 @@ class Discriminator(nn.Module):
 
     for expert_batch, policy_batch in zip(expert_loader, policy_data_generator):
 
-      policy_state, policy_action = policy_batch[0], policy_batch[3]
+      policy_state, policy_action = policy_batch[0], policy_batch[2]
 
       policy_state = conv_discrete_2_onehot(policy_state, self.num_obs)
       policy_action1 = conv_discrete_2_onehot(policy_action[:, 0].unsqueeze(1),
@@ -141,7 +142,7 @@ class Discriminator(nn.Module):
 
     return loss / n
 
-  def predict_reward(self, state, action, code, gamma, masks, update_rms=True):
+  def predict_reward(self, state, action, gamma, masks, update_rms=True):
     with torch.no_grad():
       self.eval()
 

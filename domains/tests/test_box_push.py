@@ -12,7 +12,7 @@ from ai_coach_core.latent_inference.most_probable_sequence import (
     most_probable_sequence)
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence,
-                                              cal_policy_kl_error)
+                                              cal_latent_policy_error)
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
 from ai_coach_core.model_inference.sb3_algorithms import behavior_cloning_sb3
 from ai_coach_core.utils.data_utils import Trajectories
@@ -80,6 +80,41 @@ def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
     np_results[idx, :] = [res1, res2, res3]
 
   return np_results
+
+
+def get_result_ul(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
+                  cb_get_np_init_latent_ns, test_samples):
+  def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
+    return cb_get_np_policy_nxs(nidx, xidx, sidx)[tuple_aidx[nidx]]
+
+  def Tx_nxsasx(nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
+    return cb_get_np_Tx_nxsas(nidx, xidx, sidx, tuple_aidx, sidx_n)[xidx_n]
+
+  def init_latent_nxs(nidx, xidx, sidx):
+    return cb_get_np_init_latent_ns(nidx, sidx)[xidx]
+
+  np_results = np.zeros((len(test_samples), 3))
+  for idx, sample in enumerate(test_samples):
+    mpseq_x_infer = most_probable_sequence(sample[0], sample[1], 2,
+                                           MDP_AGENT.num_latents, policy_nxsa,
+                                           Tx_nxsasx, init_latent_nxs)
+    seq_x_per_agent = list(zip(*sample[2]))
+    raise NotImplementedError
+    # need a method to infer meaning of x...
+    res1 = norm_hamming_distance(seq_x_per_agent[0], mpseq_x_infer[0])
+    res2 = norm_hamming_distance(seq_x_per_agent[1], mpseq_x_infer[1])
+
+    align_true = alignment_sequence(seq_x_per_agent[0], seq_x_per_agent[1])
+    align_infer = alignment_sequence(mpseq_x_infer[0], mpseq_x_infer[1])
+    res3 = norm_hamming_distance(align_true, align_infer)
+
+    np_results[idx, :] = [res1, res2, res3]
+
+  return np_results
+
+
+def match_policy(cb_learned_policy, cb_true_policy):
+  pass
 
 
 g_loaded_transition_model = None
@@ -227,7 +262,7 @@ if __name__ == "__main__":
 
   SHOW_TRUE = False
 
-  BC = True
+  BC = False
   TEST_SB3_BC = False
 
   SHOW_SL = False
@@ -236,9 +271,12 @@ if __name__ == "__main__":
   SHOW_SEMI = False
   SEMI_TRUE_TX = False
 
-  GAIL = False
+  SHOW_UL = False
+  UL_TRUE_TX = False
 
-  VI_TRAIN = SHOW_TRUE or SHOW_SL or SHOW_SEMI or BC or GAIL
+  GAIL = True
+
+  VI_TRAIN = SHOW_TRUE or SHOW_SL or SHOW_SEMI or BC or GAIL or SHOW_UL
 
   PLOT = False
 
@@ -313,13 +351,14 @@ if __name__ == "__main__":
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
 
-      kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
-                                     MDP_AGENT.num_latents, traj_labeled_ver,
-                                     true_methods.get_true_policy,
-                                     true_methods.get_true_policy)
+      policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                              MDP_AGENT.num_latents,
+                                              traj_labeled_ver,
+                                              true_methods.get_true_policy,
+                                              true_methods.get_true_policy)
 
       print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-      print("kl1, kl2: %f,%f" % (kl1, kl2))
+      print(policy_errors)
 
     # fig1 = plt.figure(figsize=(8, 3))
     # ax1 = fig1.add_subplot(131)
@@ -374,12 +413,13 @@ if __name__ == "__main__":
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
 
-        kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
-                                       MDP_AGENT.num_latents, traj_labeled_ver,
-                                       true_methods.get_true_policy,
-                                       bc_policy_nxs)
+        policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                                MDP_AGENT.num_latents,
+                                                traj_labeled_ver,
+                                                true_methods.get_true_policy,
+                                                bc_policy_nxs)
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        print(policy_errors)
 
     # supervised variational inference
     if SHOW_SL:
@@ -411,13 +451,14 @@ if __name__ == "__main__":
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
 
-        kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
-                                       MDP_AGENT.num_latents, traj_labeled_ver,
-                                       true_methods.get_true_policy,
-                                       var_inf_sl_conv.policy_nxs)
+        policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                                MDP_AGENT.num_latents,
+                                                traj_labeled_ver,
+                                                true_methods.get_true_policy,
+                                                var_inf_sl_conv.policy_nxs)
 
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        print(policy_errors)
 
       # ax1.plot(list_res1, 'r')
       # ax2.plot(list_res2, 'r')
@@ -475,11 +516,67 @@ if __name__ == "__main__":
         print("Prediction of latent with true Tx")
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-        kl1, kl2 = cal_policy_kl_error(NUM_AGENT, MDP_AGENT.num_states,
-                                       MDP_AGENT.num_latents, traj_labeled_ver,
-                                       true_methods.get_true_policy,
-                                       var_inf_semi_conv.policy_nxs)
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                                MDP_AGENT.num_latents,
+                                                traj_labeled_ver,
+                                                true_methods.get_true_policy,
+                                                var_inf_semi_conv.policy_nxs)
+        print(policy_errors)
+
+    if SHOW_UL:
+      print("#########")
+      print("UL %d" % (len(traj_labeled_ver), ))
+      print("#########")
+      # unsupervised
+      var_inf_ul = VarInferDuo(traj_unlabel_ver,
+                               MDP_TASK.num_states,
+                               MDP_AGENT.num_latents,
+                               joint_action_num,
+                               transition_s,
+                               trans_x_dependency=(True, True, True, False),
+                               epsilon=0.01,
+                               max_iteration=100)
+      var_inf_ul.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
+
+      if UL_TRUE_TX:
+        print("Train with true Tx")
+        var_inf_ul.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
+                                 cb_Tx=true_methods.true_Tx_for_var_infer)
+      else:
+        print("Train without true Tx")
+        var_inf_ul.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
+
+        save_name = SAVE_PREFIX + "_ul_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
+                                                        BETA_TX2)
+        save_path = os.path.join(DATA_DIR, save_name)
+        var_inf_ul.set_load_save_file_name(save_path)
+
+      var_inf_ul.do_inference()
+
+      var_inf_ul_conv = VarInfConverter(var_inf_ul)
+      if not UL_TRUE_TX:
+        np_results = get_result_ul(var_inf_ul_conv.policy_nxs,
+                                   var_inf_ul_conv.Tx_nxsas,
+                                   true_methods.get_init_latent_dist, test_traj)
+        avg1, avg2, avg3 = np.mean(np_results, axis=0)
+        std1, std2, std3 = np.std(np_results, axis=0)
+        print("Prediction of latent with learned Tx")
+        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+
+      np_results = get_result_ul(var_inf_ul_conv.policy_nxs,
+                                 true_methods.get_true_Tx_nxsas,
+                                 true_methods.get_init_latent_dist, test_traj)
+      avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      std1, std2, std3 = np.std(np_results, axis=0)
+      print("Prediction of latent with true Tx")
+      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+
+      policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                              MDP_AGENT.num_latents,
+                                              traj_labeled_ver,
+                                              true_methods.get_true_policy,
+                                              var_inf_ul_conv.policy_nxs)
+      print(policy_errors)
 
   if PLOT:
     # ##############################################

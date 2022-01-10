@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from external.cogail.envs import VecNormalize
+from .envs import VecNormalize
 
 
 # Get a render function

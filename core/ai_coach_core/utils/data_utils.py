@@ -1,5 +1,6 @@
 from typing import List
 import numpy as np
+import collections.abc
 import torch
 import torch.utils.data as torch_data
 
@@ -21,6 +22,15 @@ class Trajectories:
     self.num_state_factors = num_state_factors
     self.num_action_factors = num_action_factors
     self.num_latent_factors = num_latent_factors
+
+  def get_num_valid_rows(self):
+    count = 0
+    for traj in self.list_np_trajectory:
+      count += traj.shape[0]
+      if self.is_episode_end(traj[-1]):
+        count -= 1
+
+    return count
 
   def set_num_samples_to_use(self, num_sample):
     self.num_samples_to_use = num_sample
@@ -241,8 +251,17 @@ class TorchDatasetConverter(torch_data.Dataset):
 
   def __getitem__(self, index):
 
-    return (torch.Tensor([self.states[index]]).long(),
-            torch.Tensor([self.actions[index]]).long())
+    state = self.states[index]
+    if not isinstance(state, collections.abc.Sequence):
+      state = [state]
+
+    action = self.actions[index]
+    if not isinstance(action, collections.abc.Sequence):
+      action = [action]
+
+    return (torch.Tensor(state).long(), torch.Tensor(action).long())
+    # return (torch.Tensor([self.states[index]]).long(),
+    #         torch.Tensor([self.actions[index]]).long())
 
   def __len__(self):
     return self.length

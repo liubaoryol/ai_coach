@@ -9,8 +9,9 @@ from ai_coach_core.latent_inference.bayesian_inference import (
 from ai_coach_core.model_inference.IRL.maxent_irl import CMaxEntIRL
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
 from ai_coach_core.utils.data_utils import Trajectories
-from ai_coach_core.utils.result_utils import cal_policy_kl_error
+from ai_coach_core.utils.result_utils import cal_latent_policy_error
 from ai_coach_core.model_inference.sb3_algorithms import behavior_cloning_sb3
+import ai_coach_core.model_inference.ikostrikov_gail as ikostrikov
 
 from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
@@ -59,6 +60,7 @@ def print_conf(conf):
   print("\t;(0, 0)\t;(1, 1)\t;(0, 1)\t;(1, 0)\t")
   for key1 in ordered_key:
     # print(key1)
+    txt_pred_value = str(key1)
     txt_pred_value = str(key1)
     for key2 in ordered_key:
       # txt_pred_key = txt_pred_key + str(key2) + "; "
@@ -127,12 +129,15 @@ if __name__ == "__main__":
   GEN_TRAIN_SET = False
   GEN_TEST_SET = False
 
-  SHOW_TRUE = True
+  SHOW_TRUE = False
   SHOW_SL = False
-  SHOW_SEMI = True
+  SHOW_SEMI = False
   IRL = False
   BC = True
-  VI_TRAIN = (SHOW_TRUE or SHOW_SL or SHOW_SEMI or IRL or BC)
+  COGAIL = False
+  MAGAIL = False
+  VI_TRAIN = (SHOW_TRUE or SHOW_SL or SHOW_SEMI or IRL or BC or COGAIL
+              or MAGAIL)
 
   TRAIN_DIR = os.path.join(DATA_DIR, 'static_bp_train')
   TEST_DIR = os.path.join(DATA_DIR, 'static_bp_test')
@@ -168,18 +173,7 @@ if __name__ == "__main__":
     sax_trajs = train_data.get_as_row_lists(no_latent_label=False,
                                             include_terminal=False)
 
-    trajectories_x1 = []
-    trajectories_x2 = []
-    for idx, latents in enumerate(latent_labels):
-      xidx1, xidx2 = latents
-      if xidx1 == 0 and xidx2 == 0:
-        trajectories_x1.append(trajectories[idx])
-      if xidx1 == 1 and xidx2 == 1:
-        trajectories_x2.append(trajectories[idx])
-
     print(len(trajectories))
-    print(len(trajectories_x1))
-    print(len(trajectories_x2))
     print(len(latent_labels))
 
     # partial trajectory? for each traj, traj[sidx:eidx]
@@ -214,20 +208,28 @@ if __name__ == "__main__":
         pi_a2 = np.zeros(
             (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_num_action[1]))
 
-        TEST_SB3_BC = True
-        if TEST_SB3_BC:
+        DNN_BC = True
+        if DNN_BC:
+          print("BC by DNN")
           train_data.set_num_samples_to_use(idx)
           trajectories_bc = train_data.get_trajectories_fragmented_by_latent(
-              include_next_state=True)
+              include_next_state=False)
 
           for xidx in range(MDP_AGENT.num_latents):
-            pi_a1[xidx] = behavior_cloning_sb3(trajectories_bc[0][xidx],
-                                               MDP_AGENT.num_states,
-                                               joint_num_action[0])
-            pi_a2[xidx] = behavior_cloning_sb3(trajectories_bc[1][xidx],
-                                               MDP_AGENT.num_states,
-                                               joint_num_action[1])
+            pi_a1[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
+                                            joint_num_action[0],
+                                            trajectories_bc[0][xidx],
+                                            demo_batch_size=64,
+                                            ppo_batch_size=32,
+                                            bc_pretrain_steps=300)
+            pi_a2[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
+                                            joint_num_action[1],
+                                            trajectories_bc[0][xidx],
+                                            demo_batch_size=64,
+                                            ppo_batch_size=32,
+                                            bc_pretrain_steps=300)
         else:
+          print("Tabular BC")
           train_data.set_num_samples_to_use(idx)
           trajectories_bc = train_data.get_trajectories_fragmented_by_latent(
               include_next_state=False)
@@ -249,16 +251,27 @@ if __name__ == "__main__":
         print_conf(sup_conf_full1)
         print("4by4(Full) Acc: " + str(full_acc1))
 
-        kl1, kl2 = cal_policy_kl_error(
+        policy_errors = cal_latent_policy_error(
             num_agents, MDP_AGENT.num_states, MDP_AGENT.num_latents, sax_trajs,
             lambda ai, x, s: get_true_policy(ai, x, s),
             lambda ai, x, s: list_pi_bc[ai][x, s, :])
 
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        print(policy_errors)
 
     # train base line
     ###########################################################################
     if IRL:
+      trajectories_x1 = []
+      trajectories_x2 = []
+      for idx, latents in enumerate(latent_labels):
+        xidx1, xidx2 = latents
+        if xidx1 == 0 and xidx2 == 0:
+          trajectories_x1.append(trajectories[idx])
+        if xidx1 == 1 and xidx2 == 1:
+          trajectories_x2.append(trajectories[idx])
+
+      print(len(trajectories_x1))
+      print(len(trajectories_x2))
 
       def feature_extract_full_state(mdp, s_idx, a_idx):
         np_feature = np.zeros(mdp.num_states)
@@ -335,16 +348,14 @@ if __name__ == "__main__":
 
       print("Full - IRL")
       print_conf(sup_conf_true)
-      print("4by4 Acc: " + str(full_acc_true))
+      print("4by4(Full) Acc: " + str(full_acc_true))
 
-      for ai in range(2):
-        rel_freq = compute_relative_freq(MDP_AGENT.num_states,
-                                         MDP_AGENT.num_latents, trajectories,
-                                         latent_labels, ai)
-        kl1 = cal_policy_error(rel_freq, MDP_AGENT,
-                               lambda x, s: irl_np_policy[ai][x, s, :],
-                               lambda x, s: get_true_policy(ai, x, s))
-        print("agent %d: KL %f" % (ai, kl1))
+      policy_errors = cal_latent_policy_error(
+          num_agents, MDP_AGENT.num_states, MDP_AGENT.num_latents, sax_trajs,
+          lambda ai, x, s: get_true_policy(ai, x, s),
+          lambda ai, x, s: irl_np_policy[ai][x, s, :])
+
+      print(policy_errors)
 
     if SHOW_TRUE:
       print("#########")
@@ -384,12 +395,12 @@ if __name__ == "__main__":
         print_conf(sup_conf_full1)
         print("4by4(Full) Acc: " + str(full_acc1))
 
-        kl1, kl2 = cal_policy_kl_error(
+        policy_errors = cal_latent_policy_error(
             num_agents, MDP_AGENT.num_states, MDP_AGENT.num_latents, sax_trajs,
             lambda ai, x, s: get_true_policy(ai, x, s),
             lambda ai, x, s: var_inf_sl.list_np_policy[ai][x, s, :])
 
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        print(policy_errors)
 
     # ##############################################
     # # semisupervised policy learning
@@ -439,19 +450,14 @@ if __name__ == "__main__":
         print_conf(semi_conf_full)
         print("4by4(Full) Acc: " + str(semi_full_acc))
 
-        kl1, kl2 = cal_policy_kl_error(
+        policy_errors = cal_latent_policy_error(
             num_agents, MDP_AGENT.num_states, MDP_AGENT.num_latents, sax_trajs,
             lambda ai, x, s: get_true_policy(ai, x, s),
             lambda ai, x, s: var_infer_semi.list_np_policy[ai][x, s, :])
 
-        print("kl1, kl2: %f,%f" % (kl1, kl2))
+        print(policy_errors)
 
         fig = plt.figure(figsize=(3, 3))
-        # str_title = (
-        #     "hyperparam: " + str(SEMISUPER_HYPERPARAM) +
-        #     ", # labeled: " + str(len(trajectories)) +
-        #     ", # unlabeled: " + str(len(unlabeled_traj)))
-        # fig.suptitle(str_title)
         ax1 = fig.add_subplot(111)
         ax1.grid(True)
         ax1.plot(full_acc_history,
@@ -460,17 +466,141 @@ if __name__ == "__main__":
                  clip_on=False,
                  fillstyle='none')
         plt.show()
-      # if SHOW_SL_SMALL:
-      #   ax1.axhline(
-      # y=full_align_acc1, color='r', linestyle='-', label="SL-Small")
-      # if SHOW_SL_LARGE:
-      #   ax1.axhline(
-      # y=full_align_acc2, color='g', linestyle='-', label="SL-Large")
-      # FONT_SIZE = 16
-      # TITLE_FONT_SIZE = 12
-      # LEGENT_FONT_SIZE = 12
-      # ax1.set_ylabel("Accuracy (%)", fontsize=FONT_SIZE)
-      # ax1.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-      # # ax1.set_ylim([70, 100])
-      # # ax1.set_xlim([0, 16])
-      # ax1.set_title("Full Sequence", fontsize=TITLE_FONT_SIZE)
+
+    init_state = MDP_AGENT.conv_sim_states_to_mdp_sidx(
+        sim.a1_init, sim.a2_init, [0] * len(sim.box_states))
+
+    if COGAIL:
+      from ai_coach_core.model_inference.cogail import cogail_w_ppo
+
+      num_code = MDP_AGENT.num_latents * MDP_AGENT.num_latents
+
+      list_policies = cogail_w_ppo(MDP_AGENT,
+                                   num_code, [init_state],
+                                   trajectories,
+                                   demo_batch_size=16,
+                                   ppo_batch_size=8,
+                                   n_steps=64,
+                                   total_timesteps=320,
+                                   do_pretrain=False,
+                                   callback_policy=None)
+    if MAGAIL:
+      from ai_coach_core.model_inference.magail import magail_w_ppo
+
+      def magail_by_latent(trajectories, latent_labels, init_state):
+        n_traj = len(trajectories)
+        list_disc_loss = []
+        list_value_loss = []
+        list_action_loss = []
+        list_entropy = []
+
+        def get_loss_each_round(disc_loss, value_loss, action_loss, entropy):
+          if disc_loss is not None:
+            list_disc_loss.append(disc_loss)
+          if value_loss is not None:
+            list_value_loss.append(value_loss)
+          if action_loss is not None:
+            list_action_loss.append(action_loss)
+          if entropy is not None:
+            list_entropy.append(entropy)
+
+        trajectories_by_latent = [[], [], [], []]
+        X_00, X_01, X_10, X_11 = 0, 1, 2, 3
+
+        for idx, latents in enumerate(latent_labels):
+          xidx1, xidx2 = latents
+          if xidx1 == 0 and xidx2 == 0:
+            trajectories_by_latent[X_00].append(trajectories[idx])
+          elif xidx1 == 0 and xidx2 == 1:
+            trajectories_by_latent[X_01].append(trajectories[idx])
+          elif xidx1 == 1 and xidx2 == 0:
+            trajectories_by_latent[X_10].append(trajectories[idx])
+          elif xidx1 == 1 and xidx2 == 1:
+            trajectories_by_latent[X_11].append(trajectories[idx])
+          else:
+            raise ValueError
+
+        num_00 = len(trajectories_by_latent[X_00])
+        num_01 = len(trajectories_by_latent[X_01])
+        num_10 = len(trajectories_by_latent[X_10])
+        num_11 = len(trajectories_by_latent[X_11])
+
+        ratio_a1_0 = num_00 / (num_00 + num_01)
+        ratio_a1_1 = num_10 / (num_10 + num_11)
+        ratio_a2_0 = num_00 / (num_00 + num_10)
+        ratio_a2_1 = num_01 / (num_01 + num_11)
+
+        ONLY_PRETRAIN = False
+        pi_by_combination = []
+        for idx, trajs in enumerate(trajectories_by_latent):
+          list_disc_loss.clear()
+          list_value_loss.clear()
+          list_action_loss.clear()
+          list_entropy.clear()
+          list_policies = magail_w_ppo(MDP_AGENT, [init_state],
+                                       trajs,
+                                       num_processes=4,
+                                       demo_batch_size=64,
+                                       ppo_batch_size=32,
+                                       num_iterations=500,
+                                       do_pretrain=True,
+                                       bc_pretrain_steps=100,
+                                       only_pretrain=ONLY_PRETRAIN,
+                                       callback_loss=get_loss_each_round)
+          pi_by_combination.append(list_policies)
+
+          f = plt.figure(figsize=(15, 5))
+          ax0 = f.add_subplot(141)
+          ax0.plot(list_disc_loss)
+          ax0.set_ylabel('disc_loss')
+          if not ONLY_PRETRAIN:
+            ax1 = f.add_subplot(142)
+            ax1.plot(list_value_loss)
+            ax1.set_ylabel('value_loss')
+            ax2 = f.add_subplot(143)
+            ax2.plot(list_action_loss)
+            ax2.set_ylabel('action_loss')
+            ax3 = f.add_subplot(144)
+            ax3.plot(list_entropy)
+            ax3.set_ylabel('entropy')
+          # plt.show()
+          plt.savefig('loss (%d) %d.png' % (n_traj, idx))
+
+        pi_a1 = np.zeros(
+            (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_num_action[0]))
+        pi_a2 = np.zeros(
+            (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_num_action[1]))
+
+        pi_a1[0] = (pi_by_combination[X_00][0] * ratio_a1_0 +
+                    pi_by_combination[X_01][0] * (1 - ratio_a1_0))
+        pi_a1[1] = (pi_by_combination[X_10][0] * ratio_a1_1 +
+                    pi_by_combination[X_11][0] * (1 - ratio_a1_1))
+        pi_a2[0] = (pi_by_combination[X_00][1] * ratio_a2_0 +
+                    pi_by_combination[X_10][1] * (1 - ratio_a2_0))
+        pi_a2[1] = (pi_by_combination[X_01][1] * ratio_a2_1 +
+                    pi_by_combination[X_11][1] * (1 - ratio_a2_1))
+
+        list_pi_magail = [pi_a1, pi_a2]
+        return list_pi_magail
+
+      for idx in list_idx:
+        print("#########")
+        print("MAGAIL %d" % (idx, ))
+        print("#########")
+        list_pi_magail = magail_by_latent(trajectories[:idx],
+                                          latent_labels[:idx], init_state)
+
+        sup_conf_full1, full_acc1 = get_bayesian_infer_result(
+            num_agents,
+            (lambda m, x, s, joint: list_pi_magail[m][x, s, joint[m]]),
+            MDP_AGENT.num_latents, test_traj, test_labels)
+
+        print_conf(sup_conf_full1)
+        print("4by4(Full) Acc: " + str(full_acc1))
+
+        policy_errors = cal_latent_policy_error(
+            num_agents, MDP_AGENT.num_states, MDP_AGENT.num_latents, sax_trajs,
+            lambda ai, x, s: get_true_policy(ai, x, s),
+            lambda ai, x, s: list_pi_magail[ai][x, s, :])
+
+        print(policy_errors)

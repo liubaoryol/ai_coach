@@ -12,6 +12,7 @@ from imitation.data.types import Trajectory
 from imitation.util import logger
 from imitation.data import rollout
 from imitation.util.util import make_vec_env
+from ai_coach_core.models.mdp import MDP
 import gym_aicoach  # noqa: F401
 
 
@@ -27,12 +28,8 @@ def get_sb3_policy(sb3_policy: ActorCriticPolicy, num_states: int,
   return np_policy
 
 
-def gail_w_ppo(num_states,
-               num_actions,
-               cb_transition,
-               cb_is_terminal,
-               cb_legal_actions,
-               init_state,
+def gail_w_ppo(mdp: MDP,
+               possible_init_states,
                sa_trajectories,
                terminal_value,
                logpath=None,
@@ -41,10 +38,10 @@ def gail_w_ppo(num_states,
                n_steps=64,
                total_timesteps=32000,
                do_pretrain=True,
-               only_pretrain=False,
-               callback_policy=None):
+               only_pretrain=False):
+
   if len(sa_trajectories) == 0:
-    return np.zeros((num_states, num_actions)) / num_actions
+    return np.ones((mdp.num_states, mdp.num_actions)) / mdp.num_actions
 
   # create vec env
   # gymenv = gym.make('envfrommdp-v0',
@@ -56,12 +53,7 @@ def gail_w_ppo(num_states,
   #                   init_state=init_state)
   # venv = DummyVecEnv([lambda: gymenv])
 
-  env_kwargs = dict(num_states=num_states,
-                    num_actions=num_actions,
-                    cb_transition=cb_transition,
-                    cb_is_terminal=cb_is_terminal,
-                    cb_is_legal_action=lambda s, a: a in cb_legal_actions(s),
-                    init_state=init_state)
+  env_kwargs = dict(mdp=mdp, possible_init_states=possible_init_states)
 
   venv = make_vec_env('envfrommdp-v0', n_envs=1, env_make_kwargs=env_kwargs)
 
@@ -102,30 +94,21 @@ def gail_w_ppo(num_states,
     bc_trainer = bc.BC(observation_space=venv.observation_space,
                        action_space=venv.action_space,
                        demonstrations=transitions,
+                       batch_size=demo_batch_size,
                        policy=gail_trainer.gen_algo.policy,
                        custom_logger=gail_logger)
     bc_trainer.train(n_epochs=1)
 
     if only_pretrain:
-      return get_sb3_policy(gail_trainer.policy, num_states, num_actions)
+      return get_sb3_policy(gail_trainer.policy, mdp.num_states,
+                            mdp.num_actions)
 
-    # policy after bc
-    if callback_policy is not None:
-      np_policy_bc = get_sb3_policy(gail_trainer.policy, num_states,
-                                    num_actions)
-      callback_policy(np_policy_bc)
-
-  def each_round(r):
-    if callback_policy is not None:
-      np_policy = get_sb3_policy(gail_trainer.policy, num_states, num_actions)
-      callback_policy(np_policy)
-
-  gail_trainer.train(total_timesteps=total_timesteps, callback=each_round)
+  gail_trainer.train(total_timesteps=total_timesteps)
   # np_policy = np.zeros((num_states, num_actions))
   # for sidx in range(num_states):
   #   np_policy[sidx, :] = get_action_distribution(gail_trainer.policy, sidx)
 
-  return get_sb3_policy(gail_trainer.policy, num_states, num_actions)
+  return get_sb3_policy(gail_trainer.policy, mdp.num_states, mdp.num_actions)
 
 
 def behavior_cloning_sb3(sa_trajectories, num_states, num_actions):

@@ -4,12 +4,13 @@ import gym
 from gym import spaces
 
 
-class GymEnvFromMDP(gym.Env):
+class EnvFromCallbacks(gym.Env):
   # uncomment below line if you need to render the environment
   # metadata = {'render.modes': ['console']}
 
   def __init__(self, num_states: int, num_actions: Union[int, Sequence[int]],
-               cb_transition, cb_is_terminal, cb_is_legal_action, init_state):
+               cb_transition, cb_is_terminal, cb_is_legal_action,
+               cb_sample_init_state):
     '''
     num_actions: can be either int or tuple
     '''
@@ -32,8 +33,8 @@ class GymEnvFromMDP(gym.Env):
     self.cb_transition = cb_transition
     self.cb_is_terminal = cb_is_terminal
     self.cb_is_legal_action = cb_is_legal_action
-    self.init_state = init_state
-    self.cur_state = init_state
+    self.cb_sample = cb_sample_init_state
+    self.cur_state = self.cb_sample()
 
   def step(self, action):
     info = {}
@@ -49,7 +50,7 @@ class GymEnvFromMDP(gym.Env):
     return self.cur_state, reward, done, info
 
   def reset(self):
-    self.cur_state = self.init_state
+    self.cur_state = self.cb_sample()
 
     return self.cur_state  # reward, done, info can't be included
 

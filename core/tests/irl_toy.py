@@ -466,30 +466,32 @@ if __name__ == "__main__":
   SB3_GAIL = False
   ONLY_PRETRAIN = False
   if DO_GAIL:
-    list_kl = []
+    list_disc_loss = []
+    list_value_loss = []
+    list_action_loss = []
+    list_entropy = []
 
-    def get_kl_each_round(np_pol):
-      kl_gail_round = cal_policy_error(rel_freq, toy_mdp,
-                                       lambda s, a: np_pol[s, a], sto_pi)
-      list_kl.append(kl_gail_round)
+    def get_loss_each_round(disc_loss, value_loss, action_loss, entropy):
+      if disc_loss is not None:
+        list_disc_loss.append(disc_loss)
+      if value_loss is not None:
+        list_value_loss.append(value_loss)
+      if action_loss is not None:
+        list_action_loss.append(action_loss)
+      if entropy is not None:
+        list_entropy.append(entropy)
 
     if SB3_GAIL:
-      pi_gail = sb3_algs.gail_w_ppo(num_ostates,
-                                    num_actions,
-                                    toy_mdp.transition,
-                                    toy_mdp.is_terminal,
-                                    toy_mdp.legal_actions,
-                                    sid,
+      pi_gail = sb3_algs.gail_w_ppo(toy_mdp, [sid],
                                     sa_trajs,
                                     -1,
                                     logpath=None,
-                                    demo_batch_size=2,
-                                    n_steps=16,
-                                    ppo_batch_size=2,
-                                    total_timesteps=1920,
+                                    demo_batch_size=64,
+                                    n_steps=1000,
+                                    ppo_batch_size=32,
+                                    total_timesteps=1000,
                                     do_pretrain=True,
-                                    only_pretrain=ONLY_PRETRAIN,
-                                    callback_policy=get_kl_each_round)
+                                    only_pretrain=ONLY_PRETRAIN)
       kl_gail = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_gail[s, a],
                                  sto_pi)
       print(kl_gail)
@@ -497,23 +499,32 @@ if __name__ == "__main__":
     # gail
     else:
       import ai_coach_core.model_inference.ikostrikov_gail as ikostrikov
-      pi_gail_torch = ikostrikov.gail_w_ppo(toy_mdp,
-                                            sid,
+      pi_gail_torch = ikostrikov.gail_w_ppo(toy_mdp, [sid],
                                             trajectories,
-                                            demo_batch_size=2,
-                                            n_steps=16,
-                                            ppo_batch_size=2,
-                                            total_timesteps=1920,
-                                            do_pretrain=True,
+                                            num_processes=4,
+                                            demo_batch_size=64,
+                                            ppo_batch_size=32,
+                                            num_iterations=100,
+                                            do_pretrain=False,
+                                            bc_pretrain_steps=50,
                                             only_pretrain=ONLY_PRETRAIN,
-                                            callback_policy=get_kl_each_round)
+                                            callback_loss=get_loss_each_round)
       kl_gail_torch = cal_policy_error(rel_freq, toy_mdp,
                                        lambda s, a: pi_gail_torch[s, a], sto_pi)
       print(kl_gail_torch)
 
-    if not ONLY_PRETRAIN:
-      f = plt.figure(figsize=(5, 5))
-      ax1 = f.add_subplot(111)
-      ax1.plot(list_kl)
-      ax1.set_ylabel('policy_error')
+      f = plt.figure(figsize=(15, 5))
+      ax0 = f.add_subplot(141)
+      ax0.plot(list_disc_loss)
+      ax0.set_ylabel('disc_loss')
+      if not ONLY_PRETRAIN:
+        ax1 = f.add_subplot(142)
+        ax1.plot(list_value_loss)
+        ax1.set_ylabel('value_loss')
+        ax2 = f.add_subplot(143)
+        ax2.plot(list_action_loss)
+        ax2.set_ylabel('action_loss')
+        ax3 = f.add_subplot(144)
+        ax3.plot(list_entropy)
+        ax3.set_ylabel('entropy')
       plt.show()

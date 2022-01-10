@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from external.cogail.utils import AddBias, init
+from .utils import AddBias, init
 """
 Modify standard PyTorch distributions so they are compatible with this code.
 """
@@ -32,8 +32,8 @@ class FixedNormal(torch.distributions.Normal):
   def log_probs(self, actions):
     return super().log_prob(actions).sum(-1, keepdim=True)
 
-  def entrop(self):
-    return super.entropy().sum(-1)
+  def entropy(self):
+    return super().entropy().sum(-1)
 
   def mode(self):
     return self.mean
@@ -42,8 +42,8 @@ class FixedNormal(torch.distributions.Normal):
 # Bernoulli
 class FixedBernoulli(torch.distributions.Bernoulli):
   def log_probs(self, actions):
-    return super.log_prob(actions).view(actions.size(0),
-                                        -1).sum(-1).unsqueeze(-1)
+    return super().log_prob(actions).view(actions.size(0),
+                                          -1).sum(-1).unsqueeze(-1)
 
   def entropy(self):
     return super().entropy().sum(-1)

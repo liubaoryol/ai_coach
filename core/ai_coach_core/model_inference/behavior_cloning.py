@@ -16,7 +16,7 @@ def read_trajectory(file_name):
 
 def behavior_cloning(sa_trajectories, num_states, num_actions):
   if len(sa_trajectories) == 0:
-    return np.zeros((num_states, num_actions)) / num_actions
+    return np.ones((num_states, num_actions)) / num_actions
 
   pi = np.zeros((num_states, num_actions))
 
