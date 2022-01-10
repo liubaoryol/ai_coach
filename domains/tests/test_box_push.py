@@ -1,6 +1,7 @@
 import glob
 import os
 import pickle
+import click
 import tempfile
 import pathlib
 import numpy as np
@@ -26,31 +27,10 @@ import ai_coach_domain.box_push.agent as bp_agent
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
 TEMPERATURE = 1
 
-IS_TEST = False
-IS_TEAM = False
-
-if IS_TEST:
-  GAME_MAP = bp_maps.TEST_MAP
-  BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamTest
-  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvTest
-else:
-  GAME_MAP = bp_maps.EXP1_MAP
-  BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamExp1
-  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvExp1
-
-if IS_TEAM:
-  SAVE_PREFIX = GAME_MAP["name"] + "_team"
-  BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
-  BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
-else:
-  SAVE_PREFIX = GAME_MAP["name"] + "_indv"
-  BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
-  BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
-  BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
-
-MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
-MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
+MDP_AGENT = None  # type: bp_mdp.BoxPushMDP  # MDP for agent policy
+MDP_TASK = None  # type: bp_mdp.BoxPushMDP   # MDP for task environment
+SAVE_PREFIX = None
+BoxPushSimulator = None  # type: bp_sim.BoxPushSimulator
 
 
 def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
@@ -232,7 +212,47 @@ class BoxPushTrajectories(Trajectories):
       self.list_np_trajectory.append(np_trj)
 
 
-if __name__ == "__main__":
+# yapf: disable
+@click.command()
+@click.option("--is_team", type=bool, default=False, help="team / indv")
+@click.option("--is_test", type=bool, default=False, help="exp1 / test")
+@click.option("--gen_trainset", type=bool, default=False, help="generate train set")
+@click.option("--gen_testset", type=bool, default=False, help="generate test set")
+@click.option("--show_true", type=bool, default=False, help="metrics from true policy")
+@click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")
+@click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")
+@click.option("--show_sl", type=bool, default=False, help="")
+@click.option("--show_semi", type=bool, default=False, help="")
+@click.option("--show_ul", type=bool, default=False, help="")
+@click.option("--use_true_tx", type=bool, default=True, help="")
+@click.option("--magail", type=bool, default=False, help="")
+# yapf: enable
+def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
+         dnn_bc, show_sl, show_semi, show_ul, use_true_tx, magail):
+  global MDP_AGENT, MDP_TASK, SAVE_PREFIX, BoxPushSimulator
+
+  if is_test:
+    GAME_MAP = bp_maps.TEST_MAP
+    BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamTest
+    BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvTest
+  else:
+    GAME_MAP = bp_maps.EXP1_MAP
+    BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamExp1
+    BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvExp1
+
+  if is_team:
+    SAVE_PREFIX = GAME_MAP["name"] + "_team"
+    BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
+    BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
+    BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
+  else:
+    SAVE_PREFIX = GAME_MAP["name"] + "_indv"
+    BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
+    BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
+    BoxPushTaskMDP = bp_mdp.BoxPushTeamMDP_AlwaysAlone
+
+  MDP_AGENT = BoxPushAgentMDP(**GAME_MAP)  # MDP for agent policy
+  MDP_TASK = BoxPushTaskMDP(**GAME_MAP)  # MDP for task environment
 
   # set simulator
   #############################################################################
@@ -241,7 +261,7 @@ if __name__ == "__main__":
   sim.max_steps = 200
   NUM_AGENT = 2
 
-  if IS_TEAM:
+  if is_team:
     policy1 = BoxPushPolicyTeam(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT1)
     policy2 = BoxPushPolicyTeam(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT2)
     agent1 = bp_agent.BoxPushAIAgent_Team1(policy1)
@@ -257,41 +277,19 @@ if __name__ == "__main__":
 
   # generate data
   #############################################################################
-  GEN_TRAIN_SET = False
-  GEN_TEST_SET = False
-
-  SHOW_TRUE = False
-
-  BC = True
-  DNN_BC = False
-
-  SHOW_SL = False
-  SL_TRUE_TX = False
-
-  SHOW_SEMI = False
-  SEMI_TRUE_TX = False
-
-  SHOW_UL = False
-  UL_TRUE_TX = False
-
-  GAIL = False
-
-  VI_TRAIN = SHOW_TRUE or SHOW_SL or SHOW_SEMI or BC or GAIL or SHOW_UL
-
-  PLOT = False
 
   TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_box_push_train')
   TEST_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_box_push_test')
 
   train_prefix = "train_"
   test_prefix = "test_"
-  if GEN_TRAIN_SET:
+  if gen_trainset:
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
     for fmn in file_names:
       os.remove(fmn)
     sim.run_simulation(200, os.path.join(TRAIN_DIR, train_prefix), "header")
 
-  if GEN_TEST_SET:
+  if gen_testset:
     file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
     for fmn in file_names:
       os.remove(fmn)
@@ -299,54 +297,131 @@ if __name__ == "__main__":
 
   # train variational inference
   #############################################################################
-  if VI_TRAIN:
-    # import matplotlib.pyplot as plt
+  # import matplotlib.pyplot as plt
 
-    # load train set
-    ##################################################
-    file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
+  # load train set
+  ##################################################
+  file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
 
-    train_data = BoxPushTrajectories(MDP_AGENT.num_latents)
-    train_data.load_from_files(file_names)
-    traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
-                                                   include_terminal=False)
-    traj_unlabel_ver = train_data.get_as_row_lists(no_latent_label=True,
-                                                   include_terminal=False)
+  train_data = BoxPushTrajectories(MDP_AGENT.num_latents)
+  train_data.load_from_files(file_names)
+  traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
+                                                 include_terminal=False)
+  traj_unlabel_ver = train_data.get_as_row_lists(no_latent_label=True,
+                                                 include_terminal=False)
 
-    print(len(traj_labeled_ver))
+  print(len(traj_labeled_ver))
 
-    # load test set
-    ##################################################
-    test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
+  # load test set
+  ##################################################
+  test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
 
-    test_data = BoxPushTrajectories(MDP_AGENT.num_latents)
-    test_data.load_from_files(test_file_names)
-    test_traj = test_data.get_as_column_lists(include_terminal=False)
-    print(len(test_traj))
+  test_data = BoxPushTrajectories(MDP_AGENT.num_latents)
+  test_data.load_from_files(test_file_names)
+  test_traj = test_data.get_as_column_lists(include_terminal=False)
+  print(len(test_traj))
 
-    # true policy and transition
-    ##################################################
-    if IS_TEAM:
-      BETA_PI = 1.2
-      BETA_TX1 = 1.01
-      BETA_TX2 = 1.01
-    else:
-      BETA_PI = 1.01
-      BETA_TX1 = 1.01
-      BETA_TX2 = 1.01
-    print("beta: %f, %f, %f" % (BETA_PI, BETA_TX1, BETA_TX2))
+  # true policy and transition
+  ##################################################
+  if is_team:
+    BETA_PI = 1.2
+    BETA_TX1 = 1.01
+    BETA_TX2 = 1.01
+  else:
+    BETA_PI = 1.01
+    BETA_TX1 = 1.01
+    BETA_TX2 = 1.01
+  print("beta: %f, %f, %f" % (BETA_PI, BETA_TX1, BETA_TX2))
 
-    joint_action_num = ((MDP_AGENT.a1_a_space.num_actions,
-                         MDP_AGENT.a2_a_space.num_actions) if IS_TEAM else
-                        (MDP_AGENT.num_actions, MDP_AGENT.num_actions))
+  joint_action_num = ((MDP_AGENT.a1_a_space.num_actions,
+                       MDP_AGENT.a2_a_space.num_actions) if is_team else
+                      (MDP_AGENT.num_actions, MDP_AGENT.num_actions))
 
-    # True policy
-    if SHOW_TRUE:
+  # True policy
+  if show_true:
+    print("#########")
+    print("True")
+    print("#########")
+    np_results = get_result(true_methods.get_true_policy,
+                            true_methods.get_true_Tx_nxsas,
+                            true_methods.get_init_latent_dist, test_traj)
+    avg1, avg2, avg3 = np.mean(np_results, axis=0)
+    std1, std2, std3 = np.std(np_results, axis=0)
+
+    policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                            MDP_AGENT.num_latents,
+                                            traj_labeled_ver,
+                                            true_methods.get_true_policy,
+                                            true_methods.get_true_policy)
+
+    print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+    print(policy_errors)
+
+  # fig1 = plt.figure(figsize=(8, 3))
+  # ax1 = fig1.add_subplot(131)
+  # ax2 = fig1.add_subplot(132)
+  # ax3 = fig1.add_subplot(133)
+
+  list_idx = [20, 50, 100, len(traj_labeled_ver)]
+
+  print(list_idx)
+  if show_bc:
+    for idx in list_idx:
       print("#########")
-      print("True")
+      print("BC %d" % (idx, ))
       print("#########")
-      np_results = get_result(true_methods.get_true_policy,
-                              true_methods.get_true_Tx_nxsas,
+
+      pi_a1 = np.zeros(
+          (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[0]))
+      pi_a2 = np.zeros(
+          (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
+
+      if dnn_bc:
+        import ai_coach_core.model_inference.ikostrikov_gail as ikostrikov
+        print("BC by DNN")
+        train_data.set_num_samples_to_use(idx)
+        list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
+            include_next_state=False)
+
+        for xidx in range(MDP_AGENT.num_latents):
+          pi_a1[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
+                                          joint_action_num[0],
+                                          list_frag_traj[0][xidx],
+                                          demo_batch_size=128,
+                                          ppo_batch_size=32,
+                                          bc_pretrain_steps=300)
+          pi_a2[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
+                                          joint_action_num[1],
+                                          list_frag_traj[1][xidx],
+                                          demo_batch_size=128,
+                                          ppo_batch_size=32,
+                                          bc_pretrain_steps=300)
+
+        # for xidx in range(MDP_AGENT.num_latents):
+        #   pi_a1[xidx] = behavior_cloning_sb3(list_frag_traj[0][xidx],
+        #                                      MDP_AGENT.num_states,
+        #                                      joint_action_num[0])
+        #   pi_a2[xidx] = behavior_cloning_sb3(list_frag_traj[1][xidx],
+        #                                      MDP_AGENT.num_states,
+        #                                      joint_action_num[1])
+      else:
+        train_data.set_num_samples_to_use(idx)
+        list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
+            include_next_state=False)
+
+        for xidx in range(MDP_AGENT.num_latents):
+          pi_a1[xidx] = behavior_cloning(list_frag_traj[0][xidx],
+                                         MDP_AGENT.num_states,
+                                         joint_action_num[0])
+          pi_a2[xidx] = behavior_cloning(list_frag_traj[1][xidx],
+                                         MDP_AGENT.num_states,
+                                         joint_action_num[1])
+      list_pi_bc = [pi_a1, pi_a2]
+
+      def bc_policy_nxs(agent_idx, latent_idx, state_idx):
+        return list_pi_bc[agent_idx][latent_idx, state_idx]
+
+      np_results = get_result(bc_policy_nxs, true_methods.get_true_Tx_nxsas,
                               true_methods.get_init_latent_dist, test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
@@ -355,233 +430,100 @@ if __name__ == "__main__":
                                               MDP_AGENT.num_latents,
                                               traj_labeled_ver,
                                               true_methods.get_true_policy,
-                                              true_methods.get_true_policy)
-
+                                              bc_policy_nxs)
       print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
       print(policy_errors)
 
-    # fig1 = plt.figure(figsize=(8, 3))
-    # ax1 = fig1.add_subplot(131)
-    # ax2 = fig1.add_subplot(132)
-    # ax3 = fig1.add_subplot(133)
-
-    list_idx = [20, 50, 100, len(traj_labeled_ver)]
-
-    print(list_idx)
-    if BC:
-      for idx in list_idx:
-        print("#########")
-        print("BC %d" % (idx, ))
-        print("#########")
-
-        pi_a1 = np.zeros(
-            (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[0]))
-        pi_a2 = np.zeros(
-            (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
-
-        if DNN_BC:
-          import ai_coach_core.model_inference.ikostrikov_gail as ikostrikov
-          print("BC by DNN")
-          train_data.set_num_samples_to_use(idx)
-          list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
-              include_next_state=False)
-
-          for xidx in range(MDP_AGENT.num_latents):
-            pi_a1[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
-                                            joint_action_num[0],
-                                            list_frag_traj[0][xidx],
-                                            demo_batch_size=128,
-                                            ppo_batch_size=32,
-                                            bc_pretrain_steps=300)
-            pi_a2[xidx] = ikostrikov.bc_dnn(MDP_AGENT.num_states,
-                                            joint_action_num[1],
-                                            list_frag_traj[1][xidx],
-                                            demo_batch_size=128,
-                                            ppo_batch_size=32,
-                                            bc_pretrain_steps=300)
-
-          # for xidx in range(MDP_AGENT.num_latents):
-          #   pi_a1[xidx] = behavior_cloning_sb3(list_frag_traj[0][xidx],
-          #                                      MDP_AGENT.num_states,
-          #                                      joint_action_num[0])
-          #   pi_a2[xidx] = behavior_cloning_sb3(list_frag_traj[1][xidx],
-          #                                      MDP_AGENT.num_states,
-          #                                      joint_action_num[1])
-        else:
-          train_data.set_num_samples_to_use(idx)
-          list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
-              include_next_state=False)
-
-          for xidx in range(MDP_AGENT.num_latents):
-            pi_a1[xidx] = behavior_cloning(list_frag_traj[0][xidx],
-                                           MDP_AGENT.num_states,
-                                           joint_action_num[0])
-            pi_a2[xidx] = behavior_cloning(list_frag_traj[1][xidx],
-                                           MDP_AGENT.num_states,
-                                           joint_action_num[1])
-        list_pi_bc = [pi_a1, pi_a2]
-
-        def bc_policy_nxs(agent_idx, latent_idx, state_idx):
-          return list_pi_bc[agent_idx][latent_idx, state_idx]
-
-        np_results = get_result(bc_policy_nxs, true_methods.get_true_Tx_nxsas,
-                                true_methods.get_init_latent_dist, test_traj)
-        avg1, avg2, avg3 = np.mean(np_results, axis=0)
-        std1, std2, std3 = np.std(np_results, axis=0)
-
-        policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
-                                                MDP_AGENT.num_latents,
-                                                traj_labeled_ver,
-                                                true_methods.get_true_policy,
-                                                bc_policy_nxs)
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-        print(policy_errors)
-
-    # supervised variational inference
-    if SHOW_SL:
-      for idx in list_idx:
-        print("#########")
-        print("SL with %d" % (idx, ))
-        print("#########")
-        var_inf_sl = VarInferDuo(traj_labeled_ver[0:idx],
-                                 MDP_TASK.num_states,
-                                 MDP_AGENT.num_latents,
-                                 joint_action_num,
-                                 transition_s,
-                                 trans_x_dependency=(True, True, True, False))
-        var_inf_sl.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-        if SL_TRUE_TX:
-          print("Train with true Tx")
-          var_inf_sl.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
-                                   cb_Tx=true_methods.true_Tx_for_var_infer)
-        else:
-          print("Train without true Tx")
-          var_inf_sl.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
-
-        var_inf_sl.do_inference()
-
-        var_inf_sl_conv = VarInfConverter(var_inf_sl)
-        np_results = get_result(var_inf_sl_conv.policy_nxs,
-                                var_inf_sl_conv.Tx_nxsas,
-                                true_methods.get_init_latent_dist, test_traj)
-        avg1, avg2, avg3 = np.mean(np_results, axis=0)
-        std1, std2, std3 = np.std(np_results, axis=0)
-
-        policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
-                                                MDP_AGENT.num_latents,
-                                                traj_labeled_ver,
-                                                true_methods.get_true_policy,
-                                                var_inf_sl_conv.policy_nxs)
-
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-        print(policy_errors)
-
-      # ax1.plot(list_res1, 'r')
-      # ax2.plot(list_res2, 'r')
-      # ax3.plot(list_res3, 'r')
-      # plt.show()
-
-    # semi-supervised
-    if SHOW_SEMI:
-      for idx in list_idx[:-1]:
-        print("#########")
-        print("Semi %d" % (idx, ))
-        print("#########")
-        # semi-supervised
-        var_inf_semi = VarInferDuo(traj_labeled_ver[0:idx] +
-                                   traj_unlabel_ver[idx:],
-                                   MDP_TASK.num_states,
-                                   MDP_AGENT.num_latents,
-                                   joint_action_num,
-                                   transition_s,
-                                   trans_x_dependency=(True, True, True, False),
-                                   epsilon=0.01,
-                                   max_iteration=100)
-        var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-
-        if SEMI_TRUE_TX:
-          print("Train with true Tx")
-          var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
-                                     cb_Tx=true_methods.true_Tx_for_var_infer)
-        else:
-          print("Train without true Tx")
-          var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
-
-          save_name = SAVE_PREFIX + "_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
-                                                            BETA_TX2)
-          save_path = os.path.join(DATA_DIR, save_name)
-          var_inf_semi.set_load_save_file_name(save_path)
-
-        var_inf_semi.do_inference()
-
-        var_inf_semi_conv = VarInfConverter(var_inf_semi)
-        if not SEMI_TRUE_TX:
-          np_results = get_result(var_inf_semi_conv.policy_nxs,
-                                  var_inf_semi_conv.Tx_nxsas,
-                                  true_methods.get_init_latent_dist, test_traj)
-          avg1, avg2, avg3 = np.mean(np_results, axis=0)
-          std1, std2, std3 = np.std(np_results, axis=0)
-          print("Prediction of latent with learned Tx")
-          print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-
-        np_results = get_result(var_inf_semi_conv.policy_nxs,
-                                true_methods.get_true_Tx_nxsas,
-                                true_methods.get_init_latent_dist, test_traj)
-        avg1, avg2, avg3 = np.mean(np_results, axis=0)
-        std1, std2, std3 = np.std(np_results, axis=0)
-        print("Prediction of latent with true Tx")
-        print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-
-        policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
-                                                MDP_AGENT.num_latents,
-                                                traj_labeled_ver,
-                                                true_methods.get_true_policy,
-                                                var_inf_semi_conv.policy_nxs)
-        print(policy_errors)
-
-    if SHOW_UL:
+  # supervised variational inference
+  if show_sl:
+    for idx in list_idx:
       print("#########")
-      print("UL %d" % (len(traj_labeled_ver), ))
+      print("SL with %d" % (idx, ))
       print("#########")
-      # unsupervised
-      var_inf_ul = VarInferDuo(traj_unlabel_ver,
+      var_inf_sl = VarInferDuo(traj_labeled_ver[0:idx],
                                MDP_TASK.num_states,
                                MDP_AGENT.num_latents,
                                joint_action_num,
                                transition_s,
-                               trans_x_dependency=(True, True, True, False),
-                               epsilon=0.01,
-                               max_iteration=100)
-      var_inf_ul.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
-
-      if UL_TRUE_TX:
+                               trans_x_dependency=(True, True, True, False))
+      var_inf_sl.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
+      if use_true_tx:
         print("Train with true Tx")
-        var_inf_ul.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
+        var_inf_sl.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
                                  cb_Tx=true_methods.true_Tx_for_var_infer)
       else:
         print("Train without true Tx")
-        var_inf_ul.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
+        var_inf_sl.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
 
-        save_name = SAVE_PREFIX + "_ul_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
-                                                        BETA_TX2)
+      var_inf_sl.do_inference()
+
+      var_inf_sl_conv = VarInfConverter(var_inf_sl)
+      np_results = get_result(var_inf_sl_conv.policy_nxs,
+                              var_inf_sl_conv.Tx_nxsas,
+                              true_methods.get_init_latent_dist, test_traj)
+      avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      std1, std2, std3 = np.std(np_results, axis=0)
+
+      policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                              MDP_AGENT.num_latents,
+                                              traj_labeled_ver,
+                                              true_methods.get_true_policy,
+                                              var_inf_sl_conv.policy_nxs)
+
+      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+      print(policy_errors)
+
+    # ax1.plot(list_res1, 'r')
+    # ax2.plot(list_res2, 'r')
+    # ax3.plot(list_res3, 'r')
+    # plt.show()
+
+  # semi-supervised
+  if show_semi:
+    for idx in list_idx[:-1]:
+      print("#########")
+      print("Semi %d" % (idx, ))
+      print("#########")
+      # semi-supervised
+      var_inf_semi = VarInferDuo(traj_labeled_ver[0:idx] +
+                                 traj_unlabel_ver[idx:],
+                                 MDP_TASK.num_states,
+                                 MDP_AGENT.num_latents,
+                                 joint_action_num,
+                                 transition_s,
+                                 trans_x_dependency=(True, True, True, False),
+                                 epsilon=0.01,
+                                 max_iteration=100)
+      var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
+
+      if use_true_tx:
+        print("Train with true Tx")
+        var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
+                                   cb_Tx=true_methods.true_Tx_for_var_infer)
+      else:
+        print("Train without true Tx")
+        var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
+
+        save_name = SAVE_PREFIX + "_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
+                                                          BETA_TX2)
         save_path = os.path.join(DATA_DIR, save_name)
-        var_inf_ul.set_load_save_file_name(save_path)
+        var_inf_semi.set_load_save_file_name(save_path)
 
-      var_inf_ul.do_inference()
+      var_inf_semi.do_inference()
 
-      var_inf_ul_conv = VarInfConverter(var_inf_ul)
-      if not UL_TRUE_TX:
-        np_results = get_result_ul(var_inf_ul_conv.policy_nxs,
-                                   var_inf_ul_conv.Tx_nxsas,
-                                   true_methods.get_init_latent_dist, test_traj)
+      var_inf_semi_conv = VarInfConverter(var_inf_semi)
+      if not use_true_tx:
+        np_results = get_result(var_inf_semi_conv.policy_nxs,
+                                var_inf_semi_conv.Tx_nxsas,
+                                true_methods.get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
         print("Prediction of latent with learned Tx")
         print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-      np_results = get_result_ul(var_inf_ul_conv.policy_nxs,
-                                 true_methods.get_true_Tx_nxsas,
-                                 true_methods.get_init_latent_dist, test_traj)
+      np_results = get_result(var_inf_semi_conv.policy_nxs,
+                              true_methods.get_true_Tx_nxsas,
+                              true_methods.get_init_latent_dist, test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
       print("Prediction of latent with true Tx")
@@ -591,101 +533,64 @@ if __name__ == "__main__":
                                               MDP_AGENT.num_latents,
                                               traj_labeled_ver,
                                               true_methods.get_true_policy,
-                                              var_inf_ul_conv.policy_nxs)
+                                              var_inf_semi_conv.policy_nxs)
       print(policy_errors)
 
-  if PLOT:
-    # ##############################################
-    # # results
+  if show_ul:
+    print("#########")
+    print("UL %d" % (len(traj_labeled_ver), ))
+    print("#########")
+    # unsupervised
+    var_inf_ul = VarInferDuo(traj_unlabel_ver,
+                             MDP_TASK.num_states,
+                             MDP_AGENT.num_latents,
+                             joint_action_num,
+                             transition_s,
+                             trans_x_dependency=(True, True, True, False),
+                             epsilon=0.01,
+                             max_iteration=100)
+    var_inf_ul.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
 
-    fig = plt.figure(figsize=(7.2, 3))
-    # str_title = (
-    #     "hyperparam: " + str(SEMISUPER_HYPERPARAM) +
-    #     ", # labeled: " + str(len(trajectories)) +
-    #     ", # unlabeled: " + str(len(unlabeled_traj)))
-    str_title = ("KL over beta")
-    list_kl1_team = [
-        0.211022, 0.209135, 0.198055, 0.164204, 0.157211, 0.157834, 0.166335,
-        0.196487
-    ]
-    list_kl2_team = [
-        0.207553, 0.205707, 0.194994, 0.163914, 0.159222, 0.161656, 0.172828,
-        0.20674
-    ]
-    list_kl_idx_team = [1.0001, 1.001, 1.01, 1.1, 1.2, 1.3, 1.5, 2.0]
+    if use_true_tx:
+      print("Train with true Tx")
+      var_inf_ul.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist,
+                               cb_Tx=true_methods.true_Tx_for_var_infer)
+    else:
+      print("Train without true Tx")
+      var_inf_ul.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
 
-    list_kl1_indv = [0.188086, 0.185471, 0.183754, 0.225749, 0.340395]
-    list_kl2_indv = [0.153631, 0.151331, 0.152605, 0.203895, 0.33548]
+      save_name = SAVE_PREFIX + "_ul_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
+                                                      BETA_TX2)
+      save_path = os.path.join(DATA_DIR, save_name)
+      var_inf_ul.set_load_save_file_name(save_path)
 
-    list_kl_idx_indv = [1.0001, 1.001, 1.01, 1.04, 1.1]
+    var_inf_ul.do_inference()
 
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
-    ax1.grid(True)
-    ax2.grid(True)
-    ax1.plot(list_kl_idx_team,
-             list_kl1_team,
-             '.-',
-             label="Human",
-             clip_on=False,
-             fillstyle='none')
-    ax1.plot(list_kl_idx_team,
-             list_kl2_team,
-             '.-',
-             label="Robot",
-             clip_on=False,
-             fillstyle='none')
-    ax2.plot(list_kl_idx_indv,
-             list_kl1_indv,
-             '.-',
-             label="Human",
-             clip_on=False,
-             fillstyle='none')
-    ax2.plot(list_kl_idx_indv,
-             list_kl2_indv,
-             '.-',
-             label="Robot",
-             clip_on=False,
-             fillstyle='none')
-    # ax1.axhline(y=full_align_acc1, color='r', linestyle='-', label="SL-Small")
-    # ax1.axhline(y=full_align_acc2, color='g', linestyle='-', label="SL-Large")
-    FONT_SIZE = 16
-    # TITLE_FONT_SIZE = 12
-    # LEGENT_FONT_SIZE = 12
-    ax1.set_ylabel("KL-Divergence", fontsize=FONT_SIZE)
-    ax1.set_xlabel("Beta", fontsize=FONT_SIZE)
-    ax1.legend()
-    ax1.set_title("Movers and Packers", fontsize=FONT_SIZE)
-    ax2.set_ylabel("KL-Divergence", fontsize=FONT_SIZE)
-    ax2.set_xlabel("Beta", fontsize=FONT_SIZE)
-    ax2.legend()
-    ax2.set_title("Cleanup", fontsize=FONT_SIZE)
+    var_inf_ul_conv = VarInfConverter(var_inf_ul)
+    if not use_true_tx:
+      np_results = get_result_ul(var_inf_ul_conv.policy_nxs,
+                                 var_inf_ul_conv.Tx_nxsas,
+                                 true_methods.get_init_latent_dist, test_traj)
+      avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      std1, std2, std3 = np.std(np_results, axis=0)
+      print("Prediction of latent with learned Tx")
+      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-    # ax1.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    # # ax1.set_ylim([70, 100])
-    # # ax1.set_xlim([0, 16])
-    # ax1.set_title("Full Sequence", fontsize=TITLE_FONT_SIZE)
+    np_results = get_result_ul(var_inf_ul_conv.policy_nxs,
+                               true_methods.get_true_Tx_nxsas,
+                               true_methods.get_init_latent_dist, test_traj)
+    avg1, avg2, avg3 = np.mean(np_results, axis=0)
+    std1, std2, std3 = np.std(np_results, axis=0)
+    print("Prediction of latent with true Tx")
+    print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-    #   ax2.plot(part_acc_history,
-    #            '.-',
-    #            label="SemiSL",
-    #            clip_on=False,
-    #            fillstyle='none')
-    #   if do_sup_infer:
-    #     ax2.axhline(
-    # y=part_align_acc1, color='r', linestyle='-', label="SL-Small")
-    #     ax2.axhline(
-    # y=part_align_acc2, color='g', linestyle='-', label="SL-Large")
-    #   ax2.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    #   # ax2.set_ylim([50, 80])
-    #   # ax2.set_xlim([0, 16])
-    #   ax2.set_title("Partial Sequence (5 Steps)", fontsize=TITLE_FONT_SIZE)
-    #   handles, labels = ax2.get_legend_handles_labels()
-    #   fig.legend(handles,
-    #              labels,
-    #              loc='center right',
-    #              prop={'size': LEGENT_FONT_SIZE})
-    #   fig.text(0.45, 0.04, 'Iteration', ha='center', fontsize=FONT_SIZE)
-    #   fig.tight_layout(pad=2.0)
-    #   fig.subplots_adjust(right=0.8, bottom=0.2)
-    plt.show()
+    policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                            MDP_AGENT.num_latents,
+                                            traj_labeled_ver,
+                                            true_methods.get_true_policy,
+                                            var_inf_ul_conv.policy_nxs)
+    print(policy_errors)
+
+
+if __name__ == "__main__":
+  main()

@@ -117,7 +117,7 @@ class VarInferDuo:
 
     DIRICHLET_PARAM_PI = 3
     self.trajectories = []
-    MAX_TRAJ_LEN = 100
+    MAX_TRAJ_LEN = 50
     for traj in trajectories:
       num_split = int(len(traj) / MAX_TRAJ_LEN)
       if num_split == 0:
