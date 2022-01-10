@@ -15,7 +15,6 @@ from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence,
                                               cal_latent_policy_error)
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
-from ai_coach_core.model_inference.sb3_algorithms import behavior_cloning_sb3
 from ai_coach_core.utils.data_utils import Trajectories
 
 import ai_coach_domain.box_push.maps as bp_maps
