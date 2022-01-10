@@ -13,4 +13,13 @@ setup(name="ai_coach_core",
       packages=find_packages(
           exclude=["tests", "tests.*", "examples", "examples.*"]),
       python_requires='>=3.8',
-      install_requires=['numpy', 'tqdm', 'scipy', 'sparse', 'gym', 'torch'])
+      install_requires=[
+          'numpy',
+          'tqdm',
+          'scipy',
+          'sparse',
+          'gym[classic_control]==0.19.0',
+          'torch',
+          "scikit-learn>=0.21.2",
+          "stable-baselines3>=1.1.0",
+      ])
