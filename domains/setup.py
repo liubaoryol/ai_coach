@@ -12,4 +12,4 @@ setup(name="ai_coach_domain",
       long_description_content_type="text/markdown",
       packages=find_packages(exclude=["tests", "tests.*"]),
       python_requires='>=3.8',
-      install_requires=['numpy', 'matplotlib'])
+      install_requires=['numpy', 'matplotlib', 'click'])

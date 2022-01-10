@@ -13,4 +13,4 @@ setup(name="ai_coach_core",
       packages=find_packages(
           exclude=["tests", "tests.*", "examples", "examples.*"]),
       python_requires='>=3.8',
-      install_requires=['numpy', 'tqdm', 'scipy', 'sparse'])
+      install_requires=['numpy', 'tqdm', 'scipy', 'sparse', 'gym', 'torch'])
