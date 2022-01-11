@@ -3,6 +3,7 @@ import tqdm
 import numpy as np
 import random
 import torch
+import logging
 import external.magail_latent.algo.gail as lmagail_gail
 import external.magail_latent.algo as lmagail_algo
 import external.magail_latent.model as lmagail_model
@@ -32,7 +33,7 @@ def lmagail_w_ppo(mdp: mdp_lib.MDP,
   num_sa_pairs = 0
   for traj in sax_trajectories_no_terminal:
     num_sa_pairs += len(traj)
-  print(num_sa_pairs)
+  logging.info(num_sa_pairs)
 
   n_steps = max(int(num_sa_pairs / num_processes), 200)
   total_timesteps = num_processes * n_steps * num_iterations

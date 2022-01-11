@@ -1,5 +1,6 @@
 from typing import List
 import numpy as np
+import random
 
 
 class Trajectories:
@@ -19,6 +20,12 @@ class Trajectories:
     self.num_state_factors = num_state_factors
     self.num_action_factors = num_action_factors
     self.num_latent_factors = num_latent_factors
+
+  def shuffle(self):
+    if len(self.list_np_trajectory) == 0:
+      return
+
+    random.shuffle(self.list_np_trajectory)
 
   def get_num_valid_rows(self):
     count = 0
