@@ -24,7 +24,6 @@ import ai_coach_domain.box_push.mdppolicy as bp_policy
 import ai_coach_domain.box_push.agent as bp_agent
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-TEMPERATURE = 1
 
 MDP_AGENT = None  # type: bp_mdp.BoxPushMDP  # MDP for agent policy
 MDP_TASK = None  # type: bp_mdp.BoxPushMDP   # MDP for task environment
@@ -225,9 +224,9 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--use_true_tx", type=bool, default=True, help="")
 @click.option("--magail", type=bool, default=False, help="")
-@click.option("--num_processes", type=int, default=4, help="")
-@click.option("--gail_batch_size", type=int, default=64, help="")
-@click.option("--ppo_batch_size", type=int, default=32, help="")
+@click.option("--num_processes", type=int, default=16, help="")
+@click.option("--gail_batch_size", type=int, default=128, help="")
+@click.option("--ppo_batch_size", type=int, default=64, help="")
 @click.option("--num_iterations", type=int, default=300, help="")
 @click.option("--pretrain_steps", type=int, default=100, help="")
 @click.option("--use_ce", type=bool, default=False, help="")
@@ -267,6 +266,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
   sim.init_game(**GAME_MAP)
   sim.max_steps = 200
   NUM_AGENT = 2
+  TEMPERATURE = 1
 
   if is_team:
     policy1 = BoxPushPolicyTeam(MDP_AGENT, TEMPERATURE, BoxPushSimulator.AGENT1)
