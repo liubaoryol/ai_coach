@@ -29,7 +29,7 @@ TEMPERATURE = 1
 MDP_AGENT = None  # type: bp_mdp.BoxPushMDP  # MDP for agent policy
 MDP_TASK = None  # type: bp_mdp.BoxPushMDP   # MDP for task environment
 SAVE_PREFIX = None
-BoxPushSimulator = None  # type: bp_sim.BoxPushSimulator
+BoxPushSimulator = None  # type: type[bp_sim.BoxPushSimulator]
 
 
 def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
@@ -279,6 +279,9 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
     agent2 = bp_agent.BoxPushAIAgent_Indv2(policy)
 
   sim.set_autonomous_agent(agent1, agent2)
+
+  init_state = MDP_TASK.conv_sim_states_to_mdp_sidx(sim.a1_init, sim.a2_init,
+                                                    [0] * len(sim.box_states))
 
   true_methods = TrueModelConverter(agent1, agent2, MDP_AGENT.num_latents)
 
@@ -597,6 +600,72 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
                                             true_methods.get_true_policy,
                                             var_inf_ul_conv.policy_nxs)
     print(policy_errors)
+
+  if magail:
+    from ai_coach_core.model_inference.latent_magail import lmagail_w_ppo
+    for idx in list_idx:
+      print("#########")
+      print("LatentMAGAIL %d" % (idx, ))
+      print("#########")
+
+      list_disc_loss = []
+      list_value_loss = []
+      list_action_loss = []
+      list_entropy = []
+
+      def get_loss_each_round(disc_loss, value_loss, action_loss, entropy):
+        if disc_loss is not None:
+          list_disc_loss.append(disc_loss)
+        if value_loss is not None:
+          list_value_loss.append(value_loss)
+        if action_loss is not None:
+          list_action_loss.append(action_loss)
+        if entropy is not None:
+          list_entropy.append(entropy)
+
+      list_pi_magail = lmagail_w_ppo(MDP_TASK, [init_state], [agent1, agent2],
+                                     traj_labeled_ver[0:idx],
+                                     num_processes=num_processes,
+                                     demo_batch_size=gail_batch_size,
+                                     ppo_batch_size=ppo_batch_size,
+                                     num_iterations=num_iterations,
+                                     do_pretrain=True,
+                                     bc_pretrain_steps=pretrain_steps,
+                                     use_ce=use_ce,
+                                     callback_loss=get_loss_each_round)
+
+      def magail_policy_nxs(agent_idx, latent_idx, state_idx):
+        return list_pi_magail[agent_idx][latent_idx, state_idx]
+
+      np_results = get_result(magail_policy_nxs, true_methods.get_true_Tx_nxsas,
+                              true_methods.get_init_latent_dist, test_traj)
+      avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      std1, std2, std3 = np.std(np_results, axis=0)
+
+      policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+                                              MDP_AGENT.num_latents,
+                                              traj_labeled_ver,
+                                              true_methods.get_true_policy,
+                                              magail_policy_nxs)
+      print("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+      print(policy_errors)
+
+      f = plt.figure(figsize=(15, 5))
+      ax0 = f.add_subplot(141)
+      ax0.plot(list_disc_loss)
+      ax0.set_ylabel('disc_loss')
+      ax1 = f.add_subplot(142)
+      ax1.plot(list_value_loss)
+      ax1.set_ylabel('value_loss')
+      ax2 = f.add_subplot(143)
+      ax2.plot(list_action_loss)
+      ax2.set_ylabel('action_loss')
+      ax3 = f.add_subplot(144)
+      ax3.plot(list_entropy)
+      ax3.set_ylabel('entropy')
+      # plt.show()
+      work_type = "Team" if is_team else "Indv"
+      plt.savefig('latent_magail loss (dynamic %s %d).png' % (work_type, idx))
 
 
 if __name__ == "__main__":

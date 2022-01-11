@@ -70,9 +70,11 @@ class EnvFromBoxPushDomain(gym.Env):
           self.cur_obstate)
       nxt_sim_state = [nxt_bstates, nxt_a1pos, nxt_a2pos]
 
+      sim_action = self.mdp.conv_mdp_aidx_to_sim_actions(action_idx)
+
       list_lstates = []
       for agent in self.agents:
-        agent.update_mental_state(cur_sim_state, action, nxt_sim_state)
+        agent.update_mental_state(cur_sim_state, sim_action, nxt_sim_state)
         list_lstates.append(agent.agent_model.current_latent)
 
       self.cur_lstates = tuple(list_lstates)
