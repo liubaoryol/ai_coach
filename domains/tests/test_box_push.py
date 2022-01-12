@@ -230,11 +230,12 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--pretrain_steps", type=int, default=100, help="")
 @click.option("--use_ce", type=bool, default=False, help="")
 @click.option("--num_run", type=int, default=1, help="")
+@click.option("--only_20", type=bool, default=True, help="")
 # yapf: enable
 def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
          dnn_bc, show_sl, show_semi, show_ul, use_true_tx, magail,
          num_processes, gail_batch_size, ppo_batch_size, num_iterations,
-         pretrain_steps, use_ce, num_run):
+         pretrain_steps, use_ce, num_run, only_20):
   global MDP_AGENT, MDP_TASK, SAVE_PREFIX, BoxPushSimulator
   logging.info("is_TEAM: %s" % (is_team, ))
   logging.info("is_test: %s" % (is_test, ))
@@ -386,7 +387,10 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
     # ax2 = fig1.add_subplot(132)
     # ax3 = fig1.add_subplot(133)
 
-    list_idx = [20, 50, 100, len(traj_labeled_ver)]
+    if only_20:
+      list_idx = [20]
+    else:
+      list_idx = [20, 50, 100, len(traj_labeled_ver)]
 
     logging.info(list_idx)
     if show_bc:
