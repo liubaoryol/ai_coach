@@ -790,8 +790,6 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
 
 if __name__ == "__main__":
   logging.basicConfig(
-      # filename='box_push_static_results.log',
-      # stream=sys.stdout,
       level=logging.INFO,
       format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
       handlers=[
