@@ -3,8 +3,12 @@ import ast
 import numpy as np
 
 if __name__=="__main__":
-    filename = "team_w_tx_box_push_dynamic_results.log"
+    # filename = "team_w_tx_box_push_dynamic_results.log"
     # filename = "team_wo_tx_dynamic_results.log"
+    # filename = "indv_wo_tx_dynamic_results.log"
+    # filename = "indv_w_tx_box_push_dynamic_results.log"
+    # filename = "box_push_dynamic_results_w_tx_indv.log"
+    filename = "box_push_dynamic_results_indv_wtx_33.log"
 
     dict_data = {}
     with open(filename) as f:
@@ -17,7 +21,9 @@ if __name__=="__main__":
                 for idx2 in range(1, 10):
                     if lines[idx-idx2].find("#########") != -1:
                         alg_row = lines[idx-idx2-1]
-                        sidx = alg_row.find('push:')
+                        sidx = alg_row.find('ush2:')
+                        if sidx == -1:
+                            sidx = alg_row.find('push:')
                         alg_name = alg_row[sidx+6:-1]
                         if alg_name[0:4] == 'Semi':
                             info_row = lines[idx -idx2 + 1]
@@ -27,7 +33,9 @@ if __name__=="__main__":
                         break
                 fidx = 1 if not is_no_tx_semi else 3
                 x_row = lines[idx-fidx]
-                xidx = x_row.find('push:')
+                xidx = x_row.find('ush2:')
+                if xidx == -1:
+                    xidx = x_row.find('push:')
                 x_data_string = x_row[xidx+6:-1]
                 x_data = [float(num) for num in x_data_string.split(',')]
                 x_data = {'x mean': [x_data[0], x_data[2]]}
