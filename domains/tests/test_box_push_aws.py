@@ -12,12 +12,13 @@ import tests.test_box_push as tbp
 # yapf: disable
 @click.command()
 @click.option("--is_team", type=bool, default=False, help="team / indv")
-@click.option("--show_sl", type=bool, default=True, help="")
-@click.option("--show_semi", type=bool, default=True, help="")
+@click.option("--show_sl", type=bool, default=False, help="")
+@click.option("--show_semi", type=bool, default=False, help="")
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--num_run", type=int, default=5, help="")
+@click.option("--show_random", type=bool, default=True, help="")
 # yapf: enable
-def main(is_team, show_sl, show_semi, show_ul, num_run):
+def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
   logging.info("is_TEAM: %s" % (is_team, ))
 
   for dummy_run in range(num_run):
@@ -117,6 +118,25 @@ def main(is_team, show_sl, show_semi, show_ul, num_run):
 
     list_idx = [int(num_train * 0.2), int(num_train * 0.5), num_train]
     # print(list_idx)
+
+    if show_random:
+      logging.info("#########")
+      logging.info("Random")
+      logging.info("#########")
+
+      def get_uniform_policy(agent_idx, latent_idx, state_idx):
+        # return self.agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
+        return (np.ones(joint_action_num[agent_idx]) /
+                joint_action_num[agent_idx])
+
+      def get_uniform_tx(nidx, xidx, sidx, tuple_aidx, sidx_n):
+        return (np.ones(tbp.MDP_AGENT.num_latents) / tbp.MDP_AGENT.num_latents)
+
+      np_results = tbp.get_result(get_uniform_policy, get_uniform_tx,
+                                  true_methods.get_init_latent_dist, test_traj)
+      avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      std1, std2, std3 = np.std(np_results, axis=0)
+      logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
     # supervised variational inference
     if show_sl:

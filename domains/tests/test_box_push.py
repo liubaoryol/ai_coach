@@ -229,7 +229,7 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--num_iterations", type=int, default=300, help="")
 @click.option("--pretrain_steps", type=int, default=100, help="")
 @click.option("--use_ce", type=bool, default=False, help="")
-@click.option("--num_run", type=int, default=1, help="")
+@click.option("--num_run", type=int, default=5, help="")
 @click.option("--only_20", type=bool, default=True, help="")
 # yapf: enable
 def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
@@ -364,23 +364,49 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
 
     # True policy
     if show_true:
+      # logging.info("#########")
+      # logging.info("True")
+      # logging.info("#########")
+      # np_results = get_result(true_methods.get_true_policy,
+      #                         true_methods.get_true_Tx_nxsas,
+      #                         true_methods.get_init_latent_dist, test_traj)
+      # avg1, avg2, avg3 = np.mean(np_results, axis=0)
+      # std1, std2, std3 = np.std(np_results, axis=0)
+
+      # policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+      #                                         MDP_AGENT.num_latents,
+      #                                         traj_labeled_ver,
+      #                                         true_methods.get_true_policy,
+      #                                         true_methods.get_true_policy)
+
+      # logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
+      # logging.info(policy_errors)
+
       logging.info("#########")
-      logging.info("True")
+      logging.info("Random")
       logging.info("#########")
-      np_results = get_result(true_methods.get_true_policy,
-                              true_methods.get_true_Tx_nxsas,
+
+      def get_uniform_policy(agent_idx, latent_idx, state_idx):
+        # return self.agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
+        return (np.ones(joint_action_num[agent_idx]) /
+                joint_action_num[agent_idx])
+
+      def get_uniform_tx(nidx, xidx, sidx, tuple_aidx, sidx_n):
+        return (np.ones(MDP_AGENT.num_latents) / MDP_AGENT.num_latents)
+
+      np_results = get_result(get_uniform_policy, get_uniform_tx,
                               true_methods.get_init_latent_dist, test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
-
-      policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
-                                              MDP_AGENT.num_latents,
-                                              traj_labeled_ver,
-                                              true_methods.get_true_policy,
-                                              true_methods.get_true_policy)
-
       logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-      logging.info(policy_errors)
+
+      # policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
+      #                                         MDP_AGENT.num_latents,
+      #                                         traj_labeled_ver,
+      #                                         true_methods.get_true_policy,
+      #                                         get_uniform_policy)
+
+      # logging.info(policy_errors)
 
     # fig1 = plt.figure(figsize=(8, 3))
     # ax1 = fig1.add_subplot(131)
@@ -650,6 +676,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
                                        num_iterations=num_iterations,
                                        do_pretrain=True,
                                        bc_pretrain_steps=pretrain_steps,
+                                       only_pretrain=True,
                                        use_ce=use_ce,
                                        callback_loss=get_loss_each_round)
 

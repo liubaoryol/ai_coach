@@ -36,13 +36,13 @@ def plot_bar(fig,
   ax1.bar(bar_idx,
           dict_list[domain + sl_algo + met_a1],
           color='b',
-          label='SL-agent1',
+          label='BTIL-sup(Alice)',
           width=bar_width)
   bar_idx = bar_idx + bar_width
   ax1.bar(bar_idx[:-1],
           dict_list[domain + semi_algo + met_a1],
           color='g',
-          label='Semi-agent1',
+          label='BTIL-semi(Alice)',
           width=bar_width)
 
   ax1.axvline(x=len(bar_idx) - 0.5, color='k', linestyle='--', lw=1)
@@ -50,13 +50,13 @@ def plot_bar(fig,
   ax1.bar(bar_idx,
           dict_list[domain + sl_algo + met_a2],
           color='r',
-          label='SL-agent2',
+          label='BTIL-sup(Rob)',
           width=bar_width)
   bar_idx = bar_idx + bar_width
   ax1.bar(bar_idx[:-1],
           dict_list[domain + semi_algo + met_a2],
           color='m',
-          label='Semi-agent2',
+          label='BTIL-semi(Rob)',
           width=bar_width)
 
   xticks = [
@@ -105,11 +105,15 @@ if __name__ == "__main__":
   ax3 = plot_bar(fig1, 222, dict_list, list_domain[0], list_algo[2],
                  list_algo[3], list_metric[0], list_metric[1], "", "", "W/o Tx",
                  font_size)
-  ax3 = plot_bar(fig1, 224, dict_list, list_domain[0], list_algo[2],
+  ax4 = plot_bar(fig1, 224, dict_list, list_domain[0], list_algo[2],
                  list_algo[3], list_metric[2], list_metric[3], "", "", "",
                  font_size)
   #   fig1.supxlabel("Percentage of Labeled Samples")
   handles, labels = ax1.get_legend_handles_labels()
+  ax1.set_ylim([0, 0.4])
+  ax3.set_ylim([0, 0.4])
+  ax2.set_ylim([0, 0.1])
+  ax4.set_ylim([0, 0.1])
   fig1.text(0.5,
             0.07,
             'Percentage of Labeled Samples',
@@ -124,19 +128,23 @@ if __name__ == "__main__":
   fig1.subplots_adjust(bottom=0.15)
 
   fig2 = plt.figure(figsize=(8, 6))
-  ax4 = plot_bar(fig2, 221, dict_list, list_domain[1], list_algo[0],
+  ax5 = plot_bar(fig2, 221, dict_list, list_domain[1], list_algo[0],
                  list_algo[1], list_metric[0], list_metric[1], "",
                  "Norm. Hamming Dist.", "With Tx", font_size)
-  ax5 = plot_bar(fig2, 223, dict_list, list_domain[1], list_algo[0],
+  ax6 = plot_bar(fig2, 223, dict_list, list_domain[1], list_algo[0],
                  list_algo[1], list_metric[2], list_metric[3], "", "JS Div.",
                  "", font_size)
-  ax6 = plot_bar(fig2, 222, dict_list, list_domain[1], list_algo[2],
+  ax7 = plot_bar(fig2, 222, dict_list, list_domain[1], list_algo[2],
                  list_algo[3], list_metric[0], list_metric[1], "", ".",
                  "W/o Tx", font_size)
-  ax7 = plot_bar(fig2, 224, dict_list, list_domain[1], list_algo[2],
+  ax8 = plot_bar(fig2, 224, dict_list, list_domain[1], list_algo[2],
                  list_algo[3], list_metric[2], list_metric[3], "", ".", "",
                  font_size)
-  handles, labels = ax4.get_legend_handles_labels()
+  handles, labels = ax5.get_legend_handles_labels()
+  ax5.set_ylim([0, 0.6])
+  ax7.set_ylim([0, 0.6])
+  ax6.set_ylim([0, 0.2])
+  ax8.set_ylim([0, 0.2])
   fig2.text(0.5,
             0.07,
             'Percentage of Labeled Samples',
@@ -151,6 +159,6 @@ if __name__ == "__main__":
   fig2.tight_layout()
   fig2.subplots_adjust(bottom=0.15)
 
-  fig1.savefig("Team results.png")
-  fig2.savefig("Indv results.png")
+  fig1.savefig("box results.png")
+  fig2.savefig("bag results.png")
   plt.show()
