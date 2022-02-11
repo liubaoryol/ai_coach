@@ -71,6 +71,9 @@ def is_opposite_direction(dir1, dir2):
 # methods
 def get_box_idx_impl(coord, box_states, a1_pos, a2_pos, box_locations, goals,
                      drops):
+  '''
+    returns the index of the box whose position matches with 'coord'
+  '''
   for idx, sidx in enumerate(box_states):
     state = conv_box_idx_2_state(sidx, len(drops), len(goals))
     if (state[0] == BoxState.Original) and (coord == box_locations[idx]):

@@ -23,10 +23,7 @@ class PolicyInterface:
   def get_action(self, obstate_idx: int, latstate_idx: int) -> Sequence[int]:
     'most basic implementation - override if high performance is needed'
     np_action_dist = self.policy(obstate_idx, latstate_idx)
-    aidx = np.random.choice(range(len(np_action_dist)),
-                            size=1,
-                            replace=False,
-                            p=np_action_dist)[0]
+    aidx = np.random.choice(range(len(np_action_dist)), p=np_action_dist)
     return (aidx, )
 
   @abc.abstractmethod
@@ -68,10 +65,7 @@ class MentalModelAgent:
 
   def sample_initial_mental_state(self, obstate_idx: int) -> int:
     np_init_dist = self.initial_mental_distribution(obstate_idx)
-    return np.random.choice(range(len(np_init_dist)),
-                            size=1,
-                            replace=False,
-                            p=np_init_dist)[0]
+    return np.random.choice(range(len(np_init_dist)), p=np_init_dist)
 
   def sample_next_mental_state(self, latstate_idx: int, obstate_idx: int,
                                tuple_action_idx: Sequence[int],
@@ -82,9 +76,7 @@ class MentalModelAgent:
                                                        obstate_next_idx)
 
     return np.random.choice(range(len(np_next_latent_dist)),
-                            size=1,
-                            replace=False,
-                            p=np_next_latent_dist)[0]
+                            p=np_next_latent_dist)
 
   def set_init_mental_state_idx(self,
                                 obstate_idx: int,

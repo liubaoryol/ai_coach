@@ -255,8 +255,6 @@ class MDP:
     """
     next_state_distribution = self.transition_model(state_idx, action_idx)
     next_state_idx = np.random.choice(next_state_distribution[:, 1],
-                                      size=1,
-                                      replace=False,
                                       p=next_state_distribution[:, 0])
     return int(next_state_idx)
 
