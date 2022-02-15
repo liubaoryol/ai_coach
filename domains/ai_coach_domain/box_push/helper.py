@@ -106,13 +106,13 @@ def get_moved_coord_impl(coord,
                          action,
                          x_bound,
                          y_bound,
-                         box_states,
-                         a1_pos,
-                         a2_pos,
-                         box_locations,
-                         goals,
-                         drops,
                          walls,
+                         box_states=None,
+                         a1_pos=None,
+                         a2_pos=None,
+                         box_locations=None,
+                         goals=None,
+                         drops=None,
                          check_box=False):
   x, y = coord
   coord_new = None
@@ -197,9 +197,9 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
                             goals, drops)
 
   def get_moved_coord(coord, action, check_box=False):
-    return get_moved_coord_impl(coord, action, x_bound, y_bound, box_states,
-                                a1_pos, a2_pos, box_locations, goals, drops,
-                                walls, check_box)
+    return get_moved_coord_impl(coord, action, x_bound, y_bound, walls,
+                                box_states, a1_pos, a2_pos, box_locations,
+                                goals, drops, check_box)
 
   def hold_state():
     return hold_state_impl(box_states, drops, goals)
@@ -534,9 +534,9 @@ def transition_always_together(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
                             goals, drops)
 
   def get_moved_coord(coord, action, check_box=False):
-    return get_moved_coord_impl(coord, action, x_bound, y_bound, box_states,
-                                a1_pos, a2_pos, box_locations, goals, drops,
-                                walls, check_box)
+    return get_moved_coord_impl(coord, action, x_bound, y_bound, walls,
+                                box_states, a1_pos, a2_pos, box_locations,
+                                goals, drops, check_box)
 
   def hold_state():
     return hold_state_impl(box_states, drops, goals)
@@ -621,9 +621,9 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
                             goals, drops)
 
   def get_moved_coord(coord, action, check_box=False):
-    return get_moved_coord_impl(coord, action, x_bound, y_bound, box_states,
-                                a1_pos, a2_pos, box_locations, goals, drops,
-                                walls, check_box)
+    return get_moved_coord_impl(coord, action, x_bound, y_bound, walls,
+                                box_states, a1_pos, a2_pos, box_locations,
+                                goals, drops, check_box)
 
   def hold_state():
     return hold_state_impl(box_states, drops, goals)

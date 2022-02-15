@@ -105,8 +105,9 @@ class BoxPushSimulator(Simulator):
     ]
     self.history.append(state)
 
-    self.__transition(a1_action, a2_action)
-    super().take_a_step(map_agent_2_action)
+    self._transition(a1_action, a2_action)
+    # super().take_a_step(map_agent_2_action)
+    self.current_step += 1
     self.changed_state.append("current_step")
 
     # update mental model
@@ -115,7 +116,7 @@ class BoxPushSimulator(Simulator):
     self.agent_1.update_mental_state(cur_state, tuple_actions, next_state)
     self.agent_2.update_mental_state(cur_state, tuple_actions, next_state)
 
-  def __transition(self, a1_action, a2_action):
+  def _transition(self, a1_action, a2_action):
     list_next_env = self.transition_fn(self.box_states, self.a1_pos,
                                        self.a2_pos, a1_action, a2_action,
                                        self.boxes, self.goals, self.walls,

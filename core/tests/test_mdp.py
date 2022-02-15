@@ -41,13 +41,13 @@ class FrozenLakeMDP(mdp_lib.MDP):
 
     self.dict_factored_statespace = {}
 
-    set_state = set()
+    list_state = []
     for i in range(self.width):
       for j in range(self.height):
         state = (i, j)
-        set_state.add(state)
+        list_state.append(state)
 
-    self.s_space = StateSpace(statespace=set_state)
+    self.s_space = StateSpace(statespace=list_state)
     self.dict_factored_statespace = {0: self.s_space}
     self.dummy_states = StateSpace(statespace=["terminal"])
 

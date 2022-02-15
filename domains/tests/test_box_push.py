@@ -107,6 +107,9 @@ def transition_s(sidx, aidx1, aidx2, sidx_n=None):
       logging.info("transition_s loaded by pickle")
     else:
       g_loaded_transition_model = MDP_TASK.np_transition_model
+      dir_name = os.path.dirname(pickle_trans_s)
+      if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
       logging.info("save transition_s by pickle")
       with open(pickle_trans_s, 'wb') as handle:
         pickle.dump(g_loaded_transition_model,
@@ -218,7 +221,7 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--show_true", type=bool, default=False, help="metrics from true policy")
 @click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")
 @click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")
-@click.option("--show_sl", type=bool, default=False, help="")
+@click.option("--show_sl", type=bool, default=True, help="")
 @click.option("--show_semi", type=bool, default=False, help="")
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--use_true_tx", type=bool, default=True, help="")

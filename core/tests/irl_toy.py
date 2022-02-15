@@ -43,15 +43,15 @@ class ToyMDP(MDP):
 
     self.dict_factored_statespace = {}
 
-    set_state = set()
+    list_state = []
     for i in range(5):
       for j in range(5):
         state = (i, j)
         if state not in [(2, 1), (2, 2), (2, 3)]:
-          set_state.add((state[0], state[1], 0))
-          set_state.add((state[0], state[1], 1))
+          list_state.append((state[0], state[1], 0))
+          list_state.append((state[0], state[1], 1))
 
-    self.s_space = StateSpace(statespace=set_state)
+    self.s_space = StateSpace(statespace=list_state)
     self.dict_factored_statespace = {0: self.s_space}
     self.dummy_states = StateSpace(statespace=[TERMINAL_STATE])
 
@@ -406,7 +406,7 @@ if __name__ == "__main__":
   init_prop[s_idx] = 1
 
   rel_freq = compute_relative_freq(num_ostates, trajectories)
-  DO_IRL = False
+  DO_IRL = True
   if DO_IRL:
     irl = CMaxEntIRL(trajectories,
                      toy_mdp,
@@ -462,7 +462,7 @@ if __name__ == "__main__":
     print(kl_bc_sb3)
 
   # gail
-  DO_GAIL = True
+  DO_GAIL = False
   SB3_GAIL = False
   ONLY_PRETRAIN = False
   if DO_GAIL:

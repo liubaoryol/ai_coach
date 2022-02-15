@@ -24,6 +24,12 @@ class BoxPushPolicyInterface(PolicyInterface):
       list_policy: list,
       temperature: float,
       queried_agent_indices: Sequence[int] = (0, )) -> None:
+    '''
+      queried_agent_indices: if the stored policy consists of joint actions and
+                            if you want to query specific action factors
+                            from the joint action, use this argument.
+                            should be sorted in increasing order
+    '''
     super().__init__(mdp)
     self.list_policy = list_policy
     self.file_prefix = file_prefix
@@ -48,6 +54,9 @@ class BoxPushPolicyInterface(PolicyInterface):
               epsilon=0.01)
 
           if self.file_prefix != "":
+            dir_name = os.path.dirname(str_q_val)
+            if not os.path.exists(dir_name):
+              os.makedirs(dir_name)
             with open(str_q_val, "wb") as f:
               pickle.dump(np_q_value, f, pickle.HIGHEST_PROTOCOL)
         else:
@@ -57,14 +66,22 @@ class BoxPushPolicyInterface(PolicyInterface):
         self.list_policy.append(
             mdp_lib.softmax_policy_from_q_value(np_q_value, self.temperature))
 
-  # TODO: not tested yet - test this method
+  # TODO: not tested yet
   def policy(self, obstate_idx: int, latstate_idx: int) -> np.ndarray:
-    'slow'
+    '''
+    return: 1-D distribution of the joint action
+    NOTE: can be slow if the joint action consists of multiple factors
+    '''
     self.prepare_policy()
+
+    # if the entire joint actions are queried, marginalization is not needed
+    if len(self.mdp.list_num_actions) == len(self.queried_agent_indices):
+      return self.list_policy[latstate_idx][obstate_idx, :]
 
     np_action_dist = np.reshape(self.list_policy[latstate_idx][obstate_idx, :],
                                 self.mdp.list_num_actions)
 
+    # marginalize out residual actions
     axis2sum = [
         idx for idx in range(self.mdp.num_action_factors)
         if idx not in self.queried_agent_indices

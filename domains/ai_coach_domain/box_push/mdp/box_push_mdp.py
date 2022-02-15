@@ -26,14 +26,14 @@ class BoxPushMDP(LatentMDP):
 
     self.dict_factored_statespace = {}
 
-    set_grid = set()
+    list_grid = []
     for i in range(self.x_grid):
       for j in range(self.y_grid):
         state = (i, j)
         if state not in self.walls:
-          set_grid.add(state)
-    self.pos1_space = StateSpace(statespace=set_grid)
-    self.pos2_space = StateSpace(statespace=set_grid)
+          list_grid.append(state)
+    self.pos1_space = StateSpace(statespace=list_grid)
+    self.pos2_space = StateSpace(statespace=list_grid)
     self.dict_factored_statespace = {0: self.pos1_space, 1: self.pos2_space}
 
     box_states = self.get_possible_box_states()
