@@ -1,12 +1,6 @@
 import os
-import pickle
-from typing import Sequence
-import numpy as np
-import ai_coach_core.models.mdp as mdp_lib
-from ai_coach_core.models.agent_model import PolicyInterface
-import ai_coach_core.RL.planning as plan_lib
-from ai_coach_domain.box_push.mdp import (BoxPushMDP, BoxPushTeamMDP,
-                                          BoxPushAgentMDP,
+from ai_coach_core.models.policy import CachedPolicyInterface
+from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP, BoxPushAgentMDP,
                                           BoxPushTeamMDP_AlwaysTogether,
                                           BoxPushAgentMDP_AlwaysAlone)
 
@@ -16,110 +10,7 @@ policy_test_agent_list = []
 policy_test_team_list = []
 
 
-class BoxPushPolicyInterface(PolicyInterface):
-  def __init__(
-      self,
-      mdp: BoxPushMDP,
-      file_prefix: str,
-      list_policy: list,
-      temperature: float,
-      queried_agent_indices: Sequence[int] = (0, )) -> None:
-    '''
-      queried_agent_indices: if the stored policy consists of joint actions and
-                            if you want to query specific action factors
-                            from the joint action, use this argument.
-                            should be sorted in increasing order
-    '''
-    super().__init__(mdp)
-    self.list_policy = list_policy
-    self.file_prefix = file_prefix
-    self.temperature = temperature
-    self.queried_agent_indices = queried_agent_indices
-
-  def prepare_policy(self):
-    if (self.list_policy is None) or len(self.list_policy) == 0:
-      # cur_dir = os.path.dirname(__file__)
-      for idx in range(self.mdp.num_latents):
-        # str_q_val = os.path.join(
-        #     cur_dir, "data/" + self.file_prefix + "%d.pickle" % (idx, ))
-        str_q_val = self.file_prefix + "%d.pickle" % (idx, )
-        np_q_value = None
-        GAMMA = 0.95
-        if self.file_prefix == "" or (not os.path.exists(str_q_val)):
-          _, _, np_q_value = plan_lib.value_iteration(
-              self.mdp.np_transition_model,
-              self.mdp.np_reward_model[idx],
-              discount_factor=GAMMA,
-              max_iteration=500,
-              epsilon=0.01)
-
-          if self.file_prefix != "":
-            dir_name = os.path.dirname(str_q_val)
-            if not os.path.exists(dir_name):
-              os.makedirs(dir_name)
-            with open(str_q_val, "wb") as f:
-              pickle.dump(np_q_value, f, pickle.HIGHEST_PROTOCOL)
-        else:
-          with open(str_q_val, "rb") as f:
-            np_q_value = pickle.load(f)
-
-        self.list_policy.append(
-            mdp_lib.softmax_policy_from_q_value(np_q_value, self.temperature))
-
-  # TODO: not tested yet
-  def policy(self, obstate_idx: int, latstate_idx: int) -> np.ndarray:
-    '''
-    return: 1-D distribution of the joint action
-    NOTE: can be slow if the joint action consists of multiple factors
-    '''
-    self.prepare_policy()
-
-    # if the entire joint actions are queried, marginalization is not needed
-    if len(self.mdp.list_num_actions) == len(self.queried_agent_indices):
-      return self.list_policy[latstate_idx][obstate_idx, :]
-
-    np_action_dist = np.reshape(self.list_policy[latstate_idx][obstate_idx, :],
-                                self.mdp.list_num_actions)
-
-    # marginalize out residual actions
-    axis2sum = [
-        idx for idx in range(self.mdp.num_action_factors)
-        if idx not in self.queried_agent_indices
-    ]
-    np_action_dist = np_action_dist.sum(
-        axis=tuple(axis2sum))  # type: np.ndarray
-    return np_action_dist.ravel()
-
-  def get_action(self, obstate_idx: int, latstate_idx: int):
-    self.prepare_policy()
-
-    joint_aidx = np.random.choice(
-        range(self.mdp.num_actions),
-        size=1,
-        replace=False,
-        p=self.list_policy[latstate_idx][obstate_idx, :])[0]
-    vector_indv_aidx = self.mdp.conv_idx_to_action(joint_aidx)
-    return vector_indv_aidx[list(self.queried_agent_indices)]
-
-  def conv_idx_to_action(self, tuple_aidx: Sequence[int]):
-    list_actions = []
-    for idx, fidx in enumerate(self.queried_agent_indices):
-      list_actions.append(
-          self.mdp.dict_factored_actionspace[fidx].idx_to_action[
-              tuple_aidx[idx]])
-
-    return list_actions
-
-  def conv_action_to_idx(self, tuple_actions: Sequence) -> Sequence[int]:
-    list_aidx = []
-    for idx, fidx in enumerate(self.queried_agent_indices):
-      list_aidx.append(self.mdp.dict_factored_actionspace[fidx].action_to_idx[
-          tuple_actions[idx]])
-
-    return list_aidx
-
-
-class BoxPushPolicyTeamExp1(BoxPushPolicyInterface):
+class BoxPushPolicyTeamExp1(CachedPolicyInterface):
   def __init__(self, mdp: BoxPushTeamMDP_AlwaysTogether, temperature: float,
                agent_idx: int) -> None:
     cur_dir = os.path.dirname(__file__)
@@ -129,7 +20,7 @@ class BoxPushPolicyTeamExp1(BoxPushPolicyInterface):
     # TODO: check if mdp has the same configuration as EXP1_MAP
 
 
-class BoxPushPolicyIndvExp1(BoxPushPolicyInterface):
+class BoxPushPolicyIndvExp1(CachedPolicyInterface):
   def __init__(self, mdp: BoxPushAgentMDP_AlwaysAlone,
                temperature: float) -> None:
     cur_dir = os.path.dirname(__file__)
@@ -137,12 +28,12 @@ class BoxPushPolicyIndvExp1(BoxPushPolicyInterface):
     super().__init__(mdp, str_fileprefix, policy_indv_list, temperature)
 
 
-class BoxPushPolicyTeamTest(BoxPushPolicyInterface):
+class BoxPushPolicyTeamTest(CachedPolicyInterface):
   def __init__(self, mdp: BoxPushTeamMDP, temperature: float,
                agent_idx: int) -> None:
     super().__init__(mdp, "", policy_test_team_list, temperature, (agent_idx, ))
 
 
-class BoxPushPolicyIndvTest(BoxPushPolicyInterface):
+class BoxPushPolicyIndvTest(CachedPolicyInterface):
   def __init__(self, mdp: BoxPushAgentMDP, temperature: float) -> None:
     super().__init__(mdp, "", policy_test_agent_list, temperature)

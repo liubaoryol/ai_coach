@@ -1,38 +1,7 @@
 import abc
 from typing import Optional, Sequence
 import numpy as np
-from ai_coach_core.models.mdp import LatentMDP
-
-
-class PolicyInterface:
-  __metaclass__ = abc.ABCMeta
-
-  # TODO: make PolicyInterface class dependent on original mdp
-  # and define new methods that handle latent states
-  def __init__(self, mdp: LatentMDP) -> None:
-    self.mdp = mdp
-
-  @abc.abstractmethod
-  def policy(self, obstate_idx: int, latstate_idx: int) -> np.ndarray:
-    '''
-        returns the distribution of (joint) actions as the numpy array
-    '''
-
-    raise NotImplementedError
-
-  def get_action(self, obstate_idx: int, latstate_idx: int) -> Sequence[int]:
-    'most basic implementation - override if high performance is needed'
-    np_action_dist = self.policy(obstate_idx, latstate_idx)
-    aidx = np.random.choice(range(len(np_action_dist)), p=np_action_dist)
-    return (aidx, )
-
-  @abc.abstractmethod
-  def conv_idx_to_action(self, tuple_aidx: Sequence[int]) -> Sequence:
-    raise NotImplementedError
-
-  @abc.abstractmethod
-  def conv_action_to_idx(self, tuple_actions: Sequence) -> Sequence[int]:
-    raise NotImplementedError
+from ai_coach_core.models.policy import PolicyInterface
 
 
 class MentalModelAgent:

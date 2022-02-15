@@ -2,12 +2,12 @@ import abc
 import numpy as np
 from ai_coach_core.utils.feature_utils import (get_gridworld_astar_distance,
                                                manhattan_distance)
+from ai_coach_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.box_push.mdpagent import (BoxPushMDPAgent,
                                                BoxPushMDPAgent_Alone,
                                                BoxPushMDPAgent_Together,
                                                BoxPushMDPAgent_EmptyMind,
                                                BoxPushMDPAgent_WebExp_Both)
-from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyInterface
 from ai_coach_domain.box_push.mdp import (BoxPushMDP,
                                           get_agent_switched_boxstates)
 from ai_coach_domain.box_push.helper import (conv_box_idx_2_state, BoxState,
@@ -86,7 +86,7 @@ class BoxPushInteractiveAgent(BoxPushSimulatorAgent):
 
 class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
   def __init__(self,
-               policy_model: BoxPushPolicyInterface,
+               policy_model: CachedPolicyInterface,
                use_flipped_state_space: bool = False,
                has_mind: bool = True) -> None:
     super().__init__(has_mind=has_mind, has_policy=True)
@@ -96,7 +96,7 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
 
   @abc.abstractmethod
   def _create_agent_model(
-      self, policy_model: BoxPushPolicyInterface) -> BoxPushMDPAgent:
+      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     'Should be implemented at inherited method'
     raise NotImplementedError
 
@@ -197,14 +197,14 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
 
 class BoxPushAIAgent_Host(BoxPushAIAgent_Abstract):
   def __init__(self,
-               policy_model: BoxPushPolicyInterface,
+               policy_model: CachedPolicyInterface,
                use_flipped_state_space=False) -> None:
     super().__init__(policy_model,
                      use_flipped_state_space=use_flipped_state_space,
                      has_mind=False)
 
   def _create_agent_model(
-      self, policy_model: BoxPushPolicyInterface) -> BoxPushMDPAgent:
+      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     return BoxPushMDPAgent_EmptyMind(policy_model)
 
   def init_latent(self, box_states, a1_pos, a2_pos):
@@ -217,51 +217,51 @@ class BoxPushAIAgent_Host(BoxPushAIAgent_Abstract):
 
 
 class BoxPushAIAgent_Team1(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: BoxPushPolicyInterface) -> None:
+  def __init__(self, policy_model: CachedPolicyInterface) -> None:
     super().__init__(policy_model, use_flipped_state_space=False)
 
   def _create_agent_model(
-      self, policy_model: BoxPushPolicyInterface) -> BoxPushMDPAgent:
+      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     AGENT1_IDX = 0
     return BoxPushMDPAgent_Together(agent_idx=AGENT1_IDX,
                                     policy_model=policy_model)
 
 
 class BoxPushAIAgent_Team2(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: BoxPushPolicyInterface) -> None:
+  def __init__(self, policy_model: CachedPolicyInterface) -> None:
     super().__init__(policy_model, use_flipped_state_space=False)
 
   def _create_agent_model(
-      self, policy_model: BoxPushPolicyInterface) -> BoxPushMDPAgent:
+      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     AGENT2_IDX = 1
     return BoxPushMDPAgent_Together(agent_idx=AGENT2_IDX,
                                     policy_model=policy_model)
 
 
 class BoxPushAIAgent_WebExp_Both_A2(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: BoxPushPolicyInterface) -> None:
+  def __init__(self, policy_model: CachedPolicyInterface) -> None:
     super().__init__(policy_model, use_flipped_state_space=False)
 
   def _create_agent_model(
-      self, policy_model: BoxPushPolicyInterface) -> BoxPushMDPAgent:
+      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     return BoxPushMDPAgent_WebExp_Both(policy_model=policy_model)
 
 
 class BoxPushAIAgent_Indv1(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: BoxPushPolicyInterface) -> None:
+  def __init__(self, policy_model: CachedPolicyInterface) -> None:
     super().__init__(policy_model, use_flipped_state_space=False)
 
   def _create_agent_model(
-      self, policy_model: BoxPushPolicyInterface) -> BoxPushMDPAgent:
+      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     return BoxPushMDPAgent_Alone(policy_model)
 
 
 class BoxPushAIAgent_Indv2(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: BoxPushPolicyInterface) -> None:
+  def __init__(self, policy_model: CachedPolicyInterface) -> None:
     super().__init__(policy_model, use_flipped_state_space=True)
 
   def _create_agent_model(
-      self, policy_model: BoxPushPolicyInterface) -> BoxPushMDPAgent:
+      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     return BoxPushMDPAgent_Alone(policy_model)
 
 

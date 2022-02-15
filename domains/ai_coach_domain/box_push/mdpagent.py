@@ -1,7 +1,7 @@
 from typing import Sequence, Optional
 import numpy as np
 from ai_coach_core.models.agent_model import MentalModelAgent
-from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyInterface
+from ai_coach_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
 from ai_coach_domain.box_push.mdp import BoxPushMDP
 
@@ -28,7 +28,7 @@ def get_holding_box_and_floor_boxes(box_states, num_drops, num_goals):
 class BoxPushMDPAgent(MentalModelAgent):
   def __init__(self,
                agent_idx: int,
-               policy_model: Optional[BoxPushPolicyInterface] = None) -> None:
+               policy_model: Optional[CachedPolicyInterface] = None) -> None:
     super().__init__(policy_model)
     self.agent_idx = agent_idx
 
@@ -86,7 +86,7 @@ class BoxPushMDPAgent(MentalModelAgent):
 
 class BoxPushMDPAgent_EmptyMind(BoxPushMDPAgent):
   def __init__(self,
-               policy_model: Optional[BoxPushPolicyInterface] = None) -> None:
+               policy_model: Optional[CachedPolicyInterface] = None) -> None:
     super().__init__(0, policy_model)
 
   def initial_mental_distribution(self, obstate_idx: int) -> np.ndarray:
@@ -188,7 +188,7 @@ class BoxPushMDPAgent_Together(BoxPushMDPAgent):
 
 class BoxPushMDPAgent_WebExp_Both(BoxPushMDPAgent_Together):
   def __init__(self,
-               policy_model: Optional[BoxPushPolicyInterface] = None) -> None:
+               policy_model: Optional[CachedPolicyInterface] = None) -> None:
     super().__init__(1, policy_model=policy_model)
 
   def transition_mental_state(self, latstate_idx: int, obstate_idx: int,
@@ -224,7 +224,7 @@ class BoxPushMDPAgent_WebExp_Both(BoxPushMDPAgent_Together):
 
 class BoxPushMDPAgent_Alone(BoxPushMDPAgent):
   def __init__(self,
-               policy_model: Optional[BoxPushPolicyInterface] = None) -> None:
+               policy_model: Optional[CachedPolicyInterface] = None) -> None:
     super().__init__(agent_idx=0, policy_model=policy_model)
 
   def transition_mental_state(self, latstate_idx: int, obstate_idx: int,

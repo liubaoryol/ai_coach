@@ -1,8 +1,8 @@
 from typing import Sequence
 import os
 import numpy as np
+from ai_coach_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.box_push.mdpagent import BoxPushMDPAgent
-from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyInterface
 from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
 from ai_coach_domain.box_push.agent import BoxPushAIAgent_Abstract
 from ai_coach_domain.box_push.maps import TUTORIAL_MAP
@@ -12,7 +12,7 @@ GAME_MAP = TUTORIAL_MAP
 policy_static_list = []
 
 
-class StaticBoxPushPolicy(BoxPushPolicyInterface):
+class StaticBoxPushPolicy(CachedPolicyInterface):
   def __init__(self, mdp: StaticBoxPushMDP, temperature: float,
                agent_idx: int) -> None:
     cur_dir = os.path.dirname(__file__)
@@ -39,11 +39,11 @@ class StaticBoxPushMDPAgent(BoxPushMDPAgent):
 
 
 class StaticBoxPushAgent(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: BoxPushPolicyInterface, agent_idx) -> None:
+  def __init__(self, policy_model: CachedPolicyInterface, agent_idx) -> None:
     self.agent_idx = agent_idx
     super().__init__(policy_model, use_flipped_state_space=False, has_mind=True)
 
-  def _create_agent_model(self, policy_model: BoxPushPolicyInterface):
+  def _create_agent_model(self, policy_model: CachedPolicyInterface):
     return StaticBoxPushMDPAgent(self.agent_idx, policy_model=policy_model)
 
   def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
