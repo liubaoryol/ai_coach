@@ -113,6 +113,35 @@ class MDP:
     return self.dummy_states.state_to_idx[dummy_state] + self.num_actual_states
 
   @abc.abstractmethod
+  def conv_sim_states_to_mdp_sidx(self, tup_states):
+    '''
+    intentionally did not specify the type or shape of the input argument
+    to provide child classes some freedom.
+
+    Example:
+
+      list_indv_sidx = []
+      for idx, state in enumerate(tup_states):
+        indv_sidx = self.dict_factored_statespace[idx].state_to_idx[state]
+        list_indv_sidx.append(indv_sidx)
+
+      return self.conv_state_to_idx(tuple(list_indv_sidx))
+    '''
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def conv_mdp_sidx_to_sim_states(self, state_idx):
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def conv_mdp_aidx_to_sim_actions(self, action_idx):
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def conv_sim_actions_to_mdp_aidx(self, tuple_actions):
+    raise NotImplementedError
+
+  @abc.abstractmethod
   def init_actionspace(self):
     """Defines MDP action space.
 

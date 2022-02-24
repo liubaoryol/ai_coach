@@ -91,7 +91,8 @@ class BoxPushMDP(LatentMDP):
       self) -> Sequence[Tuple[BoxState, Union[int, None]]]:
     raise NotImplementedError
 
-  def conv_sim_states_to_mdp_sidx(self, pos1, pos2, box_states):
+  def conv_sim_states_to_mdp_sidx(self, tup_states):
+    box_states, pos1, pos2 = tup_states
     len_s_space = len(self.dict_factored_statespace)
     pos1_idx = self.pos1_space.state_to_idx[pos1]
     pos2_idx = self.pos2_space.state_to_idx[pos2]
@@ -118,7 +119,7 @@ class BoxPushMDP(LatentMDP):
       box_state = self.dict_factored_statespace[idx].idx_to_state[box_sidx]
       box_states.append(conv_box_state_2_idx(box_state, len(self.drops)))
 
-    return pos1, pos2, box_states
+    return box_states, pos1, pos2
 
   def conv_mdp_aidx_to_sim_actions(self, action_idx):
     vector_aidx = self.conv_idx_to_action(action_idx)

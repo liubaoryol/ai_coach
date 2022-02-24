@@ -9,7 +9,7 @@ from ai_coach_core.models.mdp import MDP, softmax_policy_from_q_value
 T_StateActionSeqence = Sequence[Tuple[int, int]]
 
 
-class CMaxEntIRL():
+class MaxEntIRL():
   def __init__(self,
                trajectories: Sequence[T_StateActionSeqence],
                mdp: MDP,

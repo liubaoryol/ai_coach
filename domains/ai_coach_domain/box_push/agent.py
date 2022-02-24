@@ -28,7 +28,7 @@ class BoxPushSimulatorAgent:
     return self.bool_policy
 
   @abc.abstractmethod
-  def init_latent(self, box_states, a1_pos, a2_pos):
+  def init_latent(self, tup_states):
     raise NotImplementedError
 
   @abc.abstractmethod
@@ -36,7 +36,7 @@ class BoxPushSimulatorAgent:
     raise NotImplementedError
 
   @abc.abstractmethod
-  def get_action(self, box_states, a1_pos, a2_pos):
+  def get_action(self, tup_states):
     raise NotImplementedError
 
   @abc.abstractmethod
@@ -61,13 +61,13 @@ class BoxPushInteractiveAgent(BoxPushSimulatorAgent):
     self.start_latent = start_latent
     self.action_queue = []
 
-  def init_latent(self, box_states, a1_pos, a2_pos):
+  def init_latent(self, tup_states):
     self.current_latent = self.start_latent
 
   def get_current_latent(self):
     return self.current_latent
 
-  def get_action(self, box_states, a1_pos, a2_pos):
+  def get_action(self, tup_states):
     if len(self.action_queue) == 0:
       return None
 
@@ -100,8 +100,8 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
     'Should be implemented at inherited method'
     raise NotImplementedError
 
-  def init_latent(self, box_states, a1_pos, a2_pos):
-    sidx = self._conv_sim_states_to_mdp_sidx(box_states, a1_pos, a2_pos)
+  def init_latent(self, tup_states):
+    sidx = self._conv_sim_states_to_mdp_sidx(tup_states)
 
     self.agent_model.set_init_mental_state_idx(sidx)
 
@@ -111,24 +111,21 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
     else:
       return None
 
-  def get_action(self, box_states, a1_pos, a2_pos):
+  def get_action(self, tup_states):
     if self.manual_action is not None:
       next_action = self.manual_action
       self.manual_action = None
       return next_action
 
-    sidx = self._conv_sim_states_to_mdp_sidx(box_states, a1_pos, a2_pos)
+    sidx = self._conv_sim_states_to_mdp_sidx(tup_states)
     tup_aidx = self.agent_model.get_action_idx(sidx)
     return self.agent_model.policy_model.conv_idx_to_action(tup_aidx)[0]
 
   def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
     'tup_actions: tuple of actions'
 
-    bstate_cur, pos1_cur, pos2_cur = tup_cur_state
-    bstate_nxt, pos1_nxt, pos2_nxt = tup_nxt_state
-
-    sidx_cur = self._conv_sim_states_to_mdp_sidx(bstate_cur, pos1_cur, pos2_cur)
-    sidx_nxt = self._conv_sim_states_to_mdp_sidx(bstate_nxt, pos1_nxt, pos2_nxt)
+    sidx_cur = self._conv_sim_states_to_mdp_sidx(tup_cur_state)
+    sidx_nxt = self._conv_sim_states_to_mdp_sidx(tup_nxt_state)
 
     list_aidx = []
     for act in tup_actions:
@@ -148,18 +145,18 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
 
   def policy_from_task_mdp_POV(self, state_idx, latent_idx):
     mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
-    pos1, pos2, bstate = mdp.conv_mdp_sidx_to_sim_states(state_idx)
-    sidx = self._conv_sim_states_to_mdp_sidx(bstate, pos1, pos2)
+    tup_states = mdp.conv_mdp_sidx_to_sim_states(state_idx)
+    sidx = self._conv_sim_states_to_mdp_sidx(tup_states)
     return self.agent_model.policy_model.policy(sidx, latent_idx)
 
   def transition_model_from_task_mdp_POV(self, latent_idx, state_idx,
                                          tuple_action_idx, next_state_idx):
     mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
-    pos1, pos2, bstate = mdp.conv_mdp_sidx_to_sim_states(state_idx)
-    pos1_n, pos2_n, bstate_n = mdp.conv_mdp_sidx_to_sim_states(next_state_idx)
+    tup_states = mdp.conv_mdp_sidx_to_sim_states(state_idx)
+    tup_states_n = mdp.conv_mdp_sidx_to_sim_states(next_state_idx)
 
-    sidx = self._conv_sim_states_to_mdp_sidx(bstate, pos1, pos2)
-    sidx_n = self._conv_sim_states_to_mdp_sidx(bstate_n, pos1_n, pos2_n)
+    sidx = self._conv_sim_states_to_mdp_sidx(tup_states)
+    sidx_n = self._conv_sim_states_to_mdp_sidx(tup_states_n)
 
     tuple_reversed_action = (tuple_action_idx[1], tuple_action_idx[0])
     return self.agent_model.transition_mental_state(latent_idx, sidx,
@@ -168,11 +165,12 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
 
   def init_latent_dist_from_task_mdp_POV(self, state_idx):
     mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
-    pos1, pos2, bstate = mdp.conv_mdp_sidx_to_sim_states(state_idx)
-    sidx = self._conv_sim_states_to_mdp_sidx(bstate, pos1, pos2)
+    tup_states = mdp.conv_mdp_sidx_to_sim_states(state_idx)
+    sidx = self._conv_sim_states_to_mdp_sidx(tup_states)
     return self.agent_model.initial_mental_distribution(sidx)
 
-  def _conv_sim_states_to_mdp_sidx(self, box_states, a1_pos, a2_pos):
+  def _conv_sim_states_to_mdp_sidx(self, tup_states):
+    box_states, a1_pos, a2_pos = tup_states
     mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
 
     pos_1 = a1_pos
@@ -183,7 +181,7 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
       pos_2 = a1_pos
       bstate = get_agent_switched_boxstates(box_states, len(mdp.drops),
                                             len(mdp.goals))
-    sidx = mdp.conv_sim_states_to_mdp_sidx(pos_1, pos_2, bstate)
+    sidx = mdp.conv_sim_states_to_mdp_sidx([bstate, pos_1, pos_2])
     return sidx
 
   def _conv_idx_to_latent(self, latent_idx):
@@ -280,10 +278,11 @@ class BoxPushSimpleAgent(BoxPushSimulatorAgent):
   def get_current_latent(self):
     return None
 
-  def init_latent(self, box_states, a1_pos, a2_pos):
+  def init_latent(self, tup_states):
     pass
 
-  def get_action(self, box_states, a1_pos, a2_pos):
+  def get_action(self, tup_states):
+    box_states, a1_pos, a2_pos = tup_states
     np_gridworld = np.zeros((self.x_grid, self.y_grid))
     for coord in self.walls:
       np_gridworld[coord] = 1

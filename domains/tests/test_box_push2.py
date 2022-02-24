@@ -193,7 +193,7 @@ class BoxPushTrajectories(Trajectories):
       for tidx, vec_state_action in enumerate(trj):
         bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = vec_state_action
 
-        sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(a1pos, a2pos, bstt)
+        sidx = MDP_TASK.conv_sim_states_to_mdp_sidx([bstt, a1pos, a2pos])
         aidx1 = (MDP_TASK.a1_a_space.action_to_idx[a1act]
                  if a1act is not None else Trajectories.EPISODE_END)
         aidx2 = (MDP_TASK.a2_a_space.action_to_idx[a2act]
@@ -294,8 +294,8 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
 
     sim.set_autonomous_agent(agent1, agent2)
 
-    init_state = MDP_TASK.conv_sim_states_to_mdp_sidx(sim.a1_init, sim.a2_init,
-                                                      [0] * len(sim.box_states))
+    init_state = MDP_TASK.conv_sim_states_to_mdp_sidx(
+        [[0] * len(sim.box_states), sim.a1_init, sim.a2_init])
 
     true_methods = TrueModelConverter(agent1, agent2, MDP_AGENT.num_latents)
 

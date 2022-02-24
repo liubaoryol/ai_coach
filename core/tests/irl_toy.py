@@ -3,7 +3,7 @@ import glob
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-from ai_coach_core.model_inference.IRL.maxent_irl import (CMaxEntIRL,
+from ai_coach_core.model_inference.IRL.maxent_irl import (MaxEntIRL,
                                                           compute_relative_freq,
                                                           cal_reward_error,
                                                           cal_policy_error)
@@ -408,11 +408,11 @@ if __name__ == "__main__":
   rel_freq = compute_relative_freq(num_ostates, trajectories)
   DO_IRL = True
   if DO_IRL:
-    irl = CMaxEntIRL(trajectories,
-                     toy_mdp,
-                     feature_extractor=feature_extract_full_state,
-                     max_value_iter=500,
-                     initial_prop=init_prop)
+    irl = MaxEntIRL(trajectories,
+                    toy_mdp,
+                    feature_extractor=feature_extract_full_state,
+                    max_value_iter=500,
+                    initial_prop=init_prop)
 
     reward_error = []
     policy_error = []

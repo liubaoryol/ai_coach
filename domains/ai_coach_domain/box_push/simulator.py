@@ -49,9 +49,10 @@ class BoxPushSimulator(Simulator):
       agent2: BoxPushSimulatorAgent = BoxPushInteractiveAgent()):
     self.agent_1 = agent1
     self.agent_2 = agent2
+    tup_states = [self.box_states, self.a1_pos, self.a2_pos]
 
-    self.agent_1.init_latent(self.box_states, self.a1_pos, self.a2_pos)
-    self.agent_2.init_latent(self.box_states, self.a1_pos, self.a2_pos)
+    self.agent_1.init_latent(tup_states)
+    self.agent_2.init_latent(tup_states)
 
   def reset_game(self):
     super().reset_game()
@@ -61,10 +62,12 @@ class BoxPushSimulator(Simulator):
     # starts with their original locations
     self.box_states = [0] * len(self.boxes)
 
+    tup_states = [self.box_states, self.a1_pos, self.a2_pos]
+
     if self.agent_1 is not None:
-      self.agent_1.init_latent(self.box_states, self.a1_pos, self.a2_pos)
+      self.agent_1.init_latent(tup_states)
     if self.agent_2 is not None:
-      self.agent_2.init_latent(self.box_states, self.a1_pos, self.a2_pos)
+      self.agent_2.init_latent(tup_states)
     self.changed_state = []
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
@@ -106,7 +109,6 @@ class BoxPushSimulator(Simulator):
     self.history.append(state)
 
     self._transition(a1_action, a2_action)
-    # super().take_a_step(map_agent_2_action)
     self.current_step += 1
     self.changed_state.append("current_step")
 
@@ -169,11 +171,11 @@ class BoxPushSimulator(Simulator):
     # TODO: need to think about logic.. for now let's assume at least one agent
     # is always a human
 
+    tup_states = [self.box_states, self.a1_pos, self.a2_pos]
+
     map_a2a = {}
-    map_a2a[BoxPushSimulator.AGENT1] = self.agent_1.get_action(
-        self.box_states, self.a1_pos, self.a2_pos)
-    map_a2a[BoxPushSimulator.AGENT2] = self.agent_2.get_action(
-        self.box_states, self.a1_pos, self.a2_pos)
+    map_a2a[BoxPushSimulator.AGENT1] = self.agent_1.get_action(tup_states)
+    map_a2a[BoxPushSimulator.AGENT2] = self.agent_2.get_action(tup_states)
 
     return map_a2a
 

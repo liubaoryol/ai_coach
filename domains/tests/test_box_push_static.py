@@ -1,6 +1,5 @@
 import glob
 import os
-import sys
 import numpy as np
 import pickle
 import click
@@ -9,7 +8,7 @@ import logging
 import ai_coach_core.model_inference.var_infer.var_infer_static_x as var_infer
 from ai_coach_core.latent_inference.bayesian_inference import (
     bayesian_mind_inference)
-from ai_coach_core.model_inference.IRL.maxent_irl import CMaxEntIRL
+from ai_coach_core.model_inference.IRL.maxent_irl import MaxEntIRL
 from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
 from ai_coach_core.utils.data_utils import Trajectories
 from ai_coach_core.utils.result_utils import cal_latent_policy_error
@@ -92,7 +91,7 @@ class StaticBoxPushTrajectories(Trajectories):
       for tidx, vec_state_action in enumerate(trj):
         bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = vec_state_action
 
-        sidx = MDP_AGENT.conv_sim_states_to_mdp_sidx(a1pos, a2pos, bstt)
+        sidx = MDP_AGENT.conv_sim_states_to_mdp_sidx([bstt, a1pos, a2pos])
         aidx1 = (MDP_AGENT.a1_a_space.action_to_idx[a1act]
                  if a1act is not None else Trajectories.EPISODE_END)
         aidx2 = (MDP_AGENT.a2_a_space.action_to_idx[a2act]
@@ -142,7 +141,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
     logging.info("run count: %d" % (dummy_run, ))
 
     # set simulator
-    #############################################################################
+    ############################################################################
     sim = BoxPushSimulator(0)
     sim.init_game(**GAME_MAP)
     sim.max_steps = 200
@@ -161,7 +160,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
         return agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
 
     # generate data
-    #############################################################################
+    ############################################################################
 
     TRAIN_DIR = os.path.join(DATA_DIR, 'static_bp_train')
     TEST_DIR = os.path.join(DATA_DIR, 'static_bp_test')
@@ -391,7 +390,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
         # plt.show()
 
     init_state = MDP_AGENT.conv_sim_states_to_mdp_sidx(
-        sim.a1_init, sim.a2_init, [0] * len(sim.box_states))
+        [[0] * len(sim.box_states), sim.a1_init, sim.a2_init])
 
     if cogail:
       from ai_coach_core.model_inference.cogail import cogail_w_ppo
@@ -612,18 +611,18 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
         return np_feature
 
       init_prop = np.zeros((MDP_AGENT.num_states))
-      sid = MDP_AGENT.conv_sim_states_to_mdp_sidx(GAME_MAP["a1_init"],
-                                                  GAME_MAP["a2_init"],
-                                                  [0] * len(GAME_MAP["boxes"]))
+      sid = MDP_AGENT.conv_sim_states_to_mdp_sidx([[0] * len(GAME_MAP["boxes"]),
+                                                   GAME_MAP["a1_init"],
+                                                   GAME_MAP["a2_init"]])
       init_prop[sid] = 1
 
       list_pi_est = []
       list_w_est = []
-      irl_x1 = CMaxEntIRL(trajectories_x1,
-                          MDP_AGENT,
-                          feature_extractor=feature_extract_full_state,
-                          max_value_iter=100,
-                          initial_prop=init_prop)
+      irl_x1 = MaxEntIRL(trajectories_x1,
+                         MDP_AGENT,
+                         feature_extractor=feature_extract_full_state,
+                         max_value_iter=100,
+                         initial_prop=init_prop)
       print("Do irl1")
       irl_x1.do_inverseRL(epsilon=0.001, n_max_run=100)
       list_pi_est.append(irl_x1.pi_est)
@@ -636,11 +635,11 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
       with open(save_name2, 'wb') as f:
         pickle.dump(irl_x1.pi_est, f, pickle.HIGHEST_PROTOCOL)
 
-      irl_x2 = CMaxEntIRL(trajectories_x2,
-                          MDP_AGENT,
-                          feature_extractor=feature_extract_full_state,
-                          max_value_iter=100,
-                          initial_prop=init_prop)
+      irl_x2 = MaxEntIRL(trajectories_x2,
+                         MDP_AGENT,
+                         feature_extractor=feature_extract_full_state,
+                         max_value_iter=100,
+                         initial_prop=init_prop)
 
       print("Do irl2")
       irl_x2.do_inverseRL(epsilon=0.001, n_max_run=100)
@@ -709,18 +708,18 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
         return np_feature
 
       init_prop = np.zeros((MDP_AGENT.num_states))
-      sid = MDP_AGENT.conv_sim_states_to_mdp_sidx(GAME_MAP["a1_init"],
-                                                  GAME_MAP["a2_init"],
-                                                  [0] * len(GAME_MAP["boxes"]))
+      sid = MDP_AGENT.conv_sim_states_to_mdp_sidx([[0] * len(GAME_MAP["boxes"]),
+                                                   GAME_MAP["a1_init"],
+                                                   GAME_MAP["a2_init"]])
       init_prop[sid] = 1
 
       list_pi_est = []
       list_w_est = []
-      irl_x1 = CMaxEntIRL(trajectories_x1,
-                          MDP_AGENT,
-                          feature_extractor=feature_extract_full_state,
-                          max_value_iter=100,
-                          initial_prop=init_prop)
+      irl_x1 = MaxEntIRL(trajectories_x1,
+                         MDP_AGENT,
+                         feature_extractor=feature_extract_full_state,
+                         max_value_iter=100,
+                         initial_prop=init_prop)
       print("Do irl1")
       irl_x1.do_inverseRL(epsilon=0.001, n_max_run=100)
       list_pi_est.append(irl_x1.pi_est)
@@ -733,11 +732,11 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
       with open(save_name2, 'wb') as f:
         pickle.dump(irl_x1.pi_est, f, pickle.HIGHEST_PROTOCOL)
 
-      irl_x2 = CMaxEntIRL(trajectories_x2,
-                          MDP_AGENT,
-                          feature_extractor=feature_extract_full_state,
-                          max_value_iter=100,
-                          initial_prop=init_prop)
+      irl_x2 = MaxEntIRL(trajectories_x2,
+                         MDP_AGENT,
+                         feature_extractor=feature_extract_full_state,
+                         max_value_iter=100,
+                         initial_prop=init_prop)
 
       print("Do irl2")
       irl_x2.do_inverseRL(epsilon=0.001, n_max_run=100)

@@ -18,7 +18,7 @@ class BoxPushAgentMDP(BoxPushMDP):
     if self.is_terminal(state_idx):
       return np.array([[1.0, state_idx]])
 
-    my_pos, teammate_pos, box_states = self.conv_mdp_sidx_to_sim_states(
+    box_states, my_pos, teammate_pos = self.conv_mdp_sidx_to_sim_states(
         state_idx)
     my_act, = self.conv_mdp_aidx_to_sim_actions(action_idx)
 
@@ -32,8 +32,8 @@ class BoxPushAgentMDP(BoxPushMDP):
     list_next_p_state = []
     map_next_state = {}
     for p, box_states_list, my_pos_n, teammate_pos_n in list_p_next_env:
-      sidx_n = self.conv_sim_states_to_mdp_sidx(my_pos_n, teammate_pos_n,
-                                                box_states_list)
+      sidx_n = self.conv_sim_states_to_mdp_sidx(
+          [box_states_list, my_pos_n, teammate_pos_n])
       # assume a2 choose an action uniformly
       map_next_state[sidx_n] = (map_next_state.get(sidx_n, 0) +
                                 p / self.num_actions)

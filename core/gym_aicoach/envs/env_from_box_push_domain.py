@@ -59,16 +59,12 @@ class EnvFromBoxPushDomain(gym.Env):
       info["invalid_transition"] = True
       return (self.cur_obstate, *self.cur_lstates), 0, False, info
 
-    cur_a1pos, cur_a2pos, cur_bstates = self.mdp.conv_mdp_sidx_to_sim_states(
-        self.cur_obstate)
-    cur_sim_state = [cur_bstates, cur_a1pos, cur_a2pos]
+    cur_sim_state = self.mdp.conv_mdp_sidx_to_sim_states(self.cur_obstate)
 
     self.cur_obstate = self.mdp.transition(self.cur_obstate, action_idx)
     done = self.mdp.is_terminal(self.cur_obstate)
     if not done:
-      nxt_a1pos, nxt_a2pos, nxt_bstates = self.mdp.conv_mdp_sidx_to_sim_states(
-          self.cur_obstate)
-      nxt_sim_state = [nxt_bstates, nxt_a1pos, nxt_a2pos]
+      nxt_sim_state = self.mdp.conv_mdp_sidx_to_sim_states(self.cur_obstate)
 
       sim_action = self.mdp.conv_mdp_aidx_to_sim_actions(action_idx)
 
@@ -85,12 +81,11 @@ class EnvFromBoxPushDomain(gym.Env):
 
   def reset(self):
     self.cur_obstate = self.sample_obs()
-    a1pos, a2pos, bstate = self.mdp.conv_mdp_sidx_to_sim_states(
-        self.cur_obstate)
+    tup_states = self.mdp.conv_mdp_sidx_to_sim_states(self.cur_obstate)
 
     list_lstates = []
     for agent in self.agents:
-      agent.init_latent(bstate, a1pos, a2pos)
+      agent.init_latent(tup_states)
       list_lstates.append(agent.agent_model.current_latent)
 
     self.cur_lstates = tuple(list_lstates)

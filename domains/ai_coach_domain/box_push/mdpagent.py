@@ -40,7 +40,7 @@ class BoxPushMDPAgent(MentalModelAgent):
         '''
     mdp = self.get_reference_mdp()  # type: BoxPushMDP
 
-    _, _, box_states = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
+    box_states, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
 
     num_drops = len(mdp.drops)
     num_goals = len(mdp.goals)
@@ -167,8 +167,8 @@ class BoxPushMDPAgent_Together(BoxPushMDPAgent):
     num_drops = len(mdp.drops)
     num_goals = len(mdp.goals)
 
-    _, _, box_states_cur = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
-    a1_pos, a2_pos, box_states_nxt = mdp.conv_mdp_sidx_to_sim_states(
+    box_states_cur, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
+    box_states_nxt, a1_pos, a2_pos = mdp.conv_mdp_sidx_to_sim_states(
         obstate_next_idx)
 
     a1_box_cur, a2_box_cur, _ = get_holding_box_and_floor_boxes(
@@ -203,8 +203,8 @@ class BoxPushMDPAgent_WebExp_Both(BoxPushMDPAgent_Together):
     num_drops = len(mdp.drops)
     num_goals = len(mdp.goals)
 
-    _, _, box_states_cur = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
-    a1_pos, a2_pos, box_states_nxt = mdp.conv_mdp_sidx_to_sim_states(
+    box_states_cur, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
+    box_states_nxt, a1_pos, a2_pos = mdp.conv_mdp_sidx_to_sim_states(
         obstate_next_idx)
 
     a1_box_cur, a2_box_cur, _ = get_holding_box_and_floor_boxes(
@@ -239,8 +239,8 @@ class BoxPushMDPAgent_Alone(BoxPushMDPAgent):
     num_drops = len(mdp.drops)
     num_goals = len(mdp.goals)
 
-    _, _, box_states_cur = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
-    _, _, box_states_nxt = mdp.conv_mdp_sidx_to_sim_states(obstate_next_idx)
+    box_states_cur, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
+    box_states_nxt, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_next_idx)
 
     a1_box_cur, a2_box_cur, _ = get_holding_box_and_floor_boxes(
         box_states_cur, num_drops, num_goals)

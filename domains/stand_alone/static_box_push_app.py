@@ -28,8 +28,8 @@ class TEST_StaticBoxPushSimulator(BoxPushSimulator_AloneOrTogether):
     if a2_action is None:
       a2_action = bps_mdp.EventType.STAY
 
-    sidx = MDP_AGENT.conv_sim_states_to_mdp_sidx(self.a1_pos, self.a2_pos,
-                                                 self.box_states)
+    sidx = MDP_AGENT.conv_sim_states_to_mdp_sidx(
+        [self.box_states, self.a1_pos, self.a2_pos])
     aidx1 = MDP_AGENT.a1_a_space.action_to_idx[a1_action]
     aidx2 = MDP_AGENT.a2_a_space.action_to_idx[a2_action]
     joint_aidx = MDP_AGENT.np_action_to_idx[int(aidx1), int(aidx2)]

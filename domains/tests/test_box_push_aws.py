@@ -62,7 +62,7 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
     sim.set_autonomous_agent(agent1, agent2)
 
     init_state = tbp.MDP_TASK.conv_sim_states_to_mdp_sidx(
-        sim.a1_init, sim.a2_init, [0] * len(sim.box_states))
+        [[0] * len(sim.box_states), sim.a1_init, sim.a2_init])
 
     true_methods = tbp.TrueModelConverter(agent1, agent2,
                                           tbp.MDP_AGENT.num_latents)

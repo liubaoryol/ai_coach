@@ -19,7 +19,7 @@ class BoxPushTeamMDP(BoxPushMDP):
     if self.is_terminal(state_idx):
       return np.array([[1.0, state_idx]])
 
-    a1_pos, a2_pos, box_states = self.conv_mdp_sidx_to_sim_states(state_idx)
+    box_states, a1_pos, a2_pos = self.conv_mdp_sidx_to_sim_states(state_idx)
 
     act1, act2 = self.conv_mdp_aidx_to_sim_actions(action_idx)
 
@@ -29,8 +29,8 @@ class BoxPushTeamMDP(BoxPushMDP):
     list_next_p_state = []
     map_next_state = {}
     for p, box_states_list, a1_pos_n, a2_pos_n in list_p_next_env:
-      sidx_n = self.conv_sim_states_to_mdp_sidx(a1_pos_n, a2_pos_n,
-                                                box_states_list)
+      sidx_n = self.conv_sim_states_to_mdp_sidx(
+          [box_states_list, a1_pos_n, a2_pos_n])
       map_next_state[sidx_n] = map_next_state.get(sidx_n, 0) + p
 
     for key in map_next_state:
@@ -256,9 +256,8 @@ if __name__ == "__main__":
 
     for i in range(NUM_TRAIN):
       box_states = [0] * len(game_map["boxes"])
-      sidx = box_push_mdp.conv_sim_states_to_mdp_sidx(game_map["a1_init"],
-                                                      game_map["a2_init"],
-                                                      box_states)
+      sidx = box_push_mdp.conv_sim_states_to_mdp_sidx(
+          [box_states, game_map["a1_init"], game_map["a2_init"]])
       pbar = tqdm()
       box_push_qlearn.start_episode()
       count = 0
