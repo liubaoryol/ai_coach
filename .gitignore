@@ -26,4 +26,3 @@ core/ai_coach_core/tests/*_data
 
 domains/tests/aws_data*
 domains/tests/data_old/
-
