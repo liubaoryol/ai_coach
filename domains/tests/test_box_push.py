@@ -214,15 +214,15 @@ class BoxPushTrajectories(Trajectories):
 
 # yapf: disable
 @click.command()
-@click.option("--is_team", type=bool, default=False, help="team / indv")
+@click.option("--is_team", type=bool, default=True, help="team / indv")
 @click.option("--is_test", type=bool, default=False, help="exp1 / test")
 @click.option("--gen_trainset", type=bool, default=False, help="generate train set")
 @click.option("--gen_testset", type=bool, default=False, help="generate test set")
 @click.option("--show_true", type=bool, default=False, help="metrics from true policy")
 @click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")
 @click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")
-@click.option("--show_sl", type=bool, default=True, help="")
-@click.option("--show_semi", type=bool, default=False, help="")
+@click.option("--show_sl", type=bool, default=False, help="")
+@click.option("--show_semi", type=bool, default=True, help="")
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--use_true_tx", type=bool, default=True, help="")
 @click.option("--magail", type=bool, default=False, help="")
@@ -232,8 +232,8 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--num_iterations", type=int, default=300, help="")
 @click.option("--pretrain_steps", type=int, default=100, help="")
 @click.option("--use_ce", type=bool, default=False, help="")
-@click.option("--num_run", type=int, default=5, help="")
-@click.option("--only_20", type=bool, default=True, help="")
+@click.option("--num_run", type=int, default=1, help="")
+@click.option("--only_20", type=bool, default=False, help="")
 # yapf: enable
 def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
          dnn_bc, show_sl, show_semi, show_ul, use_true_tx, magail,
