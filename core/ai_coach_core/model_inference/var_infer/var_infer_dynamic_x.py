@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, Callable, Sequence
 import numpy as np
 from tqdm import tqdm
-from scipy.special import digamma, logsumexp
+from scipy.special import digamma, logsumexp, softmax
 
 T_SAXSeqence = Sequence[Tuple[int, Tuple[int, int], Tuple[int, int]]]
 
@@ -207,9 +207,7 @@ class VarInferDuo:
             np.log(list_policy[A1][:, stt, joint_a[A1]][None, None, idx_x1, None].reshape(1, 1, len_x1, 1)) +  # noqa: E501
             np.log(list_policy[A2][:, stt, joint_a[A2]][None, None, None, idx_x2].reshape(1, 1, 1, len_x2)))  # noqa: E501
 
-        np_max_log_prob = np.max(np_log_prob, axis=(0, 1))
-        np_log_prob = np.exp(np_log_prob - np_max_log_prob.reshape(1, 1, len_x1, len_x2))  # noqa: E501
-        np_log_forward[t][idx_x1, idx_x2] = (np_max_log_prob + np.log(np.sum(np_log_prob, axis=(0, 1))))  # noqa: E501
+        np_log_forward[t][idx_x1, idx_x2] = logsumexp(np_log_prob, axis=(0, 1))
         # yapf: enable
 
         stt_p = stt
@@ -234,7 +232,6 @@ class VarInferDuo:
                            self.num_lstates) if joint_x_n[A2] is None else
                           (joint_x_n[A2], 1))
 
-      # seq_backward[t][idx_x1n, idx_x2n] = 1
       np_log_backward[t][idx_x1n, idx_x2n] = 0.0
 
       # t = 0:N-2
@@ -259,9 +256,7 @@ class VarInferDuo:
           np.log(list_policy[A1][:, stt_n, joint_a_n[A1]][None, None, idx_x1n, None].reshape(1, 1, len_x1n, 1)) +  # noqa: E501
           np.log(list_policy[A2][:, stt_n, joint_a_n[A2]][None, None, None, idx_x2n].reshape(1, 1, 1, len_x2n)))  # noqa: E501
 
-        np_max_log_prob = np.max(np_log_prob, axis=(2, 3))
-        np_log_prob = np.exp(np_log_prob - np_max_log_prob.reshape(len_x1, len_x2, 1, 1))  # noqa: E501
-        np_log_backward[t][idx_x1, idx_x2] = (np_max_log_prob + np.log(np.sum(np_log_prob, axis=(2, 3))))  # noqa: E501
+        np_log_backward[t][idx_x1, idx_x2] = logsumexp(np_log_prob, axis=(2, 3))
         # yapf: enable
 
         stt_n = stt
@@ -273,11 +268,12 @@ class VarInferDuo:
         len_x2n = len_x2
 
       # compute q_x, q_x_xp
-      q_joint_x = np.exp(np_log_forward + np_log_backward)
-      q_x1 = np.sum(q_joint_x, axis=2)
-      q_x2 = np.sum(q_joint_x, axis=1)
-      q_x1 = q_x1 / np.sum(q_x1, axis=1)[:, None]
-      q_x2 = q_x2 / np.sum(q_x2, axis=1)[:, None]
+      log_q_joint_x = np_log_forward + np_log_backward
+      log_q_x1 = logsumexp(log_q_joint_x, axis=2)
+      log_q_x2 = logsumexp(log_q_joint_x, axis=1)
+      q_x1 = softmax(log_q_x1, axis=1)
+      q_x2 = softmax(log_q_x2, axis=1)
+
       list_q_x.append([q_x1, q_x2])
 
       if self.cb_Tx is None:
