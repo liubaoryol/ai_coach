@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, Callable, Sequence
 import numpy as np
 from tqdm import tqdm
-from scipy.special import digamma
+from scipy.special import digamma, logsumexp
 
 T_SAXSeqence = Sequence[Tuple[int, Tuple[int, int], Tuple[int, int]]]
 
@@ -165,10 +165,9 @@ class VarInferDuo:
       trajectory = self.trajectories[m_th]
 
       # Forward messaging
-      np_log_forward = np.zeros(
-          (len(trajectory), self.num_lstates, self.num_lstates))
+      np_log_forward = np.log(
+          np.zeros((len(trajectory), self.num_lstates, self.num_lstates)))
 
-      # t = 0
       t = 0
       stt_p, joint_a_p, joint_x_p = trajectory[t]
       idx_x1p, len_x1p = ((slice(None),
@@ -222,8 +221,8 @@ class VarInferDuo:
         len_x2p = len_x2
 
       # Backward messaging
-      np_log_backward = np.zeros(
-          (len(trajectory), self.num_lstates, self.num_lstates))
+      np_log_backward = np.log(
+          np.zeros((len(trajectory), self.num_lstates, self.num_lstates)))
       # t = N-1
       t = len(trajectory) - 1
 
