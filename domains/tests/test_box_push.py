@@ -222,7 +222,7 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")
 @click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")
 @click.option("--show_sl", type=bool, default=False, help="")
-@click.option("--show_semi", type=bool, default=True, help="")
+@click.option("--show_semi", type=bool, default=False, help="")
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--use_true_tx", type=bool, default=True, help="")
 @click.option("--magail", type=bool, default=False, help="")
@@ -332,7 +332,8 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
 
     train_data = BoxPushTrajectories(MDP_AGENT.num_latents)
     train_data.load_from_files(file_names)
-    train_data.shuffle()
+    if num_run > 1:
+      train_data.shuffle()
     traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
                                                    include_terminal=False)
     traj_unlabel_ver = train_data.get_as_row_lists(no_latent_label=True,
@@ -537,7 +538,9 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
 
     # semi-supervised
     if show_semi:
-      for idx in list_idx[:-1]:
+      for idx in list_idx:
+        if idx == len(traj_labeled_ver):
+          continue
         logging.info("#########")
         logging.info("Semi %d" % (idx, ))
         logging.info("#########")
