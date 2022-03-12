@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, Callable, Sequence
 import numpy as np
 from tqdm import tqdm
-from scipy.special import digamma
+from scipy.special import digamma, logsumexp, softmax
 
 T_SAXSeqence = Sequence[Tuple[int, Tuple[int, int], Tuple[int, int]]]
 
@@ -116,17 +116,7 @@ class VarInferDuo:
     '''
 
     DIRICHLET_PARAM_PI = 3
-    self.trajectories = []
-    MAX_TRAJ_LEN = 50
-    for traj in trajectories:
-      num_split = int(len(traj) / MAX_TRAJ_LEN)
-      if num_split == 0:
-        self.trajectories.append(traj)
-      else:
-        len_split = int(len(traj) / num_split) + 1
-        for idx in range(num_split):
-          end_idx = min((idx + 1) * len_split, len(traj))
-          self.trajectories.append(traj[idx * len_split:end_idx])
+    self.trajectories = trajectories
 
     self.beta_pi = DIRICHLET_PARAM_PI
     self.beta_T1 = DIRICHLET_PARAM_PI
@@ -175,9 +165,9 @@ class VarInferDuo:
       trajectory = self.trajectories[m_th]
 
       # Forward messaging
-      seq_forward = np.zeros(
-          (len(trajectory), self.num_lstates, self.num_lstates))
-      # t = 0
+      np_log_forward = np.log(
+          np.zeros((len(trajectory), self.num_lstates, self.num_lstates)))
+
       t = 0
       stt_p, joint_a_p, joint_x_p = trajectory[t]
       idx_x1p, len_x1p = ((slice(None),
@@ -187,13 +177,13 @@ class VarInferDuo:
                            self.num_lstates) if joint_x_p[A2] is None else
                           (joint_x_p[A2], 1))
 
-      seq_forward[t][idx_x1p, idx_x2p] = (
+      # yapf: disable
+      np_log_forward[t][idx_x1p, idx_x2p] = np.log(
           self.cb_bx(A1, stt_p)[idx_x1p, None].reshape(len_x1p, 1) *
           self.cb_bx(A2, stt_p)[None, idx_x2p].reshape(1, len_x2p) *
-          list_policy[A1][:, stt_p, joint_a_p[A1]][idx_x1p, None].reshape(
-              len_x1p, 1) *
-          list_policy[A2][:, stt_p, joint_a_p[A2]][None, idx_x2p].reshape(
-              1, len_x2p))
+          list_policy[A1][:, stt_p, joint_a_p[A1]][idx_x1p, None].reshape(len_x1p, 1) *  # noqa: E501
+          list_policy[A2][:, stt_p, joint_a_p[A2]][None, idx_x2p].reshape(1, len_x2p))   # noqa: E501
+      # yapf: enable
 
       # t = 1:N-1
       for t in range(1, len(trajectory)):
@@ -208,23 +198,17 @@ class VarInferDuo:
                            self.num_lstates) if joint_x[A2] is None else
                           (joint_x[A2], 1))
 
-        seq_for_tmp = (
-            seq_forward[t_p][idx_x1p, idx_x2p, None, None].reshape(
-                len_x1p, len_x2p, 1, 1) *
-            self.get_Tx(A1, stt_p, a1_p, a2_p, stt)[idx_x1p, None, idx_x1,
-                                                    None].reshape(
-                                                        len_x1p, 1, len_x1, 1) *
-            self.get_Tx(A2, stt_p, a1_p, a2_p,
-                        stt)[None, idx_x2p, None, idx_x2].reshape(
-                            1, len_x1p, 1, len_x2) *
-            self.cb_transition_s(stt_p, a1_p, a2_p, stt) *
-            list_policy[A1][:, stt, joint_a[A1]][None, None, idx_x1,
-                                                 None].reshape(1, 1, len_x1, 1)
-            * list_policy[A2][:, stt, joint_a[A2]][None, None, None,
-                                                   idx_x2].reshape(
-                                                       1, 1, 1, len_x2))
+        # yapf: disable
+        np_log_prob = (
+            np_log_forward[t_p][idx_x1p, idx_x2p, None, None].reshape(len_x1p, len_x2p, 1, 1) +  # noqa: E501
+            np.log(self.get_Tx(A1, stt_p, a1_p, a2_p, stt)[idx_x1p, None, idx_x1, None].reshape(len_x1p, 1, len_x1, 1)) +  # noqa: E501
+            np.log(self.get_Tx(A2, stt_p, a1_p, a2_p, stt)[None, idx_x2p, None, idx_x2].reshape(1, len_x1p, 1, len_x2)) +  # noqa: E501
+            np.log(self.cb_transition_s(stt_p, a1_p, a2_p, stt)) +
+            np.log(list_policy[A1][:, stt, joint_a[A1]][None, None, idx_x1, None].reshape(1, 1, len_x1, 1)) +  # noqa: E501
+            np.log(list_policy[A2][:, stt, joint_a[A2]][None, None, None, idx_x2].reshape(1, 1, 1, len_x2)))  # noqa: E501
 
-        seq_forward[t][idx_x1, idx_x2] = np.sum(seq_for_tmp, axis=(0, 1))
+        np_log_forward[t][idx_x1, idx_x2] = logsumexp(np_log_prob, axis=(0, 1))
+        # yapf: enable
 
         stt_p = stt
         joint_a_p = joint_a
@@ -235,8 +219,8 @@ class VarInferDuo:
         len_x2p = len_x2
 
       # Backward messaging
-      seq_backward = np.zeros(
-          (len(trajectory), self.num_lstates, self.num_lstates))
+      np_log_backward = np.log(
+          np.zeros((len(trajectory), self.num_lstates, self.num_lstates)))
       # t = N-1
       t = len(trajectory) - 1
 
@@ -248,7 +232,7 @@ class VarInferDuo:
                            self.num_lstates) if joint_x_n[A2] is None else
                           (joint_x_n[A2], 1))
 
-      seq_backward[t][idx_x1n, idx_x2n] = 1
+      np_log_backward[t][idx_x1n, idx_x2n] = 0.0
 
       # t = 0:N-2
       for t in reversed(range(0, len(trajectory) - 1)):
@@ -263,20 +247,17 @@ class VarInferDuo:
                            self.num_lstates) if joint_x[A2] is None else
                           (joint_x[A2], 1))
 
-        seq_back_tmp = (seq_backward[t_n][None, None, idx_x1n, idx_x2n].reshape(
-            1, 1, len_x1n, len_x2n) * self.get_Tx(
-                A1, stt, a1, a2, stt_n)[idx_x1, None, idx_x1n, None].reshape(
-                    len_x1, 1, len_x1n, 1) *
-                        self.get_Tx(A2, stt, a1, a2,
-                                    stt_n)[None, idx_x2, None, idx_x2n].reshape(
-                                        1, len_x2, 1, len_x2n) *
-                        self.cb_transition_s(stt, a1, a2, stt_n) *
-                        list_policy[A1][:, stt_n, joint_a_n[A1]]
-                        [None, None, idx_x1n, None].reshape(1, 1, len_x1n, 1) *
-                        list_policy[A2][:, stt_n, joint_a_n[A2]]
-                        [None, None, None, idx_x2n].reshape(1, 1, 1, len_x2n))
+        # yapf: disable
+        np_log_prob = (
+          np_log_backward[t_n][None, None, idx_x1n, idx_x2n].reshape(1, 1, len_x1n, len_x2n) +  # noqa: E501
+          np.log(self.get_Tx(A1, stt, a1, a2, stt_n)[idx_x1, None, idx_x1n, None].reshape(len_x1, 1, len_x1n, 1)) +  # noqa: E501
+          np.log(self.get_Tx(A2, stt, a1, a2, stt_n)[None, idx_x2, None, idx_x2n].reshape(1, len_x2, 1, len_x2n)) +  # noqa: E501
+          np.log(self.cb_transition_s(stt, a1, a2, stt_n)) +
+          np.log(list_policy[A1][:, stt_n, joint_a_n[A1]][None, None, idx_x1n, None].reshape(1, 1, len_x1n, 1)) +  # noqa: E501
+          np.log(list_policy[A2][:, stt_n, joint_a_n[A2]][None, None, None, idx_x2n].reshape(1, 1, 1, len_x2n)))  # noqa: E501
 
-        seq_backward[t][idx_x1, idx_x2] = np.sum(seq_back_tmp, axis=(2, 3))
+        np_log_backward[t][idx_x1, idx_x2] = logsumexp(np_log_prob, axis=(2, 3))
+        # yapf: enable
 
         stt_n = stt
         joint_a_n = joint_a
@@ -287,18 +268,12 @@ class VarInferDuo:
         len_x2n = len_x2
 
       # compute q_x, q_x_xp
-      # z_partian = np.sum(seq_forward, axis=(1, 2))
-      q_joint_x = seq_forward * seq_backward
-      q_x1 = np.sum(q_joint_x, axis=2)
-      q_x2 = np.sum(q_joint_x, axis=1)
-      q_x1 = q_x1 / np.sum(q_x1, axis=1)[:, None]
-      # if np.isnan(q_x1).any():
-      #   # print("Nan")
-      #   q_x1[np.isnan(q_x1)] = 1 / self.num_lstates
-      q_x2 = q_x2 / np.sum(q_x2, axis=1)[:, None]
-      # if np.isnan(q_x2).any():
-      #   # print("Nan")
-      #   q_x2[np.isnan(q_x2)] = 1 / self.num_lstates
+      log_q_joint_x = np_log_forward + np_log_backward
+      log_q_x1 = logsumexp(log_q_joint_x, axis=2)
+      log_q_x2 = logsumexp(log_q_joint_x, axis=1)
+      q_x1 = softmax(log_q_x1, axis=1)
+      q_x2 = softmax(log_q_x2, axis=1)
+
       list_q_x.append([q_x1, q_x2])
 
       if self.cb_Tx is None:
@@ -311,17 +286,15 @@ class VarInferDuo:
           sttn, joint_a_n, joint_x_n = trajectory[t + 1]
           a1 = joint_a[A1]
           a2 = joint_a[A2]
+          # yapf: disable
           q_xx_xnxn[t] = (
-              seq_forward[t].reshape(n_x, n_x, 1, 1) *
-              seq_backward[t + 1].reshape(1, 1, n_x, n_x) *
-              self.list_Tx[A1].get_q_xxn(stt, a1, a2, sttn).reshape(
-                  n_x, 1, n_x, 1) * self.list_Tx[A2].get_q_xxn(
-                      stt, a1, a2, sttn).reshape(1, n_x, 1, n_x) *
-              # list_Tx[A1][:, stt, a1, a2, :][:, None, :, None] *
-              # list_Tx[A2][:, stt, a1, a2, :][None, :, None, :] *
-              self.cb_transition_s(stt, a1, a2, sttn) *
-              list_policy[A1][:, sttn, joint_a_n[A1]].reshape(1, 1, n_x, 1) *
-              list_policy[A2][:, sttn, joint_a_n[A2]].reshape(1, 1, 1, n_x))
+            np.exp(np_log_forward[t].reshape(n_x, n_x, 1, 1) + np_log_backward[t + 1].reshape(1, 1, n_x, n_x)) *  # noqa: E501
+            self.list_Tx[A1].get_q_xxn(stt, a1, a2, sttn).reshape(n_x, 1, n_x, 1) *  # noqa: E501
+            self.list_Tx[A2].get_q_xxn(stt, a1, a2, sttn).reshape(1, n_x, 1, n_x) *  # noqa: E501
+            self.cb_transition_s(stt, a1, a2, sttn) *
+            list_policy[A1][:, sttn, joint_a_n[A1]].reshape(1, 1, n_x, 1) *
+            list_policy[A2][:, sttn, joint_a_n[A2]].reshape(1, 1, 1, n_x))
+          # yapf: enable
 
         q_x_xn1 = np.sum(q_xx_xnxn, axis=(2, 4))
         q_x_xn1 = q_x_xn1 / np.sum(q_x_xn1, axis=(1, 2))[:, None, None]
