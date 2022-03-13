@@ -1,18 +1,13 @@
-import os
 import ast
 import numpy as np
+import click
 
-if __name__ == "__main__":
-  # filename = "team_w_tx_box_push_dynamic_results.log"
-  # filename = "team_wo_tx_dynamic_results.log"
-  # filename = "indv_wo_tx_dynamic_results.log"
-  # filename = "indv_w_tx_box_push_dynamic_results.log"
-  # filename = "box_push_dynamic_results_w_tx_indv.log"
-  #   filename = "bp_aws_indv.log"
-  filename = "box_push_aws_results_team2.log"
 
+@click.command()
+@click.option("--filepath", required=True, type=str, help="Path to log file")
+def main(filepath):
   dict_data = {}
-  with open(filename) as f:
+  with open(filepath) as f:
     lines = f.readlines()
     for idx, row in enumerate(lines):
       pidx = row.find('{')
@@ -20,14 +15,10 @@ if __name__ == "__main__":
         alg_name = None
         is_no_tx_semi = False
         for idx2 in range(1, 10):
-          if lines[idx - idx2].find("#########") != -1:
+          char_idx = lines[idx - idx2].find("#########")
+          if char_idx != -1:
             alg_row = lines[idx - idx2 - 1]
-            sidx = alg_row.find('ush2:')
-            if sidx == -1:
-              sidx = alg_row.find('_aws:')
-            if sidx == -1:
-              sidx = alg_row.find('push:')
-            alg_name = alg_row[sidx + 6:-1]
+            alg_name = alg_row[char_idx:-1]
             if alg_name[0:4] == 'Semi' and alg_row.find('_aws:') == -1:
               info_row = lines[idx - idx2 + 1]
               if info_row.find('without') != -1:
@@ -36,12 +27,7 @@ if __name__ == "__main__":
             break
         fidx = 1 if not is_no_tx_semi else 3
         x_row = lines[idx - fidx]
-        xidx = x_row.find('ush2:')
-        if xidx == -1:
-          xidx = x_row.find('_aws:')
-        if xidx == -1:
-          xidx = x_row.find('push:')
-        x_data_string = x_row[xidx + 6:-1]
+        x_data_string = x_row[char_idx:-1]
         x_data = [float(num) for num in x_data_string.split(',')]
         x_data = {'x mean': [x_data[0], x_data[2]]}
 
@@ -56,7 +42,6 @@ if __name__ == "__main__":
   dict_compiled = {}
   for alg in dict_data:
     dict_compiled[alg] = {}
-    print(len(dict_data[alg]))
     for idx, res in enumerate(dict_data[alg]):
       for key in res:
         if key not in dict_compiled[alg]:
@@ -77,12 +62,20 @@ if __name__ == "__main__":
 
   for key in dict_results:
     print(key)
-    str_res = (str(dict_results[key]['x mean'][0][0]) + ',' +
-               str(dict_results[key]['x mean'][1][0]) + ',' +
-               str(dict_results[key]['x mean'][0][1]) + ',' +
-               str(dict_results[key]['x mean'][1][1]) + ',' +
-               str(dict_results[key]['wJS'][0][0]) + ',' +
-               str(dict_results[key]['wJS'][1][0]) + ',' +
-               str(dict_results[key]['wJS'][0][1]) + ',' +
-               str(dict_results[key]['wJS'][1][1]))
+    # a1 x mean, a1 x std, a2 x mean, a2 x std,
+    # a1 wJS mean, a1 wJS std, a2 wJS mean, a2 wJS std
+    str_res = ""
+    str_res += "%.6f," % dict_results[key]['x mean'][0][0]
+    str_res += "%.6f," % dict_results[key]['x mean'][1][0]
+    str_res += "%.6f," % dict_results[key]['x mean'][0][1]
+    str_res += "%.6f," % dict_results[key]['x mean'][1][1]
+    str_res += "%.6f," % dict_results[key]['wJS'][0][0]
+    str_res += "%.6f," % dict_results[key]['wJS'][1][0]
+    str_res += "%.6f," % dict_results[key]['wJS'][0][1]
+    str_res += "%.6f" % dict_results[key]['wJS'][1][1]
+
     print(str_res)
+
+
+if __name__ == "__main__":
+  main()

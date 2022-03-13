@@ -283,28 +283,36 @@ class VarInferDuo:
 
       if self.cb_Tx is None:
         n_x = self.num_lstates
-        q_xx_xnxn = np.zeros(
-            (len(trajectory) - 1, self.num_lstates, self.num_lstates,
-             self.num_lstates, self.num_lstates))
+        with np.errstate(divide='ignore'):
+          log_q_xx_xnxn = np.log(
+              np.zeros((len(trajectory) - 1, self.num_lstates, self.num_lstates,
+                        self.num_lstates, self.num_lstates)))
         for t in range(len(trajectory) - 1):
           stt, joint_a, joint_x = trajectory[t]
           sttn, joint_a_n, joint_x_n = trajectory[t + 1]
           a1 = joint_a[A1]
           a2 = joint_a[A2]
           # yapf: disable
-          q_xx_xnxn[t] = (
-            np.exp(np_log_forward[t].reshape(n_x, n_x, 1, 1) + np_log_backward[t + 1].reshape(1, 1, n_x, n_x)) *  # noqa: E501
-            self.list_Tx[A1].get_q_xxn(stt, a1, a2, sttn).reshape(n_x, 1, n_x, 1) *  # noqa: E501
-            self.list_Tx[A2].get_q_xxn(stt, a1, a2, sttn).reshape(1, n_x, 1, n_x) *  # noqa: E501
-            self.cb_transition_s(stt, a1, a2, sttn) *
-            list_policy[A1][:, sttn, joint_a_n[A1]].reshape(1, 1, n_x, 1) *
-            list_policy[A2][:, sttn, joint_a_n[A2]].reshape(1, 1, 1, n_x))
+          with np.errstate(divide='ignore'):
+            log_q_xx_xnxn[t] = (
+              np_log_forward[t].reshape(n_x, n_x, 1, 1) +
+              np_log_backward[t + 1].reshape(1, 1, n_x, n_x) +
+              np.log(self.list_Tx[A1].get_q_xxn(stt, a1, a2, sttn).reshape(n_x, 1, n_x, 1)) +  # noqa: E501
+              np.log(self.list_Tx[A2].get_q_xxn(stt, a1, a2, sttn).reshape(1, n_x, 1, n_x)) +  # noqa: E501
+              np.log(self.cb_transition_s(stt, a1, a2, sttn)) +
+              np.log(list_policy[A1][:, sttn, joint_a_n[A1]].reshape(1, 1, n_x, 1)) +  # noqa: E501
+              np.log(list_policy[A2][:, sttn, joint_a_n[A2]].reshape(1, 1, 1, n_x)))  # noqa: E501
           # yapf: enable
 
-        q_x_xn1 = np.sum(q_xx_xnxn, axis=(2, 4))
-        q_x_xn1 = q_x_xn1 / np.sum(q_x_xn1, axis=(1, 2))[:, None, None]
-        q_x_xn2 = np.sum(q_xx_xnxn, axis=(1, 3))
-        q_x_xn2 = q_x_xn2 / np.sum(q_x_xn2, axis=(1, 2))[:, None, None]
+        log_q_x_xn1 = logsumexp(log_q_xx_xnxn, axis=(2, 4))
+        log_q_x_xn2 = logsumexp(log_q_xx_xnxn, axis=(1, 3))
+        q_x_xn1 = softmax(log_q_x_xn1, axis=(1, 2))
+        q_x_xn2 = softmax(log_q_x_xn2, axis=(1, 2))
+
+        # q_x_xn1 = np.sum(q_xx_xnxn, axis=(2, 4))
+        # q_x_xn1 = q_x_xn1 / np.sum(q_x_xn1, axis=(1, 2))[:, None, None]
+        # q_x_xn2 = np.sum(q_xx_xnxn, axis=(1, 3))
+        # q_x_xn2 = q_x_xn2 / np.sum(q_x_xn2, axis=(1, 2))[:, None, None]
         list_q_x_xn.append([q_x_xn1, q_x_xn2])
 
     return list_q_x, list_q_x_xn

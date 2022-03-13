@@ -5,6 +5,7 @@ import click
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 
 from ai_coach_core.model_inference.var_infer.var_infer_dynamic_x import (
     VarInferDuo)
@@ -240,14 +241,29 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
          num_processes, gail_batch_size, ppo_batch_size, num_iterations,
          pretrain_steps, use_ce, num_run, only_20):
   global MDP_AGENT, MDP_TASK, SAVE_PREFIX, BoxPushSimulator
-  logging.info("is_TEAM: %s" % (is_team, ))
-  logging.info("is_test: %s" % (is_test, ))
-  logging.info("gail batch size: %d" % (gail_batch_size, ))
-  logging.info("ppo batch size: %d" % (ppo_batch_size, ))
-  logging.info("num iterations: %d" % (num_iterations, ))
-  logging.info("num processes: %d" % (num_processes, ))
-  logging.info("pretrain steps: %d" % (pretrain_steps, ))
-  logging.info("use_ce: %s" % (use_ce, ))
+
+  str_options = "\n"
+  str_options += "--is_team=%s\n" % is_team
+  str_options += "--is_test=%s\n" % is_test
+  str_options += "--gen_trainset=%s\n" % gen_trainset
+  str_options += "--gen_testset=%s\n" % gen_testset
+  str_options += "--show_true=%s\n" % show_true
+  str_options += "--show_bc=%s\n" % show_bc
+  str_options += "--dnn_bc=%s\n" % dnn_bc
+  str_options += "--show_sl=%s\n" % show_sl
+  str_options += "--show_semi=%s\n" % show_semi
+  str_options += "--show_ul=%s\n" % show_ul
+  str_options += "--use_true_tx=%s\n" % use_true_tx
+  str_options += "--magail=%s\n" % magail
+  str_options += "--num_processes=%s\n" % num_processes
+  str_options += "--gail_batch_size=%s\n" % gail_batch_size
+  str_options += "--ppo_batch_size=%s\n" % ppo_batch_size
+  str_options += "--num_iterations=%s\n" % num_iterations
+  str_options += "--pretrain_steps=%s\n" % pretrain_steps
+  str_options += "--use_ce=%s\n" % use_ce
+  str_options += "--num_run=%s\n" % num_run
+  str_options += "--only_20=%s\n" % only_20
+  logging.info(str_options)
 
   for dummy_run in range(num_run):
     logging.info("run count: %d" % (dummy_run, ))
@@ -722,13 +738,16 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
 
 
 if __name__ == "__main__":
+  file_prefix = "box_push_dynamic_results"
+  sec, msec = divmod(time.time() * 1000, 1000)
+  time_stamp = '-%s' % (time.strftime('%Y%m%d_%H%M%S', time.gmtime(sec)), )
+  file_name = (file_prefix + time_stamp + '.log')
+
   logging.basicConfig(
       level=logging.INFO,
       format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-      handlers=[
-          logging.FileHandler("box_push_dynamic_results.log"),
-          logging.StreamHandler()
-      ],
+      handlers=[logging.FileHandler(file_name),
+                logging.StreamHandler()],
       force=True)
   logging.info('box push dynamic results')
   main()
