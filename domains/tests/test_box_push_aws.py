@@ -15,8 +15,8 @@ import tests.test_box_push as tbp
 @click.option("--show_sl", type=bool, default=False, help="")
 @click.option("--show_semi", type=bool, default=False, help="")
 @click.option("--show_ul", type=bool, default=False, help="")
-@click.option("--num_run", type=int, default=5, help="")
-@click.option("--show_random", type=bool, default=True, help="")
+@click.option("--num_run", type=int, default=1, help="")
+@click.option("--show_random", type=bool, default=False, help="")
 # yapf: enable
 def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
   logging.info("is_TEAM: %s" % (is_team, ))
@@ -78,6 +78,7 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
     random.shuffle(file_names)
 
     num_train = int(len(file_names) * 2 / 3)
+    # num_train = len(file_names)
     logging.info(num_train)
     train_files = file_names[:num_train]
     test_files = file_names[num_train:]
@@ -92,6 +93,8 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
                                                    include_terminal=False)
 
     logging.info(len(traj_labeled_ver))
+    list_length = [len(traj_tmp) for traj_tmp in traj_labeled_ver]
+    print(np.mean(list_length))
 
     # load test set
     ##################################################
@@ -217,13 +220,17 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
 
 
 if __name__ == "__main__":
+  import time
+  file_prefix = "box_push_aws_results"
+  sec, msec = divmod(time.time() * 1000, 1000)
+  time_stamp = '-%s' % (time.strftime('%Y%m%d_%H%M%S', time.gmtime(sec)), )
+  file_name = (file_prefix + time_stamp + '.log')
+
   logging.basicConfig(
       level=logging.INFO,
       format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-      handlers=[
-          logging.FileHandler("box_push_aws_results.log"),
-          logging.StreamHandler()
-      ],
+      handlers=[logging.FileHandler(file_name),
+                logging.StreamHandler()],
       force=True)
   logging.info('box push aws results')
   main()

@@ -219,7 +219,7 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--is_test", type=bool, default=False, help="exp1 / test")
 @click.option("--gen_trainset", type=bool, default=False, help="generate train set")
 @click.option("--gen_testset", type=bool, default=False, help="generate test set")
-@click.option("--show_true", type=bool, default=False, help="metrics from true policy")
+@click.option("--show_random", type=bool, default=False, help="results of uniform policy")
 @click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")
 @click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")
 @click.option("--show_sl", type=bool, default=False, help="")
@@ -236,7 +236,7 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--num_run", type=int, default=1, help="")
 @click.option("--only_20", type=bool, default=False, help="")
 # yapf: enable
-def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
+def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
          dnn_bc, show_sl, show_semi, show_ul, use_true_tx, magail,
          num_processes, gail_batch_size, ppo_batch_size, num_iterations,
          pretrain_steps, use_ce, num_run, only_20):
@@ -247,7 +247,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
   str_options += "--is_test=%s\n" % is_test
   str_options += "--gen_trainset=%s\n" % gen_trainset
   str_options += "--gen_testset=%s\n" % gen_testset
-  str_options += "--show_true=%s\n" % show_true
+  str_options += "--show_random=%s\n" % show_random
   str_options += "--show_bc=%s\n" % show_bc
   str_options += "--dnn_bc=%s\n" % dnn_bc
   str_options += "--show_sl=%s\n" % show_sl
@@ -366,8 +366,6 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
     test_traj = test_data.get_as_column_lists(include_terminal=False)
     logging.info(len(test_traj))
 
-    # true policy and transition
-    ##################################################
     if is_team:
       BETA_PI = 1.2
       BETA_TX1 = 1.01
@@ -382,26 +380,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
                          MDP_AGENT.a2_a_space.num_actions) if is_team else
                         (MDP_AGENT.num_actions, MDP_AGENT.num_actions))
 
-    # True policy
-    if show_true:
-      # logging.info("#########")
-      # logging.info("True")
-      # logging.info("#########")
-      # np_results = get_result(true_methods.get_true_policy,
-      #                         true_methods.get_true_Tx_nxsas,
-      #                         true_methods.get_init_latent_dist, test_traj)
-      # avg1, avg2, avg3 = np.mean(np_results, axis=0)
-      # std1, std2, std3 = np.std(np_results, axis=0)
-
-      # policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
-      #                                         MDP_AGENT.num_latents,
-      #                                         traj_labeled_ver,
-      #                                         true_methods.get_true_policy,
-      #                                         true_methods.get_true_policy)
-
-      # logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-      # logging.info(policy_errors)
-
+    if show_random:
       logging.info("#########")
       logging.info("Random")
       logging.info("#########")
@@ -419,19 +398,6 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_true, show_bc,
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
       logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-
-      # policy_errors = cal_latent_policy_error(NUM_AGENT, MDP_AGENT.num_states,
-      #                                         MDP_AGENT.num_latents,
-      #                                         traj_labeled_ver,
-      #                                         true_methods.get_true_policy,
-      #                                         get_uniform_policy)
-
-      # logging.info(policy_errors)
-
-    # fig1 = plt.figure(figsize=(8, 3))
-    # ax1 = fig1.add_subplot(131)
-    # ax2 = fig1.add_subplot(132)
-    # ax3 = fig1.add_subplot(133)
 
     if only_20:
       list_idx = [20]
