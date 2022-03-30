@@ -217,11 +217,11 @@ class BoxPushTrajectories(Trajectories):
 @click.command()
 @click.option("--is_team", type=bool, default=True, help="team / indv")
 @click.option("--is_test", type=bool, default=False, help="exp1 / test")
-@click.option("--gen_trainset", type=bool, default=False, help="generate train set")
-@click.option("--gen_testset", type=bool, default=False, help="generate test set")
-@click.option("--show_random", type=bool, default=False, help="results of uniform policy")
-@click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")
-@click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")
+@click.option("--gen_trainset", type=bool, default=False, help="generate train set")  # noqa: E501
+@click.option("--gen_testset", type=bool, default=False, help="generate test set")  # noqa: E501
+@click.option("--show_random", type=bool, default=False, help="results of uniform policy")  # noqa: E501
+@click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")  # noqa: E501
+@click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")  # noqa: E501
 @click.option("--show_sl", type=bool, default=False, help="")
 @click.option("--show_semi", type=bool, default=False, help="")
 @click.option("--show_ul", type=bool, default=False, help="")

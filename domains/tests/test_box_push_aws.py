@@ -44,7 +44,6 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
     sim = tbp.BoxPushSimulator(0)
     sim.init_game(**GAME_MAP)
     sim.max_steps = 200
-    NUM_AGENT = 2
     TEMPERATURE = 0.3
 
     if is_team:
@@ -60,9 +59,6 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
       agent2 = tbp.bp_agent.BoxPushAIAgent_Indv2(policy)
 
     sim.set_autonomous_agent(agent1, agent2)
-
-    init_state = tbp.MDP_TASK.conv_sim_states_to_mdp_sidx(
-        [[0] * len(sim.box_states), sim.a1_init, sim.a2_init])
 
     true_methods = tbp.TrueModelConverter(agent1, agent2,
                                           tbp.MDP_AGENT.num_latents)
@@ -169,15 +165,6 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
         std1, std2, std3 = np.std(np_results, axis=0)
         logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
 
-      #   policy_errors = cal_latent_policy_error(NUM_AGENT,
-      #                                           tbp.MDP_AGENT.num_states,
-      #                                           tbp.MDP_AGENT.num_latents,
-      #                                           traj_labeled_ver,
-      #                                           true_methods.get_true_policy,
-      #                                           var_inf_sl_conv.policy_nxs)
-
-      #   print(policy_errors)
-
     # semi-supervised
     if show_semi:
       for idx in list_idx[:-1]:
@@ -209,14 +196,6 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
         std1, std2, std3 = np.std(np_results, axis=0)
         logging.info("Prediction of latent with learned Tx")
         logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
-
-      #   policy_errors = cal_latent_policy_error(NUM_AGENT,
-      #                                           tbp.MDP_AGENT.num_states,
-      #                                           tbp.MDP_AGENT.num_latents,
-      #                                           traj_labeled_ver,
-      #                                           true_methods.get_true_policy,
-      #                                           var_inf_semi_conv.policy_nxs)
-      #   print(policy_errors)
 
 
 if __name__ == "__main__":

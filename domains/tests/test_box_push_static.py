@@ -109,16 +109,15 @@ class StaticBoxPushTrajectories(Trajectories):
 
 # yapf: disable
 @click.command()
-@click.option("--gen_trainset", type=bool, default=False, help="generate train set")
-@click.option("--gen_testset", type=bool, default=False, help="generate test set")
-@click.option("--show_true", type=bool, default=False, help="metrics from true policy")
-@click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")
-@click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")
+@click.option("--gen_trainset", type=bool, default=False, help="generate train set")  # noqa: E501
+@click.option("--gen_testset", type=bool, default=False, help="generate test set")  # noqa: E501
+@click.option("--show_true", type=bool, default=False, help="metrics from true policy")  # noqa: E501
+@click.option("--show_bc", type=bool, default=False, help="behavioral cloning results")  # noqa: E501
+@click.option("--dnn_bc", type=bool, default=True, help="dnn behavioral cloning")  # noqa: E501
 @click.option("--show_sl", type=bool, default=False, help="")
 @click.option("--show_semi", type=bool, default=False, help="")
 @click.option("--magail", type=bool, default=False, help="")
-@click.option("--cogail", type=bool, default=False, help="")
-@click.option("--magail2", type=bool, default=False, help="")
+@click.option("--magail_latent", type=bool, default=False, help="")
 @click.option("--num_processes", type=int, default=4, help="")
 @click.option("--gail_batch_size", type=int, default=64, help="")
 @click.option("--ppo_batch_size", type=int, default=32, help="")
@@ -128,7 +127,7 @@ class StaticBoxPushTrajectories(Trajectories):
 @click.option("--num_run", type=int, default=1, help="")
 # yapf: enable
 def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
-         show_semi, magail, magail2, cogail, num_processes, gail_batch_size,
+         show_semi, magail, magail_latent, num_processes, gail_batch_size,
          ppo_batch_size, num_iterations, pretrain_steps, use_ce, num_run):
   logging.info("gail batch size: %d" % (gail_batch_size, ))
   logging.info("ppo batch size: %d" % (ppo_batch_size, ))
@@ -392,20 +391,6 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
     init_state = MDP_AGENT.conv_sim_states_to_mdp_sidx(
         [[0] * len(sim.box_states), sim.a1_init, sim.a2_init])
 
-    if cogail:
-      from ai_coach_core.model_inference.cogail import cogail_w_ppo
-
-      num_code = MDP_AGENT.num_latents * MDP_AGENT.num_latents
-
-      list_policies = cogail_w_ppo(MDP_AGENT,
-                                   num_code, [init_state],
-                                   trajectories,
-                                   demo_batch_size=gail_batch_size,
-                                   ppo_batch_size=ppo_batch_size,
-                                   n_steps=64,
-                                   total_timesteps=320,
-                                   do_pretrain=False,
-                                   callback_policy=None)
     if magail:
       from ai_coach_core.model_inference.magail import magail_w_ppo
 
@@ -525,7 +510,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
 
         logging.info(policy_errors)
 
-    if magail2:
+    if magail_latent:
       from ai_coach_core.model_inference.latent_magail import lmagail_w_ppo
       for idx in list_idx:
         logging.info("#########")
