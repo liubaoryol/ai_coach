@@ -3,10 +3,15 @@ import glob
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import click
 from ai_coach_core.model_inference.IRL.maxent_irl import (MaxEntIRL,
                                                           compute_relative_freq,
                                                           cal_reward_error,
                                                           cal_policy_error)
+from ai_coach_core.model_inference.IRL.cg_maxent_irl import CGMaxEntIRL
+from ai_coach_core.model_inference.IRL.constraints import (Equation,
+                                                           NumericalRelation,
+                                                           RewardConstraints)
 from ai_coach_core.models.mdp import MDP
 from ai_coach_core.RL.planning import value_iteration
 from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
@@ -56,12 +61,6 @@ class ToyMDP(MDP):
     self.dummy_states = StateSpace(statespace=[TERMINAL_STATE])
 
   def init_actionspace(self):
-    '''
-        We use a factored representation for the joint action:
-        aAne : anesthesiologist action
-        aSur : surgeon action
-        '''
-
     set_actions = set()
     set_actions.add((-1, 0))
     set_actions.add((1, 0))
@@ -359,9 +358,18 @@ class ToyMDPTrajectories(Trajectories):
       self.list_np_trajectory.append(np_trj)
 
 
-if __name__ == "__main__":
-  # data_dir = './toy_traj/'
-  # file_prefix = 'toy_'
+# yapf: disable
+@click.command()
+@click.option("--gen-data", type=bool, default=False, help="generate train set")
+@click.option("--maxent-irl", type=bool, default=False, help="")
+@click.option("--cg-maxent-irl", type=bool, default=False, help="")
+@click.option("--tabular-bc", type=bool, default=False, help="")
+@click.option("--dnn-bc", type=bool, default=False, help="")
+@click.option("--sb3-gail", type=bool, default=False, help="")
+@click.option("--iko-gail", type=bool, default=False, help="")
+# yapf: enable
+def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
+         iko_gail):
   toy_mdp = ToyMDP()
 
   num_agents = 1
@@ -381,9 +389,7 @@ if __name__ == "__main__":
 
   sto_pi = get_stochastic_policy(toy_mdp, pi)
 
-  GENERATE_DATA = False
-
-  if GENERATE_DATA:
+  if gen_data:
     for dummy in range(100):
       sample = gen_trajectory(toy_mdp, sto_pi)
       file_path = os.path.join(DATA_DIR, str(dummy) + '.txt')
@@ -405,9 +411,9 @@ if __name__ == "__main__":
   s_idx = toy_mdp.np_state_to_idx[sid]
   init_prop[s_idx] = 1
 
+  fig_count = 0
   rel_freq = compute_relative_freq(num_ostates, trajectories)
-  DO_IRL = True
-  if DO_IRL:
+  if maxent_irl:
     irl = MaxEntIRL(trajectories,
                     toy_mdp,
                     feature_extractor=feature_extract_full_state,
@@ -428,20 +434,70 @@ if __name__ == "__main__":
 
     kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
     print(kl_irl)
-
-    f = plt.figure(figsize=(10, 5))
+    fig_count += 1
+    f = plt.figure(fig_count, figsize=(10, 5))
+    f.suptitle("MaxEnt IRL")
     ax1 = f.add_subplot(121)
     ax2 = f.add_subplot(122)
     ax1.plot(reward_error)
     ax1.set_ylabel('reward_error')
-    # plt.show()
 
     ax2.plot(policy_error)
     ax2.set_ylabel('policy_error')
-    plt.show()
 
-  DO_BC = False
-  if DO_BC:
+  if cg_maxent_irl:
+    reward_constraints = RewardConstraints()
+
+    def one_wo_tool_theother_w_tool(sidx1, sidx2):
+      if toy_mdp.is_dummy_state(sidx1) or toy_mdp.is_dummy_state(sidx2):
+        return False
+
+      s1, = toy_mdp.np_idx_to_state[sidx1]
+      s2, = toy_mdp.np_idx_to_state[sidx2]
+      state1 = toy_mdp.s_space.idx_to_state[s1]
+      state2 = toy_mdp.s_space.idx_to_state[s2]
+
+      return (state1[0] == state2[0] and state1[1] == state2[1]  # same position
+              and state1[2] == 0  # state1 has no tool
+              and state2[2] == 1)  # state2 has the tool
+
+    equ = Equation(2, (-1.0, 1.0), -0.01, op=NumericalRelation.GREATER_EQUAL)
+    reward_constraints.add_binary_constraint(one_wo_tool_theother_w_tool, equ)
+
+    irl = CGMaxEntIRL(trajectories,
+                      toy_mdp,
+                      feature_extractor=feature_extract_full_state,
+                      reward_constraints=reward_constraints,
+                      max_value_iter=500,
+                      initial_prop=init_prop)
+
+    reward_error = []
+    policy_error = []
+
+    def compute_errors(reward_fn, policy_fn):
+      reward_error.append(cal_reward_error(toy_mdp, reward_fn))
+      policy_error.append(cal_policy_error(rel_freq, toy_mdp, policy_fn,
+                                           sto_pi))
+
+    irl.do_inverseRL(epsilon=0.001,
+                     n_max_run=500,
+                     callback_reward_pi=compute_errors)
+
+    kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
+    print(kl_irl)
+
+    fig_count += 1
+    f = plt.figure(fig_count, figsize=(10, 5))
+    f.suptitle("CG MaxEnt IRL")
+    ax1 = f.add_subplot(121)
+    ax2 = f.add_subplot(122)
+    ax1.plot(reward_error)
+    ax1.set_ylabel('reward_error')
+
+    ax2.plot(policy_error)
+    ax2.set_ylabel('policy_error')
+
+  if tabular_bc:
     from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
     pi_bc = behavior_cloning(trajectories, num_ostates, num_actions)
     kl_bc = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_bc[s, a],
@@ -452,8 +508,7 @@ if __name__ == "__main__":
                                          include_terminal=True)
 
   import ai_coach_core.model_inference.sb3_algorithms as sb3_algs
-  DO_SB3_BC = False
-  if DO_SB3_BC:
+  if dnn_bc:
 
     pi_bc_sb3 = sb3_algs.behavior_cloning_sb3(sa_trajs, num_ostates,
                                               num_actions)
@@ -462,14 +517,13 @@ if __name__ == "__main__":
     print(kl_bc_sb3)
 
   # gail
-  DO_GAIL = False
-  SB3_GAIL = False
-  ONLY_PRETRAIN = False
-  if DO_GAIL:
+  if sb3_gail or iko_gail:
     list_disc_loss = []
     list_value_loss = []
     list_action_loss = []
     list_entropy = []
+
+    ONLY_PRETRAIN = False
 
     def get_loss_each_round(disc_loss, value_loss, action_loss, entropy):
       if disc_loss is not None:
@@ -481,7 +535,7 @@ if __name__ == "__main__":
       if entropy is not None:
         list_entropy.append(entropy)
 
-    if SB3_GAIL:
+    if sb3_gail:
       pi_gail = sb3_algs.gail_w_ppo(toy_mdp, [sid],
                                     sa_trajs,
                                     -1,
@@ -513,7 +567,8 @@ if __name__ == "__main__":
                                        lambda s, a: pi_gail_torch[s, a], sto_pi)
       print(kl_gail_torch)
 
-      f = plt.figure(figsize=(15, 5))
+      fig_count += 1
+      f = plt.figure(fig_count, figsize=(10, 5))
       ax0 = f.add_subplot(141)
       ax0.plot(list_disc_loss)
       ax0.set_ylabel('disc_loss')
@@ -527,4 +582,8 @@ if __name__ == "__main__":
         ax3 = f.add_subplot(144)
         ax3.plot(list_entropy)
         ax3.set_ylabel('entropy')
-      plt.show()
+  plt.show()
+
+
+if __name__ == "__main__":
+  main()
