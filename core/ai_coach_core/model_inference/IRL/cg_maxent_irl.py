@@ -67,8 +67,11 @@ class CGMaxEntIRL(MaxEntIRL):
         b_in = np.array(inequalitiy_constraints_b)
         constraints.append({"type": "ineq", "fun": lambda x: A_in @ x + b_in})
 
+      # COBYLA works only with inequility constraints
+      # SLSQP and trust-constr require constraints to be differentiable
+      # trust-constr has different input styles - check documentation
       res = scipy.optimize.minimize(min_euclidean_dist,
                                     self.weights,
                                     constraints=constraints,
-                                    method="COBYLA")
+                                    method="SLSQP")
       self.weights = res.x
