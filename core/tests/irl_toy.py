@@ -367,9 +367,10 @@ class ToyMDPTrajectories(Trajectories):
 @click.option("--dnn-bc", type=bool, default=False, help="")
 @click.option("--sb3-gail", type=bool, default=False, help="")
 @click.option("--iko-gail", type=bool, default=False, help="")
+@click.option("--num-runs", type=int, default=1, help="")
 # yapf: enable
 def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
-         iko_gail):
+         iko_gail, num_runs):
   toy_mdp = ToyMDP()
 
   num_agents = 1
@@ -420,29 +421,58 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
                     max_value_iter=500,
                     initial_prop=init_prop)
 
-    reward_error = []
-    policy_error = []
+    list_reward_error = []
+    list_policy_error = []
+    list_kl_div = []
 
-    def compute_errors(reward_fn, policy_fn):
-      reward_error.append(cal_reward_error(toy_mdp, reward_fn))
-      policy_error.append(cal_policy_error(rel_freq, toy_mdp, policy_fn,
-                                           sto_pi))
+    for iter in range(num_runs):
+      reward_error = []
+      policy_error = []
 
-    irl.do_inverseRL(epsilon=0.001,
-                     n_max_run=500,
-                     callback_reward_pi=compute_errors)
+      def compute_errors(reward_fn, policy_fn):
+        reward_error.append(cal_reward_error(toy_mdp, reward_fn))
+        policy_error.append(
+            cal_policy_error(rel_freq, toy_mdp, policy_fn, sto_pi))
 
-    kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
-    print(kl_irl)
+      irl.do_inverseRL(epsilon=0.001,
+                       n_max_run=500,
+                       callback_reward_pi=compute_errors)
+
+      kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
+      # print(kl_irl)
+      list_kl_div.append(kl_irl)
+      list_reward_error.append(reward_error)
+      list_policy_error.append(policy_error)
+
+    max_len = len(max(list_reward_error, key=len))
+    np_reward_error = np.array(
+        [row + [np.NaN] * (max_len - len(row)) for row in list_reward_error])
+    np_policy_error = np.array(
+        [row + [np.NaN] * (max_len - len(row)) for row in list_policy_error])
+
+    mean_kl_div = np.mean(list_kl_div)
+    std_kl_div = np.std(list_kl_div)
+    mean_reward_error = np.nanmean(np_reward_error, axis=0)
+    std_reward_error = np.nanstd(np_reward_error, axis=0)
+    mean_policy_error = np.nanmean(np_policy_error, axis=0)
+    std_policy_error = np.nanstd(np_policy_error, axis=0)
+
+    print("KL Div.: %.3f (+- %.3f)" % (mean_kl_div, std_kl_div))
+
     fig_count += 1
     f = plt.figure(fig_count, figsize=(10, 5))
     f.suptitle("MaxEnt IRL")
     ax1 = f.add_subplot(121)
     ax2 = f.add_subplot(122)
-    ax1.plot(reward_error)
+    x_ticks = range(max_len)
+    ax1.plot(x_ticks, mean_reward_error, 'k-')
+    ax1.fill_between(x_ticks, mean_reward_error - std_reward_error,
+                     mean_reward_error + std_reward_error)
     ax1.set_ylabel('reward_error')
 
-    ax2.plot(policy_error)
+    ax2.plot(x_ticks, mean_policy_error, 'k-')
+    ax2.fill_between(x_ticks, mean_policy_error - std_policy_error,
+                     mean_policy_error + std_policy_error)
     ax2.set_ylabel('policy_error')
 
   if cg_maxent_irl:
@@ -471,30 +501,57 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
                       max_value_iter=500,
                       initial_prop=init_prop)
 
-    reward_error = []
-    policy_error = []
+    list_reward_error = []
+    list_policy_error = []
+    list_kl_div = []
 
-    def compute_errors(reward_fn, policy_fn):
-      reward_error.append(cal_reward_error(toy_mdp, reward_fn))
-      policy_error.append(cal_policy_error(rel_freq, toy_mdp, policy_fn,
-                                           sto_pi))
+    for iter in range(num_runs):
+      reward_error = []
+      policy_error = []
 
-    irl.do_inverseRL(epsilon=0.001,
-                     n_max_run=500,
-                     callback_reward_pi=compute_errors)
+      def compute_errors(reward_fn, policy_fn):
+        reward_error.append(cal_reward_error(toy_mdp, reward_fn))
+        policy_error.append(
+            cal_policy_error(rel_freq, toy_mdp, policy_fn, sto_pi))
 
-    kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
-    print(kl_irl)
+      irl.do_inverseRL(epsilon=0.001,
+                       n_max_run=500,
+                       callback_reward_pi=compute_errors)
+
+      kl_irl = cal_policy_error(rel_freq, toy_mdp, irl.policy, sto_pi)
+      list_kl_div.append(kl_irl)
+      list_reward_error.append(reward_error)
+      list_policy_error.append(policy_error)
+
+    max_len = len(max(list_reward_error, key=len))
+    np_reward_error = np.array(
+        [row + [np.NaN] * (max_len - len(row)) for row in list_reward_error])
+    np_policy_error = np.array(
+        [row + [np.NaN] * (max_len - len(row)) for row in list_policy_error])
+
+    mean_kl_div = np.mean(list_kl_div)
+    std_kl_div = np.std(list_kl_div)
+    mean_reward_error = np.nanmean(np_reward_error, axis=0)
+    std_reward_error = np.nanstd(np_reward_error, axis=0)
+    mean_policy_error = np.nanmean(np_policy_error, axis=0)
+    std_policy_error = np.nanstd(np_policy_error, axis=0)
+
+    print("KL Div.: %.3f (+- %.3f)" % (mean_kl_div, std_kl_div))
 
     fig_count += 1
     f = plt.figure(fig_count, figsize=(10, 5))
     f.suptitle("CG MaxEnt IRL")
     ax1 = f.add_subplot(121)
     ax2 = f.add_subplot(122)
-    ax1.plot(reward_error)
+    x_ticks = range(max_len)
+    ax1.plot(x_ticks, mean_reward_error, 'k-')
+    ax1.fill_between(x_ticks, mean_reward_error - std_reward_error,
+                     mean_reward_error + std_reward_error)
     ax1.set_ylabel('reward_error')
 
-    ax2.plot(policy_error)
+    ax2.plot(x_ticks, mean_policy_error, 'k-')
+    ax2.fill_between(x_ticks, mean_policy_error - std_policy_error,
+                     mean_policy_error + std_policy_error)
     ax2.set_ylabel('policy_error')
 
   if tabular_bc:

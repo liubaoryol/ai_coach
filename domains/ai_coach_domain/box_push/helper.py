@@ -20,7 +20,7 @@ class BoxState(Enum):
   WithBoth = 3
   OnDropLoc = 4
   OnGoalLoc = 5
-  # overrided values for relative box states for individual MDPs
+  # overloaded for relative box states for individual MDPs
   WithMe = WithAgent1
   WithTeammate = WithAgent2
 

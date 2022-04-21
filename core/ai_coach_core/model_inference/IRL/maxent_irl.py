@@ -22,15 +22,12 @@ class MaxEntIRL():
                epsilon: float = 0.001):
     self.feature_extractor = feature_extractor
     self.mdp = mdp
-    self.weights = None
     self.gamma = gamma
     self.alpha = learning_rate
     self.decay = decay
     self.eps = epsilon
-    self.iteration = 0
     self.trajectories = trajectories
     self.max_value_iter = max_value_iter
-    self.pi_est = None
     self.empirical_feature_cnt = None
 
     self.initial_prop = np.zeros((mdp.num_states))
@@ -40,6 +37,10 @@ class MaxEntIRL():
       n_states = self.mdp.num_states
       for state in range(n_states):
         self.initial_prop[state] = 1.0 / n_states
+
+    self.weights = None
+    self.iteration = 0
+    self.pi_est = None
 
   def init_weights(self):
     feature = self.feature_extractor(self.mdp, 0, 0)  # F by 1 array
