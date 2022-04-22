@@ -1,7 +1,7 @@
 from typing import Sequence, Optional
 import numpy as np
 from ai_coach_core.models.agent_model import MentalModelAgent
-from ai_coach_core.models.policy import CachedPolicyInterface
+from ai_coach_core.models.policy import PolicyInterface
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
 from ai_coach_domain.box_push.mdp import BoxPushMDP
 
@@ -28,7 +28,7 @@ def get_holding_box_and_floor_boxes(box_states, num_drops, num_goals):
 class BoxPushMDPAgent(MentalModelAgent):
   def __init__(self,
                agent_idx: int,
-               policy_model: Optional[CachedPolicyInterface] = None) -> None:
+               policy_model: Optional[PolicyInterface] = None) -> None:
     super().__init__(policy_model)
     self.agent_idx = agent_idx
 
@@ -52,28 +52,28 @@ class BoxPushMDPAgent(MentalModelAgent):
       P_DROP = 0
       P_GOAL = 1 - P_ORIG - P_DROP
 
-      np_bx = np.zeros(mdp.num_latents)
+      np_bx = np.zeros(self.policy_model.get_num_latent_states())
       if my_box >= 0:
-        xidx = mdp.latent_space.state_to_idx[("origin", 0)]
+        xidx = self.policy_model.conv_latent_to_idx(("origin", 0))
         np_bx[xidx] = P_ORIG
         for idx in range(num_drops):
-          xidx = mdp.latent_space.state_to_idx[("drop", idx)]
+          xidx = self.policy_model.conv_latent_to_idx(("drop", idx))
           np_bx[xidx] = P_DROP / num_drops
         for idx in range(num_goals):
-          xidx = mdp.latent_space.state_to_idx[("goal", idx)]
+          xidx = self.policy_model.conv_latent_to_idx(("goal", idx))
           np_bx[xidx] = P_GOAL / num_goals
       else:
         num_valid_box = len(valid_box)
         if num_valid_box > 0:
           for idx in valid_box:
-            xidx = mdp.latent_space.state_to_idx[("pickup", idx)]
+            xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
             np_bx[xidx] = 1 / num_valid_box
         else:
           if mate_box >= 0:  # TODO: check > or >=
-            xidx = mdp.latent_space.state_to_idx[("pickup", mate_box)]
+            xidx = self.policy_model.conv_latent_to_idx(("pickup", mate_box))
             np_bx[xidx] = 1
           else:  # game finished, not meaningful state
-            xidx = mdp.latent_space.state_to_idx[("goal", 0)]
+            xidx = self.policy_model.conv_latent_to_idx(("goal", 0))
             np_bx[xidx] = 1
 
       return np_bx
@@ -85,8 +85,7 @@ class BoxPushMDPAgent(MentalModelAgent):
 
 
 class BoxPushMDPAgent_EmptyMind(BoxPushMDPAgent):
-  def __init__(self,
-               policy_model: Optional[CachedPolicyInterface] = None) -> None:
+  def __init__(self, policy_model: Optional[PolicyInterface] = None) -> None:
     super().__init__(0, policy_model)
 
   def initial_mental_distribution(self, obstate_idx: int) -> np.ndarray:
@@ -120,19 +119,19 @@ class BoxPushMDPAgent_Together(BoxPushMDPAgent):
     my_drop = my_box_cur >= 0 and my_box_nxt < 0
 
     num_valid_box = len(valid_boxes_nxt)
-    np_Tx = np.zeros(mdp.num_latents)
+    np_Tx = np.zeros(self.policy_model.get_num_latent_states())
     if my_pickup:
-      xidx = mdp.latent_space.state_to_idx[("goal", 0)]
+      xidx = self.policy_model.conv_latent_to_idx(("goal", 0))
       np_Tx[xidx] = 1
       return np_Tx
     elif my_drop:
       if num_valid_box > 0:
         for idx in valid_boxes_nxt:
-          xidx = mdp.latent_space.state_to_idx[("pickup", idx)]
+          xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
           np_Tx[xidx] = 1 / num_valid_box
         return np_Tx
     elif my_box_nxt < 0:
-      latent = mdp.latent_space.idx_to_state[latstate_idx]
+      latent = self.policy_model.conv_idx_to_latent(latstate_idx)
       # change latent based on teammate position
       if latent[0] == "pickup":
         min_idx = None
@@ -147,7 +146,7 @@ class BoxPushMDPAgent_Together(BoxPushMDPAgent):
               dist_min = dist_tmp
               min_idx = idx
         if min_idx is not None and dist_min < 2 and latent[1] != min_idx:
-          xidx = mdp.latent_space.state_to_idx[("pickup", min_idx)]
+          xidx = self.policy_model.conv_latent_to_idx(("pickup", min_idx))
           np_Tx[xidx] = p_change
           np_Tx[latstate_idx] = 1 - p_change
           return np_Tx
@@ -187,8 +186,7 @@ class BoxPushMDPAgent_Together(BoxPushMDPAgent):
 
 
 class BoxPushMDPAgent_WebExp_Both(BoxPushMDPAgent_Together):
-  def __init__(self,
-               policy_model: Optional[CachedPolicyInterface] = None) -> None:
+  def __init__(self, policy_model: Optional[PolicyInterface] = None) -> None:
     super().__init__(1, policy_model=policy_model)
 
   def transition_mental_state(self, latstate_idx: int, obstate_idx: int,
@@ -223,10 +221,6 @@ class BoxPushMDPAgent_WebExp_Both(BoxPushMDPAgent_Together):
 
 
 class BoxPushMDPAgent_Alone(BoxPushMDPAgent):
-  def __init__(self,
-               policy_model: Optional[CachedPolicyInterface] = None) -> None:
-    super().__init__(agent_idx=0, policy_model=policy_model)
-
   def transition_mental_state(self, latstate_idx: int, obstate_idx: int,
                               tuple_action_idx: Sequence[int],
                               obstate_next_idx: int) -> np.ndarray:
@@ -253,33 +247,37 @@ class BoxPushMDPAgent_Alone(BoxPushMDPAgent):
       mate_pickup = mate_box_cur < 0 and mate_box_nxt >= 0
 
       num_valid_box = len(valid_boxes)
-      np_Tx = np.zeros(mdp.num_latents)
+      np_Tx = np.zeros(self.policy_model.get_num_latent_states())
       if my_pickup:
-        xidx = mdp.latent_space.state_to_idx[("goal", 0)]
+        xidx = self.policy_model.conv_latent_to_idx(("goal", 0))
         np_Tx[xidx] = 1
         return np_Tx
       elif my_drop:
         if num_valid_box > 0:
           for idx in valid_boxes:
-            xidx = mdp.latent_space.state_to_idx[("pickup", idx)]
+            xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
             np_Tx[xidx] = 1 / num_valid_box
           return np_Tx
         else:
           if mate_box_nxt >= 0:  # TODO: check > or >=
-            xidx = mdp.latent_space.state_to_idx[("pickup", mate_box_nxt)]
+            xidx = self.policy_model.conv_latent_to_idx(
+                ("pickup", mate_box_nxt))
             np_Tx[xidx] = 1
             return np_Tx
       elif mate_pickup:
-        latent = mdp.latent_space.idx_to_state[latstate_idx]
+        latent = self.policy_model.conv_idx_to_latent(latstate_idx)
         if my_box_nxt < 0 and latent[0] == "pickup" and latent[
             1] == mate_box_nxt:
           if num_valid_box > 0:
             for idx in valid_boxes:
-              xidx = mdp.latent_space.state_to_idx[("pickup", idx)]
+              xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
               np_Tx[xidx] = 1 / num_valid_box
             return np_Tx
 
       np_Tx[latstate_idx] = 1
       return np_Tx
 
-    return get_np_Tx_indv_impl(a1_box_cur, a2_box_cur, a1_box_nxt, a2_box_nxt)
+    if self.agent_idx == 0:
+      return get_np_Tx_indv_impl(a1_box_cur, a2_box_cur, a1_box_nxt, a2_box_nxt)
+    else:
+      return get_np_Tx_indv_impl(a2_box_cur, a1_box_cur, a2_box_nxt, a1_box_nxt)

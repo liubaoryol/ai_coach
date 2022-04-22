@@ -3,7 +3,8 @@ import random
 from ai_coach_domain.box_push import EventType
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.maps import EXP1_MAP
-from ai_coach_domain.box_push.mdp import BoxPushAgentMDP_AlwaysAlone
+from ai_coach_domain.box_push.mdp import (BoxPushAgentMDP_AlwaysAlone,
+                                          BoxPushTeamMDP_AlwaysAlone)
 from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyIndvExp1
 from ai_coach_domain.box_push.agent import BoxPushAIAgent_Host
 from web_experiment import socketio
@@ -14,12 +15,14 @@ EXP1_NAMESPACE = '/exp1_indv_tell_align'
 GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
 EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
+EXP1_TASK_MDP = BoxPushTeamMDP_AlwaysAlone(**EXP1_MAP)
 
 AGENT1 = BoxPushSimulator_AlwaysAlone.AGENT1
 AGENT2 = BoxPushSimulator_AlwaysAlone.AGENT2
 
 TEMPERATURE = 0.3
-TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_MDP, TEMPERATURE)
+TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_TASK_MDP, EXP1_MDP, TEMPERATURE,
+                                        AGENT2)
 
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)
@@ -49,7 +52,7 @@ def test_disconnect():
 
 @socketio.on('run_game', namespace=EXP1_NAMESPACE)
 def run_game(msg):
-  agent2 = BoxPushAIAgent_Host(TEAMMATE_POLICY, True)
+  agent2 = BoxPushAIAgent_Host(TEAMMATE_POLICY)
 
   def set_init_latent(game: BoxPushSimulator_AlwaysAlone):
     valid_boxes = event_impl.get_valid_box_to_pickup(game)

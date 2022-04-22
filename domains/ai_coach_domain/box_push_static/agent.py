@@ -41,7 +41,7 @@ class StaticBoxPushMDPAgent(BoxPushMDPAgent):
 class StaticBoxPushAgent(BoxPushAIAgent_Abstract):
   def __init__(self, policy_model: CachedPolicyInterface, agent_idx) -> None:
     self.agent_idx = agent_idx
-    super().__init__(policy_model, use_flipped_state_space=False, has_mind=True)
+    super().__init__(policy_model, has_mind=True)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
     return StaticBoxPushMDPAgent(self.agent_idx, policy_model=policy_model)

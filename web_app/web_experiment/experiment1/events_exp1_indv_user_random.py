@@ -1,7 +1,8 @@
 from typing import Mapping, Hashable
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.maps import EXP1_MAP
-from ai_coach_domain.box_push.mdp import BoxPushAgentMDP_AlwaysAlone
+from ai_coach_domain.box_push.mdp import (BoxPushAgentMDP_AlwaysAlone,
+                                          BoxPushTeamMDP_AlwaysAlone)
 from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyIndvExp1
 from ai_coach_domain.box_push.agent import BoxPushAIAgent_Indv2
 from web_experiment import socketio
@@ -12,12 +13,14 @@ EXP1_NAMESPACE = '/exp1_indv_user_random'
 GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
 EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
+EXP1_TASK_MDP = BoxPushTeamMDP_AlwaysAlone(**EXP1_MAP)
 
 AGENT1 = BoxPushSimulator_AlwaysAlone.AGENT1
 AGENT2 = BoxPushSimulator_AlwaysAlone.AGENT2
 
 TEMPERATURE = 0.3
-TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_MDP, TEMPERATURE)
+TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_TASK_MDP, EXP1_MDP, TEMPERATURE,
+                                        AGENT2)
 
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)

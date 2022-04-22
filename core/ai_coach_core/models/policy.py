@@ -8,11 +8,14 @@ import ai_coach_core.RL.planning as plan_lib
 
 
 class PolicyInterface:
+  '''
+  to accomodate the case where a policy handles multiple actors,
+  we consider actions are represented as a tuple
+  '''
+
   __metaclass__ = abc.ABCMeta
 
-  # TODO: make PolicyInterface class dependent on original mdp
-  # and define new methods that handle latent states
-  def __init__(self, mdp: mdp_lib.LatentMDP) -> None:
+  def __init__(self, mdp: mdp_lib.MDP) -> None:
     self.mdp = mdp
 
   @abc.abstractmethod
@@ -35,6 +38,18 @@ class PolicyInterface:
 
   @abc.abstractmethod
   def conv_action_to_idx(self, tuple_actions: Sequence) -> Sequence[int]:
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def get_num_latent_states(self):
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def conv_idx_to_latent(self, latent_idx: int):
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def conv_latent_to_idx(self, latent_state):
     raise NotImplementedError
 
 
@@ -61,7 +76,7 @@ class CachedPolicyInterface(PolicyInterface):
   def prepare_policy(self):
     if (self.list_policy is None) or len(self.list_policy) == 0:
       # cur_dir = os.path.dirname(__file__)
-      for idx in range(self.mdp.num_latents):
+      for idx in range(self.get_num_latent_states()):
         # str_q_val = os.path.join(
         #     cur_dir, "data/" + self.file_prefix + "%d.pickle" % (idx, ))
         str_q_val = self.file_prefix + "%d.pickle" % (idx, )
@@ -139,3 +154,12 @@ class CachedPolicyInterface(PolicyInterface):
           tuple_actions[idx]])
 
     return list_aidx
+
+  def get_num_latent_states(self):
+    return self.mdp.num_latents
+
+  def conv_idx_to_latent(self, latent_idx: int):
+    return self.mdp.latent_space.idx_to_state[latent_idx]
+
+  def conv_latent_to_idx(self, latent_state):
+    return self.mdp.latent_space.state_to_idx[latent_state]

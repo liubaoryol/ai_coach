@@ -13,7 +13,7 @@ IS_TEAM = False
 if IS_TESTMAP:
   GAME_MAP = bp_maps.TEST_MAP
   BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamTest
-  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvTest
+  BoxPushPolicyIndv = bp_policy.BoxPushPolicyIndvTest_New
 else:
   GAME_MAP = bp_maps.EXP1_MAP
   BoxPushPolicyTeam = bp_policy.BoxPushPolicyTeamExp1
@@ -21,10 +21,8 @@ else:
 
 if IS_TEAM:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
-  BoxPushAgentMDP = bp_mdp.BoxPushTeamMDP_AlwaysTogether
 else:
   BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
-  BoxPushAgentMDP = bp_mdp.BoxPushAgentMDP_AlwaysAlone
 
 
 class BoxPushApp(AppInterface):
@@ -37,23 +35,31 @@ class BoxPushApp(AppInterface):
     self.x_grid = GAME_MAP["x_grid"]
     self.y_grid = GAME_MAP["y_grid"]
     self.game = BoxPushSimulator(GAME_ENV_ID)
-    self.mdp_agent = BoxPushAgentMDP(**GAME_MAP)
     self.game.max_steps = 200
-
     temperature = 1
     if IS_TEAM:
-      policy1 = BoxPushPolicyTeam(self.mdp_agent,
+      task_mdp = bp_mdp.BoxPushTeamMDP_AlwaysTogether(**GAME_MAP)
+      policy1 = BoxPushPolicyTeam(task_mdp,
                                   temperature=temperature,
                                   agent_idx=0)
-      policy2 = BoxPushPolicyTeam(self.mdp_agent,
+      policy2 = BoxPushPolicyTeam(task_mdp,
                                   temperature=temperature,
                                   agent_idx=1)
       agent1 = bp_agent.BoxPushAIAgent_Team1(policy1)
       agent2 = bp_agent.BoxPushAIAgent_Team2(policy2)
     else:
-      policy = BoxPushPolicyIndv(self.mdp_agent, temperature=temperature)
-      agent1 = bp_agent.BoxPushAIAgent_Indv1(policy)
-      agent2 = bp_agent.BoxPushAIAgent_Indv2(policy)
+      task_mdp = bp_mdp.BoxPushTeamMDP_AlwaysAlone(**GAME_MAP)
+      agent_mdp = bp_mdp.BoxPushAgentMDP_AlwaysAlone(**GAME_MAP)
+      policy1 = BoxPushPolicyIndv(task_mdp,
+                                  agent_mdp,
+                                  temperature=temperature,
+                                  agent_idx=0)
+      policy2 = BoxPushPolicyIndv(task_mdp,
+                                  agent_mdp,
+                                  temperature=temperature,
+                                  agent_idx=1)
+      agent1 = bp_agent.BoxPushAIAgent_Indv1(policy1)
+      agent2 = bp_agent.BoxPushAIAgent_Indv2(policy2)
 
     self.game.init_game(**GAME_MAP)
     self.game.set_autonomous_agent(agent1=agent1, agent2=agent2)

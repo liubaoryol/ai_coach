@@ -8,8 +8,7 @@ from ai_coach_domain.box_push.mdpagent import (BoxPushMDPAgent,
                                                BoxPushMDPAgent_Together,
                                                BoxPushMDPAgent_EmptyMind,
                                                BoxPushMDPAgent_WebExp_Both)
-from ai_coach_domain.box_push.mdp import (BoxPushMDP,
-                                          get_agent_switched_boxstates)
+from ai_coach_domain.box_push.mdp import BoxPushMDP
 from ai_coach_domain.box_push.helper import (conv_box_idx_2_state, BoxState,
                                              EventType)
 
@@ -87,11 +86,9 @@ class BoxPushInteractiveAgent(BoxPushSimulatorAgent):
 class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
   def __init__(self,
                policy_model: CachedPolicyInterface,
-               use_flipped_state_space: bool = False,
                has_mind: bool = True) -> None:
     super().__init__(has_mind=has_mind, has_policy=True)
     self.agent_model = self._create_agent_model(policy_model)
-    self.use_flipped_state_space = use_flipped_state_space
     self.manual_action = None
 
   @abc.abstractmethod
@@ -158,10 +155,8 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
     sidx = self._conv_sim_states_to_mdp_sidx(tup_states)
     sidx_n = self._conv_sim_states_to_mdp_sidx(tup_states_n)
 
-    tuple_reversed_action = (tuple_action_idx[1], tuple_action_idx[0])
     return self.agent_model.transition_mental_state(latent_idx, sidx,
-                                                    tuple_reversed_action,
-                                                    sidx_n)
+                                                    tuple_action_idx, sidx_n)
 
   def init_latent_dist_from_task_mdp_POV(self, state_idx):
     mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
@@ -176,36 +171,25 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
     pos_1 = a1_pos
     pos_2 = a2_pos
     bstate = box_states
-    if self.use_flipped_state_space:
-      pos_1 = a2_pos
-      pos_2 = a1_pos
-      bstate = get_agent_switched_boxstates(box_states, len(mdp.drops),
-                                            len(mdp.goals))
     sidx = mdp.conv_sim_states_to_mdp_sidx([bstate, pos_1, pos_2])
     return sidx
 
   def _conv_idx_to_latent(self, latent_idx):
-    mdp = self.agent_model.get_reference_mdp()
-    return mdp.latent_space.idx_to_state[latent_idx]
+    return self.agent_model.policy_model.conv_idx_to_latent(latent_idx)
 
   def _conv_latent_to_idx(self, latent):
-    mdp = self.agent_model.get_reference_mdp()
-    return mdp.latent_space.state_to_idx[latent]
+    return self.agent_model.policy_model.conv_latent_to_idx(latent)
 
 
 class BoxPushAIAgent_Host(BoxPushAIAgent_Abstract):
-  def __init__(self,
-               policy_model: CachedPolicyInterface,
-               use_flipped_state_space=False) -> None:
-    super().__init__(policy_model,
-                     use_flipped_state_space=use_flipped_state_space,
-                     has_mind=False)
+  def __init__(self, policy_model: CachedPolicyInterface) -> None:
+    super().__init__(policy_model, has_mind=False)
 
   def _create_agent_model(
       self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     return BoxPushMDPAgent_EmptyMind(policy_model)
 
-  def init_latent(self, box_states, a1_pos, a2_pos):
+  def init_latent(self, tup_states):
     'do nothing - a user should set the latent state manually'
     pass
 
@@ -215,9 +199,6 @@ class BoxPushAIAgent_Host(BoxPushAIAgent_Abstract):
 
 
 class BoxPushAIAgent_Team1(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: CachedPolicyInterface) -> None:
-    super().__init__(policy_model, use_flipped_state_space=False)
-
   def _create_agent_model(
       self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     AGENT1_IDX = 0
@@ -226,9 +207,6 @@ class BoxPushAIAgent_Team1(BoxPushAIAgent_Abstract):
 
 
 class BoxPushAIAgent_Team2(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: CachedPolicyInterface) -> None:
-    super().__init__(policy_model, use_flipped_state_space=False)
-
   def _create_agent_model(
       self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     AGENT2_IDX = 1
@@ -237,30 +215,23 @@ class BoxPushAIAgent_Team2(BoxPushAIAgent_Abstract):
 
 
 class BoxPushAIAgent_WebExp_Both_A2(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: CachedPolicyInterface) -> None:
-    super().__init__(policy_model, use_flipped_state_space=False)
-
   def _create_agent_model(
       self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
     return BoxPushMDPAgent_WebExp_Both(policy_model=policy_model)
 
 
 class BoxPushAIAgent_Indv1(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: CachedPolicyInterface) -> None:
-    super().__init__(policy_model, use_flipped_state_space=False)
-
   def _create_agent_model(
       self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
-    return BoxPushMDPAgent_Alone(policy_model)
+    AGENT1_IDX = 0
+    return BoxPushMDPAgent_Alone(AGENT1_IDX, policy_model)
 
 
 class BoxPushAIAgent_Indv2(BoxPushAIAgent_Abstract):
-  def __init__(self, policy_model: CachedPolicyInterface) -> None:
-    super().__init__(policy_model, use_flipped_state_space=True)
-
   def _create_agent_model(
       self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
-    return BoxPushMDPAgent_Alone(policy_model)
+    AGENT2_IDX = 1
+    return BoxPushMDPAgent_Alone(AGENT2_IDX, policy_model)
 
 
 class BoxPushSimpleAgent(BoxPushSimulatorAgent):

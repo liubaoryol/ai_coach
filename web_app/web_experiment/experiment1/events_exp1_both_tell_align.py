@@ -49,7 +49,7 @@ def test_disconnect():
 
 @socketio.on('run_game', namespace=EXP1_NAMESPACE)
 def run_game(msg):
-  agent2 = BoxPushAIAgent_Host(TEAMMATE_POLICY, False)
+  agent2 = BoxPushAIAgent_Host(TEAMMATE_POLICY)
 
   def set_init_latent(game: BoxPushSimulator_AlwaysTogether):
     valid_boxes = event_impl.get_valid_box_to_pickup(game)
