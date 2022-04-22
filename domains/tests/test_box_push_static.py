@@ -75,15 +75,16 @@ def print_conf(conf):
 
 
 class StaticBoxPushTrajectories(Trajectories):
-  def __init__(self, num_latents) -> None:
+  def __init__(self, num_latents: int, simulator: BoxPushSimulator) -> None:
     super().__init__(num_state_factors=1,
                      num_action_factors=2,
                      num_latent_factors=2,
                      num_latents=num_latents)
+    self.simulator = simulator
 
   def load_from_files(self, file_names):
     for file_nm in file_names:
-      trj = BoxPushSimulator.read_file(file_nm)
+      trj = self.simulator.read_file(file_nm)
       if len(trj) == 0:
         continue
 
@@ -184,7 +185,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
     ##################################################
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
 
-    train_data = StaticBoxPushTrajectories(MDP_AGENT.num_latents)
+    train_data = StaticBoxPushTrajectories(MDP_AGENT.num_latents, sim)
     train_data.load_from_files(file_names)
     train_data.shuffle()
 
@@ -201,7 +202,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
     ##################################################
     test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
 
-    test_data = StaticBoxPushTrajectories(MDP_AGENT.num_latents)
+    test_data = StaticBoxPushTrajectories(MDP_AGENT.num_latents, sim)
     test_data.load_from_files(test_file_names)
 
     test_traj, test_labels = test_data.get_as_row_lists_for_static_x(

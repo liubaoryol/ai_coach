@@ -2,10 +2,9 @@ from typing import Hashable, Mapping, Tuple, Sequence, Callable
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
-from ai_coach_domain.box_push.helper import (EventType,
-                                             transition_alone_and_together,
-                                             transition_always_together,
-                                             transition_always_alone)
+from ai_coach_domain.box_push.helper import (
+    EventType, transition_alone_and_together, transition_always_together,
+    transition_always_alone, simulator_action_to_idx, simulator_idx_to_action)
 from ai_coach_domain.box_push.agent import (BoxPushSimulatorAgent,
                                             BoxPushInteractiveAgent)
 
@@ -16,11 +15,25 @@ class BoxPushSimulator(Simulator):
   AGENT1 = 0  # must be defined in a way that aligns with agent idx for policy
   AGENT2 = 1
 
-  def __init__(self, id: Hashable, cb_transition: Callable) -> None:
+  def __init__(
+      self,
+      id: Hashable,
+      cb_transition: Callable,
+      tuple_action_when_none=(EventType.STAY, EventType.STAY),
+      action_to_idx_agent1=simulator_action_to_idx,
+      action_to_idx_agent2=simulator_action_to_idx,
+      idx_to_action_agent1=simulator_idx_to_action,
+      idx_to_action_agent2=simulator_idx_to_action,
+  ) -> None:
     super().__init__(id)
     self.agent_1 = None
     self.agent_2 = None
     self.transition_fn = cb_transition
+    self.tuple_action_when_none = tuple_action_when_none
+    self.action_to_idx_agent1 = action_to_idx_agent1
+    self.action_to_idx_agent2 = action_to_idx_agent2
+    self.idx_to_action_agent1 = idx_to_action_agent1
+    self.idx_to_action_agent2 = idx_to_action_agent2
 
   def init_game(self,
                 x_grid: Coord,
@@ -55,7 +68,8 @@ class BoxPushSimulator(Simulator):
     self.agent_2.init_latent(tup_states)
 
   def reset_game(self):
-    super().reset_game()
+    self.current_step = 0
+    self.history = []
 
     self.a1_pos = self.a1_init
     self.a2_pos = self.a2_init
@@ -82,9 +96,9 @@ class BoxPushSimulator(Simulator):
     if a1_action is None and a2_action is None:
       return
     if a1_action is None:
-      a1_action = EventType.STAY
+      a1_action = self.tuple_action_when_none[0]
     if a2_action is None:
-      a2_action = EventType.STAY
+      a2_action = self.tuple_action_when_none[1]
 
     a1_lat = self.agent_1.get_current_latent()
     if a1_lat is None:
@@ -103,8 +117,8 @@ class BoxPushSimulator(Simulator):
     cur_state = [tuple(self.box_states), tuple(self.a1_pos), tuple(self.a2_pos)]
 
     state = [
-        self.current_step, cur_state[0], cur_state[1], cur_state[2],
-        a1_action.value, a2_action.value, a1_lat, a2_lat
+        self.current_step, cur_state[0], cur_state[1], cur_state[2], a1_action,
+        a2_action, a1_lat, a2_lat
     ]
     self.history.append(state)
 
@@ -228,7 +242,8 @@ class BoxPushSimulator(Simulator):
         txtfile.write('%d, %d; ' % a1pos)
         txtfile.write('%d, %d; ' % a2pos)
 
-        txtfile.write('%d; %d; ' % (a1act, a2act))
+        txtfile.write('%d; %d; ' % (self.action_to_idx_agent1(a1act),
+                                    self.action_to_idx_agent2(a2act)))
 
         txtfile.write('%s, %d; ' % a1lat)
         txtfile.write('%s, %d; ' % a2lat)
@@ -255,8 +270,7 @@ class BoxPushSimulator(Simulator):
 
     return True
 
-  @classmethod
-  def read_file(cls, file_name):
+  def read_file(self, file_name):
     traj = []
     with open(file_name, newline='') as txtfile:
       lines = txtfile.readlines()
@@ -280,11 +294,11 @@ class BoxPushSimulator(Simulator):
         if a1act is None:
           a1_act = None
         else:
-          a1_act = EventType(int(a1act))
+          a1_act = self.idx_to_action_agent1(int(a1act))
         if a2act is None:
           a2_act = None
         else:
-          a2_act = EventType(int(a2act))
+          a2_act = self.idx_to_action_agent2(int(a2act))
         if a1lat is None:
           a1_lat = None
         else:
