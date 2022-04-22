@@ -1,4 +1,4 @@
-from typing import Hashable, Mapping, Tuple, Sequence, Callable
+from typing import Hashable, Mapping, Tuple, Sequence, Callable, Any
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
@@ -19,21 +19,22 @@ class BoxPushSimulator(Simulator):
       self,
       id: Hashable,
       cb_transition: Callable,
-      tuple_action_when_none=(EventType.STAY, EventType.STAY),
-      action_to_idx_agent1=simulator_action_to_idx,
-      action_to_idx_agent2=simulator_action_to_idx,
-      idx_to_action_agent1=simulator_idx_to_action,
-      idx_to_action_agent2=simulator_idx_to_action,
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
+      cb_action_to_idx: Callable[[int, Any], int] = simulator_action_to_idx,
+      cb_idx_to_action: Callable[[int, int], Any] = simulator_idx_to_action
   ) -> None:
+    '''
+    cb_action_to_idx: (agent_idx, action) --> action_idx
+    cb_idx_to_action: (agent_idx, action_idx) --> action
+    '''
+    #  input1: agent idx
     super().__init__(id)
     self.agent_1 = None
     self.agent_2 = None
     self.transition_fn = cb_transition
     self.tuple_action_when_none = tuple_action_when_none
-    self.action_to_idx_agent1 = action_to_idx_agent1
-    self.action_to_idx_agent2 = action_to_idx_agent2
-    self.idx_to_action_agent1 = idx_to_action_agent1
-    self.idx_to_action_agent2 = idx_to_action_agent2
+    self.cb_action_to_idx = cb_action_to_idx
+    self.cb_idx_to_action = cb_idx_to_action
 
   def init_game(self,
                 x_grid: Coord,
@@ -242,8 +243,8 @@ class BoxPushSimulator(Simulator):
         txtfile.write('%d, %d; ' % a1pos)
         txtfile.write('%d, %d; ' % a2pos)
 
-        txtfile.write('%d; %d; ' % (self.action_to_idx_agent1(a1act),
-                                    self.action_to_idx_agent2(a2act)))
+        txtfile.write('%d; %d; ' % (self.cb_action_to_idx(
+            self.AGENT1, a1act), self.cb_action_to_idx(self.AGENT2, a2act)))
 
         txtfile.write('%s, %d; ' % a1lat)
         txtfile.write('%s, %d; ' % a2lat)
@@ -294,11 +295,11 @@ class BoxPushSimulator(Simulator):
         if a1act is None:
           a1_act = None
         else:
-          a1_act = self.idx_to_action_agent1(int(a1act))
+          a1_act = self.cb_idx_to_action(self.AGENT1, int(a1act))
         if a2act is None:
           a2_act = None
         else:
-          a2_act = self.idx_to_action_agent2(int(a2act))
+          a2_act = self.cb_idx_to_action(self.AGENT2, int(a2act))
         if a1lat is None:
           a1_lat = None
         else:
