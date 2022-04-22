@@ -25,11 +25,11 @@ class BoxState(Enum):
   WithTeammate = WithAgent2
 
 
-def simulator_action_to_idx(agent_idx: int, action: EventType):
+def action_to_idx_for_simulator(agent_idx: int, action: EventType):
   return action.value
 
 
-def simulator_idx_to_action(agent_idx: int, action_idx: int):
+def idx_to_action_for_simulator(agent_idx: int, action_idx: int):
   return EventType(action_idx)
 
 

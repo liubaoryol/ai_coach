@@ -2,9 +2,12 @@ from typing import Hashable, Mapping, Tuple, Sequence, Callable, Any
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
-from ai_coach_domain.box_push.helper import (
-    EventType, transition_alone_and_together, transition_always_together,
-    transition_always_alone, simulator_action_to_idx, simulator_idx_to_action)
+from ai_coach_domain.box_push.helper import (EventType,
+                                             transition_alone_and_together,
+                                             transition_always_together,
+                                             transition_always_alone,
+                                             action_to_idx_for_simulator,
+                                             idx_to_action_for_simulator)
 from ai_coach_domain.box_push.agent import (BoxPushSimulatorAgent,
                                             BoxPushInteractiveAgent)
 
@@ -20,8 +23,8 @@ class BoxPushSimulator(Simulator):
       id: Hashable,
       cb_transition: Callable,
       tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
-      cb_action_to_idx: Callable[[int, Any], int] = simulator_action_to_idx,
-      cb_idx_to_action: Callable[[int, int], Any] = simulator_idx_to_action
+      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
+      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
   ) -> None:
     '''
     cb_action_to_idx: (agent_idx, action) --> action_idx
