@@ -60,16 +60,21 @@ class BoxPushSimulator(Simulator):
 
     self.reset_game()
 
+  def get_state_for_each_agent(self, agent_idx):
+    'Redefine this method at subclasses as needed'
+    return [self.box_states, self.a1_pos, self.a2_pos]
+
   def set_autonomous_agent(
       self,
       agent1: BoxPushSimulatorAgent = BoxPushInteractiveAgent(),
       agent2: BoxPushSimulatorAgent = BoxPushInteractiveAgent()):
     self.agent_1 = agent1
     self.agent_2 = agent2
-    tup_states = [self.box_states, self.a1_pos, self.a2_pos]
 
-    self.agent_1.init_latent(tup_states)
-    self.agent_2.init_latent(tup_states)
+    # order can be important as Agent2 state may include Agent1's mental state,
+    # or vice versa. here we assume agent2 updates its mental state later
+    self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
+    self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
 
   def reset_game(self):
     self.current_step = 0
@@ -80,12 +85,10 @@ class BoxPushSimulator(Simulator):
     # starts with their original locations
     self.box_states = [0] * len(self.boxes)
 
-    tup_states = [self.box_states, self.a1_pos, self.a2_pos]
-
     if self.agent_1 is not None:
-      self.agent_1.init_latent(tup_states)
+      self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
     if self.agent_2 is not None:
-      self.agent_2.init_latent(tup_states)
+      self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
     self.changed_state = []
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
@@ -118,10 +121,11 @@ class BoxPushSimulator(Simulator):
     a2_lat_1 = a2_lat[1] if a2_lat[1] is not None else 0
     a2_lat = (a2_lat_0, a2_lat_1)
 
-    cur_state = [tuple(self.box_states), tuple(self.a1_pos), tuple(self.a2_pos)]
+    a1_cur_state = tuple(self.get_state_for_each_agent(self.AGENT1))
+    a2_cur_state = tuple(self.get_state_for_each_agent(self.AGENT2))
 
     state = [
-        self.current_step, cur_state[0], cur_state[1], cur_state[2], a1_action,
+        self.current_step, self.box_states, self.a1_pos, self.a2_pos, a1_action,
         a2_action, a1_lat, a2_lat
     ]
     self.history.append(state)
@@ -131,10 +135,11 @@ class BoxPushSimulator(Simulator):
     self.changed_state.append("current_step")
 
     # update mental model
-    next_state = [self.box_states, self.a1_pos, self.a2_pos]
     tuple_actions = (a1_action, a2_action)
-    self.agent_1.update_mental_state(cur_state, tuple_actions, next_state)
-    self.agent_2.update_mental_state(cur_state, tuple_actions, next_state)
+    self.agent_1.update_mental_state(a1_cur_state, tuple_actions,
+                                     self.get_state_for_each_agent(self.AGENT1))
+    self.agent_2.update_mental_state(a2_cur_state, tuple_actions,
+                                     self.get_state_for_each_agent(self.AGENT2))
 
   def _transition(self, a1_action, a2_action):
     list_next_env = self.transition_fn(self.box_states, self.a1_pos,
@@ -186,14 +191,12 @@ class BoxPushSimulator(Simulator):
         self.changed_state.append("a2_latent")
 
   def get_joint_action(self) -> Mapping[Hashable, Hashable]:
-    # TODO: need to think about logic.. for now let's assume at least one agent
-    # is always a human
-
-    tup_states = [self.box_states, self.a1_pos, self.a2_pos]
 
     map_a2a = {}
-    map_a2a[BoxPushSimulator.AGENT1] = self.agent_1.get_action(tup_states)
-    map_a2a[BoxPushSimulator.AGENT2] = self.agent_2.get_action(tup_states)
+    map_a2a[BoxPushSimulator.AGENT1] = self.agent_1.get_action(
+        self.get_state_for_each_agent(self.AGENT1))
+    map_a2a[BoxPushSimulator.AGENT2] = self.agent_2.get_action(
+        self.get_state_for_each_agent(self.AGENT2))
 
     return map_a2a
 
@@ -360,8 +363,8 @@ if __name__ == "__main__":
     sim = BoxPushSimulator_AlwaysTogether(0)
     sim.init_game(**EXP1_MAP)
     mdp = BoxPushTeamMDP_AlwaysTogether(**EXP1_MAP)
-    policy1 = BoxPushPolicyTeamExp1(mdp, temperature=0.3, agent_idx=0)
-    policy2 = BoxPushPolicyTeamExp1(mdp, temperature=0.3, agent_idx=1)
+    policy1 = BoxPushPolicyTeamExp1(mdp, temperature=1, agent_idx=0)
+    policy2 = BoxPushPolicyTeamExp1(mdp, temperature=1, agent_idx=1)
     agent1 = BoxPushAIAgent_Team1(policy1)
     agent2 = BoxPushAIAgent_Team2(policy2)
 
