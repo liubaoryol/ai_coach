@@ -346,7 +346,7 @@ class MDP:
     assign rewards for invalid transitions with -inf
     In this way, you can use numpy array for MDP.
     """
-    return range(self.num_actions)
+    return list(range(self.num_actions))
 
 
 def v_value_from_q_value(q_value: np.ndarray) -> np.ndarray:

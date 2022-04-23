@@ -3,11 +3,10 @@ import numpy as np
 from ai_coach_core.utils.feature_utils import (get_gridworld_astar_distance,
                                                manhattan_distance)
 from ai_coach_core.models.policy import CachedPolicyInterface
-from ai_coach_domain.box_push.mdpagent import (BoxPushMDPAgent,
-                                               BoxPushMDPAgent_Alone,
-                                               BoxPushMDPAgent_Together,
-                                               BoxPushMDPAgent_EmptyMind,
-                                               BoxPushMDPAgent_WebExp_Both)
+from ai_coach_domain.box_push.agent_model import (BoxPushAM, BoxPushAM_Alone,
+                                                  BoxPushAM_Together,
+                                                  BoxPushAM_EmptyMind,
+                                                  BoxPushAM_WebExp_Both)
 from ai_coach_domain.box_push.mdp import BoxPushMDP
 from ai_coach_domain.box_push.helper import (conv_box_idx_2_state, BoxState,
                                              EventType)
@@ -92,8 +91,8 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
     self.manual_action = None
 
   @abc.abstractmethod
-  def _create_agent_model(
-      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
     'Should be implemented at inherited method'
     raise NotImplementedError
 
@@ -185,9 +184,9 @@ class BoxPushAIAgent_Host(BoxPushAIAgent_Abstract):
   def __init__(self, policy_model: CachedPolicyInterface) -> None:
     super().__init__(policy_model, has_mind=False)
 
-  def _create_agent_model(
-      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
-    return BoxPushMDPAgent_EmptyMind(policy_model)
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
+    return BoxPushAM_EmptyMind(policy_model)
 
   def init_latent(self, tup_states):
     'do nothing - a user should set the latent state manually'
@@ -199,39 +198,37 @@ class BoxPushAIAgent_Host(BoxPushAIAgent_Abstract):
 
 
 class BoxPushAIAgent_Team1(BoxPushAIAgent_Abstract):
-  def _create_agent_model(
-      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
     AGENT1_IDX = 0
-    return BoxPushMDPAgent_Together(agent_idx=AGENT1_IDX,
-                                    policy_model=policy_model)
+    return BoxPushAM_Together(agent_idx=AGENT1_IDX, policy_model=policy_model)
 
 
 class BoxPushAIAgent_Team2(BoxPushAIAgent_Abstract):
-  def _create_agent_model(
-      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
     AGENT2_IDX = 1
-    return BoxPushMDPAgent_Together(agent_idx=AGENT2_IDX,
-                                    policy_model=policy_model)
+    return BoxPushAM_Together(agent_idx=AGENT2_IDX, policy_model=policy_model)
 
 
 class BoxPushAIAgent_WebExp_Both_A2(BoxPushAIAgent_Abstract):
-  def _create_agent_model(
-      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
-    return BoxPushMDPAgent_WebExp_Both(policy_model=policy_model)
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
+    return BoxPushAM_WebExp_Both(policy_model=policy_model)
 
 
 class BoxPushAIAgent_Indv1(BoxPushAIAgent_Abstract):
-  def _create_agent_model(
-      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
     AGENT1_IDX = 0
-    return BoxPushMDPAgent_Alone(AGENT1_IDX, policy_model)
+    return BoxPushAM_Alone(AGENT1_IDX, policy_model)
 
 
 class BoxPushAIAgent_Indv2(BoxPushAIAgent_Abstract):
-  def _create_agent_model(
-      self, policy_model: CachedPolicyInterface) -> BoxPushMDPAgent:
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
     AGENT2_IDX = 1
-    return BoxPushMDPAgent_Alone(AGENT2_IDX, policy_model)
+    return BoxPushAM_Alone(AGENT2_IDX, policy_model)
 
 
 class BoxPushSimpleAgent(BoxPushSimulatorAgent):

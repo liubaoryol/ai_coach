@@ -2,7 +2,7 @@ from typing import Sequence
 import os
 import numpy as np
 from ai_coach_core.models.policy import CachedPolicyInterface
-from ai_coach_domain.box_push.mdpagent import BoxPushMDPAgent
+from ai_coach_domain.box_push.agent_model import BoxPushAM
 from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
 from ai_coach_domain.box_push.agent import BoxPushAIAgent_Abstract
 from ai_coach_domain.box_push.maps import TUTORIAL_MAP
@@ -24,7 +24,7 @@ class StaticBoxPushPolicy(CachedPolicyInterface):
                      queried_agent_indices=(agent_idx, ))
 
 
-class StaticBoxPushMDPAgent(BoxPushMDPAgent):
+class StaticBoxPushAM(BoxPushAM):
   def initial_mental_distribution(self, obstate_idx: int) -> np.ndarray:
     mdp = self.get_reference_mdp()  # type: StaticBoxPushMDP
 
@@ -44,7 +44,7 @@ class StaticBoxPushAgent(BoxPushAIAgent_Abstract):
     super().__init__(policy_model, has_mind=True)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
-    return StaticBoxPushMDPAgent(self.agent_idx, policy_model=policy_model)
+    return StaticBoxPushAM(self.agent_idx, policy_model=policy_model)
 
   def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
     'do nothing'

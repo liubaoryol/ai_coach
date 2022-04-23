@@ -73,6 +73,9 @@ class CachedPolicyInterface(PolicyInterface):
     self.temperature = temperature
     self.queried_agent_indices = queried_agent_indices
 
+    # for type hinting
+    self.mdp = self.mdp  # type: mdp_lib.LatentMDP
+
   def prepare_policy(self):
     if (self.list_policy is None) or len(self.list_policy) == 0:
       # cur_dir = os.path.dirname(__file__)

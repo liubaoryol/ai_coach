@@ -1,6 +1,6 @@
 from typing import Sequence, Optional
 import numpy as np
-from ai_coach_core.models.agent_model import MentalModelAgent
+from ai_coach_core.models.agent_model import AgentModel
 from ai_coach_core.models.policy import PolicyInterface
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
 from ai_coach_domain.box_push.mdp import BoxPushMDP
@@ -25,7 +25,7 @@ def get_holding_box_and_floor_boxes(box_states, num_drops, num_goals):
   return a1_box, a2_box, floor_boxes
 
 
-class BoxPushMDPAgent(MentalModelAgent):
+class BoxPushAM(AgentModel):
   def __init__(self,
                agent_idx: int,
                policy_model: Optional[PolicyInterface] = None) -> None:
@@ -84,7 +84,7 @@ class BoxPushMDPAgent(MentalModelAgent):
       return get_np_bx_from_hold_state(a2_box, a1_box)
 
 
-class BoxPushMDPAgent_EmptyMind(BoxPushMDPAgent):
+class BoxPushAM_EmptyMind(BoxPushAM):
   def __init__(self, policy_model: Optional[PolicyInterface] = None) -> None:
     super().__init__(0, policy_model)
 
@@ -99,7 +99,7 @@ class BoxPushMDPAgent_EmptyMind(BoxPushMDPAgent):
     raise NotImplementedError
 
 
-class BoxPushMDPAgent_Together(BoxPushMDPAgent):
+class BoxPushAM_Together(BoxPushAM):
   def get_np_Tx_team_impl(self,
                           latstate_idx,
                           my_box_cur,
@@ -185,7 +185,7 @@ class BoxPushMDPAgent_Together(BoxPushMDPAgent):
                                       box_states_nxt, valid_boxes, 0.1)
 
 
-class BoxPushMDPAgent_WebExp_Both(BoxPushMDPAgent_Together):
+class BoxPushAM_WebExp_Both(BoxPushAM_Together):
   def __init__(self, policy_model: Optional[PolicyInterface] = None) -> None:
     super().__init__(1, policy_model=policy_model)
 
@@ -220,7 +220,7 @@ class BoxPushMDPAgent_WebExp_Both(BoxPushMDPAgent_Together):
                                       box_states_nxt, valid_boxes, 0.0)
 
 
-class BoxPushMDPAgent_Alone(BoxPushMDPAgent):
+class BoxPushAM_Alone(BoxPushAM):
   def transition_mental_state(self, latstate_idx: int, obstate_idx: int,
                               tuple_action_idx: Sequence[int],
                               obstate_next_idx: int) -> np.ndarray:
