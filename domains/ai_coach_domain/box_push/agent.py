@@ -123,11 +123,10 @@ class BoxPushAIAgent_Abstract(BoxPushSimulatorAgent):
     sidx_cur = self._conv_sim_states_to_mdp_sidx(tup_cur_state)
     sidx_nxt = self._conv_sim_states_to_mdp_sidx(tup_nxt_state)
 
+    mdp = self.agent_model.get_reference_mdp()
     list_aidx = []
-    for act in tup_actions:
-      # each agent has the same action space in this domain
-      aidx, = self.agent_model.policy_model.conv_action_to_idx((act, ))
-      list_aidx.append(aidx)
+    for idx, act in enumerate(tup_actions):
+      list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
 
     self.agent_model.update_mental_state_idx(sidx_cur, tuple(list_aidx),
                                              sidx_nxt)
