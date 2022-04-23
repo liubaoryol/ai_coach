@@ -4,7 +4,7 @@ import numpy as np
 from ai_coach_core.models.policy import PolicyInterface
 
 
-class MentalModelAgent:
+class AgentModel:
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, policy_model: Optional[PolicyInterface] = None) -> None:
