@@ -52,7 +52,7 @@ def conv_box_idx_2_state(state_idx, num_drops, num_goals):
     return (BoxState(state_idx), None)
   elif state_idx >= 4 and state_idx < 4 + num_drops:
     return (BoxState(4), state_idx - 4)
-  elif state_idx >= 4 + num_drops and state_idx < 4 + num_drops + num_goals:
+  elif state_idx >= 4 + num_drops:
     return (BoxState(5), state_idx - 4 - num_drops)
 
   raise ValueError

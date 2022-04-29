@@ -140,6 +140,8 @@ class BoxPushSimulator(Simulator):
                                      self.get_state_for_each_agent(self.AGENT1))
     self.agent_2.update_mental_state(a2_cur_state, tuple_actions,
                                      self.get_state_for_each_agent(self.AGENT2))
+    self.changed_state.append("a1_latent")
+    self.changed_state.append("a2_latent")
 
   def _transition(self, a1_action, a2_action):
     list_next_env = self.transition_fn(self.box_states, self.a1_pos,
@@ -225,6 +227,7 @@ class BoxPushSimulator(Simulator):
         dict_changed_obj[state] = self.agent_2.get_current_latent()
       else:
         dict_changed_obj[state] = getattr(self, state)
+    self.changed_state = []
     return dict_changed_obj
 
   def save_history(self, file_name, header):
@@ -322,18 +325,48 @@ class BoxPushSimulator(Simulator):
 
 
 class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
-  def __init__(self, id: Hashable) -> None:
-    super().__init__(id, transition_alone_and_together)
+  def __init__(
+      self,
+      id: Hashable,
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
+      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
+      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
+  ) -> None:
+    super().__init__(id,
+                     transition_alone_and_together,
+                     tuple_action_when_none=tuple_action_when_none,
+                     cb_action_to_idx=cb_action_to_idx,
+                     cb_idx_to_action=cb_idx_to_action)
 
 
 class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
-  def __init__(self, id: Hashable) -> None:
-    super().__init__(id, transition_always_together)
+  def __init__(
+      self,
+      id: Hashable,
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
+      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
+      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
+  ) -> None:
+    super().__init__(id,
+                     transition_always_together,
+                     tuple_action_when_none=tuple_action_when_none,
+                     cb_action_to_idx=cb_action_to_idx,
+                     cb_idx_to_action=cb_idx_to_action)
 
 
 class BoxPushSimulator_AlwaysAlone(BoxPushSimulator):
-  def __init__(self, id: Hashable) -> None:
-    super().__init__(id, transition_always_alone)
+  def __init__(
+      self,
+      id: Hashable,
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
+      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
+      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
+  ) -> None:
+    super().__init__(id,
+                     transition_always_alone,
+                     tuple_action_when_none=tuple_action_when_none,
+                     cb_action_to_idx=cb_action_to_idx,
+                     cb_idx_to_action=cb_idx_to_action)
 
 
 if __name__ == "__main__":
