@@ -236,11 +236,12 @@ class BoxPushTrajectories(Trajectories):
 @click.option("--use_ce", type=bool, default=False, help="")
 @click.option("--num_run", type=int, default=1, help="")
 @click.option("--only_20", type=bool, default=False, help="")
+@click.option("--suboptimality_stats", type=bool, default=True, help="")
 # yapf: enable
 def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
          dnn_bc, show_sl, show_semi, show_ul, use_true_tx, magail,
          num_processes, gail_batch_size, ppo_batch_size, num_iterations,
-         pretrain_steps, use_ce, num_run, only_20):
+         pretrain_steps, use_ce, num_run, only_20, suboptimality_stats):
   global MDP_AGENT, MDP_TASK, SAVE_PREFIX, BoxPushSimulator
 
   str_options = "\n"
@@ -351,7 +352,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
 
-    train_data = BoxPushTrajectories(MDP_AGENT.num_latents)
+    train_data = BoxPushTrajectories(MDP_AGENT.num_latents, sim)
     train_data.load_from_files(file_names)
     if num_run > 1:
       train_data.shuffle()
@@ -366,7 +367,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
 
-    test_data = BoxPushTrajectories(MDP_AGENT.num_latents)
+    test_data = BoxPushTrajectories(MDP_AGENT.num_latents, sim)
     test_data.load_from_files(test_file_names)
     test_traj = test_data.get_as_column_lists(include_terminal=False)
     logging.info(len(test_traj))
@@ -380,6 +381,54 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
       BETA_TX1 = 1.01
       BETA_TX2 = 1.01
     logging.info("beta: %f, %f, %f" % (BETA_PI, BETA_TX1, BETA_TX2))
+
+    if suboptimality_stats:
+      from ai_coach_domain.box_push.agent_model import (
+          get_holding_box_and_floor_boxes)
+      n_total = 0
+      n_aligned = 0
+      for traj in traj_labeled_ver:
+        for s, a, x in traj:
+          n_total += 1
+          if is_team:
+            n_aligned += 1 if x[0] == x[1] else 0
+          else:
+            bstates, pos1, pos2 = MDP_TASK.conv_mdp_sidx_to_sim_states(s)
+            a1_box, a2_box, valid_box = get_holding_box_and_floor_boxes(
+                bstates, len(MDP_TASK.drops), len(MDP_TASK.goals))
+            if len(valid_box) > 1:
+              a1_latent = MDP_AGENT.latent_space.idx_to_state[x[0]]
+              a2_latent = MDP_AGENT.latent_space.idx_to_state[x[1]]
+              if (a1_latent[0] == "pickup" and a2_latent[0] == "pickup"
+                  and a1_latent[1] == a2_latent[1]):
+                continue
+              elif (a1_latent[0] == "pickup" and a2_latent[0] != "pickup"
+                    and a1_latent[1] == a2_box):
+                continue
+              elif (a1_latent[0] != "pikcup" and a2_latent[0] == "pikcup"
+                    and a2_latent[1] == a1_box):
+                continue
+              elif (a1_latent[0] == "origin" or a2_latent[0] == "origin"):
+                continue
+              else:
+                n_aligned += 1
+            elif len(valid_box) == 1:
+              if (a1_latent[0] == "pickup" and a2_latent[0] != "pickup"
+                  and a1_latent[1] == a2_box):
+                continue
+              elif (a1_latent[0] != "pikcup" and a2_latent[0] == "pikcup"
+                    and a2_latent[1] == a1_box):
+                continue
+              elif (a1_latent[0] == "origin" or a2_latent[0] == "origin"):
+                continue
+              else:
+                n_aligned += 1
+            else:
+              if (a1_latent[0] == "origin" or a2_latent[0] == "origin"):
+                continue
+              else:
+                n_aligned += 1
+      print(n_aligned / n_total)
 
     joint_action_num = ((MDP_AGENT.a1_a_space.num_actions,
                          MDP_AGENT.a2_a_space.num_actions) if is_team else

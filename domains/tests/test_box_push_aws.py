@@ -17,8 +17,10 @@ import tests.test_box_push as tbp
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--num_run", type=int, default=1, help="")
 @click.option("--show_random", type=bool, default=False, help="")
+@click.option("--suboptimality_stats", type=bool, default=True, help="")
 # yapf: enable
-def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
+def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
+         suboptimality_stats):
   logging.info("is_TEAM: %s" % (is_team, ))
 
   for dummy_run in range(num_run):
@@ -77,15 +79,15 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
     file_names = glob.glob(os.path.join(TRAIN_DIR, '*.txt'))
     random.shuffle(file_names)
 
-    num_train = int(len(file_names) * 2 / 3)
-    # num_train = len(file_names)
+    # num_train = int(len(file_names) * 2 / 3)
+    num_train = len(file_names)
     logging.info(num_train)
     train_files = file_names[:num_train]
     test_files = file_names[num_train:]
 
     # load train set
     ##################################################
-    train_data = tbp.BoxPushTrajectories(tbp.MDP_AGENT.num_latents)
+    train_data = tbp.BoxPushTrajectories(tbp.MDP_AGENT.num_latents, sim)
     train_data.load_from_files(train_files)
     traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
                                                    include_terminal=False)
@@ -94,14 +96,59 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random):
 
     logging.info(len(traj_labeled_ver))
     list_length = [len(traj_tmp) for traj_tmp in traj_labeled_ver]
-    print(np.mean(list_length))
+    # print(np.mean(list_length))
 
     # load test set
     ##################################################
-    test_data = tbp.BoxPushTrajectories(tbp.MDP_AGENT.num_latents)
+    test_data = tbp.BoxPushTrajectories(tbp.MDP_AGENT.num_latents, sim)
     test_data.load_from_files(test_files)
     test_traj = test_data.get_as_column_lists(include_terminal=False)
     logging.info(len(test_traj))
+
+    if suboptimality_stats:
+      from ai_coach_domain.box_push.agent_model import (
+          get_holding_box_and_floor_boxes)
+      n_total = 0
+      n_aligned = 0
+      for traj in traj_labeled_ver:
+        for s, a, x in traj:
+          n_total += 1
+          if is_team:
+            n_aligned += 1 if x[0] == x[1] else 0
+          else:
+            bstates, pos1, pos2 = tbp.MDP_TASK.conv_mdp_sidx_to_sim_states(s)
+            a1_box, a2_box, valid_box = get_holding_box_and_floor_boxes(
+                bstates, len(tbp.MDP_TASK.drops), len(tbp.MDP_TASK.goals))
+            if len(valid_box) > 1:
+              a1_latent = tbp.MDP_TASK.latent_space.idx_to_state[x[0]]
+              a2_latent = tbp.MDP_TASK.latent_space.idx_to_state[x[1]]
+              if (a1_latent[0] == "pickup" and a2_latent[0] == "pickup"
+                  and a1_latent[1] == a2_latent[1]):
+                continue
+              elif (a1_latent[0] == "pickup" and a2_latent[0] != "pickup"
+                    and a1_latent[1] == a2_box):
+                continue
+              elif (a1_latent[0] != "pikcup" and a2_latent[0] == "pikcup"
+                    and a2_latent[1] == a1_box):
+                continue
+              elif (a1_latent[0] == "origin" or a2_latent[0] == "origin"):
+                continue
+              else:
+                n_aligned += 1
+            elif len(valid_box) == 1:
+              if (a1_latent[0] == "pickup" and a2_latent[0] != "pickup"
+                  and a1_latent[1] == a2_box):
+                continue
+              elif (a1_latent[0] != "pikcup" and a2_latent[0] == "pikcup"
+                    and a2_latent[1] == a1_box):
+                continue
+              elif (a1_latent[0] == "origin" or a2_latent[0] == "origin"):
+                continue
+              else:
+                n_aligned += 1
+            else:
+              n_aligned += 1
+      print(n_aligned / n_total)
 
     # true policy and transition
     ##################################################
