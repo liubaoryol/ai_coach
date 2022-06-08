@@ -1,4 +1,4 @@
-Web experiment
+## Web Interface for Human Experiment
 
 To run web experiment, `ai_coach_core` and `ai_coach_domain` packages should be installed first.
 ```
