@@ -1,4 +1,4 @@
-Domains for AI Coach
+## Domains for AI Coach
 
 To run a box push domain, please do:
 ```
