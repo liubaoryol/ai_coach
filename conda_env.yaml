@@ -1,0 +1,13 @@
+name: ai_coach
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - flake8
+  - yapf
+  - flask
+  - flask-socketio
+  - flask-sqlalchemy
+  - eventlet=0.30.2
+  - gunicorn
+  - pytest
