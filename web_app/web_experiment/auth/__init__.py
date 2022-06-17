@@ -13,3 +13,4 @@ auth_bp = Blueprint('auth',
 ADMIN_ID = 'register1234'
 
 from . import views, functions  # noqa: E402, F401
+
