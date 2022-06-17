@@ -123,6 +123,8 @@ def register():
           session['lines'] = lines
           session['index'] = 0
           session['max_index'] = len(traj)
+          session['replay_id'] = replayid
+          session['session_name'] = session_name
           if session_name.startswith('a'):
             return redirect(url_for('auth.replayA'))
           elif session_name.startswith('b'):
@@ -138,16 +140,17 @@ def register():
 @admin_required
 def replayA():
   cur_user = g.user
-  process_replay_post(request)
-  return render_template("replay_together.html", cur_user = cur_user, is_disabled = True)
+  user_id, session_name, session_length = process_replay_post(request)
+  print(user_id, session_name, session_length)
+  return render_template("replay_together.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length)
 
 @auth_bp.route('/replayB', methods=('GET', 'POST'))
 @admin_required
 def replayB():
+  print('ok2')
   cur_user = g.user
-  process_replay_post(request)
-  print('ok')
-  return render_template("replay_alone.html", cur_user = cur_user, is_disabled = True)
+  user_id, session_name, session_length = process_replay_post(request)
+  return render_template("replay_alone.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length)
 
 def process_replay_post(request):
   if (request.method == 'POST'):
@@ -161,7 +164,4 @@ def process_replay_post(request):
       idx = int(request.form['index'])
       if idx < (session['max_index'] - 1) and idx >= 0:
         session['index'] = idx
-  
-  
-
-
+  return session['replay_id'], session['session_name'], session['max_index']

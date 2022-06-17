@@ -31,6 +31,12 @@
     initPages(page_list, "together");
 </script>
 
+<div class='explanation'>
+    <p>
+        Replay of User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{session_length}}
+    </p>
+</div>
+
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
     Your browser does not support the HTML5 canvas tag.
 </canvas>
@@ -55,13 +61,20 @@
         <form method='post' action="{{ url_for('auth.replayA') }}">
             <div>
                 <label class="index" for="index"> Enter Index</label>
-                <input name="index" value="index">
+                <input name="index" value="0">
             </div>
             <div class="button-center">
                 <button type="submit" value="index" id="index">Go to Index</button>
             </div>
         </form>
     </div>
+
+    <form action="{{ url_for('auth.register') }}">
+        <input type="hidden" name="back" value="back">
+        <div class="button-center">
+            <button type="submit" value="back" id="back">Go Back To Register Page</button>
+        </div>
+    </form>
 
 
 </div>
