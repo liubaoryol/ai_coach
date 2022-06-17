@@ -12,7 +12,8 @@ from ai_coach_domain.box_push.maps import EXP1_MAP
 from web_experiment import socketio
 
 
-TEST_NAMESPACE = '/test'
+TOGETHER_NAMESPACE = '/together'
+ALONE_NAMESPACE = '/alone'
 GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
 
@@ -21,13 +22,23 @@ GRID_Y = EXP1_MAP["y_grid"]
 idx = None
 dict = None
 
-@socketio.on('connect', namespace=TEST_NAMESPACE)
+@socketio.on('connect', namespace=TOGETHER_NAMESPACE)
 def initial_canvas():
   event_impl.initial_canvas(GRID_X, GRID_Y)
   env_id = request.sid
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
-    event_impl.update_html_canvas(dict, env_id, False, TEST_NAMESPACE)
+    event_impl.update_html_canvas(dict, env_id, False, TOGETHER_NAMESPACE)
+
+@socketio.on('connect', namespace=ALONE_NAMESPACE)
+def initial_canvas():
+  event_impl.initial_canvas(GRID_X, GRID_Y)
+  env_id = request.sid
+  if 'dict' in session and 'index' in session:
+    dict = session['dict'][session['index']]
+    event_impl.update_html_canvas(dict, env_id, False, ALONE_NAMESPACE)
+
+
 
 @auth_bp.route('/register', methods=('GET', 'POST'))
 @admin_required
@@ -112,7 +123,10 @@ def register():
           session['lines'] = lines
           session['index'] = 0
           session['max_index'] = len(traj)
-          return redirect(url_for('auth.replay'))
+          if session_name.startswith('a'):
+            return redirect(url_for('auth.replayA'))
+          elif session_name.startswith('b'):
+            return redirect(url_for('auth.replayB'))
       if (error):
         flash(error)
 
@@ -120,11 +134,22 @@ def register():
   user_list = User.query.all()
   return render_template('register.html', userlist=user_list)
 
-@auth_bp.route('/replay', methods=('GET', 'POST'))
+@auth_bp.route('/replayA', methods=('GET', 'POST'))
 @admin_required
-def replay():
+def replayA():
   cur_user = g.user
-  print(request.method)
+  process_replay_post(request)
+  return render_template("replay_together.html", cur_user = cur_user, is_disabled = True)
+
+@auth_bp.route('/replayB', methods=('GET', 'POST'))
+@admin_required
+def replayB():
+  cur_user = g.user
+  process_replay_post(request)
+  print('ok')
+  return render_template("replay_alone.html", cur_user = cur_user, is_disabled = True)
+
+def process_replay_post(request):
   if (request.method == 'POST'):
     if 'next' in request.form:
       if session['index'] < (session['max_index'] - 1):
@@ -132,8 +157,11 @@ def replay():
     elif 'prev' in request.form:
       if session['index'] > 0:
         session['index'] -= 1
-  print(session['index'])
-      
+    elif 'index' in request.form:
+      idx = int(request.form['index'])
+      if idx < (session['max_index'] - 1) and idx >= 0:
+        session['index'] = idx
+  
+  
 
-  return render_template("replay.html", cur_user = cur_user)
 
