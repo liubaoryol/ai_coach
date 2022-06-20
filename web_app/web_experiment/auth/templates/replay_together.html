@@ -35,6 +35,18 @@
     <p>
         Replay of User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{session_length}}
     </p>
+    <div class="button-center" style="overflow-y: scroll;">
+        <table class="center">
+            <tr>
+                <th>Human Latent State</th>
+                <th>Agent Latent State</th>
+            </tr>
+            <tr>
+                <td>{{latent_human}}</td>
+                <td>{{latent_robot}}</td>
+            </tr>
+        </table>
+    </div>
 </div>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
@@ -75,6 +87,19 @@
             <button type="submit" value="back" id="back">Go Back To Register Page</button>
         </div>
     </form>
+
+    <div class="button-center" style="overflow-y: scroll;">
+        <table class="center">
+            <tr>
+                <th>Human Latent State</th>
+                <th>Agent Latent State</th>
+            </tr>
+            <tr>
+                <td>{{latent_human}}</td>
+                <td>{{latent_robot}}</td>
+            </tr>
+        </table>
+    </div>
 
 
 </div>

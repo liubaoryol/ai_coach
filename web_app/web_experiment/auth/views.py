@@ -139,20 +139,24 @@ def register():
 @auth_bp.route('/replayA', methods=('GET', 'POST'))
 @admin_required
 def replayA():
+  print('ok1')
   cur_user = g.user
-  user_id, session_name, session_length = process_replay_post(request)
-  print(user_id, session_name, session_length)
-  return render_template("replay_together.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length)
+  user_id, session_name, session_length, latent_human, latent_robot = process_replay_post(request)
+  
+  return render_template("replay_together.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length, latent_human = latent_human, latent_robot = latent_robot)
 
 @auth_bp.route('/replayB', methods=('GET', 'POST'))
 @admin_required
 def replayB():
   print('ok2')
   cur_user = g.user
-  user_id, session_name, session_length = process_replay_post(request)
-  return render_template("replay_alone.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length)
+  user_id, session_name, session_length, latent_human, latent_robot = process_replay_post(request)
+  dict = session['dict'][session['index']]
+  print(dict["a1_latent"], dict["a2_latent"])
+  return render_template("replay_alone.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length, latent_human = dict["a1_latent"], latent_robot = dict["a2_latent"])
 
 def process_replay_post(request):
+
   if (request.method == 'POST'):
     if 'next' in request.form:
       if session['index'] < (session['max_index'] - 1):
@@ -162,6 +166,18 @@ def process_replay_post(request):
         session['index'] -= 1
     elif 'index' in request.form:
       idx = int(request.form['index'])
-      if idx < (session['max_index'] - 1) and idx >= 0:
+      print(idx, (session['max_index'] - 1))
+      if idx <= (session['max_index'] - 1) and idx >= 0:
         session['index'] = idx
-  return session['replay_id'], session['session_name'], session['max_index']
+
+  dict = session['dict'][session['index']]
+
+  latent_human = "None"
+  latent_robot = "None"
+
+  if dict['a1_latent']:
+    latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
+  if dict['a2_latent']:
+    latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
+
+  return session['replay_id'], session['session_name'], session['max_index'], latent_human, latent_robot
