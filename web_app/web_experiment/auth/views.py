@@ -4,7 +4,7 @@ from flask import (flash, redirect, render_template, request, url_for, g, curren
 from web_experiment.models import (db, User, PostExperiment, InExperiment,
                                    PreExperiment)
 from web_experiment.auth.functions import admin_required
-from web_experiment.auth.util import read_file
+from web_experiment.auth.util import read_file, update_canvas, get_latent_states
 from . import auth_bp
 import glob, os
 import web_experiment.experiment1.events_impl as event_impl
@@ -12,24 +12,13 @@ from ai_coach_domain.box_push.maps import EXP1_MAP
 from web_experiment import socketio
 
 
+
 TOGETHER_NAMESPACE = '/together'
 ALONE_NAMESPACE = '/alone'
 GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
 
-# EXP1_NAMESPACE = '/exp1_both_tell_align'
-# namespace=EXP1_NAMESPACE
-idx = None
-dict = None
-
-@socketio.on('connect', namespace=TOGETHER_NAMESPACE)
-def initial_canvas():
-  event_impl.initial_canvas(GRID_X, GRID_Y)
-  env_id = request.sid
-  if 'dict' in session and 'index' in session:
-    dict = session['dict'][session['index']]
-    event_impl.update_html_canvas(dict, env_id, False, TOGETHER_NAMESPACE)
-
+# ALONE_NAMESPACE
 @socketio.on('connect', namespace=ALONE_NAMESPACE)
 def initial_canvas():
   event_impl.initial_canvas(GRID_X, GRID_Y)
@@ -38,7 +27,24 @@ def initial_canvas():
     dict = session['dict'][session['index']]
     event_impl.update_html_canvas(dict, env_id, False, ALONE_NAMESPACE)
 
+@socketio.on('next', namespace=ALONE_NAMESPACE)
+def next_index():
+  if session['index'] < (session['max_index'] - 1):
+    session['index'] += 1
+    update_canvas(request.sid, ALONE_NAMESPACE)
 
+@socketio.on('prev', namespace=ALONE_NAMESPACE)
+def next_index():
+  if session['index'] > 0:
+    session['index'] -= 1
+    update_canvas(request.sid, ALONE_NAMESPACE)
+
+@socketio.on('index', namespace=ALONE_NAMESPACE)
+def next_index(msg):
+  idx = int(msg['index'])
+  if (idx <= (session['max_index'] - 1) and idx >= 0):
+    session['index'] = idx
+    update_canvas(request.sid, ALONE_NAMESPACE)
 
 @auth_bp.route('/register', methods=('GET', 'POST'))
 @admin_required
@@ -102,13 +108,8 @@ def register():
         error = f"User {replayid} not found"
       else:
         traj_path = current_app.config["TRAJECTORY_PATH"]
-        
-        # print("session:" + session)
         path = f"{replayid}/session_{session_name}_{replayid}*.txt"
-        # example: "./data/tw2020_trajectory/tim/session_a1_tim*.txt"
-        
         fileExpr = os.path.join(traj_path, path)
-        print(f"fileExpr: {fileExpr}")
         # find any matching files
         files = glob.glob(fileExpr)
       
@@ -139,45 +140,9 @@ def register():
 @auth_bp.route('/replayA', methods=('GET', 'POST'))
 @admin_required
 def replayA():
-  print('ok1')
-  cur_user = g.user
-  user_id, session_name, session_length, latent_human, latent_robot = process_replay_post(request)
-  
-  return render_template("replay_together.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length, latent_human = latent_human, latent_robot = latent_robot)
+  return render_template("replay_together.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)
 
 @auth_bp.route('/replayB', methods=('GET', 'POST'))
 @admin_required
 def replayB():
-  print('ok2')
-  cur_user = g.user
-  user_id, session_name, session_length, latent_human, latent_robot = process_replay_post(request)
-  dict = session['dict'][session['index']]
-  print(dict["a1_latent"], dict["a2_latent"])
-  return render_template("replay_alone.html", cur_user = cur_user, is_disabled = True, user_id = user_id, session_name = session_name, session_length = session_length, latent_human = dict["a1_latent"], latent_robot = dict["a2_latent"])
-
-def process_replay_post(request):
-
-  if (request.method == 'POST'):
-    if 'next' in request.form:
-      if session['index'] < (session['max_index'] - 1):
-        session['index'] += 1
-    elif 'prev' in request.form:
-      if session['index'] > 0:
-        session['index'] -= 1
-    elif 'index' in request.form:
-      idx = int(request.form['index'])
-      print(idx, (session['max_index'] - 1))
-      if idx <= (session['max_index'] - 1) and idx >= 0:
-        session['index'] = idx
-
-  dict = session['dict'][session['index']]
-
-  latent_human = "None"
-  latent_robot = "None"
-
-  if dict['a1_latent']:
-    latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
-  if dict['a2_latent']:
-    latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
-
-  return session['replay_id'], session['session_name'], session['max_index'], latent_human, latent_robot
+  return render_template("replay_alone.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)

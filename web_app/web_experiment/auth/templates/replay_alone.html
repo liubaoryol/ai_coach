@@ -35,15 +35,15 @@
     <p>
         Replay of User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{session_length}}
     </p>
-    <div class="button-center" style="overflow-y: scroll;">
+    <div class="button-center">
         <table class="center">
             <tr>
                 <th>Human Latent State</th>
                 <th>Agent Latent State</th>
             </tr>
             <tr>
-                <td>{{latent_human}}</td>
-                <td>{{latent_robot}}</td>
+                <td id="latent_human"></td>
+                <td id="latent_robot"></td>
             </tr>
         </table>
     </div>
@@ -54,32 +54,23 @@
 </canvas>
 
 <div>
-    <form method='post' action="{{ url_for('auth.replayB') }}">
-        <input type="hidden" name="next" value="next">
-        <div class="button-center">
-            <button type="submit" value="next" id="next">Next Step</button>
-        </div>
+    <div class="button-center">
+        <button type="submit" value="next" id="next">Next Step</button>
+    </div>
 
-    </form>
-    <form method='post' action="{{ url_for('auth.replayB') }}">
-        <input type="hidden" name="prev" value="prev">
-        <div class="button-center">
-            <button type="submit" value="prev" id="prev">Previous Step</button>
-        </div>
-
-    </form>
+    <div class="button-center">
+        <button type="submit" value="prev" id="prev">Previous Step</button>
+    </div>
 
     <div class='form-control'>
-        <form method='post' action="{{ url_for('auth.replayB') }}">
+        <form onsubmit="return false;">
             <div>
                 <label class="index" for="index"> Enter Index</label>
-                <input name="index" value="0">
+                <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_value}}">
             </div>
             <div class="button-center">
                 <button type="submit" value="index" id="index">Go to Index</button>
             </div>
-
-
         </form>
     </div>
 
@@ -89,10 +80,6 @@
             <button type="submit" value="back" id="back">Go Back To Register Page</button>
         </div>
     </form>
-
-
-
-
 </div>
 
 <div style="visibility: hidden">
