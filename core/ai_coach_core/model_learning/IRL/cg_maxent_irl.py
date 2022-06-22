@@ -1,11 +1,11 @@
 from typing import Callable, Sequence, Optional
 import numpy as np
 import scipy.optimize
-from ai_coach_core.model_inference.IRL.maxent_irl import (MaxEntIRL,
-                                                          T_StateActionSeqence)
+from ai_coach_core.model_learning.IRL.maxent_irl import (MaxEntIRL,
+                                                         T_StateActionSeqence)
 from ai_coach_core.models.mdp import MDP
-from ai_coach_core.model_inference.IRL.constraints import (RewardConstraints,
-                                                           NumericalRelation)
+from ai_coach_core.model_learning.IRL.constraints import (RewardConstraints,
+                                                          NumericalRelation)
 
 
 class CGMaxEntIRL(MaxEntIRL):

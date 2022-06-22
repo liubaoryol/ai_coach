@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from ai_coach_core.model_inference.BTIL.btil_for_two import BTILforTwo
+from ai_coach_core.model_learning.BTIL.btil_for_two import BTILforTwo
 from ai_coach_core.latent_inference.most_probable_sequence import (
     most_probable_sequence)
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,

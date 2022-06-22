@@ -4,7 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_inference.BTIL.btil_for_two import BTILforTwo
+from ai_coach_core.model_learning.BTIL.btil_for_two import BTILforTwo
 import misc.BTIL_results.compute_dynamic_data_results as tbp
 
 

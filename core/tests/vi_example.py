@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import time
-from ai_coach_core.model_inference.BTIL.btil_static import BTILStatic
+from ai_coach_core.model_learning.BTIL.btil_static import BTILStatic
 from ai_coach_core.latent_inference.bayesian_inference import (
     bayesian_mind_inference)
 from tests.examples.environment import RequestEnvironment

@@ -4,14 +4,14 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import click
-from ai_coach_core.model_inference.IRL.maxent_irl import (MaxEntIRL,
-                                                          compute_relative_freq,
-                                                          cal_reward_error,
-                                                          cal_policy_error)
-from ai_coach_core.model_inference.IRL.cg_maxent_irl import CGMaxEntIRL
-from ai_coach_core.model_inference.IRL.constraints import (Equation,
-                                                           NumericalRelation,
-                                                           RewardConstraints)
+from ai_coach_core.model_learning.IRL.maxent_irl import (MaxEntIRL,
+                                                         compute_relative_freq,
+                                                         cal_reward_error,
+                                                         cal_policy_error)
+from ai_coach_core.model_learning.IRL.cg_maxent_irl import CGMaxEntIRL
+from ai_coach_core.model_learning.IRL.constraints import (Equation,
+                                                          NumericalRelation,
+                                                          RewardConstraints)
 from ai_coach_core.models.mdp import MDP
 from ai_coach_core.RL.planning import value_iteration
 from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace

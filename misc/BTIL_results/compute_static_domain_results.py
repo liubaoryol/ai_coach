@@ -5,10 +5,10 @@ import pickle
 import click
 import logging
 
-import ai_coach_core.model_inference.BTIL.btil_static as var_infer
+import ai_coach_core.model_learning.BTIL.btil_static as var_infer
 from ai_coach_core.latent_inference.bayesian_inference import (
     bayesian_mind_inference)
-from ai_coach_core.model_inference.IRL.maxent_irl import MaxEntIRL
+from ai_coach_core.model_learning.IRL.maxent_irl import MaxEntIRL
 from aicoach_baselines.tabular_bc import tabular_behavior_cloning
 from ai_coach_core.utils.data_utils import Trajectories
 from ai_coach_core.utils.result_utils import cal_latent_policy_error
