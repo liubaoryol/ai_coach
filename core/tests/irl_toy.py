@@ -555,8 +555,8 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
     ax2.set_ylabel('policy_error')
 
   if tabular_bc:
-    from ai_coach_core.model_inference.behavior_cloning import behavior_cloning
-    pi_bc = behavior_cloning(trajectories, num_ostates, num_actions)
+    from aicoach_baselines.tabular_bc import tabular_behavior_cloning
+    pi_bc = tabular_behavior_cloning(trajectories, num_ostates, num_actions)
     kl_bc = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_bc[s, a],
                              sto_pi)
     print(kl_bc)
@@ -564,7 +564,7 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
   sa_trajs = train_data.get_as_row_lists(no_latent_label=False,
                                          include_terminal=True)
 
-  import ai_coach_core.model_inference.sb3_algorithms as sb3_algs
+  import aicoach_baselines.sb3_algorithms as sb3_algs
   if dnn_bc:
 
     pi_bc_sb3 = sb3_algs.behavior_cloning_sb3(sa_trajs, num_ostates,
@@ -609,7 +609,7 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
 
     # gail
     else:
-      import ai_coach_core.model_inference.ikostrikov_gail as ikostrikov
+      import aicoach_baselines.ikostrikov_gail as ikostrikov
       pi_gail_torch = ikostrikov.gail_w_ppo(toy_mdp, [sid],
                                             trajectories,
                                             num_processes=4,
