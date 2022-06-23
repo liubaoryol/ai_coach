@@ -28,27 +28,28 @@
     page_list.push(new PageDuringGame());
 
 
-    initPages(page_list, "alone");
+    initPages(page_list, "alone_record");
 </script>
 
 <div class='explanation'>
     <p>
-        Replay of User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{session_length}}
+        User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{session_length}}
     </p>
-    <div class="button-center">
-        <table class="center">
-            <tr>
-                <th>Human Latent State</th>
-                <th>Human Latent State Predicted</th>
-                <th>Agent Latent State</th>
-            </tr>
-            <tr>
-                <td id="latent_human"></td>
-                <td id="latent_human_predicted"></td>
-                <td id="latent_robot"></td>
-            </tr>
-        </table>
-    </div>
+</div>
+
+<div class="form-control">
+    <h2>Record Latent States</h2>
+    <form onsubmit="return false;">
+        <label for="latent_state">Select Latent State</label>
+        <select name="latent_states" id="latent_states">
+            {% for latent_state in latent_states %}
+            <option value={{latent_state}}>{{latent_state}}</option>
+            {% endfor %}
+        </select>
+        <div class="button-center">
+            <button type="submit" value="latent_button" id="latent_button">Submit</button>
+        </div>
+    </form>
 </div>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>

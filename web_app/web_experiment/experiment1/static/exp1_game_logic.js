@@ -38,7 +38,7 @@ $(document).ready(function () {
   const nextBut = document.getElementById('next');
   const prevBut = document.getElementById('prev');
   const indexBut = document.getElementById('index');
-
+  const latentBut = document.getElementById('latent_button')
   /////////////////////////////////////////////////////////////////////////////
   // game instances and methods
   /////////////////////////////////////////////////////////////////////////////
@@ -72,6 +72,16 @@ $(document).ready(function () {
   /////////////////////////////////////////////////////////////////////////////
   var x_mouse = -1;
   var y_mouse = -1;
+
+  if (latentBut) {
+    latentBut.addEventListener('click', onLatClick, true);
+    function onLatClick(event) {
+      const lstate = document.getElementById('latent_states');
+      value = lstate.options[lstate.selectedIndex].label;
+      console.log(value)
+      socket.emit('record_latent', { latent: value })
+    }
+  }
 
   // click event listener
   cnvs.addEventListener('click', onClick, true);
@@ -140,8 +150,10 @@ $(document).ready(function () {
     const env = JSON.parse(json_msg);
     const latent_human = env.latent_human
     const latent_robot = env.latent_robot
+    const latent_human_predicted = env.latent_human_predicted
     document.getElementById('latent_human').textContent = latent_human;
     document.getElementById('latent_robot').textContent = latent_robot;
+    document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
   });
 
   let unchanged_agents = null;

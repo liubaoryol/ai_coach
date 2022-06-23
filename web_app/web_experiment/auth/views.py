@@ -4,47 +4,11 @@ from flask import (flash, redirect, render_template, request, url_for, g, curren
 from web_experiment.models import (db, User, PostExperiment, InExperiment,
                                    PreExperiment)
 from web_experiment.auth.functions import admin_required
-from web_experiment.auth.util import read_file, update_canvas, get_latent_states
+from web_experiment.auth.util import read_file
+from ai_coach_domain.box_push.helper import get_possible_latent_states
 from . import auth_bp
 import glob, os
-import web_experiment.experiment1.events_impl as event_impl
-from ai_coach_domain.box_push.maps import EXP1_MAP
-from web_experiment import socketio
 
-
-
-TOGETHER_NAMESPACE = '/together'
-ALONE_NAMESPACE = '/alone'
-GRID_X = EXP1_MAP["x_grid"]
-GRID_Y = EXP1_MAP["y_grid"]
-
-# ALONE_NAMESPACE
-@socketio.on('connect', namespace=ALONE_NAMESPACE)
-def initial_canvas():
-  event_impl.initial_canvas(GRID_X, GRID_Y)
-  env_id = request.sid
-  if 'dict' in session and 'index' in session:
-    dict = session['dict'][session['index']]
-    event_impl.update_html_canvas(dict, env_id, False, ALONE_NAMESPACE)
-
-@socketio.on('next', namespace=ALONE_NAMESPACE)
-def next_index():
-  if session['index'] < (session['max_index'] - 1):
-    session['index'] += 1
-    update_canvas(request.sid, ALONE_NAMESPACE)
-
-@socketio.on('prev', namespace=ALONE_NAMESPACE)
-def next_index():
-  if session['index'] > 0:
-    session['index'] -= 1
-    update_canvas(request.sid, ALONE_NAMESPACE)
-
-@socketio.on('index', namespace=ALONE_NAMESPACE)
-def next_index(msg):
-  idx = int(msg['index'])
-  if (idx <= (session['max_index'] - 1) and idx >= 0):
-    session['index'] = idx
-    update_canvas(request.sid, ALONE_NAMESPACE)
 
 @auth_bp.route('/register', methods=('GET', 'POST'))
 @admin_required
@@ -119,17 +83,22 @@ def register():
         else:
           file = files[0]
           traj = read_file(file)
-          lines = traj
           session["dict"] = traj
-          session['lines'] = lines
           session['index'] = 0
           session['max_index'] = len(traj)
           session['replay_id'] = replayid
           session['session_name'] = session_name
+          session['possible_latent_states'] = get_possible_latent_states(len(traj[0]['boxes']), len(traj[0]['drops']), len(traj[0]['goals']))
+          # dummy latent human prediction
+          session['latent_human_predicted'] = ["None"] * session['max_index']
+          session['latent_human_recorded'] = ["None"] * session['max_index']
           if session_name.startswith('a'):
-            return redirect(url_for('auth.replayA'))
+            # return redirect(url_for('auth.replayA'))
+            return redirect(url_for('replay.record', session_name = session_name))
           elif session_name.startswith('b'):
-            return redirect(url_for('auth.replayB'))
+            # return redirect(url_for('auth.replayB'))
+            return redirect(url_for('replay.record', session_name = session_name))
+
       if (error):
         flash(error)
 
@@ -137,12 +106,14 @@ def register():
   user_list = User.query.all()
   return render_template('register.html', userlist=user_list)
 
-@auth_bp.route('/replayA', methods=('GET', 'POST'))
+@auth_bp.route('/replayA')
 @admin_required
 def replayA():
-  return render_template("replay_together.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)
+  lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
+  return render_template("replay_together_record_latent.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1, latent_states = lstates)
+  # return render_template("replay_together.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)
 
-@auth_bp.route('/replayB', methods=('GET', 'POST'))
+@auth_bp.route('/replayB')
 @admin_required
 def replayB():
   return render_template("replay_alone.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)

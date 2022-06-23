@@ -56,12 +56,14 @@ def create_app(debug=False, test_config=None):
   from web_experiment.experiment1 import exp1_bp
   from web_experiment.experiment2 import exp2_bp
   from web_experiment.instruction import inst_bp
+  from web_experiment.replay import replay_bp
   app.register_blueprint(consent_bp)
   app.register_blueprint(auth_bp)
   app.register_blueprint(survey_bp)
   app.register_blueprint(exp1_bp)
   app.register_blueprint(exp2_bp)
   app.register_blueprint(inst_bp)
+  app.register_blueprint(replay_bp)
 
   # app.add_url_rule('/', endpoint='consent')
 

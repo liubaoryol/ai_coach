@@ -59,25 +59,28 @@ def read_file(file_name):
       })
   return traj
 
-def update_canvas(env_id, namespace):
+def update_canvas(env_id, namespace, update_latent):
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
     event_impl.update_html_canvas(dict, env_id, False, namespace)
     objs = {}
-    latent_human, latent_robot = get_latent_states()
+    latent_human, latent_human_predicted, latent_robot = get_latent_states()
     # update latent states
-    objs['latent_human'] = latent_human
-    objs['latent_robot'] = latent_robot
-    objs_json = json.dumps(objs)
-    str_emit = 'update_latent'
-    socketio.emit(str_emit, objs_json, room=env_id, namespace = namespace)
+    if update_latent:
+      objs['latent_human'] = latent_human
+      objs['latent_robot'] = latent_robot
+      objs['latent_human_predicted'] = latent_human_predicted
+      objs_json = json.dumps(objs)
+      str_emit = 'update_latent'
+      socketio.emit(str_emit, objs_json, room=env_id, namespace = namespace)
 
 def get_latent_states():
   dict = session['dict'][session['index']]
   latent_human = "None"
   latent_robot = "None"
+  latent_human_predicted = session['latent_human_predicted'][session['index']]
   if dict['a1_latent']:
     latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
   if dict['a2_latent']:
     latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
-  return latent_human, latent_robot
+  return latent_human, latent_human_predicted, latent_robot
