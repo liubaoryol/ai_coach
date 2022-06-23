@@ -136,14 +136,10 @@ class BTILforTwo:
 
     self.max_iteration = max_iteration
     self.epsilon = epsilon
-    self.file_name = None
 
   def set_bx_and_Tx(self, cb_bx, cb_Tx=None):
     self.cb_bx = cb_bx
     self.cb_Tx = cb_Tx
-
-  def set_load_save_file_name(self, file_name):
-    self.file_name = file_name
 
   def get_Tx(self, agent_idx, sidx, aidx1, aidx2, sidx_n):
     if self.cb_Tx is not None:
@@ -444,15 +440,6 @@ class BTILforTwo:
       self.list_Tx[A2].init_lambda_Tx(self.beta_T2)
 
     list_lambda_pi = []
-    if self.file_name is not None:
-      try:
-        with np.load(self.file_name) as data:
-          list_lambda_pi.append(data['arr_0'])
-          list_lambda_pi.append(data['arr_1'])
-          print("lambda_pi loaded from disk")
-      except IOError:
-        pass
-
     if len(list_lambda_pi) == 0:
       print("initialize lambda_pi")
       list_lambda_pi = [
@@ -479,9 +466,6 @@ class BTILforTwo:
         self.list_Tx[A2].conv_to_Tx_tilda()
 
       list_q_x, list_q_x_xn = self.estep_local_variables(list_pi_tilda)
-
-      if self.file_name is not None and count % 1 == 0:
-        np.savez(self.file_name, list_lambda_pi[A1], list_lambda_pi[A2])
 
       # if callback:
       #   callback(self.num_agents, list_q_pi_hyper)

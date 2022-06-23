@@ -601,11 +601,6 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
           logging.info("Train without true Tx")
           var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
 
-          save_name = SAVE_PREFIX + "_semi_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
-                                                            BETA_TX2)
-          save_path = os.path.join(DATA_DIR, save_name)
-          var_inf_semi.set_load_save_file_name(save_path)
-
         var_inf_semi.do_inference()
 
         var_inf_semi_conv = BTILConverter(var_inf_semi)
@@ -656,11 +651,6 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
       else:
         logging.info("Train without true Tx")
         var_inf_ul.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
-
-        save_name = SAVE_PREFIX + "_ul_%f_%f_%f.npz" % (BETA_PI, BETA_TX1,
-                                                        BETA_TX2)
-        save_path = os.path.join(DATA_DIR, save_name)
-        var_inf_ul.set_load_save_file_name(save_path)
 
       var_inf_ul.do_inference()
 

@@ -5,7 +5,7 @@ import logging
 import random
 import numpy as np
 from ai_coach_core.model_learning.BTIL.btil_for_two import BTILforTwo
-import misc.BTIL_results.compute_dynamic_data_results as tbp
+import compute_dynamic_data_results as tbp
 
 
 # yapf: disable
@@ -95,8 +95,6 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
                                                    include_terminal=False)
 
     logging.info(len(traj_labeled_ver))
-    list_length = [len(traj_tmp) for traj_tmp in traj_labeled_ver]
-    # print(np.mean(list_length))
 
     # load test set
     ##################################################
