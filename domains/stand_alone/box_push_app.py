@@ -8,7 +8,7 @@ import ai_coach_domain.box_push.mdppolicy as bp_policy
 import ai_coach_domain.box_push.agent as bp_agent
 
 IS_TESTMAP = False
-IS_TEAM = True
+IS_TEAM = False
 
 if IS_TESTMAP:
   GAME_MAP = bp_maps.TEST_MAP

@@ -4,6 +4,7 @@ import pickle
 import click
 import logging
 import numpy as np
+import warnings
 import matplotlib.pyplot as plt
 import time
 
@@ -13,13 +14,14 @@ from ai_coach_core.latent_inference.most_probable_sequence import (
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence,
                                               cal_latent_policy_error)
-from ai_coach_core.utils.data_utils import Trajectories
 
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
 import ai_coach_domain.box_push.mdp as bp_mdp
 import ai_coach_domain.box_push.mdppolicy as bp_policy
 import ai_coach_domain.box_push.agent as bp_agent
+from ai_coach_domain.box_push.utils import (TrueModelConverter,
+                                            BoxPushTrajectories)
 from ai_coach_domain.box_push.agent_model import get_holding_box_and_floor_boxes
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
@@ -146,11 +148,17 @@ def match_policy(cb_learned_policy, cb_true_policy):
 def transition_s(sidx, aidx1, aidx2, sidx_n=None):
   global g_loaded_transition_model
   if g_loaded_transition_model is None:
-    pickle_trans_s = os.path.join(DATA_DIR, SAVE_PREFIX + "_mdp.pickle")
+    file_name = SAVE_PREFIX + "_transition_" + MDP_TASK.map_to_str()
+    pickle_trans_s = os.path.join(DATA_DIR, file_name + ".pickle")
     if os.path.exists(pickle_trans_s):
       with open(pickle_trans_s, 'rb') as handle:
         g_loaded_transition_model = pickle.load(handle)
       logging.info("transition_s loaded by pickle")
+      warnings.warn(
+          "The transition has been loaded from a file ({}). "
+          "If any related implementation is changed, "
+          "be sure to delete the saved file and regenerate it.".format(
+              os.path.basename(pickle_trans_s)))
     else:
       g_loaded_transition_model = MDP_TASK.np_transition_model
       dir_name = os.path.dirname(pickle_trans_s)
@@ -172,45 +180,6 @@ def transition_s(sidx, aidx1, aidx2, sidx_n=None):
     return p
 
 
-class TrueModelConverter:
-  def __init__(self, agent1: bp_agent.BoxPushAIAgent_Abstract,
-               agent2: bp_agent.BoxPushAIAgent_Abstract, num_latents) -> None:
-    self.agent1 = agent1
-    self.agent2 = agent2
-    self.num_latents = num_latents
-
-  def get_true_policy(self, agent_idx, latent_idx, state_idx):
-    if agent_idx == 0:
-      return self.agent1.policy_from_task_mdp_POV(state_idx, latent_idx)
-    else:
-      return self.agent2.policy_from_task_mdp_POV(state_idx, latent_idx)
-
-  def get_true_Tx_nxsas(self, agent_idx, latent_idx, state_idx,
-                        tuple_action_idx, next_state_idx):
-    if agent_idx == 0:
-      return self.agent1.transition_model_from_task_mdp_POV(
-          latent_idx, state_idx, tuple_action_idx, next_state_idx)
-    else:
-      return self.agent2.transition_model_from_task_mdp_POV(
-          latent_idx, state_idx, tuple_action_idx, next_state_idx)
-
-  def get_init_latent_dist(self, agent_idx, state_idx):
-    if agent_idx == 0:
-      return self.agent1.init_latent_dist_from_task_mdp_POV(state_idx)
-    else:
-      return self.agent2.init_latent_dist_from_task_mdp_POV(state_idx)
-
-  def true_Tx_for_var_infer(self, agent_idx, state_idx, action1_idx,
-                            action2_idx, next_state_idx):
-    joint_action = (action1_idx, action2_idx)
-    np_Txx = np.zeros((self.num_latents, self.num_latents))
-    for xidx in range(self.num_latents):
-      np_Txx[xidx, :] = self.get_true_Tx_nxsas(agent_idx, xidx, state_idx,
-                                               joint_action, next_state_idx)
-
-    return np_Txx
-
-
 class BTILConverter:
   def __init__(self, var_inf_obj: BTILforTwo) -> None:
     self.var_inf_obj = var_inf_obj
@@ -223,40 +192,6 @@ class BTILConverter:
     return self.var_inf_obj.get_Tx(agent_idx, state_idx, tuple_action_idx[0],
                                    tuple_action_idx[1],
                                    next_state_idx)[latent_idx]
-
-
-class BoxPushTrajectories(Trajectories):
-  def __init__(self, num_latents: int, simulator: BoxPushSimulator) -> None:
-    super().__init__(num_state_factors=1,
-                     num_action_factors=2,
-                     num_latent_factors=2,
-                     num_latents=num_latents)
-    self.simulator = simulator
-
-  def load_from_files(self, file_names):
-    for file_nm in file_names:
-      trj = self.simulator.read_file(file_nm)
-      if len(trj) == 0:
-        continue
-
-      np_trj = np.zeros((len(trj), self.get_width()), dtype=np.int32)
-      for tidx, vec_state_action in enumerate(trj):
-        bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = vec_state_action
-
-        sidx = MDP_TASK.conv_sim_states_to_mdp_sidx([bstt, a1pos, a2pos])
-        aidx1 = (MDP_TASK.a1_a_space.action_to_idx[a1act]
-                 if a1act is not None else Trajectories.EPISODE_END)
-        aidx2 = (MDP_TASK.a2_a_space.action_to_idx[a2act]
-                 if a2act is not None else Trajectories.EPISODE_END)
-
-        xidx1 = (MDP_AGENT.latent_space.state_to_idx[a1lat]
-                 if a1lat is not None else Trajectories.EPISODE_END)
-        xidx2 = (MDP_AGENT.latent_space.state_to_idx[a2lat]
-                 if a2lat is not None else Trajectories.EPISODE_END)
-
-        np_trj[tidx, :] = [sidx, aidx1, aidx2, xidx1, xidx2]
-
-      self.list_np_trajectory.append(np_trj)
 
 
 # yapf: disable
@@ -397,7 +332,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
 
-    train_data = BoxPushTrajectories(MDP_AGENT.num_latents, sim)
+    train_data = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
     train_data.load_from_files(file_names)
     if num_run > 1:
       train_data.shuffle()
@@ -412,7 +347,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
 
-    test_data = BoxPushTrajectories(MDP_AGENT.num_latents, sim)
+    test_data = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
     test_data.load_from_files(test_file_names)
     test_traj = test_data.get_as_column_lists(include_terminal=False)
     logging.info(len(test_traj))

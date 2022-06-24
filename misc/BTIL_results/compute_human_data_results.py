@@ -5,18 +5,21 @@ import logging
 import random
 import numpy as np
 from ai_coach_core.model_learning.BTIL.btil_for_two import BTILforTwo
+from ai_coach_domain.box_push.utils import BoxPushTrajectories
+from ai_coach_domain.box_push.agent_model import (
+    assumed_initial_mental_distribution)
 import compute_dynamic_data_results as tbp
 
 
 # yapf: disable
 @click.command()
-@click.option("--is_team", type=bool, default=True, help="team / indv")
-@click.option("--show_sl", type=bool, default=False, help="")
+@click.option("--is_team", type=bool, default=False, help="team / indv")
+@click.option("--show_sl", type=bool, default=True, help="")
 @click.option("--show_semi", type=bool, default=False, help="")
 @click.option("--show_ul", type=bool, default=False, help="")
 @click.option("--num_run", type=int, default=1, help="")
 @click.option("--show_random", type=bool, default=False, help="")
-@click.option("--suboptimality_stats", type=bool, default=True, help="")
+@click.option("--suboptimality_stats", type=bool, default=False, help="")
 # yapf: enable
 def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
          suboptimality_stats):
@@ -43,30 +46,23 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
     if is_team:
       tbp.MDP_AGENT = tbp.bp_mdp.BoxPushTeamMDP_AlwaysTogether(**GAME_MAP)
       tbp.MDP_TASK = tbp.MDP_AGENT
-      policy1 = BoxPushPolicyTeam(tbp.MDP_TASK, TEMPERATURE,
-                                  tbp.BoxPushSimulator.AGENT1)
       policy2 = BoxPushPolicyTeam(tbp.MDP_TASK, TEMPERATURE,
                                   tbp.BoxPushSimulator.AGENT2)
-      agent1 = tbp.bp_agent.BoxPushAIAgent_Team1(policy1)
       agent2 = tbp.bp_agent.BoxPushAIAgent_Team2(policy2)
     else:
       tbp.MDP_AGENT = tbp.bp_mdp.BoxPushAgentMDP_AlwaysAlone(**GAME_MAP)
       tbp.MDP_TASK = tbp.bp_mdp.BoxPushTeamMDP_AlwaysAlone(**GAME_MAP)
-      policy1 = BoxPushPolicyIndv(tbp.MDP_TASK,
-                                  tbp.MDP_AGENT,
-                                  temperature=TEMPERATURE,
-                                  agent_idx=tbp.BoxPushSimulator.AGENT1)
       policy2 = BoxPushPolicyIndv(tbp.MDP_TASK,
                                   tbp.MDP_AGENT,
                                   temperature=TEMPERATURE,
                                   agent_idx=tbp.BoxPushSimulator.AGENT2)
-      agent1 = tbp.bp_agent.BoxPushAIAgent_Indv1(policy1)
       agent2 = tbp.bp_agent.BoxPushAIAgent_Indv2(policy2)
 
-    sim.set_autonomous_agent(agent1, agent2)
-
-    true_methods = tbp.TrueModelConverter(agent1, agent2,
-                                          tbp.MDP_AGENT.num_latents)
+    def get_init_latent_dist(agent_idx, state_idx):
+      if agent_idx == 0:
+        return assumed_initial_mental_distribution(0, state_idx, tbp.MDP_TASK)
+      else:
+        return agent2.init_latent_dist_from_task_mdp_POV(state_idx)
 
     AWS_DIR = os.path.join(os.path.dirname(__file__), "aws_data_test/")
 
@@ -87,7 +83,7 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
 
     # load train set
     ##################################################
-    train_data = tbp.BoxPushTrajectories(tbp.MDP_AGENT.num_latents, sim)
+    train_data = BoxPushTrajectories(sim, tbp.MDP_TASK, tbp.MDP_AGENT)
     train_data.load_from_files(train_files)
     traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
                                                    include_terminal=False)
@@ -98,7 +94,7 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
 
     # load test set
     ##################################################
-    test_data = tbp.BoxPushTrajectories(tbp.MDP_AGENT.num_latents, sim)
+    test_data = BoxPushTrajectories(sim, tbp.MDP_TASK, tbp.MDP_AGENT)
     test_data.load_from_files(test_files)
     test_traj = test_data.get_as_column_lists(include_terminal=False)
     logging.info(len(test_traj))
@@ -139,7 +135,7 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
         return (np.ones(tbp.MDP_AGENT.num_latents) / tbp.MDP_AGENT.num_latents)
 
       np_results = tbp.get_result(get_uniform_policy, get_uniform_tx,
-                                  true_methods.get_init_latent_dist, test_traj)
+                                  get_init_latent_dist, test_traj)
       avg1, avg2, avg3 = np.mean(np_results, axis=0)
       std1, std2, std3 = np.std(np_results, axis=0)
       logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
@@ -159,15 +155,14 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
         var_inf_sl.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
 
         logging.info("Train without true Tx")
-        var_inf_sl.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
+        var_inf_sl.set_bx_and_Tx(cb_bx=get_init_latent_dist)
 
         var_inf_sl.do_inference()
 
         var_inf_sl_conv = tbp.BTILConverter(var_inf_sl)
         np_results = tbp.get_result(var_inf_sl_conv.policy_nxs,
                                     var_inf_sl_conv.Tx_nxsas,
-                                    true_methods.get_init_latent_dist,
-                                    test_traj)
+                                    get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
         logging.info("%f,%f,%f,%f,%f,%f" % (avg1, std1, avg2, std2, avg3, std3))
@@ -191,14 +186,13 @@ def main(is_team, show_sl, show_semi, show_ul, num_run, show_random,
         var_inf_semi.set_dirichlet_prior(BETA_PI, BETA_TX1, BETA_TX2)
 
         logging.info("Train without true Tx")
-        var_inf_semi.set_bx_and_Tx(cb_bx=true_methods.get_init_latent_dist)
+        var_inf_semi.set_bx_and_Tx(cb_bx=get_init_latent_dist)
         var_inf_semi.do_inference()
 
         var_inf_semi_conv = tbp.BTILConverter(var_inf_semi)
         np_results = tbp.get_result(var_inf_semi_conv.policy_nxs,
                                     var_inf_semi_conv.Tx_nxsas,
-                                    true_methods.get_init_latent_dist,
-                                    test_traj)
+                                    get_init_latent_dist, test_traj)
         avg1, avg2, avg3 = np.mean(np_results, axis=0)
         std1, std2, std3 = np.std(np_results, axis=0)
         logging.info("Prediction of latent with learned Tx")

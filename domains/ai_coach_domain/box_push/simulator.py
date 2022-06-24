@@ -2,7 +2,7 @@ from typing import Hashable, Mapping, Tuple, Sequence, Callable, Any
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
-from ai_coach_domain.box_push.helper import (EventType,
+from ai_coach_domain.box_push.defines import (EventType,
                                              transition_alone_and_together,
                                              transition_always_together,
                                              transition_always_alone,

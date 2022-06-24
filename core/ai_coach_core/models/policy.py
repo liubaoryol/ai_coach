@@ -1,4 +1,5 @@
 from typing import Sequence
+import warnings
 import abc
 import os
 import numpy as np
@@ -78,10 +79,7 @@ class CachedPolicyInterface(PolicyInterface):
 
   def prepare_policy(self):
     if (self.list_policy is None) or len(self.list_policy) == 0:
-      # cur_dir = os.path.dirname(__file__)
       for idx in range(self.get_num_latent_states()):
-        # str_q_val = os.path.join(
-        #     cur_dir, "data/" + self.file_prefix + "%d.pickle" % (idx, ))
         str_q_val = self.file_prefix + "%d.pickle" % (idx, )
         np_q_value = None
         GAMMA = 0.95
@@ -102,6 +100,12 @@ class CachedPolicyInterface(PolicyInterface):
         else:
           with open(str_q_val, "rb") as f:
             np_q_value = pickle.load(f)
+
+          warnings.warn(
+              "The Q-values for the policy has been loaded from a file ({}). "
+              "If any related implementation is changed, "
+              "be sure to delete the saved file and regenerate it.".format(
+                  "prefix: " + os.path.basename(self.file_prefix)))
 
         self.list_policy.append(
             mdp_lib.softmax_policy_from_q_value(np_q_value, self.temperature))
