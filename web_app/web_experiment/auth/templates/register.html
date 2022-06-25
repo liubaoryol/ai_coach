@@ -55,4 +55,26 @@
   </form>
 </div>
 
+<div class="form-control">
+  <h2>Record Latent States for Previous Games</h2>
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <label for="recordid">Enter User ID</label>
+    <input name="recordid" id="recordid" required>
+    <label for="recordsession">Select Session to record latent states</label>
+    <select name="recordsession" id="recordsession">
+      <option value="a1">A1</option>
+      <option value="a2">A2</option>
+      <option value="a3">A3</option>
+      <option value="a4">A4</option>
+      <option value="a5">A5</option>
+      <option value="b1">B1</option>
+      <option value="b2">B2</option>
+      <option value="b3">B3</option>
+      <option value="b4">B4</option>
+      <option value="b5">B5</option>
+    </select>
+    <input type="submit" value="Record">
+  </form>
+</div>
+
 {% endblock %}

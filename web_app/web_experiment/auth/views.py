@@ -58,46 +58,57 @@ def register():
 
       logging.info('User %s deleted user %s.' % (g.user, delid))
       return redirect(url_for('auth.register'))
-    elif 'replayid' in request.form and 'replaysession' in request.form:
-      replayid = request.form['replayid'].lower()
-      session_name = request.form['replaysession']
+    elif ('replayid' in request.form) or ('recordid' in request.form):
+      # id, session_name
+      if 'replayid' in request.form:
+        id = request.form['replayid'].lower()
+        session_name = request.form['replaysession']
+      else:
+        id = request.form['recordid'].lower()
+        session_name = request.form['recordsession']
 
-      user = User.query.filter_by(userid=replayid).first()
+      user = User.query.filter_by(userid=id).first()
       error = None
-      if not replayid:
+      if not id:
         error = 'User ID is required.'
-      elif not bool(re.match('^[a-zA-Z0-9]*$', replayid)):
+      elif not bool(re.match('^[a-zA-Z0-9]*$', id)):
         error = 'Invalid User ID.'
       elif not user:
-        error = f"User {replayid} not found"
+        error = f"User {id} not found"
       else:
         traj_path = current_app.config["TRAJECTORY_PATH"]
-        path = f"{replayid}/session_{session_name}_{replayid}*.txt"
+        path = f"{id}/session_{session_name}_{id}*.txt"
         fileExpr = os.path.join(traj_path, path)
         # find any matching files
         files = glob.glob(fileExpr)
       
         if len(files) == 0:
           # does not find a match, error handling
-          error = f"No file found that matches {replayid}, session {session_name}"
+          error = f"No file found that matches {id}, session {session_name}"
         else:
           file = files[0]
           traj = read_file(file)
           session["dict"] = traj
           session['index'] = 0
           session['max_index'] = len(traj)
-          session['replay_id'] = replayid
+          session['replay_id'] = id
           session['session_name'] = session_name
           session['possible_latent_states'] = get_possible_latent_states(len(traj[0]['boxes']), len(traj[0]['drops']), len(traj[0]['goals']))
           # dummy latent human prediction
           session['latent_human_predicted'] = ["None"] * session['max_index']
           session['latent_human_recorded'] = ["None"] * session['max_index']
-          if session_name.startswith('a'):
-            # return redirect(url_for('auth.replayA'))
-            return redirect(url_for('replay.record', session_name = session_name))
-          elif session_name.startswith('b'):
-            # return redirect(url_for('auth.replayB'))
-            return redirect(url_for('replay.record', session_name = session_name))
+          if 'replayid' in request.form:
+            if session_name.startswith('a'):
+              return redirect(url_for('auth.replayA'))
+            elif session_name.startswith('b'):
+              return redirect(url_for('auth.replayB'))
+          else: 
+            if session_name.startswith('a'):
+              # return redirect(url_for('auth.replayA'))
+              return redirect(url_for('replay.record', session_name = session_name))
+            elif session_name.startswith('b'):
+              # return redirect(url_for('auth.replayB'))
+              return redirect(url_for('replay.record', session_name = session_name))
 
       if (error):
         flash(error)
@@ -110,8 +121,7 @@ def register():
 @admin_required
 def replayA():
   lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
-  return render_template("replay_together_record_latent.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1, latent_states = lstates)
-  # return render_template("replay_together.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)
+  return render_template("replay_together.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)
 
 @auth_bp.route('/replayB')
 @admin_required
