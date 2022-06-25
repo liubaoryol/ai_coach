@@ -1,13 +1,15 @@
 import logging
 import re
-from flask import (flash, redirect, render_template, request, url_for, g, current_app, session)
+import glob
+import os
+from flask import (flash, redirect, render_template, request, url_for, g,
+                   current_app, session)
 from web_experiment.models import (db, User, PostExperiment, InExperiment,
                                    PreExperiment)
 from web_experiment.auth.functions import admin_required
 from web_experiment.auth.util import read_file
-from ai_coach_domain.box_push.helper import get_possible_latent_states
+from ai_coach_domain.box_push.defines import get_possible_latent_states
 from . import auth_bp
-import glob, os
 
 
 @auth_bp.route('/register', methods=('GET', 'POST'))
@@ -81,7 +83,7 @@ def register():
         fileExpr = os.path.join(traj_path, path)
         # find any matching files
         files = glob.glob(fileExpr)
-      
+
         if len(files) == 0:
           # does not find a match, error handling
           error = f"No file found that matches {id}, session {session_name}"
@@ -93,7 +95,9 @@ def register():
           session['max_index'] = len(traj)
           session['replay_id'] = id
           session['session_name'] = session_name
-          session['possible_latent_states'] = get_possible_latent_states(len(traj[0]['boxes']), len(traj[0]['drops']), len(traj[0]['goals']))
+          session['possible_latent_states'] = get_possible_latent_states(
+              len(traj[0]['boxes']), len(traj[0]['drops']),
+              len(traj[0]['goals']))
           # dummy latent human prediction
           session['latent_human_predicted'] = ["None"] * session['max_index']
           session['latent_human_recorded'] = ["None"] * session['max_index']
@@ -102,28 +106,46 @@ def register():
               return redirect(url_for('auth.replayA'))
             elif session_name.startswith('b'):
               return redirect(url_for('auth.replayB'))
-          else: 
+          else:
             if session_name.startswith('a'):
               # return redirect(url_for('auth.replayA'))
-              return redirect(url_for('replay.record', session_name = session_name))
+              return redirect(
+                  url_for('replay.record', session_name=session_name))
             elif session_name.startswith('b'):
               # return redirect(url_for('auth.replayB'))
-              return redirect(url_for('replay.record', session_name = session_name))
+              return redirect(
+                  url_for('replay.record', session_name=session_name))
 
       if (error):
         flash(error)
 
-
   user_list = User.query.all()
   return render_template('register.html', userlist=user_list)
+
 
 @auth_bp.route('/replayA')
 @admin_required
 def replayA():
-  lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
-  return render_template("replay_together.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)
+  lstates = [
+      f"{latent_state[0]}, {latent_state[1]}"
+      for latent_state in session['possible_latent_states']
+  ]
+  return render_template("replay_together.html",
+                         cur_user=g.user,
+                         is_disabled=True,
+                         user_id=session['replay_id'],
+                         session_name=session['session_name'],
+                         session_length=session['max_index'],
+                         max_value=session['max_index'] - 1)
+
 
 @auth_bp.route('/replayB')
 @admin_required
 def replayB():
-  return render_template("replay_alone.html", cur_user = g.user, is_disabled = True, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1)
+  return render_template("replay_alone.html",
+                         cur_user=g.user,
+                         is_disabled=True,
+                         user_id=session['replay_id'],
+                         session_name=session['session_name'],
+                         session_length=session['max_index'],
+                         max_value=session['max_index'] - 1)
