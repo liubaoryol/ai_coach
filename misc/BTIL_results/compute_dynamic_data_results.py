@@ -9,8 +9,7 @@ import matplotlib.pyplot as plt
 import time
 
 from ai_coach_core.model_learning.BTIL.btil_for_two import BTILforTwo
-from ai_coach_core.latent_inference.most_probable_sequence import (
-    most_probable_sequence)
+from ai_coach_core.latent_inference.decoding import (most_probable_sequence)
 from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence,
                                               cal_latent_policy_error)

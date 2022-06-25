@@ -6,8 +6,8 @@ import click
 import logging
 
 import ai_coach_core.model_learning.BTIL.btil_static as var_infer
-from ai_coach_core.latent_inference.bayesian_inference import (
-    bayesian_mind_inference)
+from ai_coach_core.latent_inference.static_inference import (
+    bayesian_mental_state_inference)
 from ai_coach_core.model_learning.IRL.maxent_irl import MaxEntIRL
 from aicoach_baselines.tabular_bc import tabular_behavior_cloning
 from ai_coach_core.utils.data_utils import Trajectories
@@ -43,8 +43,8 @@ def get_bayesian_infer_result(num_agent, cb_n_xsa_policy, num_lstate,
 
   full_count_correct = 0
   for idx, trj in enumerate(test_full_trajectories):
-    infer_lat = bayesian_mind_inference(trj, tuple_num_lstate, cb_n_xsa_policy,
-                                        num_agent)
+    infer_lat = bayesian_mental_state_inference(trj, tuple_num_lstate,
+                                                cb_n_xsa_policy, num_agent)
     true_lat = true_latent_labels[idx]
     full_conf[true_lat][infer_lat] += 1
     if true_lat == infer_lat:

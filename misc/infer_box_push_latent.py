@@ -1,6 +1,5 @@
 import numpy as np
-from ai_coach_core.latent_inference.most_probable_sequence import (
-    most_probable_sequence)
+from ai_coach_core.latent_inference.decoding import (most_probable_sequence)
 from ai_coach_domain.box_push.agent_model import (
     assumed_initial_mental_distribution)
 
