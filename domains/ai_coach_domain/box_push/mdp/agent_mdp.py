@@ -2,7 +2,7 @@ import numpy as np
 from ai_coach_core.utils.mdp_utils import ActionSpace
 from ai_coach_domain.box_push import (BoxState, EventType, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
-from ai_coach_domain.box_push.helper import (transition_alone_and_together,
+from ai_coach_domain.box_push.defines import (transition_alone_and_together,
                                              transition_always_alone)
 from ai_coach_domain.box_push.mdp import BoxPushMDP
 

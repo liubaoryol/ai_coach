@@ -8,7 +8,7 @@ from ai_coach_domain.box_push.agent_model import (BoxPushAM, BoxPushAM_Alone,
                                                   BoxPushAM_EmptyMind,
                                                   BoxPushAM_WebExp_Both)
 from ai_coach_domain.box_push.mdp import BoxPushMDP
-from ai_coach_domain.box_push.helper import (conv_box_idx_2_state, BoxState,
+from ai_coach_domain.box_push.defines import (conv_box_idx_2_state, BoxState,
                                              EventType)
 
 

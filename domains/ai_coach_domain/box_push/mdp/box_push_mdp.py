@@ -1,10 +1,11 @@
 from typing import Sequence, Tuple, Union
 import abc
+import numpy as np
 from ai_coach_core.utils.mdp_utils import StateSpace
 from ai_coach_core.models.mdp import LatentMDP
 from ai_coach_domain.box_push import (BoxState, conv_box_state_2_idx,
                                       conv_box_idx_2_state)
-from ai_coach_domain.box_push.helper import get_possible_latent_states
+from ai_coach_domain.box_push.defines import get_possible_latent_states
 
 
 class BoxPushMDP(LatentMDP):
@@ -18,6 +19,31 @@ class BoxPushMDP(LatentMDP):
     self.drops = drops
     self.transition_fn = cb_transition
     super().__init__(use_sparse=True)
+
+  def map_to_str(self):
+    BASE36 = 36
+    assert self.x_grid < BASE36 and self.y_grid < BASE36
+
+    x_36 = np.base_repr(self.x_grid, BASE36)
+    y_36 = np.base_repr(self.y_grid, BASE36)
+
+    np_map = np.zeros((self.x_grid, self.y_grid), dtype=int)
+    if self.boxes:
+      np_map[tuple(zip(*self.boxes))] = 1
+    if self.goals:
+      np_map[tuple(zip(*self.goals))] = 2
+    if self.walls:
+      np_map[tuple(zip(*self.walls))] = 3
+    if self.drops:
+      np_map[tuple(zip(*self.drops))] = 4
+
+    map_5 = "".join(np_map.reshape((-1, )).astype(str))
+    map_int = int(map_5, base=5)
+    map_36 = np.base_repr(map_int, base=BASE36)
+
+    tup_map = (x_36, y_36, map_36)
+
+    return "%s_%s_%s" % tup_map
 
   def init_statespace(self):
     '''

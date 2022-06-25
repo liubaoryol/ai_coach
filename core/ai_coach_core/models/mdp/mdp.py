@@ -254,19 +254,12 @@ class MDP:
 
         for action in self.legal_actions(state):
           coord_2_data[(state, action, state)] = 0
-          # self._np_transition_model[state, action, state] = 0
           np_next_p_state_idx = self.transition_model(state, action)
 
           for (next_p, next_state) in np_next_p_state_idx:
             next_state = int(next_state)
             coord_2_data[(state, action, next_state)] = next_p
-            # self._np_transition_model[state, action, next_state] = next_p
-          # npt.assert_almost_equal(
-          #     actual=self._np_transition_model[state, action].sum(),
-          #     desired=1,
-          #     decimal=7,
-          #     err_msg="Transition probabilities do not sum to one.",
-          # )
+
       self._np_transition_model = sparse.COO.from_iter(coord_2_data,
                                                        dtype=np.float32)
 

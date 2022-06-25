@@ -16,7 +16,8 @@ class BoxPushPolicyTeamExp1(CachedPolicyInterface):
   def __init__(self, mdp: BoxPushTeamMDP_AlwaysTogether, temperature: float,
                agent_idx: int) -> None:
     cur_dir = os.path.dirname(__file__)
-    str_fileprefix = os.path.join(cur_dir, "data/box_push_np_q_value_exp1_")
+    str_fileprefix = os.path.join(cur_dir, "data/qval_team_")
+    str_fileprefix += mdp.map_to_str() + "_"
     super().__init__(mdp, str_fileprefix, policy_exp1_list, temperature,
                      (agent_idx, ))
     # TODO: check if mdp has the same configuration as EXP1_MAP
@@ -92,7 +93,8 @@ class BoxPushPolicyIndvExp1(PolicyFromIdenticalAgentMDP):
     super().__init__(task_mdp, agent_idx)
 
     cur_dir = os.path.dirname(__file__)
-    str_fileprefix = os.path.join(cur_dir, "data/box_push_np_q_value_indv_")
+    str_fileprefix = os.path.join(cur_dir, "data/qval_indv_")
+    str_fileprefix += task_mdp.map_to_str() + "_"
     # In this cached policy, states are represented w.r.t agent1.
     # We need to convert states in task-mdp into states in agent1-mdp.
     self.agent_policy = CachedPolicyInterface(agent_mdp, str_fileprefix,
@@ -103,11 +105,6 @@ class BoxPushPolicyTeamTest(CachedPolicyInterface):
   def __init__(self, mdp: BoxPushTeamMDP, temperature: float,
                agent_idx: int) -> None:
     super().__init__(mdp, "", policy_test_team_list, temperature, (agent_idx, ))
-
-
-# class BoxPushPolicyIndvTest(CachedPolicyInterface):
-#   def __init__(self, mdp: BoxPushAgentMDP, temperature: float) -> None:
-#     super().__init__(mdp, "", policy_test_agent_list, temperature)
 
 
 class BoxPushPolicyIndvTest_New(PolicyFromIdenticalAgentMDP):

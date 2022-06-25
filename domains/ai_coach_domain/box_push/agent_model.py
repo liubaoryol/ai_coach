@@ -25,6 +25,56 @@ def get_holding_box_and_floor_boxes(box_states, num_drops, num_goals):
   return a1_box, a2_box, floor_boxes
 
 
+def assumed_initial_mental_distribution(agent_idx: int, obstate_idx: int,
+                                        mdp: BoxPushMDP):
+  '''
+      obstate_idx: absolute (task-perspective) state representation.
+  '''
+  box_states, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
+
+  num_drops = len(mdp.drops)
+  num_goals = len(mdp.goals)
+  a1_box, a2_box, valid_box = get_holding_box_and_floor_boxes(
+      box_states, num_drops, num_goals)
+
+  def get_np_bx_from_hold_state(my_box, mate_box):
+    # it makes more sense to assume an agent is more likely to go to the goal
+    P_ORIG = 0.1
+    P_DROP = 0
+    P_GOAL = 1 - P_ORIG - P_DROP
+
+    np_bx = np.zeros(mdp.num_latents)
+    if my_box >= 0:
+      xidx = mdp.latent_space.state_to_idx[("origin", 0)]
+      np_bx[xidx] = P_ORIG
+      for idx in range(num_drops):
+        xidx = mdp.latent_space.state_to_idx[("drop", idx)]
+        np_bx[xidx] = P_DROP / num_drops
+      for idx in range(num_goals):
+        xidx = mdp.latent_space.state_to_idx[("goal", idx)]
+        np_bx[xidx] = P_GOAL / num_goals
+    else:
+      num_valid_box = len(valid_box)
+      if num_valid_box > 0:
+        for idx in valid_box:
+          xidx = mdp.latent_space.state_to_idx[("pickup", idx)]
+          np_bx[xidx] = 1 / num_valid_box
+      else:
+        if mate_box >= 0:  # TODO: check > or >=
+          xidx = mdp.latent_space.state_to_idx[("pickup", mate_box)]
+          np_bx[xidx] = 1
+        else:  # game finished, not meaningful state
+          xidx = mdp.latent_space.state_to_idx[("goal", 0)]
+          np_bx[xidx] = 1
+
+    return np_bx
+
+  if agent_idx == 0:
+    return get_np_bx_from_hold_state(a1_box, a2_box)
+  else:
+    return get_np_bx_from_hold_state(a2_box, a1_box)
+
+
 class BoxPushAM(AgentModel):
   def __init__(self,
                agent_idx: int,
@@ -39,49 +89,7 @@ class BoxPushAM(AgentModel):
                     For here, we assume agent1 state and task state is the same
         '''
     mdp = self.get_reference_mdp()  # type: BoxPushMDP
-
-    box_states, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
-
-    num_drops = len(mdp.drops)
-    num_goals = len(mdp.goals)
-    a1_box, a2_box, valid_box = get_holding_box_and_floor_boxes(
-        box_states, num_drops, num_goals)
-
-    def get_np_bx_from_hold_state(my_box, mate_box):
-      P_ORIG = 0.1
-      P_DROP = 0
-      P_GOAL = 1 - P_ORIG - P_DROP
-
-      np_bx = np.zeros(self.policy_model.get_num_latent_states())
-      if my_box >= 0:
-        xidx = self.policy_model.conv_latent_to_idx(("origin", 0))
-        np_bx[xidx] = P_ORIG
-        for idx in range(num_drops):
-          xidx = self.policy_model.conv_latent_to_idx(("drop", idx))
-          np_bx[xidx] = P_DROP / num_drops
-        for idx in range(num_goals):
-          xidx = self.policy_model.conv_latent_to_idx(("goal", idx))
-          np_bx[xidx] = P_GOAL / num_goals
-      else:
-        num_valid_box = len(valid_box)
-        if num_valid_box > 0:
-          for idx in valid_box:
-            xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
-            np_bx[xidx] = 1 / num_valid_box
-        else:
-          if mate_box >= 0:  # TODO: check > or >=
-            xidx = self.policy_model.conv_latent_to_idx(("pickup", mate_box))
-            np_bx[xidx] = 1
-          else:  # game finished, not meaningful state
-            xidx = self.policy_model.conv_latent_to_idx(("goal", 0))
-            np_bx[xidx] = 1
-
-      return np_bx
-
-    if self.agent_idx == 0:
-      return get_np_bx_from_hold_state(a1_box, a2_box)
-    else:
-      return get_np_bx_from_hold_state(a2_box, a1_box)
+    return assumed_initial_mental_distribution(self.agent_idx, obstate_idx, mdp)
 
 
 class BoxPushAM_EmptyMind(BoxPushAM):

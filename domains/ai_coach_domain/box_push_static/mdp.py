@@ -1,6 +1,6 @@
 from ai_coach_core.utils.mdp_utils import StateSpace
 from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AloneOrTogether
-from ai_coach_domain.box_push.helper import BoxState, EventType
+from ai_coach_domain.box_push.defines import BoxState, EventType
 
 
 class StaticBoxPushMDP(BoxPushTeamMDP_AloneOrTogether):

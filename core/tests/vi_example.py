@@ -4,9 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import time
-import ai_coach_core.model_inference.var_infer.var_infer_static_x as var_infer
-from ai_coach_core.latent_inference.bayesian_inference import (
-    bayesian_mind_inference)
+from ai_coach_core.model_learning.BTIL.btil_static import BTILStatic
+from ai_coach_core.latent_inference.static_inference import (
+    bayesian_mental_state_inference)
 from tests.examples.environment import RequestEnvironment
 from tests.examples.tooldelivery_v3_env import ToolDeliveryEnv_V3
 
@@ -124,8 +124,8 @@ def get_bayesian_infer_result(num_agent, list_np_policies, num_lstate,
 
   full_count_correct = 0
   for idx, trj in enumerate(test_full_trajectories):
-    infer_lat = bayesian_mind_inference(trj, tuple_num_lstate, n_xsa_policy,
-                                        num_agent)
+    infer_lat = bayesian_mental_state_inference(trj, tuple_num_lstate,
+                                                n_xsa_policy, num_agent)
     true_lat = true_latent_labels[idx]
     full_conf[true_lat][infer_lat] += 1
     if true_lat == infer_lat:
@@ -135,8 +135,8 @@ def get_bayesian_infer_result(num_agent, list_np_policies, num_lstate,
 
   part_count_correct = 0
   for idx, trj in enumerate(test_part_trajectories):
-    infer_lat = bayesian_mind_inference(trj, tuple_num_lstate, n_xsa_policy,
-                                        num_agent)
+    infer_lat = bayesian_mental_state_inference(trj, tuple_num_lstate,
+                                                n_xsa_policy, num_agent)
     true_lat = true_latent_labels[idx]
     part_conf[true_lat][infer_lat] += 1
     if true_lat == infer_lat:
@@ -299,10 +299,9 @@ if __name__ == "__main__":
   ##############################################
   # supervised policy learning
   if SL_VAR:
-    sup_infer1 = var_infer.VarInferStaticX_SL(trajectories[0:num_labeled1],
-                                              latent_labels[0:num_labeled1],
-                                              num_agents, num_ostates,
-                                              num_lstates, tuple_num_actions)
+    sup_infer1 = BTILStatic([], trajectories[0:num_labeled1],
+                            latent_labels[0:num_labeled1], num_agents,
+                            num_ostates, num_lstates, tuple_num_actions)
     sup_infer1.set_dirichlet_prior(SUPER_HYPERPARAM)
     sup_infer1.do_inference()
     sup_np_policy1 = sup_infer1.list_np_policy
@@ -314,9 +313,8 @@ if __name__ == "__main__":
                                                   test_part_trajectories,
                                                   true_latent_labels)
 
-    sup_infer2 = var_infer.VarInferStaticX_SL(trajectories, latent_labels,
-                                              num_agents, num_ostates,
-                                              num_lstates, tuple_num_actions)
+    sup_infer2 = BTILStatic([], trajectories, latent_labels, num_agents,
+                            num_ostates, num_lstates, tuple_num_actions)
     sup_infer2.set_dirichlet_prior(SUPER_HYPERPARAM)
     sup_infer2.do_inference()
     sup_np_policy2 = sup_infer2.list_np_policy
@@ -329,16 +327,15 @@ if __name__ == "__main__":
   # ##############################################
   # # semisupervised policy learning
   if SEMI_VAR:
-    semisup_infer = var_infer.VarInferStaticX_SemiSL(
-        trajectories[num_labeled1:len(trajectories)],
-        trajectories[0:num_labeled1],
-        latent_labels[0:num_labeled1],
-        num_agents,
-        num_ostates,
-        num_lstates,
-        tuple_num_actions,
-        max_iteration=100,
-        epsilon=0.001)
+    semisup_infer = BTILStatic(trajectories[num_labeled1:len(trajectories)],
+                               trajectories[0:num_labeled1],
+                               latent_labels[0:num_labeled1],
+                               num_agents,
+                               num_ostates,
+                               num_lstates,
+                               tuple_num_actions,
+                               max_iteration=100,
+                               epsilon=0.001)
 
     semisup_infer.set_dirichlet_prior(SEMISUPER_HYPERPARAM)
 
