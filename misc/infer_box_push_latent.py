@@ -1,5 +1,6 @@
 import numpy as np
-from ai_coach_core.latent_inference.decoding import (most_probable_sequence)
+from ai_coach_core.latent_inference.decoding import (most_probable_sequence,
+                                                     forward_inference)
 from ai_coach_domain.box_push.agent_model import (
     assumed_initial_mental_distribution)
 
@@ -29,12 +30,11 @@ if __name__ == "__main__":
   traj_dir = "misc/BTIL_results/data/exp1_team_box_push_test/"
   test_file_names = glob.glob(traj_dir + '*.txt')
 
-  test_data = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
-  test_data.load_from_files(test_file_names)
-  test_traj = test_data.get_as_column_lists(include_terminal=False)
-
-  idx = 0
-  sample = test_traj[idx]
+  trajories = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
+  trajories.load_from_files(test_file_names)
+  list_sax_columns = trajories.get_as_column_lists(include_terminal=False)
+  list_sax_columns_w_terminal = trajories.get_as_column_lists(
+      include_terminal=True)
 
   # load models
   ############################################################################
@@ -57,10 +57,38 @@ if __name__ == "__main__":
   def init_latent_nxs(nidx, xidx, sidx):
     return assumed_initial_mental_distribution(0, sidx, MDP_AGENT)[xidx]
 
-  inferred_x = most_probable_sequence(sample[0], sample[1], 1,
-                                      MDP_AGENT.num_latents, policy_nxsa,
-                                      Tx_nxsasx, init_latent_nxs)
+  idx = 0
+  sax_sample = list_sax_columns[idx]
+  inferred_x_seq = most_probable_sequence(sax_sample[0], sax_sample[1], 1,
+                                          MDP_AGENT.num_latents, policy_nxsa,
+                                          Tx_nxsasx, init_latent_nxs)
 
-  true_x = list(zip(*sample[2]))[0]
-  print(inferred_x)
-  print(true_x)
+  true_x_seq = list(zip(*sax_sample[2]))[0]
+
+  sax_sample_w_term = list_sax_columns_w_terminal[idx]
+
+  list_inferred_x = []
+  list_x_dist = []
+
+  prev_dist = None
+  for step in range(1, len(sax_sample_w_term[0])):
+    inferred_x, x_dist = forward_inference(sax_sample_w_term[0][:step],
+                                           sax_sample_w_term[1][:step - 1], 1,
+                                           MDP_AGENT.num_latents, policy_nxsa,
+                                           Tx_nxsasx, init_latent_nxs)
+    list_inferred_x.append(inferred_x[0])
+    list_x_dist.append(x_dist[0])
+
+    inferred_x_, x_dist_ = forward_inference(sax_sample_w_term[0][:step],
+                                             sax_sample_w_term[1][:step - 1],
+                                             1,
+                                             MDP_AGENT.num_latents,
+                                             policy_nxsa,
+                                             Tx_nxsasx,
+                                             init_latent_nxs,
+                                             list_np_prev_px=prev_dist)
+    prev_dist = x_dist_
+
+  np_decoding = np.vstack([inferred_x_seq[0], list_inferred_x,
+                           true_x_seq]).transpose()
+  print(np_decoding)

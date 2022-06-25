@@ -101,14 +101,17 @@ def forward_inference(state_seq: Sequence[int],
   '''
 
   assert len(state_seq) == len(action_seq) + 1
+  assert len(state_seq) > 0
 
   list_np_px = []
   list_max_x = []
+
   # if previous p(x'|x, s, a, s') is given
   if list_np_prev_px is not None:
-    s_t = state_seq[-1]
-    s_tp = state_seq[-2]
-    joint_a_tp = state_seq[-1]
+    t_end = len(state_seq) - 1
+    s_t = state_seq[t_end]
+    s_tp = state_seq[t_end - 1]
+    joint_a_tp = action_seq[t_end - 1]
     for idx in range(num_agents):
       np_px = np.zeros(num_latent)
       for x_t in range(num_latent):
