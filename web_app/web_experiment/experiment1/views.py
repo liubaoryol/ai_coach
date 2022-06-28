@@ -148,7 +148,6 @@ def tutorial1():
 
   query_data = User.query.filter_by(userid=cur_user).first()
   disabled = ''
-  print(query_data.tutorial1)
   if not query_data.tutorial1:
     disabled = 'disabled'
   return render_template('tutorial1.html',
