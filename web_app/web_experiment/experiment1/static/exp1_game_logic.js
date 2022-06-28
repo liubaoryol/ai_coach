@@ -35,10 +35,7 @@ $(document).ready(function () {
 
   // alias 
   const cnvs = document.getElementById("myCanvas");
-  const nextBut = document.getElementById('next');
-  const prevBut = document.getElementById('prev');
-  const indexBut = document.getElementById('index');
-  const latentBut = document.getElementById('latent_button')
+
   /////////////////////////////////////////////////////////////////////////////
   // game instances and methods
   /////////////////////////////////////////////////////////////////////////////
@@ -73,45 +70,12 @@ $(document).ready(function () {
   var x_mouse = -1;
   var y_mouse = -1;
 
-  if (latentBut) {
-    latentBut.addEventListener('click', onLatClick, true);
-    function onLatClick(event) {
-      const lstate = document.getElementById('latent_states');
-      value = lstate.options[lstate.selectedIndex].label;
-      console.log(value)
-      socket.emit('record_latent', { latent: value })
-    }
-  }
-
   // click event listener
   cnvs.addEventListener('click', onClick, true);
   function onClick(event) {
     let x_m = event.offsetX;
     let y_m = event.offsetY;
     global_object.page_list[global_object.cur_page_idx].on_click(x_m, y_m);
-  }
-
-  // next button click event listener
-  nextBut.addEventListener('click', onNextClick, true);
-  function onNextClick(event) {
-    console.log('clicked next');
-    socket.emit('next');
-  }
-
-  // next button click event listener
-  prevBut.addEventListener('click', onPrevClick, true);
-  function onPrevClick(event) {
-    console.log('clicked prev');
-    socket.emit('prev');
-  }
-
-  // index button click event listener
-  indexBut.addEventListener('click', onIndexClick, true);
-  function onIndexClick(event) {
-    console.log('clicked index');
-    const val = document.getElementById('indexValue').value;
-    console.log(val)
-    socket.emit('index', { index: val });
   }
 
   // mouse move event listner
@@ -143,17 +107,6 @@ $(document).ready(function () {
       global_object.cur_page_idx = global_object.page_list.length - 1;
     }
     global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
-  });
-
-  // update latent state
-  socket.on('update_latent', function (json_msg) {
-    const env = JSON.parse(json_msg);
-    const latent_human = env.latent_human
-    const latent_robot = env.latent_robot
-    const latent_human_predicted = env.latent_human_predicted
-    document.getElementById('latent_human').textContent = latent_human;
-    document.getElementById('latent_robot').textContent = latent_robot;
-    document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
   });
 
   let unchanged_agents = null;
