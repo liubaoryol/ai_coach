@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Online Study on Teamwork{% endblock %}</h1>
+<div class="explanation">
+  <p>This online study is designed to better understand teamwork and develop computational approaches to model and
+    assess teamwork.
+    It is being conducted by Sangwon Seo and Prof. Vaibhav Unhelkar at Rice University.</p>
+  <p>During this study, you will complete a set of tasks with a robot teammate in a virtual environment (much like a
+    video game) and answer a few questions.
+    Your study session will take up to 25 minutes. You will receive a $5 gift card for successful completion of the
+    study.</p>
+  <p>For more details, please review the consent form for participation in this study.
+    If you agree to participate, please enter your User ID and click the "I agree" button.</p>
+  <p><b>This study is designed to be completed on a computer or a laptop. Please do not participate in the study via a
+      cell phone or tablet.</b></p>
+  <p><b>Please use Chrome, Firefox, Safari, or Edge. Internet Explorer is not supported.</b></p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="form-control">
+  <form method="post">
+    <div>
+      <iframe src="{{url_for('consent.static', filename='Rice_IRB_Consent_Form.pdf')}}" width="100%" height="500px">
+      </iframe>
+    </div>
+    <div>
+      <label class="statement" for="userid">User ID</label>
+      <input name="userid" id="userid" required>
+      <label class="statement" for="usergroup">User Group</label>
+      <select name="usergroup" id="usergroup">
+        <option value="A">Group A</option>
+        <option value="B">Group B</option>
+        <option value="C">Group C</option>
+      </select>
+
+    </div>
+    <!-- <div>
+      <label for="consent">Clicking below indicates that I have read the description of the study and I agree to
+        participate
+        in the study.</label>
+    </div> -->
+    <div class="button-center">
+      <button type="submit" value="submit">I agree</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
