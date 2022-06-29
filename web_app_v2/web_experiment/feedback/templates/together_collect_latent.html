@@ -77,17 +77,20 @@
         </form>
     </div>
 
-    <form action="{{ url_for('auth.register') }}">
-        <input type="hidden" name="back" value="back">
+    <form action="{{ url_for('feedback.collect', session_name = session_name) }}" method='post'>
+        <input type="hidden" name="proceed" value="proceed">
         <div class="button-center">
-            <button type="submit" value="back" id="back">Go Back To Register Page</button>
+            <button type="submit" value="proceed" id="proceed" disabled>Proceed to Next Stage</button>
         </div>
     </form>
+
+
 </div>
+
 
 <div style="visibility: hidden">
     <div class="button-center">
-        <form action="{{ url_for('survey.survey_both_tell_align') }}">
+        <form action="{{ url_for('survey.survey_trial1') }}">
             <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed to Survey</button>
         </form>
     </div>

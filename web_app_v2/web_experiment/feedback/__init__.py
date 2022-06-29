@@ -10,4 +10,4 @@ feedback_bp = Blueprint('feedback',
                        static_folder='static',
                        static_url_path='/feedback/static')
 
-from . import views  # noqa: E402, F401
+from . import views, event_a_collect, helper  # noqa: E402, F401

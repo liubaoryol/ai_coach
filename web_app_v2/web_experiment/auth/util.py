@@ -40,8 +40,8 @@ def load_session_trajectory(session_name, id):
         len(traj[0]['boxes']), len(traj[0]['drops']),
         len(traj[0]['goals']))
     # dummy latent human prediction
-    session['latent_human_predicted'] = ["None"] * session['max_index']
-    session['latent_human_recorded'] = ["None"] * session['max_index']
+    session['latent_human_predicted'] = [None] * session['max_index']
+    session['latent_human_recorded'] = [None] * session['max_index']
     print(session)
 
     return error

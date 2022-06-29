@@ -39,6 +39,7 @@ $(document).ready(function () {
     const prevBut = document.getElementById('prev');
     const indexBut = document.getElementById('index');
     const latentBut = document.getElementById('latent_button')
+    // const proceedBut = document.getElementById('proceed')
     /////////////////////////////////////////////////////////////////////////////
     // game instances and methods
     /////////////////////////////////////////////////////////////////////////////
@@ -78,7 +79,7 @@ $(document).ready(function () {
         function onLatClick(event) {
             const lstate = document.getElementById('latent_states');
             value = lstate.options[lstate.selectedIndex].label;
-            console.log(value)
+
             socket.emit('record_latent', { latent: value })
         }
     }
@@ -95,7 +96,9 @@ $(document).ready(function () {
     nextBut.addEventListener('click', onNextClick, true);
     function onNextClick(event) {
         console.log('clicked next');
-        socket.emit('next');
+        const lstate = document.getElementById('latent_states');
+        value = lstate.options[lstate.selectedIndex].label;
+        socket.emit('next', { latent: value });
     }
 
     // next button click event listener
@@ -154,6 +157,10 @@ $(document).ready(function () {
         document.getElementById('latent_human').textContent = latent_human;
         document.getElementById('latent_robot').textContent = latent_robot;
         document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
+    });
+
+    socket.on('complete', function (json_msg) {
+        document.getElementById('proceed').disabled = false;
     });
 
     let unchanged_agents = null;
