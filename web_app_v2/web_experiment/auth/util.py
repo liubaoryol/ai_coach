@@ -111,32 +111,43 @@ def read_file(file_name):
   return traj
 
 
-def update_canvas(env_id, namespace, update_latent, is_movers_domain=True):
+def update_canvas(env_id, namespace, update_latent, latent_recorded_during_game = True,
+                  is_movers_domain=True, make_prediction = True):
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
     event_impl.update_html_canvas(dict, env_id, False, namespace)
-    objs = {}
+    
     latent_human, latent_human_predicted, latent_robot = get_latent_states(
-        is_movers_domain)
+        is_movers_domain, latent_recorded_during_game, make_prediction=make_prediction)
+
     # update latent states
     if update_latent:
-      objs['latent_human'] = latent_human
-      objs['latent_robot'] = latent_robot
-      objs['latent_human_predicted'] = latent_human_predicted
-      objs_json = json.dumps(objs)
-      str_emit = 'update_latent'
-      socketio.emit(str_emit, objs_json, room=env_id, namespace=namespace)
+      update_latent_state(env_id, namespace, latent_robot, latent_human, latent_human_predicted)
+      
 
+def update_latent_state(env_id, namespace, latent_robot, latent_human, latent_human_predicted):
+  objs = {}
+  objs['latent_human'] = latent_human
+  objs['latent_robot'] = latent_robot
+  objs['latent_human_predicted'] = latent_human_predicted
+  objs_json = json.dumps(objs)
+  str_emit = 'update_latent'
+  socketio.emit(str_emit, objs_json, room=env_id, namespace=namespace)
 
-def get_latent_states(is_movers_domain):
+def get_latent_states(is_movers_domain, latent_recorded_during_game, make_prediction = True):
   dict = session['dict'][session['index']]
   latent_human = "None"
   latent_robot = "None"
-  latent_human_predicted = predict_human_latent(session['dict'],
-                                                session['index'],
-                                                is_movers_domain)
-  if dict['a1_latent']:
-    latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
+  latent_human_predicted = "None"
+  if latent_recorded_during_game:
+    if dict['a1_latent']:
+      latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
+  else:
+    latent_human = session['latent_human_recorded'][session['index']]
+  if make_prediction:
+    latent_human_predicted =   predict_human_latent(session['dict'],
+                                                    session['index'],
+                                                    is_movers_domain)
   if dict['a2_latent']:
     latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
   return latent_human, latent_human_predicted, latent_robot

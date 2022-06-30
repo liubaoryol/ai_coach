@@ -1,5 +1,5 @@
-import os, time
-from flask import current_app
+import os, time, glob
+from flask import current_app, session
 
 def store_latent_locally(user_id, session_name, game_type, map_info, lstates):
     file_name = get_latent_file_name(user_id, session_name)
@@ -39,3 +39,40 @@ def get_latent_file_name(user_id, session_name):
                                             time.gmtime(sec)), msec)
     file_name = "lstates" + "_" + session_name + '_' + str(user_id) + '_' + time_stamp + '.txt'
     return os.path.join(traj_dir, file_name)
+
+
+def load_latent(user_id, session_name):
+    traj_path = current_app.config["LATENT_PATH"]
+    path = f"{user_id}/lstates_session_{session_name}_{user_id}*.txt"
+
+    fileExpr = os.path.join(traj_path, path)
+    print(fileExpr)
+    # find any matching files
+    files = glob.glob(fileExpr)
+    
+    result = read_latent_file(files[0])
+    return result
+
+def read_latent_file(file_name):
+  lstates = []
+
+  with open(file_name, newline='') as txtfile:
+    lines = txtfile.readlines()
+    i_start = 0
+    for i_r, row in enumerate(lines):
+      if row == ('# cur_step, human_latent\n'):
+        i_start = i_r
+        break
+    print(i_start)
+
+    for i_r in range(i_start + 1, len(lines)):
+      line = lines[i_r]
+      states = line.rstrip()[:-1].split("; ")
+      if len(states) < 2:
+        for dummy in range(2 - len(states)):
+          states.append(None)
+    
+      step, lstate = states
+      lstates.append(lstate)
+    print(lstates)
+  return lstates
