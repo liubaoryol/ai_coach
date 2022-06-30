@@ -4,7 +4,7 @@ from flask import (request, session, current_app)
 import json
 import web_experiment.experiment1.events_impl as event_impl
 
-from ai_coach_core.latent_inference.decoding import forward_inference
+from ai_coach_core.latent_inference.decoding import forward_inference, most_probable_sequence
 from ai_coach_core.utils.data_utils import Trajectories
 from ai_coach_domain.box_push.maps import EXP1_MAP
 from ai_coach_domain.box_push.agent_model import (
@@ -42,7 +42,6 @@ def load_session_trajectory(session_name, id):
     # dummy latent human prediction
     session['latent_human_predicted'] = [None] * session['max_index']
     session['latent_human_recorded'] = [None] * session['max_index']
-    print(session)
 
     return error
 
@@ -111,21 +110,20 @@ def read_file(file_name):
   return traj
 
 
-def update_canvas(env_id, namespace, update_latent, latent_recorded_during_game = True,
+def update_canvas(env_id, namespace, update_latent, latent_from = 'In Game',
                   is_movers_domain=True, make_prediction = True):
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
     event_impl.update_html_canvas(dict, env_id, False, namespace)
-    
-    latent_human, latent_human_predicted, latent_robot = get_latent_states(
-        is_movers_domain, latent_recorded_during_game, make_prediction=make_prediction)
 
     # update latent states
     if update_latent:
-      update_latent_state(env_id, namespace, latent_robot, latent_human, latent_human_predicted)
+      update_latent_state(env_id, namespace, latent_from, is_movers_domain, make_prediction)
       
 
-def update_latent_state(env_id, namespace, latent_robot, latent_human, latent_human_predicted):
+def update_latent_state(env_id, namespace, latent_from, is_movers_domain, make_prediction):
+  latent_human, latent_human_predicted, latent_robot = get_latent_states(
+        is_movers_domain, latent_from, make_prediction=make_prediction)
   objs = {}
   objs['latent_human'] = latent_human
   objs['latent_robot'] = latent_robot
@@ -134,20 +132,24 @@ def update_latent_state(env_id, namespace, latent_robot, latent_human, latent_hu
   str_emit = 'update_latent'
   socketio.emit(str_emit, objs_json, room=env_id, namespace=namespace)
 
-def get_latent_states(is_movers_domain, latent_recorded_during_game, make_prediction = True):
+# latent_from can be collected from 'In Game', 'After Game', and 'None'
+def get_latent_states(is_movers_domain, latent_from, make_prediction = True):
   dict = session['dict'][session['index']]
   latent_human = "None"
   latent_robot = "None"
   latent_human_predicted = "None"
-  if latent_recorded_during_game:
+  if latent_from == 'In Game':
     if dict['a1_latent']:
       latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
-  else:
+  elif latent_from == 'After Game':
     latent_human = session['latent_human_recorded'][session['index']]
+    
   if make_prediction:
     latent_human_predicted =   predict_human_latent(session['dict'],
                                                     session['index'],
                                                     is_movers_domain)
+  else:
+    latent_human_predicted = session['latent_human_predicted'][session['index']]
   if dict['a2_latent']:
     latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
   return latent_human, latent_human_predicted, latent_robot
@@ -206,11 +208,15 @@ def predict_human_latent(traj, index, is_movers_domain):
   # TODO: take this codes out so that we need to load models only once
   model_dir = "../misc/BTIL_results/data/learned_models/"
 
-  policy_file = model_dir + "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
-  policy = np.load(policy_file)
+  if is_movers_domain:
+    policy_file = "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
+    tx_file = "exp1_team_btil_tx_human_66_1.00_a1.npy"
+  else:
+    policy_file = "exp1_indv_btil_policy_human_woTx_99_1.00_a1.npy"
+    tx_file = "exp1_indv_btil_tx_human_99_1.00_a1.npy"
 
-  tx_file = model_dir + "exp1_team_btil_tx_human_66_1.00_a1.npy"
-  tx = np.load(tx_file)
+  policy = np.load(model_dir + policy_file)
+  tx = np.load(model_dir + tx_file)
 
   # human mental state inference
   def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
@@ -237,3 +243,56 @@ def predict_human_latent(traj, index, is_movers_domain):
   prob = dist_x[0][latent_idx]
   latent = MDP_AGENT.latent_space.idx_to_state[inferred_x[0]]
   return f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
+
+def predict_human_latent_full(traj, is_movers_domain):
+    GAME_MAP = bp_maps.EXP1_MAP
+    if is_movers_domain:
+      BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
+      MDP_AGENT = bp_mdp.BoxPushTeamMDP_AlwaysTogether(**GAME_MAP)
+      MDP_TASK = MDP_AGENT
+    else:
+      BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
+      MDP_AGENT = bp_mdp.BoxPushAgentMDP_AlwaysAlone(**GAME_MAP)
+      MDP_TASK = bp_mdp.BoxPushTeamMDP_AlwaysAlone(**GAME_MAP)
+
+    # load models
+    # TODO: take this codes out so that we need to load models only once
+    model_dir = "../misc/BTIL_results/data/learned_models/"
+
+    if is_movers_domain:
+      policy_file = "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
+      tx_file = "exp1_team_btil_tx_human_66_1.00_a1.npy"
+    else:
+      policy_file = "exp1_indv_btil_policy_human_woTx_99_1.00_a1.npy"
+      tx_file = "exp1_indv_btil_tx_human_99_1.00_a1.npy"
+
+    policy = np.load(model_dir + policy_file)
+    tx = np.load(model_dir + tx_file)
+
+    # human mental state inference
+    def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
+      return policy[xidx, sidx, tuple_aidx[0]]
+
+    def Tx_nxsasx(nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
+      return tx[xidx, sidx, tuple_aidx[0], tuple_aidx[1], xidx_n]
+
+    def init_latent_nxs(nidx, xidx, sidx):
+      return assumed_initial_mental_distribution(0, sidx, MDP_AGENT)[xidx]
+
+    sim = BoxPushSimulator(0)
+    sim.init_game(**GAME_MAP)
+    trajories = BoxPushTrajectoryConverter(MDP_TASK, MDP_AGENT)
+    trajories.single_trajectory_from_list_dict(traj)
+    list_state, list_action, _ = trajories.get_as_column_lists(
+        include_terminal=True)[0]
+
+
+
+    list_inferred_x_seq = most_probable_sequence(list_state[:-1],
+                                          list_action, 1,
+                                          MDP_AGENT.num_latents, policy_nxsa,
+                                          Tx_nxsasx, init_latent_nxs)
+    inferred_x_seq = list_inferred_x_seq[0]
+    latents = [MDP_AGENT.latent_space.idx_to_state[x] for x in inferred_x_seq]
+    latents = [f"{latent[0]}, {latent[1]}" for latent in latents]
+    return latents

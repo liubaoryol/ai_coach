@@ -1,4 +1,6 @@
+from matplotlib import use
 import numpy as np
+from core.ai_coach_core.latent_inference.decoding import most_probable_sequence
 from web_experiment import socketio
 from flask import (request, session)
 import json
@@ -148,9 +150,7 @@ class BoxPushTrajectoryConverter(Trajectories):
 
     self.list_np_trajectory.append(np_traj)
 
-
-def predict_human_latent(traj, index, is_movers_domain):
-  # convert each
+def predict_human_latent_full(traj, is_movers_domain):
   GAME_MAP = bp_maps.EXP1_MAP
   if is_movers_domain:
     BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
@@ -165,11 +165,15 @@ def predict_human_latent(traj, index, is_movers_domain):
   # TODO: take this codes out so that we need to load models only once
   model_dir = "../misc/BTIL_results/data/learned_models/"
 
-  policy_file = model_dir + "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
-  policy = np.load(policy_file)
+  if is_movers_domain:
+    policy_file = "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
+    tx_file = "exp1_team_btil_tx_human_66_1.00_a1.npy"
+  else:
+    policy_file = "exp1_indv_btil_policy_human_woTx_99_1.00_a1.npy"
+    tx_file = "exp1_indv_btil_tx_human_99_1.00_a1.npy"
 
-  tx_file = model_dir + "exp1_team_btil_tx_human_66_1.00_a1.npy"
-  tx = np.load(tx_file)
+  policy = np.load(model_dir + policy_file)
+  tx = np.load(model_dir + tx_file)
 
   # human mental state inference
   def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
@@ -187,7 +191,61 @@ def predict_human_latent(traj, index, is_movers_domain):
   trajories.single_trajectory_from_list_dict(traj)
   list_state, list_action, _ = trajories.get_as_column_lists(
       include_terminal=True)[0]
+  
 
+
+  list_inferred_x_seq = most_probable_sequence(list_state[:-1],
+                                         list_action, 1,
+                                         MDP_AGENT.num_latents, policy_nxsa,
+                                         Tx_nxsasx, init_latent_nxs)
+  inferred_x_seq = list_inferred_x_seq[0]
+  return inferred_x_seq
+  
+def predict_human_latent(traj, index, is_movers_domain):
+  # convert each
+  GAME_MAP = bp_maps.EXP1_MAP
+  if is_movers_domain:
+    BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
+    MDP_AGENT = bp_mdp.BoxPushTeamMDP_AlwaysTogether(**GAME_MAP)
+    MDP_TASK = MDP_AGENT
+  else:
+    BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
+    MDP_AGENT = bp_mdp.BoxPushAgentMDP_AlwaysAlone(**GAME_MAP)
+    MDP_TASK = bp_mdp.BoxPushTeamMDP_AlwaysAlone(**GAME_MAP)
+
+  # load models
+  # TODO: take this codes out so that we need to load models only once
+  model_dir = "../misc/BTIL_results/data/learned_models/"
+
+  if is_movers_domain:
+    policy_file = "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
+    tx_file = "exp1_team_btil_tx_human_66_1.00_a1.npy"
+  else:
+    policy_file = "exp1_indv_btil_policy_human_woTx_99_1.00_a1.npy"
+    tx_file = "exp1_indv_btil_tx_human_99_1.00_a1.npy"
+
+  policy = np.load(model_dir + policy_file)
+  tx = np.load(model_dir + tx_file)
+
+  # human mental state inference
+  def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
+    return policy[xidx, sidx, tuple_aidx[0]]
+
+  def Tx_nxsasx(nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
+    return tx[xidx, sidx, tuple_aidx[0], tuple_aidx[1], xidx_n]
+
+  def init_latent_nxs(nidx, xidx, sidx):
+    return assumed_initial_mental_distribution(0, sidx, MDP_AGENT)[xidx]
+
+  sim = BoxPushSimulator(0)
+  sim.init_game(**GAME_MAP)
+  trajories = BoxPushTrajectoryConverter(MDP_TASK, MDP_AGENT)
+  trajories.single_trajectory_from_list_dict(traj)
+  list_state, list_action, _ = trajories.get_as_column_lists(
+      include_terminal=True)[0]
+  
+
+  inferred_x, dist_x
   inferred_x, dist_x = forward_inference(list_state[:index + 1],
                                          list_action[:index], 1,
                                          MDP_AGENT.num_latents, policy_nxsa,

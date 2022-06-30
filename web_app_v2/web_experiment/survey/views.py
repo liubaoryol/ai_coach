@@ -7,6 +7,7 @@ from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
 from . import survey_bp
+from web_experiment.auth.util import load_session_trajectory
 
 
 @survey_bp.route('/preexperiment', methods=('GET', 'POST'))
@@ -161,9 +162,13 @@ def survey_both_tell_align():
 @survey_bp.route('/survey_trial1', methods=('GET', 'POST'))
 @login_required
 def survey_trial1():
+  session_name = "a3"
   if session['user_group'] == 'C':
     return inexperiment_impl(3, 'survey_trial1.html',
-                           'feedback.collect', session_name = "a3")
+                           'feedback.collect', session_name = session_name)
+  elif session['user_group'] == 'B':
+    return inexperiment_impl(3, 'survey_trial1.html', 
+                            'feedback.feedback', session_name = session_name)
   else:
     return inexperiment_impl(3, 'survey_trial1.html',
                            'exp1.exp1_both_user_random_2')

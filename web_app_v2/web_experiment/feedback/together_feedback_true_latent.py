@@ -12,22 +12,22 @@ TOGETHER_NAMESPACE = '/feedback_together_true_latent'
 @socketio.on('connect', namespace=TOGETHER_NAMESPACE)
 def initial_canvas():
     event_impl.initial_canvas(GRID_X, GRID_Y)
-    update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_recorded_during_game = False,
-    make_prediction=False)
+    update_canvas_helper(session['user_group'])   
+
+
+
 
 @socketio.on('next', namespace=TOGETHER_NAMESPACE)
 def next_index():
     if session['index'] < (session['max_index'] - 1):
         session['index'] += 1
-        update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_recorded_during_game = False,
-    make_prediction=False)
+        update_canvas_helper(session['user_group'])  
 
 @socketio.on('prev', namespace=TOGETHER_NAMESPACE)
 def prev_index():
     if session['index'] > 0:
         session['index'] -= 1
-        update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_recorded_during_game = False,
-    make_prediction=False)
+        update_canvas_helper(session['user_group'])
 
 @socketio.on('index', namespace=TOGETHER_NAMESPACE)
 def next_index(msg):
@@ -35,6 +35,14 @@ def next_index(msg):
     print(session)
     if (idx <= (session['max_index'] - 1) and idx >= 0):
         session['index'] = idx
-        update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_recorded_during_game = False,
-    make_prediction=False)
+        update_canvas_helper(session['user_group'])
+        
+
+def update_canvas_helper(user_group):
+    if user_group == 'C':
+        update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_from = "After Game",
+        make_prediction=False)    
+    elif user_group == 'B':
+        update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_from = "None",
+        make_prediction=False)  
     
