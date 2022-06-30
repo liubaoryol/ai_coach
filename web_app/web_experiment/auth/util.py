@@ -165,11 +165,15 @@ def predict_human_latent(traj, index, is_movers_domain):
   # TODO: take this codes out so that we need to load models only once
   model_dir = "../misc/BTIL_results/data/learned_models/"
 
-  policy_file = model_dir + "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
-  policy = np.load(policy_file)
+  if is_movers_domain:
+    policy_file = "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
+    tx_file = "exp1_team_btil_tx_human_66_1.00_a1.npy"
+  else:
+    policy_file = "exp1_indv_btil_policy_human_woTx_99_1.00_a1.npy"
+    tx_file = "exp1_indv_btil_tx_human_99_1.00_a1.npy"
 
-  tx_file = model_dir + "exp1_team_btil_tx_human_66_1.00_a1.npy"
-  tx = np.load(tx_file)
+  policy = np.load(model_dir + policy_file)
+  tx = np.load(model_dir + tx_file)
 
   # human mental state inference
   def policy_nxsa(nidx, xidx, sidx, tuple_aidx):

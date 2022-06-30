@@ -8,27 +8,31 @@ GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
 ALONE_NAMESPACE = '/alone'
 
+
 # TOGETHER_NAMESPACE
 @socketio.on('connect', namespace=ALONE_NAMESPACE)
 def initial_canvas():
-    event_impl.initial_canvas(GRID_X, GRID_Y)
-    update_canvas(request.sid, ALONE_NAMESPACE, True)
+  event_impl.initial_canvas(GRID_X, GRID_Y)
+  update_canvas(request.sid, ALONE_NAMESPACE, True, False)
+
 
 @socketio.on('next', namespace=ALONE_NAMESPACE)
 def next_index():
-    if session['index'] < (session['max_index'] - 1):
-        session['index'] += 1
-        update_canvas(request.sid, ALONE_NAMESPACE, True)
+  if session['index'] < (session['max_index'] - 1):
+    session['index'] += 1
+    update_canvas(request.sid, ALONE_NAMESPACE, True, False)
+
 
 @socketio.on('prev', namespace=ALONE_NAMESPACE)
 def prev_index():
-    if session['index'] > 0:
-        session['index'] -= 1
-        update_canvas(request.sid, ALONE_NAMESPACE, True)
+  if session['index'] > 0:
+    session['index'] -= 1
+    update_canvas(request.sid, ALONE_NAMESPACE, True, False)
+
 
 @socketio.on('index', namespace=ALONE_NAMESPACE)
-def next_index(msg):
-    idx = int(msg['index'])
-    if (idx <= (session['max_index'] - 1) and idx >= 0):
-        session['index'] = idx
-        update_canvas(request.sid, ALONE_NAMESPACE, True)
+def goto_index(msg):
+  idx = int(msg['index'])
+  if (idx <= (session['max_index'] - 1) and idx >= 0):
+    session['index'] = idx
+    update_canvas(request.sid, ALONE_NAMESPACE, True, False)
