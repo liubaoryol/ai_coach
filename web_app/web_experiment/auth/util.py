@@ -1,6 +1,6 @@
 from matplotlib import use
 import numpy as np
-from core.ai_coach_core.latent_inference.decoding import most_probable_sequence
+from ai_coach_core.latent_inference.decoding import most_probable_sequence
 from web_experiment import socketio
 from flask import (request, session)
 import json
