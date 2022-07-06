@@ -156,6 +156,12 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name, session_nam
 @login_required
 def survey_both_tell_align():
   return inexperiment_impl(1, 'survey_both_tell_align.html',
+                           'exp1.exp1_both_tell_align_2')
+
+@survey_bp.route('/survey_both_tell_align_2', methods=('GET', 'POST'))
+@login_required
+def survey_both_tell_align_2():
+  return inexperiment_impl(2, 'survey_both_tell_align_2.html',
                            'exp1.exp1_trial1')
 
 

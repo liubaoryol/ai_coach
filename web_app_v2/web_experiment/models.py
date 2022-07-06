@@ -13,6 +13,7 @@ class User(db.Model):
   session_a1 = db.Column(db.Boolean, default=False)
   session_a2 = db.Column(db.Boolean, default=False)
   session_a3 = db.Column(db.Boolean, default=False)
+  session_a3_record = db.Column(db.Boolean, default=False)
   session_a4 = db.Column(db.Boolean, default=False)
   session_b1 = db.Column(db.Boolean, default=False)
   session_b2 = db.Column(db.Boolean, default=False)

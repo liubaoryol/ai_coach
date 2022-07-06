@@ -2,6 +2,8 @@ import os, time, glob
 from flask import current_app, session
 
 def store_latent_locally(user_id, session_name, game_type, map_info, lstates):
+  # if latent state has not been previously stored
+  if not check_latent_exist(user_id, session_name):
     file_name = get_latent_file_name(user_id, session_name)
     header = game_type + "-" + session_name + "\n"
     header += "User ID: %s\n" % (str(user_id), )
@@ -22,11 +24,6 @@ def store_latent_locally(user_id, session_name, game_type, map_info, lstates):
             txtfile.write('%s; ' % (lstate, ))
             txtfile.write('\n')
 
-
-
-
-
-
 def get_latent_file_name(user_id, session_name):
     session_name = "session" + "_" + session_name
     traj_dir = os.path.join(current_app.config["LATENT_PATH"], user_id)
@@ -42,16 +39,30 @@ def get_latent_file_name(user_id, session_name):
 
 
 def load_latent(user_id, session_name):
-    traj_path = current_app.config["LATENT_PATH"]
-    path = f"{user_id}/lstates_session_{session_name}_{user_id}*.txt"
-
-    fileExpr = os.path.join(traj_path, path)
-    print(fileExpr)
-    # find any matching files
-    files = glob.glob(fileExpr)
-    
+  if check_latent_exist(user_id, session_name):
+    files = get_latent_files(user_id, session_name) 
     result = read_latent_file(files[0])
     return result
+
+"""
+  Input is a regular expression of the latent file to read
+"""
+def get_latent_files(user_id, session_name):
+  traj_path = current_app.config["LATENT_PATH"]
+  path = f"{user_id}/lstates_session_{session_name}_{user_id}*.txt"
+
+  fileExpr = os.path.join(traj_path, path)
+  
+  # find any matching files
+  files = glob.glob(fileExpr)
+  return files
+
+"""
+  Check if latent state is already recorded and stored in a file.
+"""
+def check_latent_exist(user_id, session_name):
+  return (len(get_latent_files(user_id, session_name)) > 0)
+
 
 def read_latent_file(file_name):
   lstates = []

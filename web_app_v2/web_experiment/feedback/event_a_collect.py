@@ -23,13 +23,12 @@ def next_index(msg):
         session['index'] += 1
         update_canvas(request.sid, NAMESPACE, False)
     # find a better way to only store once
-    if session['index'] == (session['max_index'] - 1) and not session['stored']:
+    if session['index'] == (session['max_index'] - 1):
         objs = {}
         objs_json = json.dumps(objs)
         print(session['latent_human_recorded'])
         store_latent_locally(session['user_id'], session['session_name'], 'BoxPushSimulator_AlwaysTogether', EXP1_MAP, session['latent_human_recorded'])
         socketio.emit('complete', objs_json, room=request.sid, namespace=NAMESPACE)
-        session['stored'] = True
 
 @socketio.on('prev', namespace=NAMESPACE)
 def prev_index():
@@ -49,21 +48,6 @@ def record_namespace(msg):
     lstate = msg['latent']
     session['latent_human_recorded'][session['index']] = lstate
     print(session['latent_human_recorded'])
-
-# @socketio.on('complete', namespace = NAMESPACE)
-# def record_namespace():
-#     error = ""
-#     missing_values = []
-#     print(session['latent_human_recorded'])
-#     for idx, item in enumerate(session['latent_human_recorded']):
-#         if item == 'None':
-#             missing_values.append(idx)
-        
-#     if (len(missing_values) == 0):
-#         print('done')
-#     else:
-#         error = "index " + ' '.join(str(item) for item in missing_values) + " missing."
-#         print(error)
 
 def record_latent(msg):
     lstate = msg['latent']
