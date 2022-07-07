@@ -69,7 +69,6 @@ def create_app(debug=False, test_config=None):
   # app.add_url_rule('/', endpoint='consent')
 
   socketio.init_app(app)
-  print(app.url_map)
 
   logging.info('Create app!')
   return app

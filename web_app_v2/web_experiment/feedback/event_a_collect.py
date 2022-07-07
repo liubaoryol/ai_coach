@@ -28,6 +28,7 @@ def next_index(msg):
         objs_json = json.dumps(objs)
         print(session['latent_human_recorded'])
         store_latent_locally(session['user_id'], session['session_name'], 'BoxPushSimulator_AlwaysTogether', EXP1_MAP, session['latent_human_recorded'])
+        
         socketio.emit('complete', objs_json, room=request.sid, namespace=NAMESPACE)
 
 @socketio.on('prev', namespace=NAMESPACE)
@@ -45,9 +46,7 @@ def goto_index(msg):
 
 @socketio.on('record_latent', namespace = NAMESPACE)
 def record_namespace(msg):
-    lstate = msg['latent']
-    session['latent_human_recorded'][session['index']] = lstate
-    print(session['latent_human_recorded'])
+    record_latent(msg)
 
 def record_latent(msg):
     lstate = msg['latent']

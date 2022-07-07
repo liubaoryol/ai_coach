@@ -13,6 +13,7 @@ def collect(session_name):
     query_data = User.query.filter_by(userid = cur_user).first()
     if not query_data.session_a3_record:
         disabled = 'disabled'
+    print("disabled: " + disabled)
     load_session_trajectory(session_name, g.user)
     lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
 
@@ -21,26 +22,24 @@ def collect(session_name):
 
 @feedback_bp.route('/feedback/<session_name>', methods=('GET', 'POST'))
 def feedback(session_name):
+    if request.method == "POST":
+        return redirect(url_for("exp1.exp1_both_user_random_2"))
+
     if session['user_group'] == "B":
         load_session_trajectory(session_name, g.user)
         lstates_full = predict_human_latent_full(session['dict'], is_movers_domain=True)
         # add a dummy for the last time frame
         lstates_full.append("None")
         session['latent_human_predicted'] = lstates_full
-        return render_template("together_feedback_true_latent.html",
-                                cur_user=g.user,
-                                is_disabled=True,
-                                user_id=session['replay_id'],
-                                session_name=session['session_name'],
-                                session_length=session['max_index'],
-                                max_value=session['max_index'] - 1)
-    else:
+
+    elif session['user_group'] == "C":
         session['latent_human_recorded'] = load_latent(session['user_id'], session_name)
-        return render_template("together_feedback_true_latent.html",
-                                cur_user=g.user,
-                                is_disabled=True,
-                                user_id=session['replay_id'],
-                                session_name=session['session_name'],
-                                session_length=session['max_index'],
-                                max_value=session['max_index'] - 1)
+
+    return render_template("together_feedback_true_latent.html",
+                        cur_user=g.user,
+                        is_disabled=True,
+                        user_id=session['replay_id'],
+                        session_name=session['session_name'],
+                        session_length=session['max_index'],
+                        max_value=session['max_index'] - 1)
                     

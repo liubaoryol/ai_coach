@@ -162,21 +162,21 @@ def survey_both_tell_align():
 @login_required
 def survey_both_tell_align_2():
   return inexperiment_impl(2, 'survey_both_tell_align_2.html',
-                           'exp1.exp1_trial1')
+                           'exp1.exp1_both_user_random')
 
 
-@survey_bp.route('/survey_trial1', methods=('GET', 'POST'))
+@survey_bp.route('/survey_both_user_random', methods=('GET', 'POST'))
 @login_required
-def survey_trial1():
+def survey_both_user_random():
   session_name = "a3"
   if session['user_group'] == 'C':
-    return inexperiment_impl(3, 'survey_trial1.html',
+    return inexperiment_impl(3, 'survey_both_user_random.html',
                            'feedback.collect', session_name = session_name)
   elif session['user_group'] == 'B':
-    return inexperiment_impl(3, 'survey_trial1.html', 
+    return inexperiment_impl(3, 'survey_both_user_random.html', 
                             'feedback.feedback', session_name = session_name)
-  else:
-    return inexperiment_impl(3, 'survey_trial1.html',
+  elif session['user_group'] == 'A':
+    return inexperiment_impl(3, 'survey_both_user_random.html',
                            'exp1.exp1_both_user_random_2')
 
 
