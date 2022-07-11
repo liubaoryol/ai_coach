@@ -113,7 +113,7 @@ class Trajectories:
                      np_trj.shape[0])
       start_idx, end_idx = 0, self.num_state_factors
       if self.num_state_factors == 1:
-        list_states = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
+        list_states = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze(axis=1))
       else:
         list_states = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
       list_traj.append(list_states)
@@ -121,7 +121,7 @@ class Trajectories:
       row_end_idx = -1 if is_terminal else np_trj.shape[0]
       start_idx, end_idx = end_idx, end_idx + self.num_action_factors
       if self.num_action_factors == 1:
-        list_actions = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
+        list_actions = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze(axis=1))
       else:
         list_actions = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
       list_traj.append(list_actions)
@@ -129,7 +129,7 @@ class Trajectories:
       if self.num_latent_factors > 0:
         start_idx, end_idx = end_idx, end_idx + self.num_latent_factors
         if self.num_latent_factors == 1:
-          list_latents = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze())
+          list_latents = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze(axis=1))
         else:
           list_latents = list(
               map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
