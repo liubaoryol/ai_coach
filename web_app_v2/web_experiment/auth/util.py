@@ -24,7 +24,6 @@ def load_session_trajectory(session_name, id):
   fileExpr = os.path.join(traj_path, path)
   # find any matching files
   files = glob.glob(fileExpr)
-  print(fileExpr)
   if len(files) == 0:
     # does not find a match, error handling
     error = f"No file found that matches {id}, session {session_name}"
@@ -283,6 +282,7 @@ def predict_human_latent_full(traj, is_movers_domain):
     sim.init_game(**GAME_MAP)
     trajories = BoxPushTrajectoryConverter(MDP_TASK, MDP_AGENT)
     trajories.single_trajectory_from_list_dict(traj)
+    
     list_state, list_action, _ = trajories.get_as_column_lists(
         include_terminal=True)[0]
 

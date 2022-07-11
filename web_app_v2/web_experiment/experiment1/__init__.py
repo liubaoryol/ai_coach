@@ -15,8 +15,10 @@ from . import events_exp1_both_tell_align  # noqa: E402, F401
 from . import events_exp1_both_tell_align_2  # noqa: E402, F401
 from . import events_exp1_both_user_random  # noqa: E402, F401
 from . import events_exp1_both_user_random_2  # noqa: E402, F401
+from . import events_exp1_both_user_random_2_intervention
 from . import events_exp1_indv_tell_align  # noqa: E402, F401
 from . import events_exp1_indv_tell_random  # noqa: E402, F401
 from . import events_exp1_indv_user_random  # noqa: E402, F401
 from . import events_exp1_indv_user_random_2  # noqa: E402, F401
 from . import events_exp1_indv_user_random_3  # noqa: E402, F401
+

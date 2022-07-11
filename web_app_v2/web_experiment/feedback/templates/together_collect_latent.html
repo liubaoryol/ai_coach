@@ -94,7 +94,7 @@
         </form>
     </div>
 
-    <form action="{{ url_for('feedback.feedback', session_name = session_name) }}" method='post'>
+    <form action="{{ url_for('feedback.feedback', session_name = session_name) }}">
         <input type="hidden" name="proceed" value="proceed">
         <div class="button-center">
             <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to Next Stage</button>

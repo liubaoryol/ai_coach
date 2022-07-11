@@ -1,5 +1,5 @@
 import logging
-from flask import render_template, g
+from flask import render_template, g, session
 from web_experiment.auth.functions import login_required
 from web_experiment.models import User
 from . import exp1_bp
@@ -57,9 +57,13 @@ def exp1_both_user_random_2():
 
   query_data = User.query.filter_by(userid=cur_user).first()
   disabled = ''
+  filename = "exp1_both_user_random_2.html"
   if not query_data.session_a4:
     disabled = 'disabled'
-  return render_template('exp1_both_user_random_2.html',
+  if session["user_group"] == "A":
+    filename = "exp1_both_user_random_2_intervention.html"
+  print(filename)
+  return render_template(filename,
                          cur_user=cur_user,
                          is_disabled=disabled)
 

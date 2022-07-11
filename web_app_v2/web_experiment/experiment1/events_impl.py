@@ -14,6 +14,8 @@ from ai_coach_domain.box_push.agent import (BoxPushInteractiveAgent,
                                             BoxPushAIAgent_Abstract)
 from web_experiment import socketio
 from web_experiment.models import db, User
+import web_experiment.experiment1.helper as helper
+
 
 ASK_LATENT = True
 NOT_ASK_LATENT = False
@@ -180,7 +182,7 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
 
 
 def action_event(msg, id_2_game, cb_on_hold_change, cb_game_finished,
-                 name_space, prompt_on_change, auto_prompt, prompt_freq):
+                 name_space, prompt_on_change, auto_prompt, prompt_freq, intervention = False):
   env_id = request.sid
   action_name = msg["data"]
   align_a2_action = "aligned" in msg
@@ -216,6 +218,10 @@ def action_event(msg, id_2_game, cb_on_hold_change, cb_game_finished,
 
   map_agent2action = game.get_joint_action()
   game.take_a_step(map_agent2action)
+  
+  # implement intervention during game play
+  if intervention:
+    helper.task_intervention(game.history, game)
 
   if not game.is_finished():
     (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
@@ -249,6 +255,9 @@ def action_event(msg, id_2_game, cb_on_hold_change, cb_game_finished,
     if cb_game_finished:
       cb_game_finished(game, env_id, name_space)
 
+
+
+    
 
 def task_end(env_id, game: BoxPushSimulator, user_id, session_name, game_type,
              map_info, name_space, is_task_a):
