@@ -9,29 +9,26 @@ class User(db.Model):
   email = db.Column(db.String(120), default='')
   admin = db.Column(db.Boolean, nullable=False, default=False)
   tutorial1 = db.Column(db.Boolean, default=False)
-  tutorial2 = db.Column(db.Boolean, default=False)
   session_a1 = db.Column(db.Boolean, default=False)
   session_a2 = db.Column(db.Boolean, default=False)
+  session_a2_record = db.Column(db.Boolean, default=False)
   session_a3 = db.Column(db.Boolean, default=False)
-  session_a3_record = db.Column(db.Boolean, default=False)
-  session_a4 = db.Column(db.Boolean, default=False)
-  session_b1 = db.Column(db.Boolean, default=False)
-  session_b2 = db.Column(db.Boolean, default=False)
-  session_b3 = db.Column(db.Boolean, default=False)
-  session_b4 = db.Column(db.Boolean, default=False)
-  session_b5 = db.Column(db.Boolean, default=False)
+  
   best_a = db.Column(db.Integer, default=999)
-  best_b = db.Column(db.Integer, default=999)
   completed = db.Column(db.Boolean, default=False)
-  pre_exp = db.relationship('PreExperiment',
-                            backref='user',
-                            lazy=True,
-                            uselist=False,
-                            passive_deletes=True)
-  in_exp = db.relationship('InExperiment',
-                           backref='user',
-                           lazy=True,
-                           passive_deletes=True)
+  pre_exp = db.Column(db.Boolean, default = False)
+  session_a1_survey = db.Column(db.Boolean, default=False)
+  session_a2_survey = db.Column(db.Boolean, default=False)
+  session_a3_survey = db.Column(db.Boolean, default=False)
+  # pre_exp = db.relationship('PreExperiment',
+  #                           backref='user',
+  #                           lazy=True,
+  #                           uselist=False,
+  #                           passive_deletes=True)
+  # in_exp = db.relationship('InExperiment',
+  #                          backref='user',
+  #                          lazy=True,
+  #                          passive_deletes=True)
   post_exp = db.relationship('PostExperiment',
                              backref='user',
                              lazy=True,

@@ -11,7 +11,7 @@ def collect(session_name):
     cur_user = g.user
     disabled = ''
     query_data = User.query.filter_by(userid = cur_user).first()
-    if not query_data.session_a3_record:
+    if not query_data.session_a2_record:
         disabled = 'disabled'
     print("disabled: " + disabled)
     load_session_trajectory(session_name, g.user)

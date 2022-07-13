@@ -28,7 +28,7 @@ def store_latent_locally(user_id, session_name, game_type, map_info, lstates):
     # setting session_a3_record to be true
     user  = User.query.filter_by(userid = user_id).first()
     if user is not None:
-        user.session_a3_record = True
+        user.session_a2_record = True
         db.session.commit()
 
 
