@@ -1,7 +1,7 @@
 import logging
 from flask import flash, redirect, render_template, request, session, url_for
 # from web_experiment.db import query_db
-from web_experiment.models import User
+from web_experiment.models import User, db
 from web_experiment.auth import ADMIN_ID
 from . import consent_bp
 
@@ -27,8 +27,10 @@ def consent():
         error = "You already completed the experiment."
       else:
         session['user_id'] = user.userid
-        session['user_group'] = request.form['usergroup']
-        print(session['user_group'])
+        user.groupid = request.form['groupid']
+        db.session.commit()
+        session['groupid'] = user.groupid
+        print(session['groupid'])
         return redirect(url_for("inst.overview"))
 
     flash(error)

@@ -12,7 +12,7 @@ TOGETHER_NAMESPACE = '/feedback_together_true_latent'
 @socketio.on('connect', namespace=TOGETHER_NAMESPACE)
 def initial_canvas():
     event_impl.initial_canvas(GRID_X, GRID_Y)
-    update_canvas_helper(session['user_group'])   
+    update_canvas_helper(session['groupid'])   
 
 
 
@@ -21,13 +21,13 @@ def initial_canvas():
 def next_index():
     if session['index'] < (session['max_index'] - 1):
         session['index'] += 1
-        update_canvas_helper(session['user_group'])  
+        update_canvas_helper(session['groupid'])  
 
 @socketio.on('prev', namespace=TOGETHER_NAMESPACE)
 def prev_index():
     if session['index'] > 0:
         session['index'] -= 1
-        update_canvas_helper(session['user_group'])
+        update_canvas_helper(session['groupid'])
 
 @socketio.on('index', namespace=TOGETHER_NAMESPACE)
 def next_index(msg):
@@ -35,14 +35,14 @@ def next_index(msg):
     print(session)
     if (idx <= (session['max_index'] - 1) and idx >= 0):
         session['index'] = idx
-        update_canvas_helper(session['user_group'])
+        update_canvas_helper(session['groupid'])
         
 
-def update_canvas_helper(user_group):
-    if user_group == 'C':
+def update_canvas_helper(groupid):
+    if groupid == 'C':
         update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_from = "After Game",
         make_prediction=False)    
-    elif user_group == 'B':
+    elif groupid == 'B':
         update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_from = "None",
         make_prediction=False)  
     

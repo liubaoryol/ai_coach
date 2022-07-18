@@ -220,8 +220,8 @@ def action_event(msg, id_2_game, cb_on_hold_change, cb_game_finished,
   game.take_a_step(map_agent2action)
   
   # implement intervention during game play
-  if intervention:
-    helper.task_intervention(game.history, game)
+  # if intervention:
+  #   helper.task_intervention(game.history, game)
 
   if not game.is_finished():
     (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,

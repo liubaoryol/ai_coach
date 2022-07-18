@@ -25,14 +25,14 @@ def feedback(session_name):
     if request.method == "POST":
         return redirect(url_for("exp1.exp1_both_user_random_2"))
 
-    if session['user_group'] == "B":
+    if session['groupid'] == "B":
         load_session_trajectory(session_name, g.user)
         lstates_full = predict_human_latent_full(session['dict'], is_movers_domain=True)
         # add a dummy for the last time frame
         lstates_full.append("None")
         session['latent_human_predicted'] = lstates_full
 
-    elif session['user_group'] == "C":
+    elif session['groupid'] == "C":
         session['latent_human_recorded'] = load_latent(session['user_id'], session_name)
 
     return render_template("together_feedback_true_latent.html",

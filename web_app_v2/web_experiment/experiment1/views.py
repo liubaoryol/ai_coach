@@ -5,19 +5,19 @@ from web_experiment.models import User
 from . import exp1_bp
 
 
-@exp1_bp.route('/exp1_both_tell_align')
-@login_required
-def exp1_both_tell_align():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_both_tell_align.' % (cur_user, ))
+# @exp1_bp.route('/exp1_both_tell_align')
+# @login_required
+# def exp1_both_tell_align():
+#   cur_user = g.user
+#   logging.info('User %s accesses to exp1_both_tell_align.' % (cur_user, ))
 
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_a1:
-    disabled = 'disabled'
-  return render_template('exp1_both_tell_align.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
+#   query_data = User.query.filter_by(userid=cur_user).first()
+#   disabled = ''
+#   if not query_data.session_a1:
+#     disabled = 'disabled'
+#   return render_template('exp1_both_tell_align.html',
+#                          cur_user=cur_user,
+#                          is_disabled=disabled)
 
 
 @exp1_bp.route('/exp1_both_user_random')
@@ -28,7 +28,7 @@ def exp1_both_user_random():
 
   query_data = User.query.filter_by(userid=cur_user).first()
   disabled = ''
-  if not query_data.session_a3:
+  if not query_data.session_a1:
     disabled = 'disabled'
   return render_template('exp1_both_user_random.html',
                          cur_user=cur_user,
@@ -44,9 +44,9 @@ def exp1_both_user_random_2():
   query_data = User.query.filter_by(userid=cur_user).first()
   disabled = ''
   filename = "exp1_both_user_random_2.html"
-  if not query_data.session_a4:
+  if not query_data.session_a2:
     disabled = 'disabled'
-  if session["user_group"] == "A":
+  if session["groupid"] == "A":
     filename = "exp1_both_user_random_2_intervention.html"
   return render_template(filename,
                          cur_user=cur_user,
