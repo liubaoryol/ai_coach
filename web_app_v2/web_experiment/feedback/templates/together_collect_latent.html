@@ -1,6 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}Replay Previous Games{% endblock %}
+{% block header %}
+<h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
+<h2>{% block subtitle %} Collect Latent States Session A2{% endblock %}</h2>
+<div class="explanation">
+    <p>Collect user's latent states</p>
+</div>
+{% endblock %}
 
 {% block content %}
 
@@ -94,7 +100,7 @@
         </form>
     </div>
 
-    <form action="{{ url_for('feedback.feedback', session_name = session_name) }}">
+    <form method="POST">
         <input type="hidden" name="proceed" value="proceed">
         <div class="button-center">
             <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to Next Stage</button>

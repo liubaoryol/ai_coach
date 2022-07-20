@@ -55,7 +55,7 @@ def run_game(msg):
 @socketio.on('action_event', namespace=EXP1_NAMESPACE)
 def action_event(msg):
   def game_finished(game, env_id, name_space):
-    session_name = "session_a4"
+    session_name = "session_a2"
     cur_user = msg["user_id"]
     event_impl.task_end(env_id, game, cur_user, session_name,
                         "BoxPushSimulator_AlwaysTogether", EXP1_MAP, name_space,

@@ -109,6 +109,17 @@ $(document).ready(function () {
     global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
   });
 
+  // intervention
+  socket.on('intervention', function (json_msg) {
+    const env = JSON.parse(json_msg);
+    console.log('hello');
+    var msg = 'Misaligned mental states.\n'
+    msg += "predicted human latent state: " + env.latent_human_predicted + "\n";
+    msg += "robot latent state: " + env.latent_robot + "\n";
+    msg += "P(x): " + env.prob + "\n";
+    alert(msg);
+  });
+
   let unchanged_agents = null;
   let vib_count = 0;
   // latent selection

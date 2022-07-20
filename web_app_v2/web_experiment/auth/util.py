@@ -134,9 +134,9 @@ def update_latent_state(env_id, namespace, latent_from, is_movers_domain, make_p
 # latent_from can be collected from 'In Game', 'After Game', and 'None'
 def get_latent_states(is_movers_domain, latent_from, make_prediction = True):
   dict = session['dict'][session['index']]
-  latent_human = "None"
-  latent_robot = "None"
-  latent_human_predicted = "None"
+  latent_human = ""
+  latent_robot = ""
+  latent_human_predicted = ""
   if latent_from == 'In Game':
     if dict['a1_latent']:
       latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
@@ -144,9 +144,10 @@ def get_latent_states(is_movers_domain, latent_from, make_prediction = True):
     latent_human = session['latent_human_recorded'][session['index']]
     
   if make_prediction:
-    latent_human_predicted =   predict_human_latent(session['dict'],
+    latent, prob =   predict_human_latent(session['dict'],
                                                     session['index'],
                                                     is_movers_domain)
+    latent_human_predicted = f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
   else:
     latent_human_predicted = session['latent_human_predicted'][session['index']]
   if dict['a2_latent']:
@@ -241,7 +242,8 @@ def predict_human_latent(traj, index, is_movers_domain):
   latent_idx = inferred_x[0]
   prob = dist_x[0][latent_idx]
   latent = MDP_AGENT.latent_space.idx_to_state[inferred_x[0]]
-  return f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
+  return latent, prob
+  # return f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
 
 def predict_human_latent_full(traj, is_movers_domain):
     GAME_MAP = bp_maps.EXP1_MAP

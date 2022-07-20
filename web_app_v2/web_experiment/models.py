@@ -13,7 +13,6 @@ class User(db.Model):
   session_a1 = db.Column(db.Boolean, default=False)
   session_a2 = db.Column(db.Boolean, default=False)
   session_a2_record = db.Column(db.Boolean, default=False)
-  session_a3 = db.Column(db.Boolean, default=False)
   
   best_a = db.Column(db.Integer, default=999)
   completed = db.Column(db.Boolean, default=False)

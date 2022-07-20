@@ -42,7 +42,7 @@ def update_canvas_helper(groupid):
     if groupid == 'C':
         update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_from = "After Game",
         make_prediction=False)    
-    elif groupid == 'B':
+    elif groupid == 'D':
         update_canvas(request.sid, TOGETHER_NAMESPACE, True, latent_from = "None",
-        make_prediction=False)  
+        make_prediction=True)  
     

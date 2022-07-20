@@ -88,19 +88,9 @@ def survey_both_user_random():
 @survey_bp.route('/survey_both_user_random_2', methods=('GET', 'POST'))
 @login_required
 def survey_both_user_random_2():
-  session_name = "a2"
-  if session['groupid'] == 'A':
-    return inexperiment_impl(2, 'survey_both_user_random_2.html',
-                           'completion')
-  elif session['groupid'] == 'B':
-    return inexperiment_impl(2, 'survey_both_user_random.html',
-                           'completion')
-  elif session['groupid'] == 'C':
-    return inexperiment_impl(2, 'survey_both_user_random.html',
-                           'feedback.collect', session_name = session_name)
-  elif session['groupid'] == 'D':
-    return inexperiment_impl(2, 'survey_both_user_random.html', 
-                            'feedback.feedback', session_name = session_name)
+  return inexperiment_impl(2, 'survey_both_user_random_2.html',
+                           'survey.completion')
+
 
 @survey_bp.route('/completion', methods=('GET', 'POST'))
 @login_required
