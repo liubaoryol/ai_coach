@@ -26,7 +26,6 @@ def preexperiment():
   disabled = ''
   if not query_data.pre_exp:
     disabled = 'disabled'
-  print(disabled)
   return render_template('preexperiment.html', is_disabled = disabled)
 
 
@@ -98,66 +97,24 @@ def completion():
   cur_user = g.user
   if request.method == 'POST':
     logging.info('User %s submitted post-experiment survey.' % (cur_user, ))
-    comment = request.form['comment']
-    question = request.form['question']
-    email = request.form['email']
 
-    survey_dir = os.path.join(current_app.config["SURVEY_PATH"], cur_user)
-    # save somewhere
-    if not os.path.exists(survey_dir):
-      os.makedirs(survey_dir)
-
-    sec, msec = divmod(time.time() * 1000, 1000)
-    time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
-                                            time.gmtime(sec)), msec)
-    file_name = ('postsurvey_' + str(cur_user) + '_' + time_stamp + '.txt')
-    with open(os.path.join(survey_dir, file_name), 'w', newline='') as txtfile:
-      txtfile.write('id: ' + cur_user + '\n')
-      txtfile.write('email: ' + email + '\n')
-      txtfile.write('comment: ' + comment + '\n')
-      txtfile.write('question: ' + question + '\n')
     error = None
     user = User.query.filter_by(userid=cur_user).first()
 
     if user is None:
       error = 'Incorrect user id'
-
-    if error is None:
-      if email is not None:
-        user.email = email
+      flash(error)
+    else:
+      if not user.completed:
+        user.completed = True
         db.session.commit()
-
-      qdata = PostExperiment.query.filter_by(subject_id=cur_user).first()
-      if qdata is not None:
-        db.session.delete(qdata)
-        db.session.commit()
-
-      new_post_exp = PostExperiment(comment=comment,
-                                    question=question,
-                                    subject_id=cur_user)
-      db.session.add(new_post_exp)
-
-      user.completed = True
-      db.session.commit()
-
       return redirect(url_for('survey.thankyou'))
 
-    flash(error)
-
   query_data = User.query.filter_by(userid=cur_user).first()
-  email_db = query_data.email
-  query_comments = PostExperiment.query.filter_by(subject_id=cur_user).first()
-
-  comments = ''
-  questions = ''
-  if query_comments is not None:
-    comments = query_comments.comment
-    questions = query_comments.question
-
-  return render_template('completion.html',
-                         saved_email=email_db,
-                         saved_comment=comments,
-                         saved_question=questions)
+  disabled = ''
+  if not query_data.completed:
+    disabled = 'disabled'
+  return render_template('completion.html', is_disabled = disabled)
 
 
 @survey_bp.route('/thankyou', methods=('GET', 'POST'))
