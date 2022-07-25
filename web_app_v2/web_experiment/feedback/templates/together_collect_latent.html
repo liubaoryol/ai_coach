@@ -2,9 +2,9 @@
 
 {% block header %}
 <h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
-<h2>{% block subtitle %} Collect Latent States Session A2{% endblock %}</h2>
+<h2>{% block subtitle %} Collect Latent States{% endblock %}</h2>
 <div class="explanation">
-    <p>Collect user's latent states</p>
+    <p>Collect user's latent states - Session: {{session_name}} - Total Steps: {{session_length}}</p>
 </div>
 {% endblock %}
 
@@ -37,12 +37,6 @@
     initPages(page_list, "together_collect");
 </script>
 
-<div class='explanation'>
-    <p>
-        User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{session_length}}
-    </p>
-</div>
-
 <div class="form-control">
     <h2>Record Latent States</h2>
 </div>
@@ -52,52 +46,28 @@
 </canvas>
 
 <div class="form-control">
-    <form onsubmit="return false;">
-        <label for="latent_state">Select Latent State</label>
-        <select name="latent_states" id="latent_states">
-            {% for latent_state in latent_states %}
-            <option value={{latent_state}}>{{latent_state}}</option>
-            {% endfor %}
-        </select>
-        <div class="wrapper">
-
-            <button type="submit" value="latent_button" id="latent_button">Submit</button>
-            <button type="submit" value="next" id="next">Next Step</button>
-            <button type="submit" value="prev" id="prev">Previous Step</button>
-
-
-        </div>
-
-    </form>
-
-</div>
-
-<!-- <div>
-
-    <div class="button-center">
+    <label for="latent_state">Select Latent State</label>
+    <select name="latent_states" id="latent_states">
+        {% for latent_state in latent_states %}
+        <option value={{latent_state}}>{{latent_state}}</option>
+        {% endfor %}
+    </select>
+    <div class="wrapper">
         <button type="submit" value="latent_button" id="latent_button">Submit</button>
-    </div>
-
-    <div class="button-center">
         <button type="submit" value="next" id="next">Next Step</button>
-    </div>
-
-    <div class="button-center">
         <button type="submit" value="prev" id="prev">Previous Step</button>
     </div>
-</div> -->
+</div>
 
 <div>
     <div class='form-control'>
-        <form onsubmit="return false;">
-            <div>
-                <label class="index" for="index"> Enter Index</label>
-                <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_value}}">
-            </div>
-            <div class="button-center">
-                <button type="submit" value="index" id="index">Go to Index</button>
-            </div>
-        </form>
+        <div>
+            <label class="index" for="index"> Enter Index</label>
+            <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_value}}">
+        </div>
+        <div class="button-center">
+            <button type="submit" value="index" id="index">Go to Index</button>
+        </div>
     </div>
 
     <form method="POST">
@@ -106,10 +76,7 @@
             <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to Next Stage</button>
         </div>
     </form>
-
-
 </div>
-
 
 <div style="visibility: hidden">
     <div class="button-center">
