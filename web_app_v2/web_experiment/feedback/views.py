@@ -20,7 +20,7 @@ def collect(session_name, next_endpoint):
     lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
 
     if session_name.startswith('a'):
-        return render_template("together_collect_latent.html", cur_user = g.user, is_disabled = disabled, user_id = session['replay_id'], session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1, latent_states = lstates)
+        return render_template("together_collect_latent.html", cur_user = g.user, is_disabled = disabled, session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1, latent_states = lstates)
 
 @feedback_bp.route('/feedback/<session_name>/<next_endpoint>', methods=('GET', 'POST'))
 def feedback(session_name, next_endpoint):
@@ -39,7 +39,6 @@ def feedback(session_name, next_endpoint):
     return render_template("together_feedback_true_latent.html",
                         cur_user=g.user,
                         is_disabled=True,
-                        user_id=session['replay_id'],
                         session_name=session['session_name'],
                         session_length=session['max_index'],
                         max_value=session['max_index'] - 1)

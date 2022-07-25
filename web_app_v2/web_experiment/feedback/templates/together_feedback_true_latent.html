@@ -4,7 +4,7 @@
 <h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
 <h2>{% block subtitle %} Feedback Session A2{% endblock %}</h2>
 <div class="explanation">
-    <p>Providing feedback to user with this page</p>
+    <p>Providing feedback to user with this page - Session: {{session_name}} - Total Steps: {{session_length}}</p>
 </div>
 {% endblock %}
 
@@ -38,9 +38,6 @@
 </script>
 
 <div class='explanation'>
-    <p>
-        Replay of User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{session_length}}
-    </p>
     <div class="button-center">
         <table class="center">
             <tr>
@@ -55,6 +52,7 @@
             </tr>
         </table>
     </div>
+
 </div>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
@@ -70,15 +68,13 @@
     </div>
 
     <div class='form-control'>
-        <form onsubmit="return false;">
-            <div>
-                <label class="index" for="index"> Enter Index</label>
-                <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_value}}">
-            </div>
-            <div class="button-center">
-                <button type="submit" value="index" id="index">Go to Index</button>
-            </div>
-        </form>
+        <div>
+            <label class="index" for="index"> Enter Index</label>
+            <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_value}}">
+        </div>
+        <div class="button-center">
+            <button type="submit" value="index" id="index">Go to Index</button>
+        </div>
     </div>
 
     <form method="POST">
