@@ -15,7 +15,6 @@ def collect(session_name, next_endpoint):
     query_data = User.query.filter_by(userid = cur_user).first()
     if not query_data.session_a2_record:
         disabled = 'disabled'
-    print("disabled: " + disabled)
     load_session_trajectory(session_name, g.user)
     lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
 

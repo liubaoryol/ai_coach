@@ -36,7 +36,6 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name, session_nam
   if request.method == 'POST':
     logging.info('User %s submitted in-experiment survey #%d.' %
                  (cur_user, exp_no))
-    print(exp_no)
     if exp_no == 0:
       if not query_data.tutorial1_survey:
         query_data.tutorial1_survey = True
