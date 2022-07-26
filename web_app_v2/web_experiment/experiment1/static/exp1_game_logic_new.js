@@ -156,12 +156,17 @@ $(document).ready(function () {
     // update latent state
     socket.on('update_latent', function (json_msg) {
         const env = JSON.parse(json_msg);
-        const latent_human = env.latent_human
-        const latent_robot = env.latent_robot
-        const latent_human_predicted = env.latent_human_predicted
-        document.getElementById('latent_human').textContent = latent_human;
+        const latent_human = env.latent_human;
+        const latent_robot = env.latent_robot;
+        const latent_human_predicted = env.latent_human_predicted;
+        const latent_states = env.latent_states;
+        console.log(latent_states)
         document.getElementById('latent_robot').textContent = latent_robot;
-        document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
+        if (latent_states === "collected") {
+            document.getElementById('latent_human').textContent = latent_human;
+        } else if (latent_states === "predicted") {
+            document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
+        }
     });
 
     socket.on('complete', function (json_msg) {

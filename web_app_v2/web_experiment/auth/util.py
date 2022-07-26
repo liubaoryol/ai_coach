@@ -127,6 +127,11 @@ def update_latent_state(env_id, namespace, latent_from, is_movers_domain, make_p
   objs['latent_human'] = latent_human
   objs['latent_robot'] = latent_robot
   objs['latent_human_predicted'] = latent_human_predicted
+  if make_prediction:
+    objs['latent_states'] = "predicted"
+  else:
+    objs['latent_states'] = "collected"
+
   objs_json = json.dumps(objs)
   str_emit = 'update_latent'
   socketio.emit(str_emit, objs_json, room=env_id, namespace=namespace)

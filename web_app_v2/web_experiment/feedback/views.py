@@ -24,6 +24,7 @@ def collect(session_name, next_endpoint):
 
 @feedback_bp.route('/feedback/<session_name>/<next_endpoint>', methods=('GET', 'POST'))
 def feedback(session_name, next_endpoint):
+    filename = "together_feedback_latent_collected.html"
     if request.method == "POST":
         return redirect(url_for(next_endpoint))
 
@@ -33,10 +34,11 @@ def feedback(session_name, next_endpoint):
         # add a dummy for the last time frame
         lstates_full.append("None")
         session['latent_human_predicted'] = lstates_full
+        filename = "together_feedback_latent_predicted.html"
     elif session['groupid'] == "C":
         session['latent_human_recorded'] = load_latent(session['user_id'], session_name)
 
-    return render_template("together_feedback_true_latent.html",
+    return render_template(filename,
                         cur_user=g.user,
                         is_disabled=True,
                         session_name=session['session_name'],
