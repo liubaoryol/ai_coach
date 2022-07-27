@@ -90,23 +90,23 @@ class Trainer:
     # Initialize the environment.
     state = self.env.reset()
     # Initialize the latent.
-    latent, _ = self.algo.get_latent(0, state)
+    latent, _ = self.algo.explore_latent(0, state)
 
     for step in tqdm(range(1, self.num_steps + 1)):
       t += 1
       action, log_pi = self.algo.explore(state, latent)
       next_state, reward, done, _ = self.env.step(action)
-      next_latent, valid = self.algo.get_latent(t, next_state, latent, action,
+      next_latent, _ = self.algo.explore_latent(t, next_state, latent, action,
                                                 state)
-      mask = done or (t == self.env.max_episode_steps) or (not valid)
+      done |= (t == self.env.max_episode_steps) or self.algo.is_max_time(t)
 
-      self.algo.add_to_buffer(state, latent, action, reward, mask, log_pi,
+      self.algo.add_to_buffer(state, latent, action, reward, done, log_pi,
                               next_state, next_latent)
 
-      if mask:
+      if done:
         t = 0
         next_state = self.env.reset()
-        next_latent, _ = self.algo.get_latent(0, next_state)
+        next_latent, _ = self.algo.explore_latent(0, next_state)
 
       state = next_state
       latent = next_latent
@@ -147,17 +147,16 @@ class Trainer:
       episode_return = 0.0
       done = False
       t = 0
-      latent, _ = self.algo.get_latent(0, state)
+      latent = self.algo.get_latent(0, state)
 
       while t < self.env.max_episode_steps:
         t += 1
         action = self.algo.exploit(state, latent)
         next_state, reward, done, _ = self.env_test.step(action)
-        latent, valid = self.algo.get_latent(t, next_state, latent, action,
-                                             state)
+        latent = self.algo.get_latent(t, next_state, latent, action, state)
         state = next_state
         episode_return += reward
-        if done or not valid:
+        if done or not self.algo.is_max_time(t):
           break
 
       returns.append(episode_return)

@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import time
+import gym.spaces
 
 from tqdm import tqdm
 from .buffer import Buffer
@@ -15,17 +16,38 @@ def disable_gradient(network: nn.Module):
     param.requires_grad = False
 
 
-def add_random_noise(action, std):
-  """Add random noise to the action"""
-  action += np.random.randn(*action.shape) * std
-  return action.clip(-1.0, 1.0)
+def state_action_size(env: NormalizedEnv):
+  state_size = 0
+  discrete_state = False
+  if isinstance(env.observation_space, gym.spaces.Box):
+    state_size = env.observation_space.shape[0]
+    discrete_state = False
+  elif isinstance(env.observation_space, gym.spaces.Discrete):
+    state_size = env.observation_space.n
+    discrete_state = True
+  else:
+    raise NotImplementedError
+
+  action_size = 0
+  discrete_action = False
+  if isinstance(env.action_space, gym.spaces.Box):
+    action_size = env.action_space.shape[0]
+    discrete_action = False
+  elif isinstance(env.action_space, gym.spaces.Discrete):
+    action_size = env.action_space.n
+    discrete_action = True
+  else:
+    raise NotImplementedError
+
+  return state_size, discrete_state, action_size, discrete_action
 
 
 def collect_demo(env: NormalizedEnv,
+                 latent_size: int,
+                 discrete_latent: bool,
                  algo: Expert,
                  buffer_size: int,
                  device: torch.device,
-                 std: float,
                  p_rand: float,
                  seed: int = 0):
   """
@@ -60,13 +82,16 @@ def collect_demo(env: NormalizedEnv,
   torch.manual_seed(seed)
   torch.cuda.manual_seed(seed)
 
+  (state_size, discrete_state, action_size,
+   discrete_action) = state_action_size(env)
+
   buffer = Buffer(buffer_size=buffer_size,
-                  state_size=algo.state_size,
-                  latent_size=algo.latent_size,
-                  action_size=algo.action_size,
-                  discrete_state=algo.discrete_state,
-                  discrete_latent=algo.discrete_latent,
-                  discrete_action=algo.discrete_action,
+                  state_size=state_size,
+                  latent_size=latent_size,
+                  action_size=action_size,
+                  discrete_state=discrete_state,
+                  discrete_latent=discrete_latent,
+                  discrete_action=discrete_action,
                   device=device)
 
   total_return = 0.0
@@ -75,6 +100,7 @@ def collect_demo(env: NormalizedEnv,
 
   state = env.reset()
   t = 0
+  latent = algo.get_latent(0, state)
   episode_return = 0.0
   episode_steps = 0
 
@@ -84,25 +110,27 @@ def collect_demo(env: NormalizedEnv,
     if np.random.rand() < p_rand:
       action = env.action_space.sample()
     else:
-      action = algo.exploit(state)
-      action = add_random_noise(action, std)
+      action = algo.exploit(state, latent)
 
     next_state, reward, done, _ = env.step(action)
+    next_latent = algo.get_latent(t, next_state, latent, action, state)
     mask = True if t == env.max_episode_steps else done
-    buffer.append(state, action, reward, mask, next_state)
+    buffer.append(state, latent, action, reward, mask, next_state, next_latent)
     episode_return += reward
     episode_steps += 1
+
+    state = next_state
+    latent = next_latent
 
     if done or t == env.max_episode_steps:
       num_episodes += 1
       total_return += episode_return
       state = env.reset()
       t = 0
+      latent = algo.get_latent(0, state)
       episode_return = 0.0
       num_steps.append(episode_steps)
       episode_steps = 0
-
-    state = next_state
 
   mean_return = total_return / num_episodes
   print(f'Mean return of the expert is {mean_return}')
@@ -153,17 +181,20 @@ def evaluation(env: NormalizedEnv,
 
   state = env.reset()
   t = 0
+  latent = algo.get_latent(0, state)
   episode_return = 0.0
   episode_steps = 0
 
   while num_episodes < episodes:
     t += 1
 
-    action = algo.exploit(state)
+    action = algo.exploit(state, latent)
     next_state, reward, done, _ = env.step(action)
+    next_latent = algo.get_latent(t, next_state, latent, action, state)
     episode_return += reward
     episode_steps += 1
     state = next_state
+    latent = next_latent
 
     if render:
       env.render()
@@ -174,6 +205,7 @@ def evaluation(env: NormalizedEnv,
       total_return += episode_return
       state = env.reset()
       t = 0
+      latent = algo.get_latent(0, state)
       episode_return = 0.0
       num_steps.append(episode_steps)
       episode_steps = 0

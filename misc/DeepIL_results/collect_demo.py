@@ -4,7 +4,9 @@ import torch
 
 from ai_coach_core.model_learning.DeepIL.env import make_env
 from ai_coach_core.model_learning.DeepIL.algo.algo import EXP_ALGOS
-from ai_coach_core.model_learning.DeepIL.utils import collect_demo
+from ai_coach_core.model_learning.DeepIL.utils import (collect_demo,
+                                                       state_action_size)
+from .latent_config import LATENT_CONFIG, LatentConfig
 
 
 def run(args):
@@ -13,16 +15,28 @@ def run(args):
 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-  algo = EXP_ALGOS[args.algo](state_shape=env.observation_space.shape,
-                              action_shape=env.action_space.shape,
+  (state_size, discrete_state, action_size,
+   discrete_action) = state_action_size(env)
+
+  lat_conf = LATENT_CONFIG[args.env_id]  # type: LatentConfig
+
+  algo = EXP_ALGOS[args.algo](state_size=state_size,
+                              latent_size=lat_conf.latent_size,
+                              action_size=action_size,
+                              discrete_state=discrete_state,
+                              discrete_latent=lat_conf.discrete_latent,
+                              discrete_action=discrete_action,
+                              cb_init_latent=lat_conf.get_init_latent,
                               device=device,
-                              path=args.weight)
+                              path_actor=args.actor_weights,
+                              path_trans=args.trans_weights)
 
   buffer, mean_return = collect_demo(env=env,
+                                     latent_size=lat_conf.latent_size,
+                                     discrete_latent=lat_conf.discrete_latent,
                                      algo=algo,
                                      buffer_size=args.buffer_size,
                                      device=device,
-                                     std=args.std,
                                      p_rand=args.p_rand,
                                      seed=args.seed)
 
@@ -42,10 +56,14 @@ if __name__ == '__main__':
   p = argparse.ArgumentParser()
 
   # required
-  p.add_argument('--weight',
+  p.add_argument('--actor-weight',
                  type=str,
                  required=True,
-                 help='path to the well-trained weights of the agent')
+                 help='path to the well-trained actor weights of the agent')
+  p.add_argument('--trans-weight',
+                 type=str,
+                 required=True,
+                 help='path to the well-trained trans weights of the agent')
   p.add_argument('--env-id',
                  type=str,
                  required=True,
@@ -60,10 +78,6 @@ if __name__ == '__main__':
                  type=int,
                  default=40000,
                  help='size of the buffer')
-  p.add_argument('--std',
-                 type=float,
-                 default=0.01,
-                 help='standard deviation add to the policy')
   p.add_argument(
       '--p-rand',
       type=float,

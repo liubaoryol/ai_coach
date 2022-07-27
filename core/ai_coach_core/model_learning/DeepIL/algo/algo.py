@@ -1,5 +1,6 @@
-from .ppo import PPO, PPOExpert
-from .digail import DIGAIL, DIGAILExpert
+from .ppo import PPO
+from .digail import DIGAIL
+from .base import NNExpert
 
 # all the algorithms
 ALGOS = {
@@ -9,6 +10,6 @@ ALGOS = {
 
 # all the well-trained algorithms
 EXP_ALGOS = {
-    'ppo': PPOExpert,
-    'digail': DIGAILExpert,
+    'ppo': NNExpert,
+    'digail': NNExpert,
 }

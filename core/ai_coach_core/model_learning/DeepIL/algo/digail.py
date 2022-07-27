@@ -3,10 +3,11 @@ import torch.nn.functional as F
 import os
 import numpy as np
 
-from typing import Sequence, Optional
+from typing import Sequence, Optional, Tuple
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
-from .ppo import PPO, PPOExpert
+from .base import T_InitLatent
+from .ppo import PPO
 from .vae import VAE
 from ..network import GAILDiscrim, AbstractPolicy, StateFunction, AbstractTransition  # noqa: E501
 from ..buffer import SerializedBuffer, RolloutBuffer
@@ -73,6 +74,7 @@ class DIGAIL(PPO):
                actor: AbstractPolicy,
                critic: StateFunction,
                transition: AbstractTransition,
+               cb_init_latent: T_InitLatent,
                device: torch.device,
                seed: int,
                gamma: float = 0.995,
@@ -92,9 +94,9 @@ class DIGAIL(PPO):
                vae_temperatue: float = 2.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
                      discrete_latent, discrete_action, buffer, actor, critic,
-                     transition, device, seed, gamma, rollout_length, lr_actor,
-                     lr_critic, epoch_ppo, clip_eps, lambd, coef_ent,
-                     max_grad_norm)
+                     transition, cb_init_latent, device, seed, gamma,
+                     rollout_length, lr_actor, lr_critic, epoch_ppo, clip_eps,
+                     lambd, coef_ent, max_grad_norm)
 
     # expert's buffer
     self.buffer_exp = buffer_exp
@@ -115,28 +117,43 @@ class DIGAIL(PPO):
 
     self.traj_exp_latents = None
     self.cur_latents = None
+    self.cyclic_sample_counter = 0
 
   def gen_latent_seqs(self):
     self.traj_exp_latents = []
     for idx in range(len(self.buffer_exp.traj_states)):
-      states = self.buffer_exp.traj_states[idx]
-      actions = self.buffer_exp.traj_actions[idx]
+      states = self.buffer_exp.traj_states[idx]  # type: list[torch.Tensor]
+      actions = self.buffer_exp.traj_actions[idx]  # type: list[torch.Tensor]
 
       latents = torch.Tensor([], device=self.device)
       latents = torch.cat(
-          (latents, self.vae.initial_latent(states[0].unsqueeze(0))), dim=0)
+          (latents, self.cb_init_latent(states[0].unsqueeze(0))), dim=0)
       with torch.no_grad():
         for t in range(1, len(states)):
-          next_latent = self.vae.next_latent(states[t], latents[t - 1],
-                                             actions[t - 1])
+          next_state = states[t]
+          latent = latents[t - 1]
+          action = actions[t - 1]
+          if self.discrete_state:
+            next_state = one_hot(next_state.unsqueeze(0), self.state_size,
+                                 self.device)
+          if self.discrete_latent:
+            latent = one_hot(latent.unsqueeze(0), self.latent_size, self.device)
+          if self.discrete_action:
+            action = one_hot(action.unsqueeze(0), self.action_size, self.device)
+
+          next_latent = self.trans.sample(next_state, latent, action)
           latents = torch.cat((latents, next_latent), dim=0)
 
       self.traj_exp_latents.append(latents)
       latents = torch.Tensor([], device=self.device)
 
   def sample_latent_seq(self, num_samples: int) -> Sequence[torch.Tensor]:
-    if self.traj_exp_latents is None:
+    if (self.cyclic_sample_counter >= len(self.traj_exp_latents)
+        or self.traj_exp_latents is None):
+      self.cyclic_sample_counter = 0
       self.gen_latent_seqs()
+
+    self.cyclic_sample_counter += num_samples
 
     idxes = np.random.randint(0, len(self.traj_exp_latents), size=num_samples)
     sample_latent_seqs = []
@@ -144,6 +161,19 @@ class DIGAIL(PPO):
       sample_latent_seqs.append(self.traj_exp_latents[idx])
 
     return sample_latent_seqs
+
+  def is_max_time(self, t: int):
+    return t >= len(self.cur_latents)
+
+  def explore_latent(
+      self,
+      t: int,
+      state: Optional[np.ndarray] = None,
+      prev_latent: Optional[np.ndarray] = None,
+      prev_action: Optional[np.ndarray] = None,
+      prev_state: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float]:
+    latent = self.get_latent(t, state, prev_latent, prev_action, prev_state)
+    return latent, float("-inf")
 
   def get_latent(self,
                  t: int,
@@ -153,26 +183,18 @@ class DIGAIL(PPO):
                  prev_state: Optional[np.array] = None):
     """
     return
-      Latent state, Valid: (np.array, bool)
+      Latent state
     """
     if self.pretrain_mode:
-      if t == 0:
-        latent = self.vae.initial_latent(torch.Tensor(state).unsqueeze(0))
-      else:
-        with torch.no_grad():
-          latent = self.vae.next_latent(
-              torch.Tensor(state).unsqueeze(0),
-              torch.Tensor(prev_latent).unsqueeze(0),
-              torch.Tensor(prev_action).unsqueeze(0))
-      return latent, True
+      return super().get_latent(t, state, prev_latent, prev_action, prev_state)
     else:
       if t == 0:
         self.cur_latents = self.sample_latent_seq(1)[0]
 
       if t >= len(self.cur_latents):
-        return np.ones(self.cur_latents[0].shape) * float("-inf"), False
+        return np.ones(self.cur_latents[0].shape) * float("-inf")
 
-      return self.cur_latents[t].cpu().numpy(), True
+      return self.cur_latents[t].cpu().numpy()
 
   def update(self, writer: SummaryWriter):
     """
@@ -304,25 +326,3 @@ class DIGAIL(PPO):
       os.mkdir(save_dir)
     torch.save(self.disc.state_dict(), f'{save_dir}/disc.pkl')
     torch.save(self.actor.state_dict(), f'{save_dir}/actor.pkl')
-
-
-class DIGAILExpert(PPOExpert):
-  """
-    Well-trained GAIL agent
-
-    Parameters
-    ----------
-    device: torch.device
-        cpu or cuda
-    path: str
-        path to the well-trained weights
-    """
-  def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
-               action_size: torch.Tensor, discrete_state: bool,
-               discrete_latent: bool, discrete_action: bool,
-               actor: AbstractPolicy, transition: AbstractTransition,
-               device: torch.device, path: str):
-    super(DIGAILExpert,
-          self).__init__(state_size, latent_size, action_size, discrete_state,
-                         discrete_latent, discrete_action, actor, transition,
-                         device, path)

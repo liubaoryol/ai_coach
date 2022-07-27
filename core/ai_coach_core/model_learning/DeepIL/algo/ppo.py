@@ -5,12 +5,11 @@ import numpy as np
 from torch import nn
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
-from .base import Algorithm, Expert
+from .base import Algorithm, T_InitLatent
 from .utils import calculate_gae, one_hot
 
 from ..buffer import RolloutBuffer
 from ..network import AbstractPolicy, StateFunction, AbstractTransition
-from ..utils import disable_gradient
 
 
 class PPO(Algorithm):
@@ -65,6 +64,7 @@ class PPO(Algorithm):
                actor: AbstractPolicy,
                critic: StateFunction,
                transition: AbstractTransition,
+               cb_init_latent: T_InitLatent,
                device: torch.device,
                seed: int,
                gamma: float = 0.995,
@@ -78,7 +78,7 @@ class PPO(Algorithm):
                max_grad_norm: float = 10.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
                      discrete_latent, discrete_action, actor, transition,
-                     device, seed, gamma)
+                     cb_init_latent, device, seed, gamma)
 
     self.buffer = buffer
     self.critic = critic
@@ -255,29 +255,3 @@ class PPO(Algorithm):
     if not os.path.isdir(save_dir):
       os.mkdir(save_dir)
     torch.save(self.actor.state_dict(), f'{save_dir}/actor.pkl')
-
-
-class PPOExpert(Expert):
-  """
-    Well-trained PPO agent
-
-    Parameters
-    ----------
-    actor: AbstractPolicy
-        actor
-    device: torch.device
-        cpu or cuda
-    path: str
-        path to the well-trained weights
-    """
-  def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
-               action_size: torch.Tensor, discrete_state: bool,
-               discrete_latent: bool, discrete_action: bool,
-               actor: AbstractPolicy, transition: AbstractTransition,
-               device: torch.device, path: str):
-    super(PPOExpert, self).__init__(state_size, latent_size, action_size,
-                                    discrete_state, discrete_latent,
-                                    discrete_action, actor, transition, device)
-    self.actor.load_state_dict(torch.load(path, map_location=device))
-    disable_gradient(self.actor)
-    disable_gradient(self.trans)

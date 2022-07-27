@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 import itertools
-from .base import Algorithm, Expert
+from .base import Algorithm, T_InitLatent
 from .utils import gumbel_softmax_sample, one_hot
 from typing import Sequence
 
@@ -11,7 +11,6 @@ from torch.distributions import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from ..network import AbstractPolicy, AbstractTransition  # noqa: E501
 from ..buffer import SerializedBuffer
-from ..utils import disable_gradient
 
 
 class VAE(Algorithm):
@@ -24,6 +23,7 @@ class VAE(Algorithm):
                discrete_action: bool,
                buffer_exp: SerializedBuffer,
                transition: AbstractTransition,
+               cb_init_latent: T_InitLatent,
                actor: AbstractPolicy,
                device: torch.device,
                seed: int,
@@ -33,7 +33,7 @@ class VAE(Algorithm):
                temperature: float = 2.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
                      discrete_latent, discrete_action, actor, transition,
-                     device, seed, gamma)
+                     cb_init_latent, device, seed, gamma)
     self.buffer_exp = buffer_exp
 
     params = [self.actor.parameters(), self.trans.parameters()]
@@ -58,19 +58,19 @@ class VAE(Algorithm):
     traj_next_states = self.buffer_exp.traj_next_states
     self.update_vae(traj_states, traj_actions, traj_next_states, writer)
 
-  def initial_latent(self, states: torch.Tensor) -> torch.Tensor:
-    if self.discrete_latent:
-      # TODO: implement p(x|s)
-      return torch.randint(low=0,
-                           high=self.latent_size,
-                           size=(len(states), ),
-                           dtype=torch.float,
-                           device=self.device).reshape(len(states), -1)
-    else:
-      # TODO: temporary code
-      return torch.rand(size=(len(states), ),
-                        dtype=torch.float,
-                        device=self.device).reshape(len(states), -1)
+  # def initial_latent(self, states: torch.Tensor) -> torch.Tensor:
+  #   if self.discrete_latent:
+  #     # TODO: implement p(x|s)
+  #     return torch.randint(low=0,
+  #                          high=self.latent_size,
+  #                          size=(len(states), ),
+  #                          dtype=torch.float,
+  #                          device=self.device).reshape(len(states), -1)
+  #   else:
+  #     # TODO: temporary code
+  #     return torch.rand(size=(len(states), ),
+  #                       dtype=torch.float,
+  #                       device=self.device).reshape(len(states), -1)
 
   def encode_decode(self, states: torch.Tensor, latents: torch.Tensor,
                     actions: torch.Tensor, next_states: torch.Tensor,
@@ -184,27 +184,3 @@ class VAE(Algorithm):
       os.mkdir(save_dir)
     torch.save(self.actor.state_dict(), f'{save_dir}/vae_actor.pkl')
     torch.save(self.trans.state_dict(), f'{save_dir}/vae_trans.pkl')
-
-
-class VAEExpert(Expert):
-  """
-    Well-trained GAIL agent
-
-    Parameters
-    ----------
-    device: torch.device
-        cpu or cuda
-    path: str
-        path to the well-trained weights
-    """
-  def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
-               action_size: torch.Tensor, discrete_state: bool,
-               discrete_latent: bool, discrete_action: bool,
-               actor: AbstractPolicy, transition: AbstractTransition,
-               device: torch.device, path: str):
-    super(VAEExpert, self).__init__(state_size, latent_size, action_size,
-                                    discrete_state, discrete_latent,
-                                    discrete_action, actor, transition, device)
-    self.actor.load_state_dict(torch.load(path, map_location=device))
-    disable_gradient(self.actor)
-    disable_gradient(self.trans)
