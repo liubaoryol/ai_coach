@@ -39,8 +39,8 @@
 
 <div>
   <div class="button-center">
-    <form action="{{ url_for('survey.survey_both_user_random') }}">
-      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed to Survey</button>
+    <form method="post" action="{{ url_for('exp1.exp1_both_user_random') }}">
+      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed</button>
     </form>
   </div>
 </div>

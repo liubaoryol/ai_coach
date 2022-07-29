@@ -9,12 +9,18 @@ from web_experiment.models import User
 @feedback_bp.route('/collect/<session_name>/<next_endpoint>', methods=('GET', 'POST'))
 def collect(session_name, next_endpoint):
     if request.method == "POST":
-        return redirect(url_for("feedback.feedback", session_name = session_name, next_endpoint = next_endpoint))
+        return redirect(url_for(next_endpoint))
     cur_user = g.user
     disabled = ''
     query_data = User.query.filter_by(userid = cur_user).first()
-    if not query_data.session_a2_record:
+    print(query_data.session_a1_record)
+    if session_name == "a1" and not query_data.session_a1_record:
         disabled = 'disabled'
+    elif session_name == "a2" and not query_data.session_a2_record:
+        disabled = 'disabled'
+    elif session_name == "a3" and not query_data.session_a3_record:
+        disabled = 'disabled'
+        
     load_session_trajectory(session_name, g.user)
     lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
 

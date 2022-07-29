@@ -20,17 +20,38 @@ from . import exp1_bp
 #                          is_disabled=disabled)
 
 
-@exp1_bp.route('/exp1_both_user_random')
+@exp1_bp.route('/exp1_both_user_random', methods=('GET', 'POST'))
 @login_required
 def exp1_both_user_random():
+  session_name = "a1"
+  file_name = "exp1_both_user_random.html"
+  next_endpoint = "survey.survey_both_user_random"
+  return exp1_both_user_random_template(session_name, file_name, next_endpoint)
+
+
+  # if request.method == "POST":
+  #   return redirect(url_for('feedback.collect', session_name = session_name, next_endpoint = "survey.survey_both_user_random"))
+  # logging.info('User %s accesses to exp1_both_user_random.' % (cur_user, ))
+
+  # query_data = User.query.filter_by(userid=cur_user).first()
+  # disabled = ''
+  # if not query_data.session_a1:
+  #   disabled = 'disabled'
+  # return render_template('exp1_both_user_random.html',
+  #                        cur_user=cur_user,
+  #                        is_disabled=disabled)
+
+def exp1_both_user_random_template(session_name, file_name, next_endpoint):
   cur_user = g.user
-  logging.info('User %s accesses to exp1_both_user_random.' % (cur_user, ))
+  if request.method == "POST":
+    return redirect(url_for('feedback.collect', session_name = session_name, next_endpoint = next_endpoint))
+  logging.info('User %s accesses to session %s.' % (cur_user, session_name, ))
 
   query_data = User.query.filter_by(userid=cur_user).first()
   disabled = ''
-  if not query_data.session_a1:
+  if not getattr(query_data, f"session_{session_name}"):
     disabled = 'disabled'
-  return render_template('exp1_both_user_random.html',
+  return render_template(file_name,
                          cur_user=cur_user,
                          is_disabled=disabled)
 
@@ -38,34 +59,18 @@ def exp1_both_user_random():
 @exp1_bp.route('/exp1_both_user_random_2', methods=('GET', 'POST'))
 @login_required
 def exp1_both_user_random_2():
-  
-
-  cur_user = g.user
   session_name = "a2"
-  logging.info('User %s accesses to exp1_both_user_random_2.' % (cur_user, ))
+  file_name = "exp1_both_user_random_2.html"
+  next_endpoint = "survey.survey_both_user_random_2"
+  return exp1_both_user_random_template(session_name, file_name, next_endpoint)
 
-  if request.method == "POST":
-    if session['groupid'] == 'A' or session['groupid'] == 'B':
-      return redirect(url_for('survey.survey_both_user_random_2'))
-    elif session['groupid'] == 'C':
-      print(url_for('feedback.collect', session_name = session_name, next_endpoint = "survey.completion"))
-      return redirect(url_for('feedback.collect', session_name = session_name, next_endpoint = "survey.completion"))
-    elif session['groupid'] == 'D':
-      return redirect(url_for('feedback.feedback', session_name = session_name, next_endpoint = "survey.completion"))
-
-  
-
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  filename = "exp1_both_user_random_2.html"
-  if not query_data.session_a2:
-    disabled = 'disabled'
-  if session["groupid"] == "B":
-    filename = "exp1_both_user_random_2_intervention.html"
-  return render_template(filename,
-                         cur_user=cur_user,
-                         is_disabled=disabled)
+@exp1_bp.route('/exp1_both_user_random_3', methods=('GET', 'POST'))
+@login_required
+def exp1_both_user_random_3():
+  session_name = "a3"
+  file_name = "exp1_both_user_random_3.html"
+  next_endpoint = "survey.survey_both_user_random_3"
+  return exp1_both_user_random_template(session_name, file_name, next_endpoint)
 
 
 @exp1_bp.route('/tutorial1', methods=('GET', 'POST'))
