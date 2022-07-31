@@ -1,11 +1,12 @@
 import torch
 import os
 import numpy as np
+from typing import Optional, Tuple
 
 from torch import nn
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
-from .base import Algorithm, T_InitLatent
+from .base import Algorithm, T_InitLatent, T_GetLatent, T_GetReward
 from .utils import calculate_gae, one_hot
 
 from ..buffer import RolloutBuffer
@@ -116,7 +117,6 @@ class PPO(Algorithm):
     """
         Append rollouts to the buffer
         """
-
     self.buffer.append(state, latent, action, reward, done, log_pi, next_state,
                        next_latent)
 
@@ -164,17 +164,32 @@ class PPO(Algorithm):
         writer: SummaryWriter
             writer for logs
         """
-    with torch.no_grad():
-      values = self.critic(states, latents)
-      next_values = self.critic(next_states, next_latents)
-
-    targets, gaes = calculate_gae(values, rewards, dones, next_values,
-                                  self.gamma, self.lambd)
+    targets, gaes = self.calculate_gae(states, latents, next_states,
+                                       next_latents, rewards, dones)
 
     for _ in range(self.epoch_ppo):
       self.learning_steps_ppo += 1
       self.update_critic(states, latents, targets, writer)
       self.update_actor(states, latents, actions, log_pis, gaes, writer)
+
+  def calculate_gae(self, states: torch.Tensor, latents: torch.Tensor,
+                    next_states: torch.Tensor, next_latents: torch.Tensor,
+                    rewards: torch.Tensor,
+                    dones: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    if self.discrete_state:
+      states = one_hot(states, self.state_size, device=self.device)
+      next_states = one_hot(next_states, self.state_size, device=self.device)
+
+    if self.discrete_latent:
+      latents = one_hot(latents, self.latent_size, device=self.device)
+      next_latents = one_hot(next_latents, self.latent_size, device=self.device)
+
+    with torch.no_grad():
+      values = self.critic(states, latents)
+      next_values = self.critic(next_states, next_latents)
+
+    return calculate_gae(values, rewards, dones, next_values, self.gamma,
+                         self.lambd)
 
   def update_critic(self, states: torch.Tensor, latents: torch.Tensor,
                     targets: torch.Tensor, writer: SummaryWriter):
@@ -190,6 +205,12 @@ class PPO(Algorithm):
         writer: SummaryWriter
             writer for logs
         """
+    if self.discrete_state:
+      states = one_hot(states, self.state_size, device=self.device)
+
+    if self.discrete_latent:
+      latents = one_hot(latents, self.latent_size, device=self.device)
+
     loss_critic = (self.critic(states, latents) - targets).pow_(2).mean()
 
     self.optim_critic.zero_grad()
@@ -255,3 +276,36 @@ class PPO(Algorithm):
     if not os.path.isdir(save_dir):
       os.mkdir(save_dir)
     torch.save(self.actor.state_dict(), f'{save_dir}/actor.pkl')
+
+  def set_transition(self, cb_trans: T_GetLatent):
+    self.cb_trans = cb_trans
+
+  def set_reward(self, cb_reward: T_GetReward):
+    self.cb_reward = cb_reward
+
+  def explore_latent(
+      self,
+      t: int,
+      state: Optional[np.ndarray] = None,
+      prev_latent: Optional[np.ndarray] = None,
+      prev_action: Optional[np.ndarray] = None,
+      prev_state: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float]:
+    latent = self.get_latent(t, state, prev_latent, prev_action, prev_state)
+    return latent, float("-inf")
+
+  def get_latent(self,
+                 t: int,
+                 state: Optional[np.array] = None,
+                 prev_latent: Optional[np.array] = None,
+                 prev_action: Optional[np.array] = None,
+                 prev_state: Optional[np.array] = None):
+    """
+    return
+      Latent state
+    """
+    if t == 0:
+      state = torch.tensor(state, dtype=torch.float,
+                           device=self.device).unsqueeze_(0)
+      return self.cb_init_latent(state).cpu().numpy()[0]
+    else:
+      return self.cb_trans(t, state, prev_latent, prev_action, prev_state)

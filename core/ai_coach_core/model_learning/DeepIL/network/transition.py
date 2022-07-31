@@ -202,7 +202,7 @@ class DiscreteTransition(AbstractTransition):
         log_Tx: torch.Tensor
             log_Tx of the next_latents
         """
-    logits = self.forward(torch.cat((next_states, latents, actions), dim=-1))
+    logits = self.forward(next_states, latents, actions)
     dist = Categorical(logits=logits)
 
     samples = dist.sample()
@@ -212,7 +212,7 @@ class DiscreteTransition(AbstractTransition):
 
   def exploit(self, next_states: torch.Tensor, latents: torch.Tensor,
               actions: torch.Tensor) -> torch.Tensor:
-    logits = self.forward(torch.cat((next_states, latents, actions), dim=-1))
+    logits = self.forward(next_states, latents, actions)
     return logits.argmax(dim=-1, keepdim=True)
 
   def evaluate_log_Tx(self, next_states: torch.Tensor, latents: torch.Tensor,
@@ -237,6 +237,6 @@ class DiscreteTransition(AbstractTransition):
         log_Tx: : torch.Tensor
             log(Tx(x|s, x, a))
         """
-    logits = self.forward(torch.cat((next_states, latents, actions), dim=-1))
+    logits = self.forward(next_states, latents, actions)
     dist = Categorical(logits=logits)
     return dist.log_prob(next_latents)

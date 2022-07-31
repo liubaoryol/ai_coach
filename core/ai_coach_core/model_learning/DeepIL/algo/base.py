@@ -9,12 +9,13 @@ from typing import Tuple, Optional, Callable
 from .utils import one_hot
 from ..network import (AbstractPolicy, AbstractTransition, DiscretePolicy,
                        ContinousPolicy, DiscreteTransition, ContinousTransition)
-from ..utils import disable_gradient
+from .utils import disable_gradient
 
 T_InitLatent = Callable[[torch.Tensor], torch.Tensor]
 T_GetLatent = Callable[[int, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
                        np.ndarray]
 T_Exploit = Callable[[np.ndarray, np.ndarray], np.ndarray]
+T_GetReward = Callable[[np.ndarray, np.ndarray, np.ndarray, float], float]
 
 
 class Algorithm:
@@ -57,6 +58,8 @@ class Algorithm:
     self.discrete_state = discrete_state
     self.discrete_latent = discrete_latent
     self.discrete_action = discrete_action
+
+    self.cb_reward: Optional[T_GetReward] = None
 
   def np_to_input(self, input: np.ndarray, size: int,
                   discrete: bool) -> torch.Tensor:
@@ -224,6 +227,10 @@ class Expert:
   def __init__(self, cb_exploit: T_Exploit, cb_get_latent: T_GetLatent):
     self.cb_exploit = cb_exploit
     self.cb_get_latent = cb_get_latent
+    self.cb_reward: Optional[T_GetReward] = None
+
+  def set_reward(self, cb_reward: T_GetReward):
+    self.cb_reward = cb_reward
 
   def exploit(self, state: np.ndarray, latent: np.ndarray) -> np.ndarray:
     """

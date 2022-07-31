@@ -6,7 +6,7 @@ from ai_coach_core.model_learning.DeepIL.env import make_env
 from ai_coach_core.model_learning.DeepIL.algo.algo import EXP_ALGOS
 from ai_coach_core.model_learning.DeepIL.utils import (collect_demo,
                                                        state_action_size)
-from .latent_config import LATENT_CONFIG, LatentConfig
+import latent_config as lc
 
 
 def run(args):
@@ -18,7 +18,7 @@ def run(args):
   (state_size, discrete_state, action_size,
    discrete_action) = state_action_size(env)
 
-  lat_conf = LATENT_CONFIG[args.env_id]  # type: LatentConfig
+  lat_conf = lc.LATENT_CONFIG[args.env_id]  # type: lc.LatentConfig
 
   algo = EXP_ALGOS[args.algo](state_size=state_size,
                               latent_size=lat_conf.latent_size,

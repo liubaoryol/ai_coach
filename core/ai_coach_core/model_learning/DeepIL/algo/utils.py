@@ -1,6 +1,13 @@
 import torch
+from torch import nn
 import torch.nn.functional as F
 from typing import Tuple
+
+
+def disable_gradient(network: nn.Module):
+  """Disable the gradients of parameters in the network"""
+  for param in network.parameters():
+    param.requires_grad = False
 
 
 def calculate_gae(values: torch.Tensor, rewards: torch.Tensor,

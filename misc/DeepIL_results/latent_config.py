@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import torch
+import numpy as np
 
 
 @dataclass
@@ -13,6 +14,14 @@ class LatentConfig:
                          size=(len(states), ),
                          dtype=torch.float).reshape(len(states), -1)
 
+  def get_reward(self, state: np.array, latent: np.array, action: np.array,
+                 reward: float):
+    pass
+
+  def get_trans(self, t: int, state: np.array, prev_latent: np.array,
+                prev_action: np.array, prev_state: np.array):
+    pass
+
 
 class LatentConfigEnv2(LatentConfig):
   def get_init_latent(self, states: torch.Tensor) -> torch.Tensor:
@@ -20,10 +29,74 @@ class LatentConfigEnv2(LatentConfig):
                       dtype=torch.float).reshape(len(states), -1)
 
 
+class CircleWorldLatentConfig(LatentConfig):
+  scaler = 0.5
+  half_sz = 5
+
+  def get_dir(self, state):
+    center = np.array([0, self.half_sz])
+    dir = state - center
+    len_dir = np.linalg.norm(dir)
+    if len_dir != 0:
+      dir /= len_dir
+    return dir
+
+  def get_pos(self, dir):
+    neg_y = np.array([0.0, -1.0])
+    sin = np.cross(neg_y, dir)
+    cos = np.dot(dir, neg_y)
+    return sin, cos
+
+  def get_reward(self, state: np.array, latent: np.array, action: np.array,
+                 reward: float):
+    dir = self.get_dir(state)
+    ortho = np.array([-dir[1], dir[0]])
+
+    inner = ortho.dot(action)
+    reward = self.scaler * inner
+    if latent[0] == 1:
+      reward = -reward
+
+    sin_p, cos_p = self.get_pos(dir)
+
+    next_state = state + self.scaler * action
+    next_state[0] = min(self.half_sz, max(-self.half_sz, next_state[0]))
+    next_state[1] = min(2 * self.half_sz, max(0, next_state[1]))
+
+    dir = self.get_dir(next_state)
+    sin_n, cos_n = self.get_pos(dir)
+    if (sin_n * sin_p < 0 and cos_p > 0 and cos_n > 0 and cos_p < 0.95
+        and cos_n < 0.95):
+      reward = -1
+
+    return reward
+
+  def get_trans(self, t: int, state: np.array, prev_latent: np.array,
+                prev_action: np.array, prev_state: np.array):
+    if t == 0:
+      state = torch.tensor(state, dtype=torch.float).unsqueeze_(0)
+      return self.get_init_latent(state).cpu().numpy()[0]
+    else:
+      dir = self.get_dir(prev_state)
+      sin_p, cos_p = self.get_pos(dir)
+
+      dir = self.get_dir(state)
+      _, cos_n = self.get_pos(dir)
+
+      if prev_latent[0] == 0:
+        if sin_p < 0 and cos_p < 0.95 and cos_n >= 0.95:
+          return np.array([1], dtype=np.float32)
+      else:  # prev_latent[0] == 1
+        if sin_p > 0 and cos_p < 0.95 and cos_n >= 0.95:
+          return np.array([0], dtype=np.float32)
+
+      return prev_latent
+
+
 env1_latent = LatentConfig(4, True)
 env2_latent = LatentConfigEnv2(1, False)
+circleworld_latent = CircleWorldLatentConfig(2, True)
 
 LATENT_CONFIG = {
-    "env_name1": env1_latent,
-    "env_name2": env2_latent,
+    "circleworld-v0": circleworld_latent,
 }

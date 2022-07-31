@@ -96,6 +96,8 @@ class Trainer:
       t += 1
       action, log_pi = self.algo.explore(state, latent)
       next_state, reward, done, _ = self.env.step(action)
+      if self.algo.cb_reward:
+        reward = self.algo.cb_reward(state, latent, action, reward)
       next_latent, _ = self.algo.explore_latent(t, next_state, latent, action,
                                                 state)
       done |= (t == self.env.max_episode_steps) or self.algo.is_max_time(t)
@@ -153,6 +155,9 @@ class Trainer:
         t += 1
         action = self.algo.exploit(state, latent)
         next_state, reward, done, _ = self.env_test.step(action)
+        if self.algo.cb_reward:
+          reward = self.algo.cb_reward(state, latent, action, reward)
+
         latent = self.algo.get_latent(t, next_state, latent, action, state)
         state = next_state
         episode_return += reward

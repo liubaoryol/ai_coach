@@ -103,7 +103,7 @@ class ContinousPolicy(AbstractPolicy):
             actions to take
         """
 
-    return self.forward(torch.cat((states, latents), dim=-1))
+    return self.forward(states, latents)
 
   def sample(self, states: torch.Tensor,
              latents: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -194,7 +194,7 @@ class DiscretePolicy(AbstractPolicy):
             actions to take
         """
 
-    logits = self.forward(torch.cat((states, latents), dim=-1))
+    logits = self.forward(states, latents)
     return logits.argmax(dim=-1, keepdim=True)
 
   def sample(self, states: torch.Tensor,
@@ -215,7 +215,7 @@ class DiscretePolicy(AbstractPolicy):
         log_pi: torch.Tensor
             log_pi of the actions
         """
-    logits = self.forward(torch.cat((states, latents), dim=-1))
+    logits = self.forward(states, latents)
     dist = Categorical(logits=logits)
 
     samples = dist.sample()
@@ -238,6 +238,6 @@ class DiscretePolicy(AbstractPolicy):
         log_pi: : torch.Tensor
             log(\pi(a|s, x))
         """
-    logits = self.forward(torch.cat((states, latents), dim=-1))
+    logits = self.forward(states, latents)
     dist = Categorical(logits=logits)
     return dist.log_prob(actions)

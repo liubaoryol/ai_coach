@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import torch.nn as nn
 import time
 import gym.spaces
 
@@ -8,12 +7,6 @@ from tqdm import tqdm
 from .buffer import Buffer
 from .algo.base import Expert
 from .env import NormalizedEnv
-
-
-def disable_gradient(network: nn.Module):
-  """Disable the gradients of parameters in the network"""
-  for param in network.parameters():
-    param.requires_grad = False
 
 
 def state_action_size(env: NormalizedEnv):
@@ -113,6 +106,8 @@ def collect_demo(env: NormalizedEnv,
       action = algo.exploit(state, latent)
 
     next_state, reward, done, _ = env.step(action)
+    if algo.cb_reward:
+      reward = algo.cb_reward(state, latent, action, reward)
     next_latent = algo.get_latent(t, next_state, latent, action, state)
     mask = True if t == env.max_episode_steps else done
     buffer.append(state, latent, action, reward, mask, next_state, next_latent)
@@ -190,6 +185,8 @@ def evaluation(env: NormalizedEnv,
 
     action = algo.exploit(state, latent)
     next_state, reward, done, _ = env.step(action)
+    if algo.cb_reward:
+      reward = algo.cb_reward(state, latent, action, reward)
     next_latent = algo.get_latent(t, next_state, latent, action, state)
     episode_return += reward
     episode_steps += 1
