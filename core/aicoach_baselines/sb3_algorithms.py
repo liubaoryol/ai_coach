@@ -13,7 +13,7 @@ from imitation.util import logger
 from imitation.data import rollout
 from imitation.util.util import make_vec_env
 from ai_coach_core.models.mdp import MDP
-import gym_aicoach  # noqa: F401
+import ai_coach_core.gym  # noqa: F401
 
 
 def get_sb3_policy(sb3_policy: ActorCriticPolicy, num_states: int,

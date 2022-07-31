@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Sequence
 import tqdm
 import numpy as np
 import random
@@ -10,13 +11,14 @@ import aicoach_baselines.external.magail_latent.model as lmagail_model
 import aicoach_baselines.external.magail_latent.storage as lmagail_storage
 import aicoach_baselines.external.gail_common_utils.utils as gail_utils
 import aicoach_baselines.external.gail_common_utils.envs as gail_env
-import gym_aicoach  # noqa: F401
+import ai_coach_core.gym  # noqa: F401
 import ai_coach_core.models.mdp as mdp_lib
+from ai_coach_core.models.agent_model import AgentModel
 
 
-def lmagail_w_ppo(mdp: mdp_lib.MDP,
+def lmagail_w_ppo(mdp: mdp_lib.LatentMDP,
                   possible_init_states,
-                  agents,
+                  agent_models: Sequence[AgentModel],
                   sax_trajectories_no_terminal,
                   num_processes=1,
                   demo_batch_size=64,
@@ -79,9 +81,9 @@ def lmagail_w_ppo(mdp: mdp_lib.MDP,
   # ---------- create vec env from mdp ----------
   env_kwargs = dict(mdp=mdp,
                     possible_init_states=possible_init_states,
-                    agents=agents)
+                    agent_models=agent_models)
 
-  venv = gail_env.make_vec_envs('envfromboxpush-v0',
+  venv = gail_env.make_vec_envs('envfromlatentmdp-v0',
                                 seed=args.seed,
                                 num_processes=args.num_processes,
                                 gamma=args.gamma,

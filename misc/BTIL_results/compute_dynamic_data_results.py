@@ -635,7 +635,8 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
           if entropy is not None:
             list_entropy.append(entropy)
 
-        list_pi_magail = lmagail_w_ppo(MDP_TASK, [init_state], [agent1, agent2],
+        list_pi_magail = lmagail_w_ppo(MDP_TASK, [init_state],
+                                       [agent1.agent_model, agent2.agent_model],
                                        traj_labeled_ver[0:idx],
                                        num_processes=num_processes,
                                        demo_batch_size=gail_batch_size,
