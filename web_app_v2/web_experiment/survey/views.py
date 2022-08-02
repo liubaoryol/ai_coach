@@ -29,73 +29,78 @@ def preexperiment():
   return render_template('preexperiment.html', is_disabled = disabled)
 
 
-def inexperiment_impl(exp_no, current_html_file, next_endpoint_name, session_name = None):
+def inexperiment_impl(current_html_file, next_endpoint_name, session_name):
   cur_user = g.user
   query_data = User.query.filter_by(userid=cur_user).first()
+  session_survey_name = f"session_{session_name}_survey"
 
   if request.method == 'POST':
-    logging.info('User %s submitted in-experiment survey #%d.' %
-                 (cur_user, exp_no))
-    if exp_no == 0:
-      if not query_data.session_a0_survey:
-        query_data.session_a0_survey = True
-        db.session.commit()
-    elif exp_no == 1:
-      if not query_data.session_a1_survey:
-        query_data.session_a1_survey = True
-        db.session.commit()
-    elif exp_no == 2:
-      if not query_data.session_a2_survey:
-        query_data.session_a2_survey = True
-        db.session.commit()
+    logging.info('User %s submitted in-experiment survey %s.' %
+                 (cur_user, session_name))
+    if not getattr(query_data, session_survey_name):
+      setattr(query_data, session_survey_name, True)
+      db.session.commit()                
+    # if exp_no == 0:
+    #   if not query_data.session_a0_survey:
+    #     query_data.session_a0_survey = True
+    #     db.session.commit()
+    # elif exp_no == 1:
+    #   if not query_data.session_a1_survey:
+    #     query_data.session_a1_survey = True
+    #     db.session.commit()
+    # elif exp_no == 2:
+    #   if not query_data.session_a2_survey:
+    #     query_data.session_a2_survey = True
+    #     db.session.commit()
     # elif exp_no == 3:
     #   # if not query_data.session_a2_survey:
     #   #   query_data.session_a2_survey = True
     #   #   db.session.commit()
-    if (session_name):
-      return redirect(url_for(next_endpoint_name, session_name = session_name))
     return redirect(url_for(next_endpoint_name))
   
   disabled = ''
-  if exp_no == 0:
-    if not query_data.session_a0_survey:
-      disabled = 'disabled'
-  elif exp_no == 1:
-    if not query_data.session_a1_survey:
-      disabled = 'disabled'
-  elif exp_no == 2:
-    if not query_data.session_a2_survey:
-      disabled = 'disabled'
+  if not getattr(query_data, session_survey_name):
+    disabled = 'disabled'
+  print(disabled)
+  # if exp_no == 0:
+  #   if not query_data.session_a0_survey:
+  #     disabled = 'disabled'
+  # elif exp_no == 1:
+  #   if not query_data.session_a1_survey:
+  #     disabled = 'disabled'
+  # elif exp_no == 2:
+  #   if not query_data.session_a2_survey:
+  #     disabled = 'disabled'
   return render_template(current_html_file, is_disabled = disabled)
 
 @survey_bp.route('/survey_both_tell_align', methods=('GET', 'POST'))
 @login_required
 def survey_both_tell_align():
   # survey for session a0
-  return inexperiment_impl(0, 'survey_both_tell_align.html', 'exp1.exp1_both_user_random')
+  return inexperiment_impl('survey_both_tell_align.html', 'exp1.exp1_both_user_random', "a0")
 
 @survey_bp.route('/survey_both_user_random', methods=('GET', 'POST'))
 @login_required
 def survey_both_user_random():
-  return inexperiment_impl(1, 'survey_both_user_random.html',
-                           'exp1.exp1_both_user_random_2')
+  return inexperiment_impl('survey_both_user_random.html',
+                           'exp1.exp1_both_user_random_2', "a1")
 
 @survey_bp.route('/survey_both_user_random_2', methods=('GET', 'POST'))
 @login_required
 def survey_both_user_random_2():
-  return inexperiment_impl(2, 'survey_both_user_random_2.html',
-                           'inst.clean_up')
+  return inexperiment_impl('survey_both_user_random_2.html',
+                           'inst.clean_up', "a2")
 
-@survey_bp.route('/survey_tutorial_2', methods=('GET', 'POST'))
+@survey_bp.route('/survey_indv_tell_align', methods=('GET', 'POST'))
 @login_required
-def survey_tutorial_2():
-  return inexperiment_impl(3, 'survey_tutorial_2.html', 'exp1.exp1_indv_user_random')                      
+def survey_indv_tell_align():
+  return inexperiment_impl('survey_indv_tell_align.html', 'exp1.exp1_indv_user_random', "b0")                      
 
 @survey_bp.route('/survey_indv_user_random', methods=('GET', 'POST'))
 @login_required
 def survey_indv_user_random():
-  return inexperiment_impl(4, 'survey_indv_user_random.html',
-                           'exp1.exp1_indv_user_random_2')
+  return inexperiment_impl('survey_indv_user_random.html',
+                           'exp1.exp1_indv_user_random_2', "b1")
 
 
 @survey_bp.route('/completion', methods=('GET', 'POST'))

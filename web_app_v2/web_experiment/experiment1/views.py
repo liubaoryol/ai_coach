@@ -64,6 +64,20 @@ def exp1_both_user_random_2():
                          cur_user=cur_user,
                          is_disabled=disabled)
 
+@exp1_bp.route('/exp1_indv_tell_align')
+@login_required
+def exp1_indv_tell_align():
+  cur_user = g.user
+  logging.info('User %s accesses to exp1_indv_tell_align.' % (cur_user, ))
+
+  query_data = User.query.filter_by(userid=cur_user).first()
+  disabled = ''
+  if not query_data.session_b0:
+    disabled = 'disabled'
+  return render_template('exp1_indv_tell_align.html',
+                         cur_user=cur_user,
+                         is_disabled=disabled)
+
 @exp1_bp.route('/exp1_indv_user_random')
 @login_required
 def exp1_indv_user_random():
