@@ -10,16 +10,31 @@ class User(db.Model):
   email = db.Column(db.String(120), default='')
   admin = db.Column(db.Boolean, nullable=False, default=False)
   tutorial1 = db.Column(db.Boolean, default=False)
+  session_a0 = db.Column(db.Boolean, default=False)
   session_a1 = db.Column(db.Boolean, default=False)
   session_a2 = db.Column(db.Boolean, default=False)
   session_a2_record = db.Column(db.Boolean, default=False)
+
+  tutorial2 = db.Column(db.Boolean, default=False)
+  session_b0 = db.Column(db.Boolean, default=False)
+  session_b1 = db.Column(db.Boolean, default=False)
+  session_b2 = db.Column(db.Boolean, default=False)
+  session_b2_record = db.Column(db.Boolean, default=False)
+
   
   best_a = db.Column(db.Integer, default=999)
+  best_b = db.Column(db.Integer, default=999)
   completed = db.Column(db.Boolean, default=False)
   pre_exp = db.Column(db.Boolean, default = False)
-  tutorial1_survey = db.Column(db.Boolean, default=False) 
+  session_a0_survey = db.Column(db.Boolean, default=False) 
   session_a1_survey = db.Column(db.Boolean, default=False)
   session_a2_survey = db.Column(db.Boolean, default=False)
+
+  session_b0_survey = db.Column(db.Boolean, default=False) 
+  session_b1_survey = db.Column(db.Boolean, default=False)
+  session_b2_survey = db.Column(db.Boolean, default=False)
+
+
   
   # pre_exp = db.relationship('PreExperiment',
   #                           backref='user',

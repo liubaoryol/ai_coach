@@ -1,5 +1,5 @@
-{% extends 'exp1_session_a_practice.html' %}
-{% block subtitle %}PRACTICE Session A0{% endblock %}
+{% extends 'exp1_session_b_test.html' %}
+{% block subtitle %}TEST Session B1{% endblock %}
 
 {% block content %}
 <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
@@ -13,8 +13,8 @@
 <script type="text/javascript">
   initImagePathCurUser(
     "{{ url_for('exp1.static', filename='robot.svg') }}",
-    "{{ url_for('exp1.static', filename='woman.svg') }}",
-    "{{ url_for('exp1.static', filename='box.svg') }}",
+    "{{ url_for('exp1.static', filename='man.svg') }}",
+    "{{ url_for('exp1.static', filename='Trash_bag.svg') }}",
     "{{ url_for('exp1.static', filename='wall.svg') }}",
     "{{ url_for('exp1.static', filename='goal.svg') }}",
     "{{ url_for('exp1.static', filename='both_box.svg') }}",
@@ -26,10 +26,11 @@
   page_list.push(new PageExperimentHome());
   page_list.push(new PageExperimentHome2());
   page_list.push(new PageDuringGame());
-  page_list[page_list.length - 1].use_manual_selection = false;
+  page_list[page_list.length - 1].use_manual_selection = true;
+  page_list[page_list.length - 1].is_test = true;
   page_list.push(new PageExperimentEnd());
 
-  initPages(page_list, "exp1_both_tell_align");
+  initPages(page_list, "exp1_indv_user_random");
 </script>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
@@ -38,8 +39,8 @@
 
 <div>
   <div class="button-center">
-    <form action="{{ url_for('survey.survey_both_tell_align') }}">
-      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed</button>
+    <form action="{{ url_for('survey.survey_indv_user_random') }}">
+      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed to Survey</button>
     </form>
   </div>
 </div>

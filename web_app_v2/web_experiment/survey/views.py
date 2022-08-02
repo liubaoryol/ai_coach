@@ -37,8 +37,8 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name, session_nam
     logging.info('User %s submitted in-experiment survey #%d.' %
                  (cur_user, exp_no))
     if exp_no == 0:
-      if not query_data.tutorial1_survey:
-        query_data.tutorial1_survey = True
+      if not query_data.session_a0_survey:
+        query_data.session_a0_survey = True
         db.session.commit()
     elif exp_no == 1:
       if not query_data.session_a1_survey:
@@ -48,13 +48,17 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name, session_nam
       if not query_data.session_a2_survey:
         query_data.session_a2_survey = True
         db.session.commit()
+    # elif exp_no == 3:
+    #   # if not query_data.session_a2_survey:
+    #   #   query_data.session_a2_survey = True
+    #   #   db.session.commit()
     if (session_name):
       return redirect(url_for(next_endpoint_name, session_name = session_name))
     return redirect(url_for(next_endpoint_name))
   
   disabled = ''
   if exp_no == 0:
-    if not query_data.tutorial1_survey:
+    if not query_data.session_a0_survey:
       disabled = 'disabled'
   elif exp_no == 1:
     if not query_data.session_a1_survey:
@@ -64,18 +68,11 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name, session_nam
       disabled = 'disabled'
   return render_template(current_html_file, is_disabled = disabled)
 
-@survey_bp.route('/survey_tutorial_1', methods=('GET', 'POST'))
+@survey_bp.route('/survey_both_tell_align', methods=('GET', 'POST'))
 @login_required
-def survey_tutorial_1():
+def survey_both_tell_align():
   # survey for session a0
-  return inexperiment_impl(0, 'survey_tutorial_1.html', 'exp1.exp1_both_user_random')
-
-# @survey_bp.route('/survey_both_tell_align', methods=('GET', 'POST'))
-# @login_required
-# def survey_both_tell_align():
-#   return inexperiment_impl(1, 'survey_both_tell_align.html',
-#                            'exp1.exp1_both_user_random')
-
+  return inexperiment_impl(0, 'survey_both_tell_align.html', 'exp1.exp1_both_user_random')
 
 @survey_bp.route('/survey_both_user_random', methods=('GET', 'POST'))
 @login_required
@@ -87,7 +84,18 @@ def survey_both_user_random():
 @login_required
 def survey_both_user_random_2():
   return inexperiment_impl(2, 'survey_both_user_random_2.html',
-                           'survey.completion')
+                           'inst.clean_up')
+
+@survey_bp.route('/survey_tutorial_2', methods=('GET', 'POST'))
+@login_required
+def survey_tutorial_2():
+  return inexperiment_impl(3, 'survey_tutorial_2.html', 'exp1.exp1_indv_user_random')                      
+
+@survey_bp.route('/survey_indv_user_random', methods=('GET', 'POST'))
+@login_required
+def survey_indv_user_random():
+  return inexperiment_impl(4, 'survey_indv_user_random.html',
+                           'exp1.exp1_indv_user_random_2')
 
 
 @survey_bp.route('/completion', methods=('GET', 'POST'))
