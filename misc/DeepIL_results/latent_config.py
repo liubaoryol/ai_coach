@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import torch
 import numpy as np
+import gym_custom  # noqa: F401
 
 
 @dataclass
@@ -18,8 +19,8 @@ class LatentConfig:
                  reward: float):
     pass
 
-  def get_trans(self, t: int, state: np.array, prev_latent: np.array,
-                prev_action: np.array, prev_state: np.array):
+  def get_latent(self, t: int, state: np.array, prev_latent: np.array,
+                 prev_action: np.array, prev_state: np.array):
     pass
 
 
@@ -49,19 +50,18 @@ class CircleWorldLatentConfig(LatentConfig):
 
   def get_reward(self, state: np.array, latent: np.array, action: np.array,
                  reward: float):
-    dir = self.get_dir(state)
-    ortho = np.array([-dir[1], dir[0]])
-
-    inner = ortho.dot(action)
-    reward = self.scaler * inner
-    if latent[0] == 1:
-      reward = -reward
-
-    sin_p, cos_p = self.get_pos(dir)
-
     next_state = state + self.scaler * action
     next_state[0] = min(self.half_sz, max(-self.half_sz, next_state[0]))
     next_state[1] = min(2 * self.half_sz, max(0, next_state[1]))
+
+    if latent[0] == 1:
+      reward = -reward
+
+    if reward < 0:
+      reward = -1
+
+    dir = self.get_dir(state)
+    sin_p, cos_p = self.get_pos(dir)
 
     dir = self.get_dir(next_state)
     sin_n, cos_n = self.get_pos(dir)
@@ -71,8 +71,8 @@ class CircleWorldLatentConfig(LatentConfig):
 
     return reward
 
-  def get_trans(self, t: int, state: np.array, prev_latent: np.array,
-                prev_action: np.array, prev_state: np.array):
+  def get_latent(self, t: int, state: np.array, prev_latent: np.array,
+                 prev_action: np.array, prev_state: np.array):
     if t == 0:
       state = torch.tensor(state, dtype=torch.float).unsqueeze_(0)
       return self.get_init_latent(state).cpu().numpy()[0]

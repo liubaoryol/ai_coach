@@ -161,7 +161,7 @@ class Trainer:
         latent = self.algo.get_latent(t, next_state, latent, action, state)
         state = next_state
         episode_return += reward
-        if done or not self.algo.is_max_time(t):
+        if done or self.algo.is_max_time(t):
           break
 
       returns.append(episode_return)

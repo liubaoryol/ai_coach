@@ -1,11 +1,12 @@
 import gym
 from gym import spaces
+import cv2
 import numpy as np
 
 
 class CircleWorld(gym.Env):
   # uncomment below line if you need to render the environment
-  # metadata = {'render.modes': ['console']}
+  metadata = {'render.modes': ['human']}
 
   def __init__(self):
     super().__init__()
@@ -31,6 +32,10 @@ class CircleWorld(gym.Env):
 
     scaler = 0.5
 
+    next_obstate = self.cur_obstate + scaler * action
+    next_obstate[0] = min(self.half_sz, max(-self.half_sz, next_obstate[0]))
+    next_obstate[1] = min(2 * self.half_sz, max(0, next_obstate[1]))
+
     center = np.array([0, self.half_sz])
     dir = self.cur_obstate - center
     len_dir = np.linalg.norm(dir)
@@ -38,14 +43,10 @@ class CircleWorld(gym.Env):
       dir /= len_dir
 
     ortho = np.array([-dir[1], dir[0]])
+    inner = ortho.dot(next_obstate - self.cur_obstate)
+    reward = np.sign(inner) * (inner**2)
 
-    inner = ortho.dot(action)
-    reward = scaler * inner
-
-    self.cur_obstate += scaler * action
-    self.cur_obstate[0] = min(self.half_sz,
-                              max(-self.half_sz, self.cur_obstate[0]))
-    self.cur_obstate[1] = min(2 * self.half_sz, max(0, self.cur_obstate[1]))
+    self.cur_obstate = next_obstate
 
     return self.cur_obstate, reward, False, info
 
@@ -53,3 +54,25 @@ class CircleWorld(gym.Env):
     self.cur_obstate = np.array([0.0, 0.0])
 
     return self.cur_obstate
+
+  def get_canvas(self):
+    canvas_sz = 300
+
+    canvas = np.ones((canvas_sz, canvas_sz, 3), dtype=np.uint8) * 255
+
+    pt = np.array([self.cur_obstate[0] + self.half_sz, self.cur_obstate[1]])
+    pt *= canvas_sz / (2 * self.half_sz)
+    pt = pt.astype(np.int64)
+
+    color = (255, 0, 0)
+    canvas = cv2.circle(canvas, pt, 5, color, thickness=-1)
+
+    return canvas
+
+  def render(self, mode='human'):
+    if mode == 'human':
+      cv2.imshow("Circle World", self.get_canvas())
+      cv2.waitKey(10)
+
+  def close(self):
+    cv2.destroyAllWindows()

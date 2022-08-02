@@ -187,6 +187,7 @@ def evaluation(env: NormalizedEnv,
     next_state, reward, done, _ = env.step(action)
     if algo.cb_reward:
       reward = algo.cb_reward(state, latent, action, reward)
+    print(latent, reward)
     next_latent = algo.get_latent(t, next_state, latent, action, state)
     episode_return += reward
     episode_steps += 1

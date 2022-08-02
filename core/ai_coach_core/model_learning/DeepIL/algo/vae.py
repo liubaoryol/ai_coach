@@ -4,7 +4,7 @@ import numpy as np
 import itertools
 from .base import Algorithm, T_InitLatent
 from .utils import gumbel_softmax_sample, one_hot
-from typing import Sequence
+from typing import Sequence, Optional, Tuple
 
 from torch.optim import Adam
 from torch.distributions import Categorical
@@ -32,9 +32,10 @@ class VAE(Algorithm):
                batch_size: int = 64,
                temperature: float = 2.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
-                     discrete_latent, discrete_action, actor, transition,
-                     cb_init_latent, device, seed, gamma)
+                     discrete_latent, discrete_action, actor, cb_init_latent,
+                     None, device, seed, gamma)
     self.buffer_exp = buffer_exp
+    self.trans = transition
 
     params = [self.actor.parameters(), self.trans.parameters()]
     self.optim_vae = Adam(itertools.chain(*params), lr=lr_vae)
@@ -42,6 +43,53 @@ class VAE(Algorithm):
     self.learning_steps_vae = 0
     self.batch_size = batch_size
     self.temperature = temperature
+
+  def explore_latent(
+      self,
+      t: int,
+      state: Optional[np.ndarray] = None,
+      prev_latent: Optional[np.ndarray] = None,
+      prev_action: Optional[np.ndarray] = None,
+      prev_state: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float]:
+    if t == 0:
+      state = torch.tensor(state, dtype=torch.float,
+                           device=self.device).unsqueeze_(0)
+      return self.cb_init_latent(state).cpu().numpy()[0]
+    else:
+      state = self.np_to_input(state, self.state_size, self.discrete_state)
+      prev_state = self.np_to_input(prev_state, self.state_size,
+                                    self.discrete_state)
+      prev_latent = self.np_to_input(prev_latent, self.latent_size,
+                                     self.discrete_latent)
+      prev_action = self.np_to_input(prev_action, self.action_size,
+                                     self.discrete_action)
+
+      with torch.no_grad():
+        latent, log_Tx = self.trans.sample(state, prev_latent, prev_action)
+      return latent.cpu().numpy()[0], log_Tx.item()
+
+  def get_latent(self,
+                 t: int,
+                 state: Optional[np.ndarray] = None,
+                 prev_latent: Optional[np.ndarray] = None,
+                 prev_action: Optional[np.ndarray] = None,
+                 prev_state: Optional[np.ndarray] = None) -> np.ndarray:
+    if t == 0:
+      state = torch.tensor(state, dtype=torch.float,
+                           device=self.device).unsqueeze_(0)
+      return self.cb_init_latent(state).cpu().numpy()[0]
+    else:
+      state = self.np_to_input(state, self.state_size, self.discrete_state)
+      prev_state = self.np_to_input(prev_state, self.state_size,
+                                    self.discrete_state)
+      prev_latent = self.np_to_input(prev_latent, self.latent_size,
+                                     self.discrete_latent)
+      prev_action = self.np_to_input(prev_action, self.action_size,
+                                     self.discrete_action)
+
+      with torch.no_grad():
+        latent = self.trans.exploit(state, prev_latent, prev_action)
+      return latent.cpu().numpy()[0]
 
   def update(self, writer: SummaryWriter):
     """
@@ -57,20 +105,6 @@ class VAE(Algorithm):
     traj_actions = self.buffer_exp.traj_actions
     traj_next_states = self.buffer_exp.traj_next_states
     self.update_vae(traj_states, traj_actions, traj_next_states, writer)
-
-  # def initial_latent(self, states: torch.Tensor) -> torch.Tensor:
-  #   if self.discrete_latent:
-  #     # TODO: implement p(x|s)
-  #     return torch.randint(low=0,
-  #                          high=self.latent_size,
-  #                          size=(len(states), ),
-  #                          dtype=torch.float,
-  #                          device=self.device).reshape(len(states), -1)
-  #   else:
-  #     # TODO: temporary code
-  #     return torch.rand(size=(len(states), ),
-  #                       dtype=torch.float,
-  #                       device=self.device).reshape(len(states), -1)
 
   def encode_decode(self, states: torch.Tensor, latents: torch.Tensor,
                     actions: torch.Tensor, next_states: torch.Tensor,

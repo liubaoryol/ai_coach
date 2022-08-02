@@ -1,16 +1,16 @@
 import torch
 import os
 import numpy as np
-from typing import Optional, Tuple
+from typing import Tuple
 
 from torch import nn
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
-from .base import Algorithm, T_InitLatent, T_GetLatent, T_GetReward
+from .base import Algorithm, T_InitLatent, T_GetLatent
 from .utils import calculate_gae, one_hot
 
 from ..buffer import RolloutBuffer
-from ..network import AbstractPolicy, StateFunction, AbstractTransition
+from ..network import AbstractPolicy, StateFunction
 
 
 class PPO(Algorithm):
@@ -64,8 +64,8 @@ class PPO(Algorithm):
                buffer: RolloutBuffer,
                actor: AbstractPolicy,
                critic: StateFunction,
-               transition: AbstractTransition,
                cb_init_latent: T_InitLatent,
+               cb_get_latent: T_GetLatent,
                device: torch.device,
                seed: int,
                gamma: float = 0.995,
@@ -78,8 +78,8 @@ class PPO(Algorithm):
                coef_ent: float = 0.0,
                max_grad_norm: float = 10.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
-                     discrete_latent, discrete_action, actor, transition,
-                     cb_init_latent, device, seed, gamma)
+                     discrete_latent, discrete_action, actor, cb_init_latent,
+                     cb_get_latent, device, seed, gamma)
 
     self.buffer = buffer
     self.critic = critic
@@ -276,36 +276,3 @@ class PPO(Algorithm):
     if not os.path.isdir(save_dir):
       os.mkdir(save_dir)
     torch.save(self.actor.state_dict(), f'{save_dir}/actor.pkl')
-
-  def set_transition(self, cb_trans: T_GetLatent):
-    self.cb_trans = cb_trans
-
-  def set_reward(self, cb_reward: T_GetReward):
-    self.cb_reward = cb_reward
-
-  def explore_latent(
-      self,
-      t: int,
-      state: Optional[np.ndarray] = None,
-      prev_latent: Optional[np.ndarray] = None,
-      prev_action: Optional[np.ndarray] = None,
-      prev_state: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float]:
-    latent = self.get_latent(t, state, prev_latent, prev_action, prev_state)
-    return latent, float("-inf")
-
-  def get_latent(self,
-                 t: int,
-                 state: Optional[np.array] = None,
-                 prev_latent: Optional[np.array] = None,
-                 prev_action: Optional[np.array] = None,
-                 prev_state: Optional[np.array] = None):
-    """
-    return
-      Latent state
-    """
-    if t == 0:
-      state = torch.tensor(state, dtype=torch.float,
-                           device=self.device).unsqueeze_(0)
-      return self.cb_init_latent(state).cpu().numpy()[0]
-    else:
-      return self.cb_trans(t, state, prev_latent, prev_action, prev_state)

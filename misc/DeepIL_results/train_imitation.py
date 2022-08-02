@@ -68,23 +68,25 @@ def run(args):
                       hidden_units=(64, 64),
                       hidden_activation=nn.Tanh()).to(device)
 
-  if args.algo == 'digail':
-    algo = ALGOS[args.algo](state_size=state_size,
-                            latent_size=lat_conf.latent_size,
-                            action_size=action_size,
-                            discrete_state=discrete_state,
-                            discrete_latent=lat_conf.discrete_latent,
-                            discrete_action=discrete_action,
-                            buffer_exp=buffer_exp,
-                            discriminator=discriminator,
-                            buffer=buffer,
-                            actor=actor,
-                            critic=critic,
-                            transition=trans,
-                            cb_init_latent=lat_conf.get_init_latent,
-                            device=device,
-                            seed=args.seed,
-                            rollout_length=args.rollout_length)
+  if args.algo not in ['digail']:
+    raise NotImplementedError
+
+  algo = ALGOS[args.algo](state_size=state_size,
+                          latent_size=lat_conf.latent_size,
+                          action_size=action_size,
+                          discrete_state=discrete_state,
+                          discrete_latent=lat_conf.discrete_latent,
+                          discrete_action=discrete_action,
+                          buffer_exp=buffer_exp,
+                          discriminator=discriminator,
+                          buffer=buffer,
+                          actor=actor,
+                          critic=critic,
+                          transition=trans,
+                          cb_init_latent=lat_conf.get_init_latent,
+                          device=device,
+                          seed=args.seed,
+                          rollout_length=args.rollout_length)
 
   time = datetime.now().strftime("%Y%m%d-%H%M%S")
   log_dir = os.path.join('logs', args.env_id, args.algo,

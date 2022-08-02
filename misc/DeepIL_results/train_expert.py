@@ -11,11 +11,8 @@ from ai_coach_core.model_learning.DeepIL.utils import state_action_size
 from ai_coach_core.model_learning.DeepIL.buffer import RolloutBuffer
 from ai_coach_core.model_learning.DeepIL.network import (DiscretePolicy,
                                                          ContinousPolicy,
-                                                         DiscreteTransition,
-                                                         ContinousTransition,
                                                          StateFunction)
 import latent_config as lc
-import gym_custom  # noqa: F401
 
 
 def run(args):
@@ -48,14 +45,8 @@ def run(args):
                          latent_size=lat_conf.latent_size,
                          hidden_units=(64, 64),
                          hidden_activation=nn.Tanh()).to(device)
-
-  trans_class = (DiscreteTransition
-                 if lat_conf.discrete_latent else ContinousTransition)
-  trans = trans_class(state_size=state_size,
-                      latent_size=lat_conf.latent_size,
-                      action_size=action_size,
-                      hidden_units=(64, 64),
-                      hidden_activation=nn.Tanh()).to(device)
+  if args.algo not in ["ppo"]:
+    raise NotImplementedError
 
   algo = ALGOS[args.algo](state_size=state_size,
                           latent_size=lat_conf.latent_size,
@@ -66,12 +57,12 @@ def run(args):
                           buffer=buffer,
                           actor=actor,
                           critic=critic,
-                          transition=trans,
                           cb_init_latent=lat_conf.get_init_latent,
+                          cb_get_latent=lat_conf.get_latent,
                           device=device,
                           seed=args.seed,
-                          rollout_length=args.rollout_length)
-  algo.set_transition(lat_conf.get_trans)
+                          rollout_length=args.rollout_length,
+                          coef_ent=0.1)
   algo.set_reward(lat_conf.get_reward)
 
   time = datetime.now().strftime("%Y%m%d-%H%M%S")

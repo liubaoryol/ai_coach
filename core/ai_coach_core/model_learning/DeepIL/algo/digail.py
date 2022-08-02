@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import os
 import numpy as np
 
-from typing import Sequence, Optional, Tuple
+from typing import Sequence, Optional
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from .base import T_InitLatent
@@ -94,9 +94,9 @@ class DIGAIL(PPO):
                vae_temperatue: float = 2.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
                      discrete_latent, discrete_action, buffer, actor, critic,
-                     transition, cb_init_latent, device, seed, gamma,
-                     rollout_length, lr_actor, lr_critic, epoch_ppo, clip_eps,
-                     lambd, coef_ent, max_grad_norm)
+                     cb_init_latent, None, device, seed, gamma, rollout_length,
+                     lr_actor, lr_critic, epoch_ppo, clip_eps, lambd, coef_ent,
+                     max_grad_norm)
 
     # expert's buffer
     self.buffer_exp = buffer_exp
@@ -141,7 +141,7 @@ class DIGAIL(PPO):
           if self.discrete_action:
             action = one_hot(action.unsqueeze(0), self.action_size, self.device)
 
-          next_latent = self.trans.sample(next_state, latent, action)
+          next_latent = self.vae.trans.sample(next_state, latent, action)
           latents = torch.cat((latents, next_latent), dim=0)
 
       self.traj_exp_latents.append(latents)
@@ -165,16 +165,6 @@ class DIGAIL(PPO):
   def is_max_time(self, t: int):
     return t >= len(self.cur_latents)
 
-  def explore_latent(
-      self,
-      t: int,
-      state: Optional[np.ndarray] = None,
-      prev_latent: Optional[np.ndarray] = None,
-      prev_action: Optional[np.ndarray] = None,
-      prev_state: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float]:
-    latent = self.get_latent(t, state, prev_latent, prev_action, prev_state)
-    return latent, float("-inf")
-
   def get_latent(self,
                  t: int,
                  state: Optional[np.array] = None,
@@ -186,13 +176,15 @@ class DIGAIL(PPO):
       Latent state
     """
     if self.pretrain_mode:
-      return super().get_latent(t, state, prev_latent, prev_action, prev_state)
+      return self.vae.get_latent(t, state, prev_latent, prev_action, prev_state)
     else:
       if t == 0:
         self.cur_latents = self.sample_latent_seq(1)[0]
 
       if t >= len(self.cur_latents):
-        return np.ones(self.cur_latents[0].shape) * float("-inf")
+        # if t is greater than the length of the latent sequence,
+        # just return the last latent again
+        return self.cur_latents[-1].cpu().numpy()
 
       return self.cur_latents[t].cpu().numpy()
 

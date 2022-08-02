@@ -7,8 +7,8 @@ from torch.utils.tensorboard import SummaryWriter
 from abc import abstractmethod
 from typing import Tuple, Optional, Callable
 from .utils import one_hot
-from ..network import (AbstractPolicy, AbstractTransition, DiscretePolicy,
-                       ContinousPolicy, DiscreteTransition, ContinousTransition)
+from ..network import (AbstractPolicy, DiscretePolicy, ContinousPolicy,
+                       DiscreteTransition, ContinousTransition)
 from .utils import disable_gradient
 
 T_InitLatent = Callable[[torch.Tensor], torch.Tensor]
@@ -34,15 +34,15 @@ class Algorithm:
   def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
                action_size: torch.Tensor, discrete_state: bool,
                discrete_latent: bool, discrete_action: bool,
-               actor: AbstractPolicy, transition: AbstractTransition,
-               cb_init_latent: T_InitLatent, device: torch.device, seed: int,
+               actor: AbstractPolicy, cb_init_latent: T_InitLatent,
+               cb_get_latent: T_GetLatent, device: torch.device, seed: int,
                gamma: float):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
 
     self.actor = actor
-    self.trans = transition
+    self.cb_get_latent = cb_get_latent
     self.cb_init_latent = cb_init_latent
 
     self.pretrain_mode = False
@@ -60,6 +60,9 @@ class Algorithm:
     self.discrete_action = discrete_action
 
     self.cb_reward: Optional[T_GetReward] = None
+
+  def set_reward(self, cb_reward: T_GetReward):
+    self.cb_reward = cb_reward
 
   def np_to_input(self, input: np.ndarray, size: int,
                   discrete: bool) -> torch.Tensor:
@@ -134,23 +137,8 @@ class Algorithm:
       prev_latent: Optional[np.ndarray] = None,
       prev_action: Optional[np.ndarray] = None,
       prev_state: Optional[np.ndarray] = None) -> Tuple[np.ndarray, float]:
-
-    if t == 0:
-      state = torch.tensor(state, dtype=torch.float,
-                           device=self.device).unsqueeze_(0)
-      return self.cb_init_latent(state).cpu().numpy()[0], float("-inf")
-    else:
-      state = self.np_to_input(state, self.state_size, self.discrete_state)
-      prev_state = self.np_to_input(prev_state, self.state_size,
-                                    self.discrete_state)
-      prev_latent = self.np_to_input(prev_latent, self.latent_size,
-                                     self.discrete_latent)
-      prev_action = self.np_to_input(prev_action, self.action_size,
-                                     self.discrete_action)
-
-      with torch.no_grad():
-        latent, log_Tx = self.trans.sample(state, prev_latent, prev_action)
-      return latent.cpu().numpy()[0], log_Tx.item()
+    latent = self.get_latent(t, state, prev_latent, prev_action, prev_state)
+    return latent, float("-inf")
 
   def get_latent(self,
                  t: int,
@@ -158,23 +146,7 @@ class Algorithm:
                  prev_latent: Optional[np.ndarray] = None,
                  prev_action: Optional[np.ndarray] = None,
                  prev_state: Optional[np.ndarray] = None) -> np.ndarray:
-
-    if t == 0:
-      state = torch.tensor(state, dtype=torch.float,
-                           device=self.device).unsqueeze_(0)
-      return self.cb_init_latent(state).cpu().numpy()[0]
-    else:
-      state = self.np_to_input(state, self.state_size, self.discrete_state)
-      prev_state = self.np_to_input(prev_state, self.state_size,
-                                    self.discrete_state)
-      prev_latent = self.np_to_input(prev_latent, self.latent_size,
-                                     self.discrete_latent)
-      prev_action = self.np_to_input(prev_action, self.action_size,
-                                     self.discrete_action)
-
-      with torch.no_grad():
-        latent = self.trans.exploit(state, prev_latent, prev_action)
-      return latent.cpu().numpy()[0]
+    return self.cb_get_latent(t, state, prev_latent, prev_action, prev_state)
 
   def add_to_buffer(self, state: np.ndarray, latent: np.ndarray,
                     action: np.ndarray, reward: float, done: bool,
@@ -262,7 +234,7 @@ class Expert:
 
 class NNExpert(Expert):
   """
-    Base class for all well-trained algorithms
+    Base class for all well-trained algorithms with an NN actor
 
     Parameters
     ----------
@@ -272,36 +244,22 @@ class NNExpert(Expert):
   def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
                action_size: torch.Tensor, discrete_state: bool,
                discrete_latent: bool, discrete_action: bool,
-               cb_init_latent: T_InitLatent, device: torch.device,
-               path_actor: str, path_trans: str, units_actor: Tuple,
-               units_trans: Tuple):
-    super().__init__(self._exploit, self._get_latent)
+               cb_get_latent: T_GetLatent, device: torch.device,
+               path_actor: str, units_actor: Tuple):
+    super().__init__(None, cb_get_latent)
     self.device = device
     if discrete_action:
       self.actor = DiscretePolicy(state_size,
                                   latent_size,
                                   action_size,
                                   units_actor,
-                                  hidden_activation=nn.Tanh())
+                                  hidden_activation=nn.Tanh()).to(device)
     else:
       self.actor = ContinousPolicy(state_size,
                                    latent_size,
                                    action_size,
                                    units_actor,
-                                   hidden_activation=nn.Tanh())
-    if discrete_latent:
-      self.trans = DiscreteTransition(state_size,
-                                      latent_size,
-                                      action_size,
-                                      units_trans,
-                                      hidden_activation=nn.Tanh())
-    else:
-      self.trans = ContinousTransition(state_size,
-                                       latent_size,
-                                       action_size,
-                                       units_trans,
-                                       hidden_activation=nn.Tanh())
-    self.cb_init_latent = cb_init_latent
+                                   hidden_activation=nn.Tanh()).to(device)
 
     self.state_size = state_size
     self.latent_size = latent_size
@@ -312,9 +270,7 @@ class NNExpert(Expert):
     self.discrete_action = discrete_action
 
     self.actor.load_state_dict(torch.load(path_actor, map_location=device))
-    self.trans.load_state_dict(torch.load(path_trans, map_location=device))
     disable_gradient(self.actor)
-    disable_gradient(self.trans)
 
   def np_to_input(self, input: np.ndarray, size: int,
                   discrete: bool) -> torch.Tensor:
@@ -326,7 +282,7 @@ class NNExpert(Expert):
       return torch.tensor(input, dtype=torch.float,
                           device=self.device).unsqueeze_(0)
 
-  def _exploit(self, state: np.ndarray, latent: np.ndarray) -> np.ndarray:
+  def exploit(self, state: np.ndarray, latent: np.ndarray) -> np.ndarray:
     """
         Act with deterministic policy
 
@@ -350,12 +306,50 @@ class NNExpert(Expert):
       action = self.actor.exploit(state, latent)
     return action.cpu().numpy()[0]
 
-  def _get_latent(self,
-                  t: int,
-                  state: Optional[np.ndarray] = None,
-                  prev_latent: Optional[np.ndarray] = None,
-                  prev_action: Optional[np.ndarray] = None,
-                  prev_state: Optional[np.ndarray] = None) -> np.ndarray:
+
+class LatentNNExpert(NNExpert):
+  """
+    Base class for all well-trained algorithms with an NN transition
+
+    Parameters
+    ----------
+    device: torch.device
+        cpu or cuda
+    """
+  def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
+               action_size: torch.Tensor, discrete_state: bool,
+               discrete_latent: bool, discrete_action: bool,
+               cb_init_latent: T_InitLatent, device: torch.device,
+               path_actor: str, path_trans: str, units_actor: Tuple,
+               units_trans: Tuple):
+    super().__init__(state_size, latent_size, action_size, discrete_state,
+                     discrete_latent, discrete_action, None, device, path_actor,
+                     units_actor)
+
+    self.cb_init_latent = cb_init_latent
+
+    if discrete_latent:
+      self.trans = DiscreteTransition(state_size,
+                                      latent_size,
+                                      action_size,
+                                      units_trans,
+                                      hidden_activation=nn.Tanh()).to(device)
+    else:
+      self.trans = ContinousTransition(state_size,
+                                       latent_size,
+                                       action_size,
+                                       units_trans,
+                                       hidden_activation=nn.Tanh()).to(device)
+
+    self.trans.load_state_dict(torch.load(path_trans, map_location=device))
+    disable_gradient(self.trans)
+
+  def get_latent(self,
+                 t: int,
+                 state: Optional[np.ndarray] = None,
+                 prev_latent: Optional[np.ndarray] = None,
+                 prev_action: Optional[np.ndarray] = None,
+                 prev_state: Optional[np.ndarray] = None) -> np.ndarray:
 
     if t == 0:
       state = torch.tensor(state, dtype=torch.float,

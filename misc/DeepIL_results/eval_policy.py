@@ -18,16 +18,31 @@ def run(args):
 
   lat_conf = lc.LATENT_CONFIG[args.env_id]  # type: lc.LatentConfig
 
-  algo = EXP_ALGOS[args.algo](state_size=state_size,
-                              latent_size=lat_conf.latent_size,
-                              action_size=action_size,
-                              discrete_state=discrete_state,
-                              discrete_latent=lat_conf.discrete_latent,
-                              discrete_action=discrete_action,
-                              cb_init_latent=lat_conf.get_init_latent,
-                              device=device,
-                              path_actor=args.actor_weights,
-                              path_trans=args.trans_weights)
+  if args.algo == "ppo":
+    algo = EXP_ALGOS[args.algo](state_size=state_size,
+                                latent_size=lat_conf.latent_size,
+                                action_size=action_size,
+                                discrete_state=discrete_state,
+                                discrete_latent=lat_conf.discrete_latent,
+                                discrete_action=discrete_action,
+                                cb_get_latent=lat_conf.get_latent,
+                                device=device,
+                                path_actor=args.actor_weights,
+                                units_actor=(64, 64))
+    algo.set_reward(lat_conf.get_reward)
+  elif args.algo in ["digail", "vae"]:
+    algo = EXP_ALGOS[args.algo](state_size=state_size,
+                                latent_size=lat_conf.latent_size,
+                                action_size=action_size,
+                                discrete_state=discrete_state,
+                                discrete_latent=lat_conf.discrete_latent,
+                                discrete_action=discrete_action,
+                                cb_init_latent=lat_conf.get_init_latent,
+                                device=device,
+                                path_actor=args.actor_weights,
+                                path_trans=args.trans_weights,
+                                units_actor=(64, 64),
+                                units_trans=(64, 64))
 
   mean_return = evaluation(env=env,
                            algo=algo,
@@ -43,14 +58,10 @@ if __name__ == '__main__':
   p = argparse.ArgumentParser()
 
   # required
-  p.add_argument('--actor-weight',
+  p.add_argument('--actor-weights',
                  type=str,
                  required=True,
                  help='path to the well-trained actor weights of the agent')
-  p.add_argument('--trans-weight',
-                 type=str,
-                 required=True,
-                 help='path to the well-trained trans weights of the agent')
   p.add_argument('--env-id',
                  type=str,
                  required=True,
@@ -65,6 +76,10 @@ if __name__ == '__main__':
                  action='store_true',
                  default=False,
                  help='render the environment or not')
+  p.add_argument('--trans-weights',
+                 type=str,
+                 default="",
+                 help='path to the well-trained trans weights of the agent')
 
   # default
   p.add_argument('--episodes',
