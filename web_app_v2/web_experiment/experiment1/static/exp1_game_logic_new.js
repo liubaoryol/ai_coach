@@ -166,6 +166,9 @@ $(document).ready(function () {
             document.getElementById('latent_human').textContent = latent_human;
         } else if (latent_states === "predicted") {
             document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
+        } else if (latent_states === "replay") {
+            document.getElementById('latent_human').textContent = latent_human;
+            document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
         }
     });
 

@@ -12,24 +12,24 @@ TOGETHER_NAMESPACE = '/together'
 @socketio.on('connect', namespace=TOGETHER_NAMESPACE)
 def initial_canvas():
     event_impl.initial_canvas(GRID_X, GRID_Y)
-    update_canvas(request.sid, TOGETHER_NAMESPACE, True)
+    update_canvas(request.sid, TOGETHER_NAMESPACE, True, 'replay')
 
 @socketio.on('next', namespace=TOGETHER_NAMESPACE)
 def next_index():
     if session['index'] < (session['max_index'] - 1):
         session['index'] += 1
-        update_canvas(request.sid, TOGETHER_NAMESPACE, True)
+        update_canvas(request.sid, TOGETHER_NAMESPACE, True, 'replay')
 
 @socketio.on('prev', namespace=TOGETHER_NAMESPACE)
 def prev_index():
     if session['index'] > 0:
         session['index'] -= 1
-        update_canvas(request.sid, TOGETHER_NAMESPACE, True)
+        update_canvas(request.sid, TOGETHER_NAMESPACE, True, 'replay')
 
 @socketio.on('index', namespace=TOGETHER_NAMESPACE)
 def next_index(msg):
     idx = int(msg['index'])
     if (idx <= (session['max_index'] - 1) and idx >= 0):
         session['index'] = idx
-        update_canvas(request.sid, TOGETHER_NAMESPACE, True)
+        update_canvas(request.sid, TOGETHER_NAMESPACE, True, 'replay')
     
