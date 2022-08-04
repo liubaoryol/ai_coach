@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="form-control">
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <label for="userid">Register User ID</label>
+    <input name="userid" id="userid" required>
+    <input type="submit" value="Register">
+    <div style="height:200px; overflow-y: scroll;">
+      <table>
+        <tr>
+          <th>User ID</th>
+          <th>E-mail</th>
+        </tr>
+        {% for usr in userlist %}
+        <tr>
+          <td>{{ usr['userid'] }}</td>
+          <td>{{ usr['email'] }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </form>
+</div>
+
+<div class="form-control">
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <label for="delid">Delete User ID</label>
+    <input name="delid" id="delid" required>
+    <input type="submit" value="Delete">
+  </form>
+</div>
+
+<div class="form-control">
+  <h2>Replay Previous Games</h2>
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <label for="replayid">Enter User ID</label>
+    <input name="replayid" id="replayid" required>
+    <label for="replaysession">Select Replay Session</label>
+    <select name="replaysession" id="replaysession">
+      <option value="a1">A1</option>
+      <option value="a2">A2</option>
+      <option value="a3">A3</option>
+      <option value="a4">A4</option>
+      <option value="a5">A5</option>
+      <option value="b1">B1</option>
+      <option value="b2">B2</option>
+      <option value="b3">B3</option>
+      <option value="b4">B4</option>
+      <option value="b5">B5</option>
+    </select>
+    <input type="submit" value="Replay">
+  </form>
+</div>
+
+<div class="form-control">
+  <h2>Record Latent States for Previous Games</h2>
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <label for="recordid">Enter User ID</label>
+    <input name="recordid" id="recordid" required>
+    <label for="recordsession">Select Session to record latent states</label>
+    <select name="recordsession" id="recordsession">
+      <option value="a1">A1</option>
+      <option value="a2">A2</option>
+      <option value="a3">A3</option>
+      <option value="a4">A4</option>
+      <option value="a5">A5</option>
+      <option value="b1">B1</option>
+      <option value="b2">B2</option>
+      <option value="b3">B3</option>
+      <option value="b4">B4</option>
+      <option value="b5">B5</option>
+    </select>
+    <input type="submit" value="Record">
+  </form>
+</div>
+
+{% endblock %}

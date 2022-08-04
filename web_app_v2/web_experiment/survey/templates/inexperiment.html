@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}{% endblock %}</h1>
+<div class="explanation">
+  <p>Please complete the following survey based on your experience in the previous task.</p>
+</div>
+{% endblock %}
+
+{% block content %}
+<script>
+  count = 0;
+  onLoad = function () {
+    count++;
+    console.log(count);
+    if (count == 2) {
+      alert('Submitted Form');
+      document.getElementById("submit").disabled = false;
+    }
+  }
+</script>
+
+<div class="form-control">
+  <form method="post" action={% block url %}{% endblock%}>
+    <div>
+      <iframe src={% block google_form_url %}{% endblock%} onLoad="onLoad()">Loading…</iframe>
+    </div>
+
+    <div class="button-center">
+      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
