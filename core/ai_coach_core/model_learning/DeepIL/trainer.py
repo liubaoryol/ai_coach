@@ -43,6 +43,7 @@ class Trainer:
                num_steps: int = 10**5,
                num_pretrain_steps: int = 10**4,
                eval_interval: int = 10**3,
+               pretrain_eval_interval: int = 10**3,
                num_eval_episodes: int = 5):
     super().__init__()
 
@@ -68,17 +69,18 @@ class Trainer:
     self.num_pretrain_steps = num_pretrain_steps
     self.num_steps = num_steps
     self.eval_interval = eval_interval
+    self.pretrain_eval_interval = pretrain_eval_interval
     self.num_eval_episodes = num_eval_episodes
 
   def pretrain(self):
     self.algo.set_pretrain(True)
     self.start_time = time()
-    for step in tqdm(range(1, self.num_pretrain_steps + 1)):
+    for step in tqdm(range(1, self.num_pretrain_steps + 1), dynamic_ncols=True):
       self.algo.update(self.writer)
       # Evaluate regularly.
-      if step % self.eval_interval == 0:
+      if step % self.pretrain_eval_interval == 0:
         self.evaluate(step)
-        self.algo.save_models(os.path.join(self.model_dir, f'pre_step{step}'))
+        self.algo.save_models(os.path.join(self.model_dir, f'prestep{step}'))
 
   def train(self):
     """Start training"""
@@ -92,7 +94,7 @@ class Trainer:
     # Initialize the latent.
     latent, _ = self.algo.explore_latent(0, state)
 
-    for step in tqdm(range(1, self.num_steps + 1)):
+    for step in tqdm(range(1, self.num_steps + 1), dynamic_ncols=True):
       t += 1
       action, log_pi = self.algo.explore(state, latent)
       next_state, reward, done, _ = self.env.step(action)
@@ -128,9 +130,10 @@ class Trainer:
     # save rewards as csv
     summary = event_accumulator.EventAccumulator(self.summary_dir)
     summary.Reload()
-    returns = pd.DataFrame(summary.Scalars('return/test'))
-    returns.to_csv(os.path.join(self.log_dir, 'rewards.csv'), index=False)
-    sleep(30)
+    if 'return/test' in summary.Tags():
+      returns = pd.DataFrame(summary.Scalars('return/test'))
+      returns.to_csv(os.path.join(self.log_dir, 'rewards.csv'), index=False)
+      sleep(30)
 
   def evaluate(self, step: int):
     """

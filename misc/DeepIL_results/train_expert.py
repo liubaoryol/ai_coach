@@ -1,7 +1,6 @@
 import os
 import argparse
 import torch
-from torch import nn
 
 from datetime import datetime
 from ai_coach_core.model_learning.DeepIL.env import make_env
@@ -39,12 +38,13 @@ def run(args):
   actor = policy_class(state_size=state_size,
                        latent_size=lat_conf.latent_size,
                        action_size=action_size,
-                       hidden_units=(64, 64),
-                       hidden_activation=nn.Tanh()).to(device)
-  critic = StateFunction(state_size=state_size,
-                         latent_size=lat_conf.latent_size,
-                         hidden_units=(64, 64),
-                         hidden_activation=nn.Tanh()).to(device)
+                       hidden_units=lat_conf.actor_units,
+                       hidden_activation=lat_conf.hidden_activation).to(device)
+  critic = StateFunction(
+      state_size=state_size,
+      latent_size=lat_conf.latent_size,
+      hidden_units=lat_conf.critic_units,
+      hidden_activation=lat_conf.hidden_activation).to(device)
   if args.algo not in ["ppo"]:
     raise NotImplementedError
 
@@ -59,14 +59,14 @@ def run(args):
                           critic=critic,
                           cb_init_latent=lat_conf.get_init_latent,
                           cb_get_latent=lat_conf.get_latent,
+                          cb_reward=lat_conf.get_reward,
                           device=device,
                           seed=args.seed,
-                          rollout_length=args.rollout_length,
-                          coef_ent=0.1)
-  algo.set_reward(lat_conf.get_reward)
+                          rollout_length=args.rollout_length)
 
+  cur_dir = os.path.dirname(__file__)
   time = datetime.now().strftime("%Y%m%d-%H%M%S")
-  log_dir = os.path.join('logs', args.env_id, args.algo,
+  log_dir = os.path.join(cur_dir, 'logs', args.env_id, args.algo,
                          f'seed{args.seed}-{time}')
 
   trainer = Trainer(env=env,
@@ -76,6 +76,7 @@ def run(args):
                     num_steps=args.num_steps,
                     num_pretrain_steps=args.num_pretrain_steps,
                     eval_interval=args.eval_interval,
+                    pretrain_eval_interval=args.pretrain_eval_interval,
                     num_eval_episodes=args.num_eval_epi,
                     seed=args.seed)
   trainer.pretrain()
@@ -105,6 +106,10 @@ if __name__ == '__main__':
                  type=int,
                  default=10**4,
                  help='time interval between evaluations')
+  p.add_argument('--pretrain-eval-interval',
+                 type=int,
+                 default=10,
+                 help='time interval between evaluations while pretrain')
   p.add_argument('--num-pretrain-steps',
                  type=int,
                  default=0,
@@ -113,12 +118,12 @@ if __name__ == '__main__':
   # default
   p.add_argument('--num-eval-epi',
                  type=int,
-                 default=5,
+                 default=10,
                  help='number of episodes for evaluation')
   p.add_argument('--seed', type=int, default=0, help='random seed')
   p.add_argument('--rollout-length',
                  type=int,
-                 default=50000,
+                 default=2000,
                  help='rollout length of the buffer')
 
   args = p.parse_args()

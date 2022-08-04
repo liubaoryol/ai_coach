@@ -26,10 +26,11 @@ def run(args):
                                 discrete_latent=lat_conf.discrete_latent,
                                 discrete_action=discrete_action,
                                 cb_get_latent=lat_conf.get_latent,
+                                cb_reward=lat_conf.get_reward,
                                 device=device,
                                 path_actor=args.actor_weights,
-                                units_actor=(64, 64))
-    algo.set_reward(lat_conf.get_reward)
+                                units_actor=lat_conf.actor_units,
+                                hidden_activation=lat_conf.hidden_activation)
   elif args.algo in ["digail", "vae"]:
     algo = EXP_ALGOS[args.algo](state_size=state_size,
                                 latent_size=lat_conf.latent_size,
@@ -38,11 +39,13 @@ def run(args):
                                 discrete_latent=lat_conf.discrete_latent,
                                 discrete_action=discrete_action,
                                 cb_init_latent=lat_conf.get_init_latent,
+                                cb_reward=lat_conf.get_reward,
                                 device=device,
                                 path_actor=args.actor_weights,
                                 path_trans=args.trans_weights,
-                                units_actor=(64, 64),
-                                units_trans=(64, 64))
+                                units_actor=lat_conf.actor_units,
+                                units_trans=lat_conf.trans_units,
+                                hidden_activation=lat_conf.hidden_activation)
 
   mean_return = evaluation(env=env,
                            algo=algo,
@@ -71,7 +74,7 @@ if __name__ == '__main__':
                  required=True,
                  help='name of the well-trained agent')
 
-  # custom
+  # optional
   p.add_argument('--render',
                  action='store_true',
                  default=False,

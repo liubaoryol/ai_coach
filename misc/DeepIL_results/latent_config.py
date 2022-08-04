@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import torch
+from torch import nn
 import numpy as np
 import gym_custom  # noqa: F401
 
@@ -8,16 +9,21 @@ import gym_custom  # noqa: F401
 class LatentConfig:
   latent_size: int
   discrete_latent: bool
+  actor_units: tuple
+  critic_units: tuple
+  disc_units: tuple
+  trans_units: tuple
+  hidden_activation: nn.Module
 
   def get_init_latent(self, states: torch.Tensor) -> torch.Tensor:
     return torch.randint(low=0,
                          high=self.latent_size,
-                         size=(len(states), ),
-                         dtype=torch.float).reshape(len(states), -1)
+                         size=(len(states), 1),
+                         dtype=torch.float)
 
   def get_reward(self, state: np.array, latent: np.array, action: np.array,
                  reward: float):
-    pass
+    return reward
 
   def get_latent(self, t: int, state: np.array, prev_latent: np.array,
                  prev_action: np.array, prev_state: np.array):
@@ -26,8 +32,7 @@ class LatentConfig:
 
 class LatentConfigEnv2(LatentConfig):
   def get_init_latent(self, states: torch.Tensor) -> torch.Tensor:
-    return torch.rand(size=(len(states), ),
-                      dtype=torch.float).reshape(len(states), -1)
+    return torch.rand(size=(len(states), self.latent_size), dtype=torch.float)
 
 
 class CircleWorldLatentConfig(LatentConfig):
@@ -57,9 +62,6 @@ class CircleWorldLatentConfig(LatentConfig):
     if latent[0] == 1:
       reward = -reward
 
-    if reward < 0:
-      reward = -1
-
     dir = self.get_dir(state)
     sin_p, cos_p = self.get_pos(dir)
 
@@ -68,6 +70,13 @@ class CircleWorldLatentConfig(LatentConfig):
     if (sin_n * sin_p < 0 and cos_p > 0 and cos_n > 0 and cos_p < 0.95
         and cos_n < 0.95):
       reward = -1
+
+    if latent[0] == 0:
+      if sin_p < 0 and cos_p >= 0.95 and cos_n < 0.95:
+        return -1
+    else:  # prev_latent[0] == 1
+      if sin_p > 0 and cos_p >= 0.95 and cos_n < 0.95:
+        return -1
 
     return reward
 
@@ -93,9 +102,27 @@ class CircleWorldLatentConfig(LatentConfig):
       return prev_latent
 
 
-env1_latent = LatentConfig(4, True)
-env2_latent = LatentConfigEnv2(1, False)
-circleworld_latent = CircleWorldLatentConfig(2, True)
+env1_latent = LatentConfig(4,
+                           True,
+                           actor_units=(64, 64),
+                           critic_units=(64, 64),
+                           disc_units=(100, 100),
+                           trans_units=(64, 64),
+                           hidden_activation=nn.Tanh())
+env2_latent = LatentConfigEnv2(1,
+                               False,
+                               actor_units=(64, 64),
+                               critic_units=(64, 64),
+                               disc_units=(100, 100),
+                               trans_units=(64, 64),
+                               hidden_activation=nn.Tanh())
+circleworld_latent = CircleWorldLatentConfig(2,
+                                             True,
+                                             actor_units=(128, 128),
+                                             critic_units=(128, 128),
+                                             disc_units=(128, 128),
+                                             trans_units=(128, 128),
+                                             hidden_activation=nn.ReLU())
 
 LATENT_CONFIG = {
     "circleworld-v0": circleworld_latent,

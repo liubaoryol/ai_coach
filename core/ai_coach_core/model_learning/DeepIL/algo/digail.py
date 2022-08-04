@@ -6,7 +6,7 @@ import numpy as np
 from typing import Sequence, Optional
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
-from .base import T_InitLatent
+from .base import T_InitLatent, T_GetReward
 from .ppo import PPO
 from .vae import VAE
 from ..network import GAILDiscrim, AbstractPolicy, StateFunction, AbstractTransition  # noqa: E501
@@ -75,6 +75,7 @@ class DIGAIL(PPO):
                critic: StateFunction,
                transition: AbstractTransition,
                cb_init_latent: T_InitLatent,
+               cb_reward: T_GetReward,
                device: torch.device,
                seed: int,
                gamma: float = 0.995,
@@ -86,7 +87,6 @@ class DIGAIL(PPO):
                lr_vae: float = 3e-4,
                epoch_ppo: int = 50,
                epoch_disc: int = 10,
-               epoch_vae: int = 20,
                clip_eps: float = 0.2,
                lambd: float = 0.97,
                coef_ent: float = 0.0,
@@ -94,9 +94,9 @@ class DIGAIL(PPO):
                vae_temperatue: float = 2.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
                      discrete_latent, discrete_action, buffer, actor, critic,
-                     cb_init_latent, None, device, seed, gamma, rollout_length,
-                     lr_actor, lr_critic, epoch_ppo, clip_eps, lambd, coef_ent,
-                     max_grad_norm)
+                     cb_init_latent, None, cb_reward, device, seed, gamma,
+                     rollout_length, lr_actor, lr_critic, epoch_ppo, clip_eps,
+                     lambd, coef_ent, max_grad_norm)
 
     # expert's buffer
     self.buffer_exp = buffer_exp
@@ -106,9 +106,9 @@ class DIGAIL(PPO):
 
     # vae - here, we use the same actor for both vae and ppo
     self.vae = VAE(state_size, latent_size, action_size, discrete_state,
-                   discrete_latent, discrete_action, buffer_exp, transition,
-                   actor, device, seed, gamma, lr_vae, epoch_vae, batch_size,
-                   vae_temperatue)
+                   discrete_latent, discrete_action, buffer_exp, actor,
+                   transition, cb_init_latent, None, device, seed, gamma,
+                   lr_vae, batch_size, vae_temperatue)
 
     self.learning_steps_disc = 0
     self.optim_disc = Adam(self.disc.parameters(), lr=lr_disc)
@@ -125,31 +125,31 @@ class DIGAIL(PPO):
       states = self.buffer_exp.traj_states[idx]  # type: list[torch.Tensor]
       actions = self.buffer_exp.traj_actions[idx]  # type: list[torch.Tensor]
 
-      latents = torch.Tensor([], device=self.device)
-      latents = torch.cat(
-          (latents, self.cb_init_latent(states[0].unsqueeze(0))), dim=0)
+      latents = torch.Tensor([]).to(self.device)
+      latents = torch.cat((latents, self.cb_init_latent(
+          states[0].unsqueeze(0)).to(self.device)),
+                          dim=0)
       with torch.no_grad():
         for t in range(1, len(states)):
-          next_state = states[t]
-          latent = latents[t - 1]
-          action = actions[t - 1]
+          next_state = states[t].unsqueeze(0)
+          latent = latents[t - 1].unsqueeze(0)
+          action = actions[t - 1].unsqueeze(0)
           if self.discrete_state:
-            next_state = one_hot(next_state.unsqueeze(0), self.state_size,
-                                 self.device)
+            next_state = one_hot(next_state, self.state_size, self.device)
           if self.discrete_latent:
-            latent = one_hot(latent.unsqueeze(0), self.latent_size, self.device)
+            latent = one_hot(latent, self.latent_size, self.device)
           if self.discrete_action:
-            action = one_hot(action.unsqueeze(0), self.action_size, self.device)
+            action = one_hot(action, self.action_size, self.device)
 
-          next_latent = self.vae.trans.sample(next_state, latent, action)
+          next_latent, _ = self.vae.trans.sample(next_state, latent, action)
           latents = torch.cat((latents, next_latent), dim=0)
 
       self.traj_exp_latents.append(latents)
-      latents = torch.Tensor([], device=self.device)
+      latents = torch.Tensor([]).to(self.device)
 
   def sample_latent_seq(self, num_samples: int) -> Sequence[torch.Tensor]:
-    if (self.cyclic_sample_counter >= len(self.traj_exp_latents)
-        or self.traj_exp_latents is None):
+    if (self.traj_exp_latents is None
+        or self.cyclic_sample_counter >= len(self.traj_exp_latents) * 10):
       self.cyclic_sample_counter = 0
       self.gen_latent_seqs()
 
@@ -163,7 +163,10 @@ class DIGAIL(PPO):
     return sample_latent_seqs
 
   def is_max_time(self, t: int):
-    return t >= len(self.cur_latents)
+    if self.pretrain_mode:
+      return False
+    else:
+      return t >= len(self.cur_latents)
 
   def get_latent(self,
                  t: int,
@@ -245,7 +248,6 @@ class DIGAIL(PPO):
       actions = one_hot(actions, self.action_size, device=self.device)
     if self.discrete_latent:
       latents = one_hot(latents, self.latent_size, device=self.device)
-      next_latents = one_hot(next_latents, self.latent_size, device=self.device)
 
     with torch.no_grad():
       # At the terminal step, next_latent is not valid so we don't add anything
@@ -314,7 +316,11 @@ class DIGAIL(PPO):
         save_dir: str
             path to save
         """
-    if not os.path.isdir(save_dir):
-      os.mkdir(save_dir)
-    torch.save(self.disc.state_dict(), f'{save_dir}/disc.pkl')
-    torch.save(self.actor.state_dict(), f'{save_dir}/actor.pkl')
+    if self.pretrain_mode:
+      self.vae.save_models(save_dir)
+    else:
+      if not os.path.isdir(save_dir):
+        os.mkdir(save_dir)
+      torch.save(self.disc.state_dict(), f'{save_dir}/disc.pkl')
+      torch.save(self.actor.state_dict(), f'{save_dir}/actor.pkl')
+      torch.save(self.critic.state_dict(), f'{save_dir}/critic.pkl')

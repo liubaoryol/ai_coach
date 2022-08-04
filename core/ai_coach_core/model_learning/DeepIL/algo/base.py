@@ -35,8 +35,8 @@ class Algorithm:
                action_size: torch.Tensor, discrete_state: bool,
                discrete_latent: bool, discrete_action: bool,
                actor: AbstractPolicy, cb_init_latent: T_InitLatent,
-               cb_get_latent: T_GetLatent, device: torch.device, seed: int,
-               gamma: float):
+               cb_get_latent: T_GetLatent, cb_reward: Optional[T_GetReward],
+               device: torch.device, seed: int, gamma: float):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -59,9 +59,6 @@ class Algorithm:
     self.discrete_latent = discrete_latent
     self.discrete_action = discrete_action
 
-    self.cb_reward: Optional[T_GetReward] = None
-
-  def set_reward(self, cb_reward: T_GetReward):
     self.cb_reward = cb_reward
 
   def np_to_input(self, input: np.ndarray, size: int,
@@ -196,12 +193,11 @@ class Expert:
   """
     Base class for the expert
     """
-  def __init__(self, cb_exploit: T_Exploit, cb_get_latent: T_GetLatent):
+  def __init__(self, cb_exploit: Optional[T_Exploit],
+               cb_get_latent: Optional[T_GetLatent],
+               cb_reward: Optional[T_GetReward]):
     self.cb_exploit = cb_exploit
     self.cb_get_latent = cb_get_latent
-    self.cb_reward: Optional[T_GetReward] = None
-
-  def set_reward(self, cb_reward: T_GetReward):
     self.cb_reward = cb_reward
 
   def exploit(self, state: np.ndarray, latent: np.ndarray) -> np.ndarray:
@@ -244,22 +240,26 @@ class NNExpert(Expert):
   def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
                action_size: torch.Tensor, discrete_state: bool,
                discrete_latent: bool, discrete_action: bool,
-               cb_get_latent: T_GetLatent, device: torch.device,
-               path_actor: str, units_actor: Tuple):
-    super().__init__(None, cb_get_latent)
+               cb_get_latent: Optional[T_GetLatent],
+               cb_reward: Optional[T_GetReward], device: torch.device,
+               path_actor: str, units_actor: Tuple,
+               hidden_activation: nn.Module):
+    super().__init__(None, cb_get_latent, cb_reward)
     self.device = device
     if discrete_action:
-      self.actor = DiscretePolicy(state_size,
-                                  latent_size,
-                                  action_size,
-                                  units_actor,
-                                  hidden_activation=nn.Tanh()).to(device)
+      self.actor = DiscretePolicy(
+          state_size,
+          latent_size,
+          action_size,
+          units_actor,
+          hidden_activation=hidden_activation).to(device)
     else:
-      self.actor = ContinousPolicy(state_size,
-                                   latent_size,
-                                   action_size,
-                                   units_actor,
-                                   hidden_activation=nn.Tanh()).to(device)
+      self.actor = ContinousPolicy(
+          state_size,
+          latent_size,
+          action_size,
+          units_actor,
+          hidden_activation=hidden_activation).to(device)
 
     self.state_size = state_size
     self.latent_size = latent_size
@@ -319,27 +319,30 @@ class LatentNNExpert(NNExpert):
   def __init__(self, state_size: torch.Tensor, latent_size: torch.Tensor,
                action_size: torch.Tensor, discrete_state: bool,
                discrete_latent: bool, discrete_action: bool,
-               cb_init_latent: T_InitLatent, device: torch.device,
-               path_actor: str, path_trans: str, units_actor: Tuple,
-               units_trans: Tuple):
+               cb_init_latent: T_InitLatent, cb_reward: Optional[T_GetReward],
+               device: torch.device, path_actor: str, path_trans: str,
+               units_actor: Tuple, units_trans: Tuple,
+               hidden_activation: nn.Module):
     super().__init__(state_size, latent_size, action_size, discrete_state,
-                     discrete_latent, discrete_action, None, device, path_actor,
-                     units_actor)
+                     discrete_latent, discrete_action, None, cb_reward, device,
+                     path_actor, units_actor, hidden_activation)
 
     self.cb_init_latent = cb_init_latent
 
     if discrete_latent:
-      self.trans = DiscreteTransition(state_size,
-                                      latent_size,
-                                      action_size,
-                                      units_trans,
-                                      hidden_activation=nn.Tanh()).to(device)
+      self.trans = DiscreteTransition(
+          state_size,
+          latent_size,
+          action_size,
+          units_trans,
+          hidden_activation=hidden_activation).to(device)
     else:
-      self.trans = ContinousTransition(state_size,
-                                       latent_size,
-                                       action_size,
-                                       units_trans,
-                                       hidden_activation=nn.Tanh()).to(device)
+      self.trans = ContinousTransition(
+          state_size,
+          latent_size,
+          action_size,
+          units_trans,
+          hidden_activation=hidden_activation).to(device)
 
     self.trans.load_state_dict(torch.load(path_trans, map_location=device))
     disable_gradient(self.trans)

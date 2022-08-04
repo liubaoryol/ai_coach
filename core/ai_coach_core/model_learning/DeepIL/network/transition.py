@@ -208,7 +208,7 @@ class DiscreteTransition(AbstractTransition):
     samples = dist.sample()
     next_latent_log_probs = dist.log_prob(samples)
 
-    return samples, next_latent_log_probs
+    return samples.view(-1, 1), next_latent_log_probs.view(-1, 1)
 
   def exploit(self, next_states: torch.Tensor, latents: torch.Tensor,
               actions: torch.Tensor) -> torch.Tensor:
@@ -239,4 +239,4 @@ class DiscreteTransition(AbstractTransition):
         """
     logits = self.forward(next_states, latents, actions)
     dist = Categorical(logits=logits)
-    return dist.log_prob(next_latents)
+    return dist.log_prob(next_latents.squeeze(-1)).view(-1, 1)

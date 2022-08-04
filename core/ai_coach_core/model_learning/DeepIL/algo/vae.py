@@ -2,7 +2,8 @@ import os
 import torch
 import numpy as np
 import itertools
-from .base import Algorithm, T_InitLatent
+import math
+from .base import Algorithm, T_InitLatent, T_GetReward
 from .utils import gumbel_softmax_sample, one_hot
 from typing import Sequence, Optional, Tuple
 
@@ -22,9 +23,10 @@ class VAE(Algorithm):
                discrete_latent: bool,
                discrete_action: bool,
                buffer_exp: SerializedBuffer,
+               actor: AbstractPolicy,
                transition: AbstractTransition,
                cb_init_latent: T_InitLatent,
-               actor: AbstractPolicy,
+               cb_reward: Optional[T_GetReward],
                device: torch.device,
                seed: int,
                gamma: float,
@@ -33,7 +35,7 @@ class VAE(Algorithm):
                temperature: float = 2.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
                      discrete_latent, discrete_action, actor, cb_init_latent,
-                     None, device, seed, gamma)
+                     None, cb_reward, device, seed, gamma)
     self.buffer_exp = buffer_exp
     self.trans = transition
 
@@ -133,7 +135,8 @@ class VAE(Algorithm):
                  traj_next_states: Sequence[torch.Tensor],
                  writer: SummaryWriter):
     num_traj = len(traj_states)
-    batch = np.zeros((self.batch_size, 3))  # N x (traj_idx, t, traj_len - 1)
+    batch = np.zeros((self.batch_size, 3),
+                     dtype=np.int32)  # N x (traj_idx, t, traj_len - 1)
 
     states = torch.zeros((self.batch_size, len(traj_states[0][0])),
                          dtype=torch.float,
@@ -162,9 +165,9 @@ class VAE(Algorithm):
         batch[reset_idxs, 0] = idxs
         batch[reset_idxs, 1] = 0
         batch[reset_idxs, 2] = t_maxs
-        latents[reset_idxs, :] = self.initial_latent(
+        latents[reset_idxs, :] = self.cb_init_latent(
             torch.cat([traj_states[idx][0].unsqueeze(0) for idx in idxs],
-                      dim=0))
+                      dim=0)).to(self.device)
 
       # make inputs
       for idx in range(self.batch_size):
@@ -184,7 +187,7 @@ class VAE(Algorithm):
         next_latent_logits, log_pis = out_vars
         recon_loss = -log_pis.mean()
 
-        log_prior = torch.log(1 / self.latent_size)
+        log_prior = math.log(1 / self.latent_size)
         dist = Categorical(logits=next_latent_logits)
         p_x = dist.probs
         log_px = dist.logits
@@ -195,7 +198,7 @@ class VAE(Algorithm):
         loss.backward()
 
         # next latents
-        latents[:, :] = dist.sample()
+        latents[:, :] = dist.sample().view(-1, 1)
       else:
         raise NotImplementedError
       self.optim_vae.step()

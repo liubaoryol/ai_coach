@@ -221,7 +221,7 @@ class DiscretePolicy(AbstractPolicy):
     samples = dist.sample()
     action_log_probs = dist.log_prob(samples)
 
-    return samples, action_log_probs
+    return samples.view(-1, 1), action_log_probs.view(-1, 1)
 
   def evaluate_log_pi(self, states: torch.Tensor, latents: torch.Tensor,
                       actions: torch.Tensor) -> torch.Tensor:
@@ -240,4 +240,4 @@ class DiscretePolicy(AbstractPolicy):
         """
     logits = self.forward(states, latents)
     dist = Categorical(logits=logits)
-    return dist.log_prob(actions)
+    return dist.log_prob(actions.squeeze(-1)).view(-1, 1)

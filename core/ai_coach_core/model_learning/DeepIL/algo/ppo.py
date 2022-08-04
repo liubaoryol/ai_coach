@@ -6,7 +6,7 @@ from typing import Tuple
 from torch import nn
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
-from .base import Algorithm, T_InitLatent, T_GetLatent
+from .base import Algorithm, T_InitLatent, T_GetLatent, T_GetReward
 from .utils import calculate_gae, one_hot
 
 from ..buffer import RolloutBuffer
@@ -66,6 +66,7 @@ class PPO(Algorithm):
                critic: StateFunction,
                cb_init_latent: T_InitLatent,
                cb_get_latent: T_GetLatent,
+               cb_reward: T_GetReward,
                device: torch.device,
                seed: int,
                gamma: float = 0.995,
@@ -79,7 +80,7 @@ class PPO(Algorithm):
                max_grad_norm: float = 10.0):
     super().__init__(state_size, latent_size, action_size, discrete_state,
                      discrete_latent, discrete_action, actor, cb_init_latent,
-                     cb_get_latent, device, seed, gamma)
+                     cb_get_latent, cb_reward, device, seed, gamma)
 
     self.buffer = buffer
     self.critic = critic
@@ -276,3 +277,4 @@ class PPO(Algorithm):
     if not os.path.isdir(save_dir):
       os.mkdir(save_dir)
     torch.save(self.actor.state_dict(), f'{save_dir}/actor.pkl')
+    torch.save(self.critic.state_dict(), f'{save_dir}/critic.pkl')

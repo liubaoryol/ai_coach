@@ -27,3 +27,6 @@ core/ai_coach_core/tests/*_data
 aws_data*
 data_old/
 logs/
+buffers/
+weights/
+

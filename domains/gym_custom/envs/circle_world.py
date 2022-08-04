@@ -44,14 +44,19 @@ class CircleWorld(gym.Env):
 
     ortho = np.array([-dir[1], dir[0]])
     inner = ortho.dot(next_obstate - self.cur_obstate)
-    reward = np.sign(inner) * (inner**2)
+    reward = inner
+    # reward = np.sign(inner) * (inner**2)
 
     self.cur_obstate = next_obstate
 
     return self.cur_obstate, reward, False, info
 
   def reset(self):
-    self.cur_obstate = np.array([0.0, 0.0])
+    degree = np.random.uniform(0, 2 * np.pi)
+    radius = np.random.uniform(0.8 * self.half_sz, self.half_sz)
+    self.cur_obstate = (
+        np.array([np.cos(degree), np.sin(degree)]) * radius +
+        np.array([0, self.half_sz]))
 
     return self.cur_obstate
 
@@ -76,3 +81,21 @@ class CircleWorld(gym.Env):
 
   def close(self):
     cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+  env = CircleWorld()
+
+  canvas_sz = 300
+  canvas = np.ones((canvas_sz, canvas_sz, 3), dtype=np.uint8) * 255
+
+  for _ in range(100):
+    state = env.reset()
+    pt = np.array([state[0] + env.half_sz, state[1]])
+    pt *= canvas_sz / (2 * env.half_sz)
+    pt = pt.astype(np.int64)
+
+    color = (255, 0, 0)
+    canvas = cv2.circle(canvas, pt, 5, color, thickness=-1)
+  cv2.imshow("Init States", canvas)
+  cv2.waitKey(1000)
