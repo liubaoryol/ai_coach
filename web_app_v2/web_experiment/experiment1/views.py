@@ -92,6 +92,33 @@ def exp1_indv_user_random():
                          cur_user=cur_user,
                          is_disabled=disabled)
 
+@exp1_bp.route('/exp1_indv_user_random_2', methods=('GET', 'POST'))
+@login_required
+def exp1_indv_user_random_2():
+  cur_user = g.user
+  session_name = "b2"
+  next_endpoint = "survey.survey_indv_user_random_2"
+  logging.info('User %s accesses to exp1_indv_user_random_2.' % (cur_user, ))
+
+  if request.method == "POST":
+    if session['groupid'] == 'A' or session['groupid'] == 'B':
+      return redirect(url_for(next_endpoint))
+    elif session['groupid'] == 'C':
+      return redirect(url_for('feedback.collect', session_name = session_name, next_endpoint = next_endpoint))
+    elif session['groupid'] == 'D':
+      return redirect(url_for('feedback.feedback', session_name = session_name, next_endpoint = next_endpoint))
+
+  filename = "exp1_indv_user_random_2.html"
+  query_data = User.query.filter_by(userid=cur_user).first()
+  disabled = ''
+  if not query_data.session_b2:
+    disabled = 'disabled'
+  if session["groupid"] == "B":
+    filename = "exp1_indv_user_random_2_intervention.html"
+  return render_template(filename,
+                         cur_user=cur_user,
+                         is_disabled=disabled)
+
 
 @exp1_bp.route('/tutorial1', methods=('GET', 'POST'))
 @login_required
