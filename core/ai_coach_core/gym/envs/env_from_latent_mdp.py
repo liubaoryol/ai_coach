@@ -1,18 +1,18 @@
 from typing import Sequence, Optional
 import gym
 from gym import spaces
-from ai_coach_domain.box_push.mdp import BoxPushMDP
-from ai_coach_domain.box_push.agent import BoxPushAIAgent_Abstract
+from ai_coach_core.models.mdp import LatentMDP
+from ai_coach_core.models.agent_model import AgentModel
 import numpy as np
 
 
-class EnvFromBoxPushDomain(gym.Env):
+class EnvFromLatentMDP(gym.Env):
   # uncomment below line if you need to render the environment
   # metadata = {'render.modes': ['console']}
 
   def __init__(self,
-               mdp: BoxPushMDP,
-               agents: Sequence[BoxPushAIAgent_Abstract],
+               mdp: LatentMDP,
+               agent_models: Sequence[AgentModel],
                possible_init_states: Optional[Sequence[int]] = None,
                init_state_dist: Optional[np.ndarray] = None):
     '''
@@ -30,14 +30,16 @@ class EnvFromBoxPushDomain(gym.Env):
     else:
       self.action_space = spaces.MultiDiscrete(mdp.list_num_actions)
 
-    tuple_num_latent = tuple(
-        [agent.agent_model.get_reference_mdp().num_latents for agent in agents])
+    tuple_num_latent = tuple([
+        agent_model.get_reference_mdp().num_latents
+        for agent_model in agent_models
+    ])
 
     self.observation_space = spaces.MultiDiscrete(
         (mdp.num_states, *tuple_num_latent))
 
     self.mdp = mdp
-    self.agents = agents
+    self.agent_models = agent_models
     self.possible_init_states = possible_init_states
     self.init_state_dist = init_state_dist
 
@@ -59,43 +61,31 @@ class EnvFromBoxPushDomain(gym.Env):
       info["invalid_transition"] = True
       return (self.cur_obstate, *self.cur_lstates), 0, False, info
 
-    cur_sim_state = self.mdp.conv_mdp_sidx_to_sim_states(self.cur_obstate)
-
-    self.cur_obstate = self.mdp.transition(self.cur_obstate, action_idx)
-    done = self.mdp.is_terminal(self.cur_obstate)
+    next_obstate = self.mdp.transition(self.cur_obstate, action_idx)
+    done = self.mdp.is_terminal(next_obstate)
     if not done:
-      nxt_sim_state = self.mdp.conv_mdp_sidx_to_sim_states(self.cur_obstate)
-
-      sim_action = self.mdp.conv_mdp_aidx_to_sim_actions(action_idx)
-
       list_lstates = []
-      for agent in self.agents:
-        agent.update_mental_state(cur_sim_state, sim_action, nxt_sim_state)
-        list_lstates.append(agent.agent_model.current_latent)
+      for agent_model in self.agent_models:
+        action = (action, ) if len(self.mdp.list_num_actions) == 1 else action
+        agent_model.update_mental_state_idx(self.cur_obstate, action,
+                                            next_obstate)
+        list_lstates.append(agent_model.current_latent)
 
       self.cur_lstates = tuple(list_lstates)
 
+    self.cur_obstate = next_obstate
     reward = -1  # we don't need reward for imitation learning
 
     return (self.cur_obstate, *self.cur_lstates), reward, done, info
 
   def reset(self):
     self.cur_obstate = self.sample_obs()
-    tup_states = self.mdp.conv_mdp_sidx_to_sim_states(self.cur_obstate)
 
     list_lstates = []
-    for agent in self.agents:
-      agent.init_latent(tup_states)
-      list_lstates.append(agent.agent_model.current_latent)
+    for agent_model in self.agent_models:
+      agent_model.set_init_mental_state_idx(self.cur_obstate)
+      list_lstates.append(agent_model.current_latent)
 
     self.cur_lstates = tuple(list_lstates)
 
     return (self.cur_obstate, *self.cur_lstates)
-
-  # implement render function if need to be
-  # def render(self, mode='human'):
-  #   ...
-
-  # implement close function if need to be
-  # def close(self):
-  #   ...

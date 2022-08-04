@@ -534,7 +534,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
             list_entropy.append(entropy)
 
         list_pi_magail = lmagail_w_ppo(MDP_AGENT, [init_state],
-                                       [agent1, agent2],
+                                       [agent1.agent_model, agent2.agent_model],
                                        sax_trajs[:idx],
                                        num_processes=num_processes,
                                        demo_batch_size=gail_batch_size,

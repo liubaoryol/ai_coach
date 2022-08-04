@@ -19,7 +19,7 @@ from stable_baselines3.common.vec_env.vec_normalize import \
 
 def make_env(env_id, seed, rank, log_dir, allow_early_resets, env_make_kwargs):
   def _thunk():
-    import gym_aicoach  # noqa: F401
+    import ai_coach_core.gym  # noqa: F401
 
     env = gym.make(env_id, **env_make_kwargs)
 

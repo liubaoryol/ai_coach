@@ -9,7 +9,7 @@ import aicoach_baselines.external.magail.model as magail_model
 import aicoach_baselines.external.magail.storage as magail_storage
 import aicoach_baselines.external.gail_common_utils.utils as gail_utils
 import aicoach_baselines.external.gail_common_utils.envs as gail_env
-import gym_aicoach  # noqa: F401
+import ai_coach_core.gym  # noqa: F401
 import ai_coach_core.models.mdp as mdp_lib
 
 
