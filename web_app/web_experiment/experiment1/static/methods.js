@@ -678,33 +678,8 @@ class StaticOverlay extends GameOverlay {
 ///////////////////////////////////////////////////////////////////////////////
 // useful functions
 ///////////////////////////////////////////////////////////////////////////////
-function set_img_path_and_cur_user(object_ref, src_robot, src_human, src_box,
-  src_wall, src_goal, src_both_box, src_human_box, src_robot_box, cur_user) {
-  object_ref.img_robot = new Image();
-  object_ref.img_robot.src = src_robot;
-
-  object_ref.img_human = new Image();
-  object_ref.img_human.src = src_human;
-
-  object_ref.img_box = new Image();
-  object_ref.img_box.src = src_box;
-
-  object_ref.img_wall = new Image();
-  object_ref.img_wall.src = src_wall;
-  object_ref.img_goal = new Image();
-  object_ref.img_goal.src = src_goal;
-  object_ref.img_both_box = new Image();
-  object_ref.img_both_box.src = src_both_box;
-  object_ref.img_human_box = new Image();
-  object_ref.img_human_box.src = src_human_box;
-  object_ref.img_robot_box = new Image();
-  object_ref.img_robot_box.src = src_robot_box;
-
-  object_ref.user_id = cur_user;
-}
-
 function get_control_ui_object(
-  canvas_width, canvas_height, game_size) {
+  canvas_width, canvas_height, game_size, is_tutorial) {
   // start button
   const start_btn_width = parseInt(game_size / 3);
   const start_btn_height = parseInt(game_size / 10);
@@ -774,6 +749,21 @@ function get_control_ui_object(
   ctrl_obj.lbl_instruction = label_instruction;
   ctrl_obj.lbl_score = label_score;
   ctrl_obj.btn_select = btn_select;
+
+  // next and prev buttons for tutorial
+  if (is_tutorial) {
+    const next_btn_width = (canvas_width - game_size) / 4;
+    const next_btn_height = next_btn_width * 0.5;
+    const mrgn = 10;
+    ctrl_obj.btn_next = new ButtonRect(
+      canvas_width - next_btn_width * 0.5 - mrgn, game_size * 0.5 - 0.5 * next_btn_height - mrgn,
+      next_btn_width, next_btn_height, "Next");
+    ctrl_obj.btn_next.font = "bold 18px arial";
+    ctrl_obj.btn_prev = new ButtonRect(
+      game_size + next_btn_width * 0.5 + mrgn, game_size * 0.5 - 0.5 * next_btn_height - mrgn,
+      next_btn_width, next_btn_height, "Prev");
+    ctrl_obj.btn_prev.font = "bold 18px arial";
+  }
 
   return ctrl_obj;
 }
@@ -1086,17 +1076,17 @@ function draw_action_btn(context, control_ui, x_cursor = -1, y_cursor = -1) {
   draw_with_mouse_move(context, control_ui.btn_select, x_cursor, y_cursor);
 }
 
-function go_to_next_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+function go_to_next_page(global_object, game_obj, canvas, socket) {
   if (global_object.cur_page_idx + 1 < global_object.page_list.length) {
     global_object.cur_page_idx++;
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, canvas, socket);
   }
 }
 
-function go_to_prev_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+function go_to_prev_page(global_object, game_obj, canvas, socket) {
   if (global_object.cur_page_idx - 1 >= 0) {
     global_object.cur_page_idx--;
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, canvas, socket);
   }
 }
 
@@ -1126,13 +1116,16 @@ class PageBasic {
     this.socket = null;
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
+  init_page(global_object, game_obj, canvas, socket) {
     // global_object: global variables
     // game_obj: game objects
     // ctrl_ui: external control ui
     this.global_object = global_object;
     this.game_obj = game_obj;
-    this.ctrl_ui = ctrl_ui;
+    this.ctrl_ui = get_control_ui_object(canvas.width,
+      canvas.height,
+      game_obj.game_size,
+      global_object.is_tutorial);
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.socket = socket;
@@ -1180,8 +1173,8 @@ class PageExperimentHome extends PageBasic {
     super();
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     for (const btn of this.ctrl_ui.list_joystick_btn) {
       btn.disable = true;
     }
@@ -1202,7 +1195,7 @@ class PageExperimentHome extends PageBasic {
 
   on_click(mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_start.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -1215,8 +1208,8 @@ class PageExperimentHome2 extends PageBasic {
     super();
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     for (const btn of this.ctrl_ui.list_joystick_btn) {
       btn.disable = true;
     }
@@ -1247,7 +1240,7 @@ class PageExperimentHome2 extends PageBasic {
 
   on_click(mouse_x, mouse_y) {
     if (this.btn_real_next.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -1267,8 +1260,8 @@ class PageDuringGame extends PageBasic {
     this.action_event_data = { data: "" }
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this._set_emit_data();
 
@@ -1395,8 +1388,8 @@ class PageExperimentEnd extends PageBasic {
     this.button_text = "This session is now complete. Please proceed to the survey using the button below.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     for (const btn of this.ctrl_ui.list_joystick_btn) {
       btn.disable = true;
     }

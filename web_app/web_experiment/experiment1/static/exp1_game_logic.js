@@ -9,8 +9,28 @@ global_object.cur_page_idx = 0;
 ///////////////////////////////////////////////////////////////////////////////
 function initImagePathCurUser(src_robot, src_human, src_box,
   src_wall, src_goal, src_both_box, src_human_box, src_robot_box, cur_user) {
-  set_img_path_and_cur_user(global_object, src_robot, src_human, src_box,
-    src_wall, src_goal, src_both_box, src_human_box, src_robot_box, cur_user);
+
+  global_object.img_robot = new Image();
+  global_object.img_robot.src = src_robot;
+
+  global_object.img_human = new Image();
+  global_object.img_human.src = src_human;
+
+  global_object.img_box = new Image();
+  global_object.img_box.src = src_box;
+
+  global_object.img_wall = new Image();
+  global_object.img_wall.src = src_wall;
+  global_object.img_goal = new Image();
+  global_object.img_goal.src = src_goal;
+  global_object.img_both_box = new Image();
+  global_object.img_both_box.src = src_both_box;
+  global_object.img_human_box = new Image();
+  global_object.img_human_box.src = src_human_box;
+  global_object.img_robot_box = new Image();
+  global_object.img_robot_box.src = src_robot_box;
+
+  global_object.user_id = cur_user;
 }
 
 function initPages(page_list, name_space, is_tutorial = false) {
@@ -44,27 +64,6 @@ $(document).ready(function () {
   game_obj.score = 0;
 
   /////////////////////////////////////////////////////////////////////////////
-  // initialize global UI
-  /////////////////////////////////////////////////////////////////////////////
-
-  // game control ui
-  let control_ui = get_control_ui_object(cnvs.width, cnvs.height, game_obj.game_size);
-
-  // next and prev buttons for tutorial
-  if (global_object.is_tutorial) {
-    const next_btn_width = (cnvs.width - game_obj.game_size) / 4;
-    const next_btn_height = next_btn_width * 0.5;
-    const mrgn = 10;
-    control_ui.btn_next = new ButtonRect(
-      cnvs.width - next_btn_width * 0.5 - mrgn, game_obj.game_size * 0.5 - 0.5 * next_btn_height - mrgn,
-      next_btn_width, next_btn_height, "Next");
-    control_ui.btn_next.font = "bold 18px arial";
-    control_ui.btn_prev = new ButtonRect(
-      game_obj.game_size + next_btn_width * 0.5 + mrgn, game_obj.game_size * 0.5 - 0.5 * next_btn_height - mrgn,
-      next_btn_width, next_btn_height, "Prev");
-    control_ui.btn_prev.font = "bold 18px arial";
-  }
-  /////////////////////////////////////////////////////////////////////////////
   // game control logics
   /////////////////////////////////////////////////////////////////////////////
   var x_mouse = -1;
@@ -90,7 +89,7 @@ $(document).ready(function () {
     socket.on('game_end', function () {
       document.getElementById("submit").disabled = false;
       global_object.cur_page_idx = global_object.page_list.length - 1;
-      global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
+      global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, cnvs, socket);
     });
   }
 
@@ -106,7 +105,7 @@ $(document).ready(function () {
     else {
       global_object.cur_page_idx = global_object.page_list.length - 1;
     }
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, cnvs, socket);
   });
 
   let unchanged_agents = null;

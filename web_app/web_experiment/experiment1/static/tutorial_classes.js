@@ -7,8 +7,8 @@ class PageHomeTutorial extends PageExperimentHome {
     this.radius = null;
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.ctrl_ui.btn_prev.disable = false;
   }
 
@@ -34,8 +34,8 @@ class PageGameTutorial extends PageDuringGame {
     this.radius = null;
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.ctrl_ui.btn_prev.disable = false;
   }
 
@@ -53,12 +53,12 @@ class PageGameTutorial extends PageDuringGame {
 
   on_click(mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
     if (this.ctrl_ui.btn_prev.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_prev_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_prev_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -74,8 +74,8 @@ class PageTutorialStart extends PageBasic {
     this.draw_frame = false;
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     for (const btn of this.ctrl_ui.list_joystick_btn) {
       btn.disable = true;
     }
@@ -106,7 +106,7 @@ class PageTutorialStart extends PageBasic {
 
   on_click(mouse_x, mouse_y) {
     if (this.btn_tutorial.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -119,8 +119,8 @@ class PageInstruction extends PageHomeTutorial {
     super();
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.x_cen = this.ctrl_ui.lbl_instruction.x_left + 0.5 * this.ctrl_ui.lbl_instruction.width;
     this.y_cen = this.game_obj.game_size * 1 / 5;
     this.radius = this.y_cen * 0.1;
@@ -132,12 +132,12 @@ class PageInstruction extends PageHomeTutorial {
 
   on_click(mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_next.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
     if (this.ctrl_ui.btn_prev.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_prev_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_prev_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -150,8 +150,8 @@ class PageStart extends PageHomeTutorial {
     super();
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.ctrl_ui.btn_next.disable = true;
     this.ctrl_ui.lbl_instruction.text = "At the start of each task, you will see the screen shown on the left. " +
       "Click the “Start” button to begin the task.";
@@ -159,7 +159,7 @@ class PageStart extends PageHomeTutorial {
 
   on_click(mouse_x, mouse_y) {
     if (this.ctrl_ui.btn_prev.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_prev_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_prev_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -178,8 +178,8 @@ class PageJoystick extends PageGameTutorial {
       "Once you have pressed all five buttons (left, right, up, down, and wait), please click on the “Next” button to continue.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.x_cen = this.ctrl_ui.list_joystick_btn[0].x_origin;
     this.y_cen = this.ctrl_ui.list_joystick_btn[0].y_origin;;
@@ -221,8 +221,8 @@ class PageJoystick2 extends PageGameTutorial {
       "the human player will just vibrate on the spot.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.ctrl_ui.btn_next.disable = false;
   }
 }
@@ -239,8 +239,8 @@ class PageJoystick_bag extends PageGameTutorial {
       "the human player will just vibrate on the spot.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.ctrl_ui.btn_next.disable = false;
   }
 }
@@ -257,8 +257,8 @@ class PageOnlyHuman extends PageGameTutorial {
       "The robot moves autonomously.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.ctrl_ui.btn_next.disable = false;
   }
@@ -281,8 +281,8 @@ class PageTarget extends PageGameTutorial {
     this.initial_emit_data.type = "to_box";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.ctrl_ui.btn_next.disable = true;
   }
 
@@ -292,7 +292,7 @@ class PageTarget extends PageGameTutorial {
     const box_coord = this.game_obj.boxes[latent[1]].get_coord();
     const a1_coord = this.game_obj.agents[0].get_coord();
     if (a1_coord[0] == box_coord[0] && a1_coord[1] == box_coord[1]) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -326,8 +326,8 @@ class PageTarget2 extends PageGameTutorial {
     }
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.x_cen = this.ctrl_ui.btn_hold.x_origin;
     this.y_cen = this.ctrl_ui.btn_hold.y_origin;
@@ -352,7 +352,7 @@ class PageTarget2 extends PageGameTutorial {
   on_data_update(changed_obj) {
     // before parent update
     if (this.game_obj.agents[0].box != null) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -383,15 +383,15 @@ class PageDestination extends PageGameTutorial {
       "Please carry the " + this.object_kind + " to the flag and drop it there.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.ctrl_ui.btn_next.disable = true;
   }
 
   on_data_update(changed_obj) {
     // before parent update
     if (this.game_obj.agents[0].box == null) {
-      go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
       return;
     }
 
@@ -412,8 +412,8 @@ class PageScore extends PageGameTutorial {
       "Your goal is to complete the task as fast as possible (i.e., with the least amount of time taken).";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.x_cen = this.ctrl_ui.lbl_score.x_left + 0.95 * this.ctrl_ui.lbl_score.width;
     this.y_cen = this.ctrl_ui.lbl_score.y_top + this.ctrl_ui.lbl_score.font_size * 0.5;
@@ -446,8 +446,8 @@ class PageTrappedScenario extends PageGameTutorial {
       "Please click on the “Next” button to continue.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.ctrl_ui.btn_next.disable = false;
   }
@@ -464,8 +464,8 @@ class PageTargetHint extends PageGameTutorial {
       "This will be done using the red circles shown earlier. Please click on the “Next” button to continue.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.x_cen = this.ctrl_ui.lbl_instruction.x_left + 0.5 * this.ctrl_ui.lbl_instruction.width;
     this.y_cen = this.game_obj.game_size * 1 / 5;
     this.radius = this.y_cen * 0.1;
@@ -492,8 +492,8 @@ class PageTargetNoHint extends PageGameTutorial {
     this.ctrl_ui.lbl_instruction.text = this.instruction;
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.x_cen = this.ctrl_ui.lbl_instruction.x_left + 0.5 * this.ctrl_ui.lbl_instruction.width;
     this.y_cen = this.game_obj.game_size * 1 / 5;
     this.radius = this.y_cen * 0.1;
@@ -521,8 +521,8 @@ class PageUserLatent extends PageGameTutorial {
       "Please click on your current destination (i.e., the " + this.object_kind + " which you are planning to pick next).";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
     this.x_cen = this.ctrl_ui.btn_select.x_origin;
     this.y_cen = this.ctrl_ui.btn_select.y_origin;
     this.radius = this.ctrl_ui.btn_select.width * 0.6;
@@ -546,7 +546,7 @@ class PageUserLatent extends PageGameTutorial {
       // check if a latent is selected
       for (const obj of this.game_obj.overlays) {
         if (obj.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-          go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+          go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
           this.socket.emit('set_latent', { data: obj.get_id() });
           return;
         }
@@ -578,8 +578,8 @@ class PageUserSelectionResult extends PageGameTutorial {
     }
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.is_selecting_latent = false;
     this.ctrl_ui.btn_next.disable = false;
@@ -610,8 +610,8 @@ class PageSelectionPrompt extends PageGameTutorial {
       "please click on your current destination.";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.is_selecting_latent = false;
     this.ctrl_ui.btn_next.disable = true;
@@ -623,7 +623,7 @@ class PageSelectionPrompt extends PageGameTutorial {
       // check if a latent is selected
       for (const obj of this.game_obj.overlays) {
         if (obj.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-          go_to_next_page(this.global_object, this.game_obj, this.ctrl_ui, this.canvas, this.socket);
+          go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
           this.socket.emit('set_latent', { data: obj.get_id() });
           return;
         }
@@ -652,8 +652,8 @@ class PageMiniGame extends PageGameTutorial {
       "(using the button at the bottom of this page).";
   }
 
-  init_page(global_object, game_obj, ctrl_ui, canvas, socket) {
-    super.init_page(global_object, game_obj, ctrl_ui, canvas, socket);
+  init_page(global_object, game_obj, canvas, socket) {
+    super.init_page(global_object, game_obj, canvas, socket);
 
     this.ctrl_ui.btn_next.disable = true;
     if (document.getElementById("submit").disabled) {
