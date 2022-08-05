@@ -51,7 +51,7 @@ $(document).ready(function () {
   }, false);
 
   // Connect to the Socket.IO server.
-  var socket = io('http://' + document.domain + ':' + location.port + '/' + global_object.name_space);
+  const socket = io('http://' + document.domain + ':' + location.port + '/' + global_object.name_space);
 
   // alias 
   const cnvs = document.getElementById("myCanvas");
@@ -66,8 +66,8 @@ $(document).ready(function () {
   /////////////////////////////////////////////////////////////////////////////
   // game control logics
   /////////////////////////////////////////////////////////////////////////////
-  var x_mouse = -1;
-  var y_mouse = -1;
+  let x_mouse = -1;
+  let y_mouse = -1;
 
   // click event listener
   cnvs.addEventListener('click', onClick, true);
@@ -84,14 +84,6 @@ $(document).ready(function () {
     y_mouse = event.offsetY;
   }
 
-  // for actual tasks, set game end behavior
-  if (!global_object.is_tutorial) {
-    socket.on('game_end', function () {
-      document.getElementById("submit").disabled = false;
-      global_object.cur_page_idx = global_object.page_list.length - 1;
-      global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, cnvs, socket);
-    });
-  }
 
   // init canvas
   socket.on('init_canvas', function (json_msg) {
@@ -130,6 +122,14 @@ $(document).ready(function () {
     vib_count = 0;
   });
 
+  // for actual tasks, set game end behavior
+  if (!global_object.is_tutorial) {
+    socket.on('game_end', function () {
+      document.getElementById("submit").disabled = false;
+      global_object.cur_page_idx = global_object.page_list.length - 1;
+      global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, cnvs, socket);
+    });
+  }
 
   const perturbations = [-0.05, 0.1, -0.1, 0.1, -0.05];
   function vibrate_agent_pos(agent, idx) {

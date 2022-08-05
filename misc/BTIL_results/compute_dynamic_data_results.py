@@ -157,7 +157,8 @@ def transition_s(sidx, aidx1, aidx2, sidx_n=None):
           "The transition has been loaded from a file ({}). "
           "If any related implementation is changed, "
           "be sure to delete the saved file and regenerate it.".format(
-              os.path.basename(pickle_trans_s)))
+              os.path.basename(pickle_trans_s)),
+          stacklevel=2)
     else:
       g_loaded_transition_model = MDP_TASK.np_transition_model
       dir_name = os.path.dirname(pickle_trans_s)
