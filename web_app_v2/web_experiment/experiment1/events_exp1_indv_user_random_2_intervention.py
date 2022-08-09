@@ -67,7 +67,7 @@ def action_event(msg):
 
   ASK_LATENT_FREQUENCY = 5
   event_impl.action_event(msg, g_id_2_game, None, game_finished, EXP1_NAMESPACE,
-                          True, True, ASK_LATENT_FREQUENCY)
+                          True, True, ASK_LATENT_FREQUENCY, intervention = True)
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)
