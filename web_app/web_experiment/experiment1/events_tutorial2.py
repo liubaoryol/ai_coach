@@ -92,12 +92,6 @@ def run_game(msg):
       game.a2_pos = game.boxes[bidx2]
 
       game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
-    # elif game_type == "auto_prompt":
-    #   agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
-    #                               GAME_MAP["goals"], GAME_MAP["walls"],
-    #                               GAME_MAP["drops"])
-    #   game.set_autonomous_agent(agent1, agent2)
-    #   game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
     else:  # "normal"
       agent2 = BoxPushSimpleAgent(AGENT2, GAME_MAP["x_grid"],
                                   GAME_MAP["y_grid"], GAME_MAP["boxes"],

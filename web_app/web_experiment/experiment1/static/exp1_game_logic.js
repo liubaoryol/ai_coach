@@ -93,6 +93,8 @@ $(document).ready(function () {
     }
   });
 
+  /////////////////////////////////////////////////////////////////////
+  // rendering
   let old_time_stamp = performance.now();
   const update_duration = 50;
   function update_scene(timestamp) {

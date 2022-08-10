@@ -19,8 +19,6 @@ from web_experiment.models import db, User
 
 ASK_LATENT = True
 NOT_ASK_LATENT = False
-SHOW_FAILURE = True
-NOT_SHOW_FAILURE = False
 TASK_A = True
 TASK_B = False
 
@@ -53,7 +51,7 @@ def initial_canvas(session_name, is_a):
   cur_user = session.get('user_id')
 
   user = User.query.filter_by(userid=cur_user).first()
-  done = getattr(user, session_name)
+  done = False if session_name is None else getattr(user, session_name, False)
   best_score = get_best_score(cur_user, is_a)
 
   dict_game_info = {

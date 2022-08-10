@@ -304,19 +304,6 @@ class PageTarget extends PageGameTutorial {
       "The pick button will be available only when you are at the correct destination.";
   }
 
-  // TODO: move this to python
-  // on_data_update(changed_obj) {
-  //   // before parent update
-  //   const latent = this.game_obj.agents[0].latent;
-  //   const box_coord = this.game_obj.boxes[latent[1]].get_coord();
-  //   const a1_coord = this.game_obj.agents[0].get_coord();
-  //   if (a1_coord[0] == box_coord[0] && a1_coord[1] == box_coord[1]) {
-  //     go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
-  //     return;
-  //   }
-
-  //   super.on_data_update(changed_obj);
-  // }
 }
 
 class PageTarget2 extends PageGameTutorial {
@@ -364,12 +351,6 @@ class PageTarget2 extends PageGameTutorial {
   }
 
   on_data_update(changed_obj) {
-    // // before parent update
-    // if (this.game_obj.agents[0].box != null) {
-    //   go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
-    //   return;
-    // }
-
     super.on_data_update(changed_obj);
 
     if (this.x_cen != null) {
@@ -403,15 +384,6 @@ class PageDestination extends PageGameTutorial {
       "Please carry the " + this.object_type + " to the flag and drop it there.";
   }
 
-  // on_data_update(changed_obj) {
-  // // before parent update
-  // if (this.game_obj.agents[0].box == null) {
-  //   go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
-  //   return;
-  // }
-
-  //   super.on_data_update(changed_obj);
-  // }
 }
 
 class PageScore extends PageGameTutorial {
@@ -551,16 +523,6 @@ class PageUserLatent extends PageGameTutorial {
       this.x_cen = null;
     }
 
-    // if (this.is_selecting_latent) {
-    //   // check if a latent is selected
-    //   for (const obj of this.game_obj.overlays) {
-    //     if (obj.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-    //       go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
-    //       this.socket.emit('set_latent', { data: obj.get_id() });
-    //       return;
-    //     }
-    //   }
-    // }
     super.on_click(mouse_x, mouse_y);
   }
 
@@ -622,19 +584,6 @@ class PageSelectionPrompt extends PageGameTutorial {
       "please click on your current destination.";
   }
 
-  // on_click(mouse_x, mouse_y) {
-  //   if (this.is_selecting_latent) {
-  //     // check if a latent is selected
-  //     for (const obj of this.game_obj.overlays) {
-  //       if (obj.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-  //         go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
-  //         this.socket.emit('set_latent', { data: obj.get_id() });
-  //         return;
-  //       }
-  //     }
-  //   }
-  //   super.on_click(mouse_x, mouse_y);
-  // }
 }
 
 class PageMiniGame extends PageGameTutorial {
