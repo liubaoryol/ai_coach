@@ -1,10 +1,11 @@
 import numpy as np
 from web_experiment import socketio
-from flask import (request, session, current_app)
+from flask import (session, current_app)
 import json
 import web_experiment.experiment1.events_impl as event_impl
 
-from ai_coach_core.latent_inference.decoding import forward_inference, most_probable_sequence
+from ai_coach_core.latent_inference.decoding import (forward_inference,
+                                                     most_probable_sequence)
 from ai_coach_core.utils.data_utils import Trajectories
 from ai_coach_domain.box_push.maps import EXP1_MAP
 from ai_coach_domain.box_push.agent_model import (
@@ -15,7 +16,9 @@ import ai_coach_domain.box_push.mdp as bp_mdp
 from ai_coach_domain.box_push.defines import (idx_to_action_for_simulator,
                                               EventType)
 from ai_coach_domain.box_push.defines import get_possible_latent_states
-import glob, os                                  
+import glob
+import os
+
 
 def load_session_trajectory(session_name, id):
   error = None
@@ -36,13 +39,13 @@ def load_session_trajectory(session_name, id):
     session['replay_id'] = id
     session['session_name'] = session_name
     session['possible_latent_states'] = get_possible_latent_states(
-        len(traj[0]['boxes']), len(traj[0]['drops']),
-        len(traj[0]['goals']))
+        len(traj[0]['boxes']), len(traj[0]['drops']), len(traj[0]['goals']))
     # dummy latent human prediction
     session['latent_human_predicted'] = [None] * session['max_index']
     session['latent_human_recorded'] = [None] * session['max_index']
 
     return error
+
 
 def read_file(file_name):
   traj = []
@@ -109,7 +112,10 @@ def read_file(file_name):
   return traj
 
 
-def update_canvas(env_id, namespace, update_latent, mode,
+def update_canvas(env_id,
+                  namespace,
+                  update_latent,
+                  mode,
                   is_movers_domain=True):
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
@@ -118,16 +124,16 @@ def update_canvas(env_id, namespace, update_latent, mode,
     # update latent states
     if update_latent:
       update_latent_state(env_id, namespace, is_movers_domain, mode)
-      
+
 
 def update_latent_state(env_id, namespace, is_movers_domain, mode):
   latent_human, latent_human_predicted, latent_robot = get_latent_states(
-        is_movers_domain, mode = mode)
+      is_movers_domain, mode=mode)
   objs = {}
   objs['latent_human'] = latent_human
   objs['latent_robot'] = latent_robot
   objs['latent_human_predicted'] = latent_human_predicted
-  
+
   if mode == "replay":
     objs['latent_states'] = "replay"
   elif mode == "predicted":
@@ -139,6 +145,7 @@ def update_latent_state(env_id, namespace, is_movers_domain, mode):
   str_emit = 'update_latent'
   socketio.emit(str_emit, objs_json, room=env_id, namespace=namespace)
 
+
 def get_latent_states(is_movers_domain, mode):
   dict = session['dict'][session['index']]
   latent_human = ""
@@ -147,9 +154,8 @@ def get_latent_states(is_movers_domain, mode):
   if mode == "replay":
     if dict['a1_latent']:
       latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
-    latent, prob =   predict_human_latent(session['dict'],
-                                          session['index'],
-                                          is_movers_domain)
+    latent, prob = predict_human_latent(session['dict'], session['index'],
+                                        is_movers_domain)
     latent_human_predicted = f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
   elif mode == "collected":
     latent_human = session['latent_human_recorded'][session['index']]
@@ -161,15 +167,15 @@ def get_latent_states(is_movers_domain, mode):
   #     latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
   # elif latent_from == 'After Game':
   #   latent_human = session['latent_human_recorded'][session['index']]
-    
+
   # if predicted:
-  #   latent_human_predicted = session['latent_human_predicted'][session['index']]
+  #   latent_human_predicted = session['latent_human_predicted'][session['index']]  # noqa: E501
   #   latent, prob =   predict_human_latent(session['dict'],
   #                                                   session['index'],
   #                                                   is_movers_domain)
   #   latent_human_predicted = f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
   # else:
-    
+
   if dict['a2_latent']:
     latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
   return latent_human, latent_human_predicted, latent_robot
@@ -265,57 +271,56 @@ def predict_human_latent(traj, index, is_movers_domain):
   return latent, prob
   # return f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
 
+
 def predict_human_latent_full(traj, is_movers_domain):
-    GAME_MAP = bp_maps.EXP1_MAP
-    if is_movers_domain:
-      BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
-      MDP_AGENT = bp_mdp.BoxPushTeamMDP_AlwaysTogether(**GAME_MAP)
-      MDP_TASK = MDP_AGENT
-    else:
-      BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
-      MDP_AGENT = bp_mdp.BoxPushAgentMDP_AlwaysAlone(**GAME_MAP)
-      MDP_TASK = bp_mdp.BoxPushTeamMDP_AlwaysAlone(**GAME_MAP)
+  GAME_MAP = bp_maps.EXP1_MAP
+  if is_movers_domain:
+    BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysTogether
+    MDP_AGENT = bp_mdp.BoxPushTeamMDP_AlwaysTogether(**GAME_MAP)
+    MDP_TASK = MDP_AGENT
+  else:
+    BoxPushSimulator = bp_sim.BoxPushSimulator_AlwaysAlone
+    MDP_AGENT = bp_mdp.BoxPushAgentMDP_AlwaysAlone(**GAME_MAP)
+    MDP_TASK = bp_mdp.BoxPushTeamMDP_AlwaysAlone(**GAME_MAP)
 
-    # load models
-    # TODO: take this codes out so that we need to load models only once
-    model_dir = "../misc/BTIL_results/data/learned_models/"
+  # load models
+  # TODO: take this codes out so that we need to load models only once
+  model_dir = "../misc/BTIL_results/data/learned_models/"
 
-    if is_movers_domain:
-      policy_file = "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
-      tx_file = "exp1_team_btil_tx_human_66_1.00_a1.npy"
-    else:
-      policy_file = "exp1_indv_btil_policy_human_woTx_99_1.00_a1.npy"
-      tx_file = "exp1_indv_btil_tx_human_99_1.00_a1.npy"
+  if is_movers_domain:
+    policy_file = "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
+    tx_file = "exp1_team_btil_tx_human_66_1.00_a1.npy"
+  else:
+    policy_file = "exp1_indv_btil_policy_human_woTx_99_1.00_a1.npy"
+    tx_file = "exp1_indv_btil_tx_human_99_1.00_a1.npy"
 
-    policy = np.load(model_dir + policy_file)
-    tx = np.load(model_dir + tx_file)
+  policy = np.load(model_dir + policy_file)
+  tx = np.load(model_dir + tx_file)
 
-    # human mental state inference
-    def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
-      return policy[xidx, sidx, tuple_aidx[0]]
+  # human mental state inference
+  def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
+    return policy[xidx, sidx, tuple_aidx[0]]
 
-    def Tx_nxsasx(nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
-      return tx[xidx, sidx, tuple_aidx[0], tuple_aidx[1], xidx_n]
+  def Tx_nxsasx(nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
+    return tx[xidx, sidx, tuple_aidx[0], tuple_aidx[1], xidx_n]
 
-    def init_latent_nxs(nidx, xidx, sidx):
-      return assumed_initial_mental_distribution(0, sidx, MDP_AGENT)[xidx]
+  def init_latent_nxs(nidx, xidx, sidx):
+    return assumed_initial_mental_distribution(0, sidx, MDP_AGENT)[xidx]
 
-    sim = BoxPushSimulator(0)
-    sim.init_game(**GAME_MAP)
-    trajories = BoxPushTrajectoryConverter(MDP_TASK, MDP_AGENT)
-    trajories.single_trajectory_from_list_dict(traj)
-    
-    list_state, list_action, _ = trajories.get_as_column_lists(
-        include_terminal=True)[0]
+  sim = BoxPushSimulator(0)
+  sim.init_game(**GAME_MAP)
+  trajories = BoxPushTrajectoryConverter(MDP_TASK, MDP_AGENT)
+  trajories.single_trajectory_from_list_dict(traj)
 
+  list_state, list_action, _ = trajories.get_as_column_lists(
+      include_terminal=True)[0]
 
-
-    list_inferred_x_seq = most_probable_sequence(list_state[:-1],
-                                          list_action, 1,
-                                          MDP_AGENT.num_latents, policy_nxsa,
-                                          Tx_nxsasx, init_latent_nxs)
-    inferred_x_seq = list_inferred_x_seq[0]
-    print(list_inferred_x_seq)
-    latents = [MDP_AGENT.latent_space.idx_to_state[x] for x in inferred_x_seq]
-    latents = [f"{latent[0]}, {latent[1]}" for latent in latents]
-    return latents
+  list_inferred_x_seq = most_probable_sequence(list_state[:-1], list_action, 1,
+                                               MDP_AGENT.num_latents,
+                                               policy_nxsa, Tx_nxsasx,
+                                               init_latent_nxs)
+  inferred_x_seq = list_inferred_x_seq[0]
+  print(list_inferred_x_seq)
+  latents = [MDP_AGENT.latent_space.idx_to_state[x] for x in inferred_x_seq]
+  latents = [f"{latent[0]}, {latent[1]}" for latent in latents]
+  return latents
