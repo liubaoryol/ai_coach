@@ -12,8 +12,9 @@ import web_experiment.experiment1.events_impl as event_impl
 
 g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysAlone]
 EXP1_NAMESPACE = '/exp1_indv_tell_align'
-GRID_X = EXP1_MAP["x_grid"]
-GRID_Y = EXP1_MAP["y_grid"]
+SESSION_NAME = "session_b1"
+TASK_TYPE = event_impl.TASK_B
+
 EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
 EXP1_TASK_MDP = BoxPushTeamMDP_AlwaysAlone(**EXP1_MAP)
 
@@ -27,7 +28,7 @@ TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_TASK_MDP, EXP1_MDP, TEMPERATURE,
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)
 def initial_canvas():
-  event_impl.initial_canvas(GRID_X, GRID_Y)
+  event_impl.initial_canvas(SESSION_NAME, TASK_TYPE)
 
 
 @socketio.on('my_echo', namespace=EXP1_NAMESPACE)
@@ -61,20 +62,12 @@ def run_game(msg):
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", box_idx))
       game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", box_idx))
 
-  event_impl.run_task_game(msg, g_id_2_game, agent2, set_init_latent, EXP1_MDP,
-                           EXP1_MAP, event_impl.NOT_ASK_LATENT, EXP1_NAMESPACE,
-                           False)
+  event_impl.run_task_game(msg, g_id_2_game, agent2, set_init_latent, EXP1_MAP,
+                           event_impl.NOT_ASK_LATENT, EXP1_NAMESPACE, TASK_TYPE)
 
 
 @socketio.on('action_event', namespace=EXP1_NAMESPACE)
 def action_event(msg):
-  def game_finished(game, env_id, name_space):
-    session_name = "session_b1"
-    cur_user = msg["user_id"]
-    event_impl.task_end(env_id, game, cur_user, session_name,
-                        "BoxPushSimulator_AlwaysAlone", EXP1_MAP, name_space,
-                        False)
-
   def hold_changed(game: BoxPushSimulator_AlwaysAlone, a1_hold_changed,
                    a2_hold_changed, a1_box, a2_box):
     a1_latent_prev = game.agent_1.get_current_latent()
@@ -162,10 +155,16 @@ def action_event(msg):
                          ("pickup", a1_latent_prev[1]))
 
   ASK_LATENT_FREQUENCY = 5
-  event_impl.action_event(msg, g_id_2_game, hold_changed, game_finished,
-                          EXP1_NAMESPACE, False, False, ASK_LATENT_FREQUENCY)
+  event_impl.action_event(msg, g_id_2_game, hold_changed, event_impl.game_end,
+                          EXP1_NAMESPACE, False, False, ASK_LATENT_FREQUENCY,
+                          EXP1_MAP, SESSION_NAME, TASK_TYPE)
 
 
-@socketio.on('set_latent', namespace=EXP1_NAMESPACE)
-def set_latent(msg):
-  event_impl.set_latent(msg, g_id_2_game, EXP1_NAMESPACE)
+@socketio.on('setting_event', namespace=EXP1_NAMESPACE)
+def setting_event(msg):
+  event_impl.setting_event(msg, g_id_2_game, EXP1_NAMESPACE)
+
+
+@socketio.on('done_task', namespace=EXP1_NAMESPACE)
+def done_task(msg):
+  event_impl.done_task(msg, SESSION_NAME)

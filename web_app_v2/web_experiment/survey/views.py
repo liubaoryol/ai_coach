@@ -26,7 +26,7 @@ def preexperiment():
   disabled = ''
   if not query_data.pre_exp:
     disabled = 'disabled'
-  return render_template('preexperiment.html', is_disabled = disabled)
+  return render_template('preexperiment.html', is_disabled=disabled)
 
 
 def inexperiment_impl(current_html_file, next_endpoint_name, session_name):
@@ -39,7 +39,7 @@ def inexperiment_impl(current_html_file, next_endpoint_name, session_name):
                  (cur_user, session_name))
     if not getattr(query_data, session_survey_name):
       setattr(query_data, session_survey_name, True)
-      db.session.commit()                
+      db.session.commit()
     # if exp_no == 0:
     #   if not query_data.session_a0_survey:
     #     query_data.session_a0_survey = True
@@ -57,7 +57,7 @@ def inexperiment_impl(current_html_file, next_endpoint_name, session_name):
     #   #   query_data.session_a2_survey = True
     #   #   db.session.commit()
     return redirect(url_for(next_endpoint_name))
-  
+
   disabled = ''
   if not getattr(query_data, session_survey_name):
     disabled = 'disabled'
@@ -71,13 +71,16 @@ def inexperiment_impl(current_html_file, next_endpoint_name, session_name):
   # elif exp_no == 2:
   #   if not query_data.session_a2_survey:
   #     disabled = 'disabled'
-  return render_template(current_html_file, is_disabled = disabled)
+  return render_template(current_html_file, is_disabled=disabled)
+
 
 @survey_bp.route('/survey_both_tell_align', methods=('GET', 'POST'))
 @login_required
 def survey_both_tell_align():
   # survey for session a0
-  return inexperiment_impl('survey_both_tell_align.html', 'exp1.exp1_both_user_random', "a0")
+  return inexperiment_impl('survey_both_tell_align.html',
+                           'exp1.exp1_both_user_random', "a0")
+
 
 @survey_bp.route('/survey_both_user_random', methods=('GET', 'POST'))
 @login_required
@@ -85,22 +88,27 @@ def survey_both_user_random():
   return inexperiment_impl('survey_both_user_random.html',
                            'exp1.exp1_both_user_random_2', "a1")
 
+
 @survey_bp.route('/survey_both_user_random_2', methods=('GET', 'POST'))
 @login_required
 def survey_both_user_random_2():
-  return inexperiment_impl('survey_both_user_random_2.html',
-                           'inst.clean_up', "a2")
+  return inexperiment_impl('survey_both_user_random_2.html', 'inst.clean_up',
+                           "a2")
+
 
 @survey_bp.route('/survey_indv_tell_align', methods=('GET', 'POST'))
 @login_required
 def survey_indv_tell_align():
-  return inexperiment_impl('survey_indv_tell_align.html', 'exp1.exp1_indv_user_random', "b0")                      
+  return inexperiment_impl('survey_indv_tell_align.html',
+                           'exp1.exp1_indv_user_random', "b0")
+
 
 @survey_bp.route('/survey_indv_user_random', methods=('GET', 'POST'))
 @login_required
 def survey_indv_user_random():
   return inexperiment_impl('survey_indv_user_random.html',
                            'exp1.exp1_indv_user_random_2', "b1")
+
 
 @survey_bp.route('/survey_indv_user_random_2', methods=('GET', 'POST'))
 @login_required
@@ -132,7 +140,7 @@ def completion():
   disabled = ''
   if not query_data.completed:
     disabled = 'disabled'
-  return render_template('completion.html', is_disabled = disabled)
+  return render_template('completion.html', is_disabled=disabled)
 
 
 @survey_bp.route('/thankyou', methods=('GET', 'POST'))

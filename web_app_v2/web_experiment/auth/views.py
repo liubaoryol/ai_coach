@@ -1,9 +1,7 @@
 import logging
 import re
-import glob
-import os
 from flask import (flash, redirect, render_template, request, url_for, g,
-                   current_app, session)
+                   session)
 from web_experiment.models import (db, User, PostExperiment, InExperiment,
                                    PreExperiment)
 from web_experiment.auth.functions import admin_required

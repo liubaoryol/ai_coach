@@ -1,10 +1,11 @@
 import numpy as np
 from web_experiment import socketio
-from flask import (request, session, current_app)
+from flask import (session, current_app)
 import json
 import web_experiment.experiment1.events_impl as event_impl
 
-from ai_coach_core.latent_inference.decoding import forward_inference, most_probable_sequence
+from ai_coach_core.latent_inference.decoding import (forward_inference,
+                                                     most_probable_sequence)
 from ai_coach_core.utils.data_utils import Trajectories
 from ai_coach_domain.box_push.maps import EXP1_MAP
 from ai_coach_domain.box_push.agent_model import (
@@ -15,7 +16,9 @@ import ai_coach_domain.box_push.mdp as bp_mdp
 from ai_coach_domain.box_push.defines import (idx_to_action_for_simulator,
                                               EventType)
 from ai_coach_domain.box_push.defines import get_possible_latent_states
-import glob, os                                  
+import os
+import glob
+
 
 def load_session_trajectory(session_name, id):
   error = None
@@ -36,13 +39,13 @@ def load_session_trajectory(session_name, id):
     session['replay_id'] = id
     session['session_name'] = session_name
     session['possible_latent_states'] = get_possible_latent_states(
-        len(traj[0]['boxes']), len(traj[0]['drops']),
-        len(traj[0]['goals']))
+        len(traj[0]['boxes']), len(traj[0]['drops']), len(traj[0]['goals']))
     # dummy latent human prediction
     session['latent_human_predicted'] = [None] * session['max_index']
     session['latent_human_recorded'] = [None] * session['max_index']
 
     return error
+
 
 def read_file(file_name):
   traj = []
@@ -265,6 +268,7 @@ def predict_human_latent(traj, index, is_movers_domain):
   return latent, prob
   # return f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
 
+
 def predict_human_latent_full(traj, is_movers_domain):
     GAME_MAP = bp_maps.EXP1_MAP
     if is_movers_domain:
@@ -315,7 +319,6 @@ def predict_human_latent_full(traj, is_movers_domain):
                                           MDP_AGENT.num_latents, policy_nxsa,
                                           Tx_nxsasx, init_latent_nxs)
     inferred_x_seq = list_inferred_x_seq[0]
-    print(list_inferred_x_seq)
     latents = [MDP_AGENT.latent_space.idx_to_state[x] for x in inferred_x_seq]
     latents = [f"{latent[0]}, {latent[1]}" for latent in latents]
     return latents
