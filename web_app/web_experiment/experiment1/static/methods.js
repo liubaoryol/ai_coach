@@ -78,6 +78,16 @@ class ButtonObject extends DrawingObject {
     }
   }
 
+  draw_with_mouse_move(context, x_cursor, y_cursor) {
+    if (x_cursor == -1 || y_cursor == -1) {
+      this.set_mouse_over(false);
+    }
+    else {
+      this.set_mouse_over(this.isPointInObject(context, x_cursor, y_cursor));
+    }
+    this.draw(context);
+  }
+
   _on_drawing_path(context) {
     if (this.mouse_over) {
       context.fillStyle = "green";
@@ -311,7 +321,7 @@ class TextScore extends TextObject {
     super(x_left, y_top, width, font_size);
     this.text_align = "right";
     this.score = 0;
-    this.best = 999;
+    this.best = 9999;
   }
 
   set_score(number) {
@@ -344,7 +354,7 @@ class TextScore extends TextObject {
 
     y_pos = y_pos + this.font_size;
     context.font = "bold " + (this.font_size) + "px arial";
-    if (this.best == 999) {
+    if (this.best == 9999) {
       context.fillText("(Your Best: - )", x_pos, y_pos);
     }
     else {
@@ -356,272 +366,68 @@ class TextScore extends TextObject {
 ///////////////////////////////////////////////////////////////////////////////
 // game models and methods
 ///////////////////////////////////////////////////////////////////////////////
-
-function convert_x(game_obj, fX) {
-  return Math.round(fX / game_obj.grid_x * game_obj.game_size);
-}
-
-function convert_y(game_obj, fY) {
-  return Math.round(fY / game_obj.grid_y * game_obj.game_size);
-}
-
-function is_coord_equal(coord1, coord2) {
-  return coord1[0] == coord2[0] && coord1[1] == coord2[1];
-}
-
-class GameObject extends DrawingObject {
-  constructor(x_g, y_g, game_obj) {
+class Ellipse extends DrawingObject {
+  constructor(name, left, top, w, h, color) {
     super();
-    this.x_g = x_g;
-    this.y_g = y_g;
-    this.game_obj = game_obj;
+    this.name = name;
+    this.left = left;
+    this.top = top;
+    this.w = w;
+    this.h = h;
+    this.color = color;
   }
 
   draw(context) {
     super.draw(context);
-  }
-
-  get_coord() {
-    return [this.x_g, this.y_g];
-  }
-
-  set_coord(coord) {
-    this.x_g = coord[0];
-    this.y_g = coord[1];
-  }
-
-  conv_x(fX) {
-    return convert_x(this.game_obj, fX);
-  }
-
-  conv_y(fY) {
-    return convert_y(this.game_obj, fY);
-  }
-
-  draw_game_img_fixed_height(
-    context, img, x_center_g, baseline_g, height_g, rotate = false) {
-    const h_scr = this.conv_y(height_g);
-    const w_scr = h_scr * img.width / img.height;
-
-    const x_center_scr = this.conv_x(x_center_g);
-    const x_scr = x_center_scr - 0.5 * w_scr;
-    const y_baseline_scr = this.conv_y(baseline_g);
-    const y_scr = y_baseline_scr - h_scr;
-    if (rotate) {
-      // context.save();
-      context.setTransform(1, 0, 0, 1, x_center_scr, y_baseline_scr - 0.5 * h_scr);
-      context.rotate(0.5 * Math.PI);
-      context.drawImage(img, - 0.5 * w_scr, - 0.5 * h_scr, w_scr, h_scr);
-      context.setTransform(1, 0, 0, 1, 0, 0);
-    }
-    else {
-      context.drawImage(img, x_scr, y_scr, w_scr, h_scr);
-    }
-  }
-}
-
-class Wall extends GameObject {
-  constructor(x_g, y_g, game_obj, img_wall) {
-    super(x_g, y_g, game_obj);
-    this.dir = 0;
-    this.img_wall = img_wall;
-  }
-
-  draw(context) {
-    super.draw(context);
-    if (this.dir == 1) {
-      this.draw_game_img_fixed_height(
-        context, this.img_wall, this.x_g + 0.5, this.y_g + 1, 1, true);
-    }
-    else {
-      this.draw_game_img_fixed_height(
-        context, this.img_wall, this.x_g + 0.5, this.y_g + 1, 1);
-    }
-  }
-}
-
-class Goal extends GameObject {
-  constructor(x_g, y_g, game_obj, img_goal) {
-    super(x_g, y_g, game_obj);
-    this.img_goal = img_goal;
-  }
-
-  draw(context) {
-    super.draw(context);
-
-    this.draw_game_img_fixed_height(
-      context, this.img_goal, this.x_g + 0.5, this.y_g + 1 - 0.1, 0.8);
-  }
-}
-
-class DropLoc extends GameObject {
-  constructor(x_g, y_g, game_obj) {
-    super(x_g, y_g, game_obj);
-  }
-
-  draw(context) {
-    super.draw(context);
-    context.fillStyle = "GreenYellow";
-    const x_corner = this.conv_x(this.x_g);
-    const y_corner = this.conv_y(this.y_g);
-    const wdth = this.conv_x(1);
-    const hght = this.conv_y(1);
-    context.fillRect(x_corner, y_corner, wdth, hght);
-  }
-}
-
-class BoxOrigin extends GameObject {
-  constructor(x_g, y_g, game_obj) {
-    super(x_g, y_g, game_obj);
-  }
-
-  draw(context) {
-    super.draw(context);
-    context.fillStyle = "Grey";
-    const x_cen = this.conv_x(this.x_g + 0.5);
-    const y_cen = this.conv_y(this.y_g + 1 - 0.3);
-    const rad_x = this.conv_x(0.4);
-    const rad_y = this.conv_y(0.2);
+    context.fillStyle = this.color;
+    const x_cen = this.left + this.w * 0.5;
+    const y_cen = this.top + this.h * 0.5;
+    const rad_x = this.w * 0.5;
+    const rad_y = this.h * 0.5;
     context.beginPath();
     context.ellipse(x_cen, y_cen, rad_x, rad_y, 0, 0, 2 * Math.PI);
     context.fill();
   }
 }
 
-class Box extends GameObject {
-  constructor(x_g, y_g, state, game_obj, img_box, img_human_box, img_robot_box, img_both_box) {
-    super(x_g, y_g, game_obj);
-    this.state = state;
-    this.img_box = img_box;
-    this.img_human_box = img_human_box;
-    this.img_robot_box = img_robot_box;
-    this.img_both_box = img_both_box;
+class GameObject extends DrawingObject {
+  constructor(name, left, top, w, h, angle, img) {
+    super();
+    this.name = name;
+    this.left = left;
+    this.top = top;
+    this.w = w;
+    this.h = h;
+    this.angle = angle;
+    this.img = img;
+  }
+
+  set_img(img) {
+    this.img = img;
   }
 
   draw(context) {
     super.draw(context);
-    if (this.state == "goal") {
-      return;
-    }
-
-    if (this.state == "box" || this.state == "drop") {
-      this.draw_game_img_fixed_height(
-        context, this.img_box, this.x_g + 0.5, this.y_g + 1 - 0.2, 0.6);
-    }
-    else if (this.state == "human") {
-      let offset = 0;
-      if (this.game_obj.hasOwnProperty("agents")) {
-        const a2_pos = this.game_obj.agents[1].get_coord();
-        const a2_box = this.game_obj.agents[1].box;
-        if (a2_box == null && is_coord_equal(this.get_coord(), a2_pos)) {
-          offset = -0.2;
-        }
+    if (this.img != null) {
+      if (this.angle == 0.0) {
+        context.drawImage(this.img, this.left, this.top, this.w, this.h);
       }
-
-      this.draw_game_img_fixed_height(
-        context, this.img_human_box, this.x_g + 0.5 + offset, this.y_g + 1, 1);
-    }
-    else if (this.state == "robot") {
-      let offset = 0;
-      if (this.game_obj.hasOwnProperty("agents")) {
-        const a1_pos = this.game_obj.agents[0].get_coord();
-        const a1_box = this.game_obj.agents[0].box;
-        if (a1_box == null && is_coord_equal(this.get_coord(), a1_pos)) {
-          offset = -0.2;
-        }
+      else {
+        const x_cen = this.left + 0.5 * this.w;
+        const y_cen = this.top + 0.5 * this.h;
+        context.setTransform(1, 0, 0, 1, x_cen, y_cen);
+        context.rotate(this.angle);
+        context.drawImage(this.img, -0.5 * this.w, -0.5 * this.h, this.w, this.h);
+        context.setTransform(1, 0, 0, 1, 0, 0);
       }
-
-      this.draw_game_img_fixed_height(
-        context, this.img_robot_box, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
-    }
-    else if (this.state == "both") {
-      this.draw_game_img_fixed_height(
-        context, this.img_both_box, this.x_g + 0.5, this.y_g + 1, 1);
     }
   }
 }
 
-class Agent extends GameObject {
-  constructor(type, game_obj, img_human, img_robot) {
-    super(null, null, game_obj);
-    this.type = type;
-    this.box = null;
-    this.latent = null;
-    this.img_human = img_human;
-    this.img_robot = img_robot;
-  }
 
-  draw(context) {
-    // not initialized
-    if (this.x_g == null || this.y_g == null) {
-      return;
-    }
-
-    // if the agent is holding a box, don't draw here.
-    // it will be drawn by the box object.
-    if (this.box != null) {
-      return;
-    }
-
-    super.draw(context);
-
-    if (this.type == "human") {
-      let offset = 0;
-      if (this.game_obj.hasOwnProperty("agents")) {
-        const a2_box = this.game_obj.agents[1].box;
-        if (a2_box == null) {
-          const a2_pos = this.game_obj.agents[1].get_coord();
-          if (is_coord_equal(this.get_coord(), a2_pos)) {
-            offset = 0.2;
-          }
-        }
-        else {
-          const a2_pos = this.game_obj.boxes[a2_box].get_coord();
-          if (is_coord_equal(this.get_coord(), a2_pos)) {
-            offset = -0.2;
-          }
-        }
-      }
-
-      this.draw_game_img_fixed_height(
-        context, this.img_human, this.x_g + 0.5 - offset, this.y_g + 1, 1);
-    }
-    else {
-      let offset = 0;
-      if (this.game_obj.hasOwnProperty("agents")) {
-        const a1_box = this.game_obj.agents[0].box;
-        if (a1_box == null) {
-          const a1_pos = this.game_obj.agents[0].get_coord();
-          if (is_coord_equal(this.get_coord(), a1_pos)) {
-            offset = 0.2;
-          }
-        }
-        else {
-          const a1_pos = this.game_obj.boxes[a1_box].get_coord();
-          if (is_coord_equal(this.get_coord(), a1_pos)) {
-            offset = 0.2;
-          }
-        }
-      }
-
-      this.draw_game_img_fixed_height(
-        context, this.img_robot, this.x_g + 0.5 + offset, this.y_g + 1, 0.8);
-    }
-  }
-}
-
-class GameOverlay extends ButtonObject {
-  constructor(x_g, y_g, game_obj) {
-    super(
-      convert_x(game_obj, x_g + 0.5), convert_y(game_obj, y_g + 0.5),
-      convert_x(game_obj, 0.9), convert_y(game_obj, 0.9));
-    this.game_obj = game_obj;
-  }
-}
-
-class SelectingOverlay extends GameOverlay {
-  constructor(x_g, y_g, id, idx, game_obj) {
-    super(x_g, y_g, game_obj);
+class SelectingOverlay extends ButtonObject {
+  constructor(x_cen, y_cen, radius, id, idx) {
+    super(x_cen, y_cen, radius, radius);
     this.text = JSON.stringify(idx);
     this.id = id;
     this.fill_path = false;
@@ -644,22 +450,22 @@ class SelectingOverlay extends GameOverlay {
     context.globalAlpha = 1.0;
     context.strokeStyle = "black";
     context.fillStyle = "black";
-
   }
 
   _set_path() {
-    const half_width = this.width / 2;
-    const half_height = this.height / 2;
-
-    this.path.arc(this.x_origin, this.y_origin, half_width, 0, 2 * Math.PI);
+    this.path.arc(this.x_origin, this.y_origin, this.width, 0, 2 * Math.PI);
   }
 }
 
-class StaticOverlay extends GameOverlay {
-  constructor(x_g, y_g, game_obj) {
-    super(x_g, y_g, game_obj);
+class StaticOverlay extends ButtonObject {
+  constructor(x_cen, y_cen, radius) {
+    super(x_cen, y_cen, radius, radius);
     this.fill_path = false;
     this.show_text = false;
+  }
+
+  draw_with_mouse_move(context, x_cursor, y_cursor) {
+    super.draw_with_mouse_move(context, -1, -1);
   }
 
   _on_drawing_path(context) {
@@ -669,28 +475,257 @@ class StaticOverlay extends GameOverlay {
   }
 
   _set_path() {
-    const half_width = this.width / 2;
+    this.path.arc(this.x_origin, this.y_origin, this.width, 0, 2 * Math.PI);
+  }
 
-    this.path.arc(this.x_origin, this.y_origin, half_width, 0, 2 * Math.PI);
+  isPointInObject(context, x, y) {
+    return false;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// animation object
+class Animation {
+  constructor(obj, game_ltwh) {
+    this.obj = obj;
+    this.game_ltwh = game_ltwh;
+  }
+
+  animate() {
+  }
+
+  is_finished() {
+    return true;
+  }
+}
+
+class Vibrate extends Animation {
+  constructor(obj, game_ltwh) {
+    super(obj, game_ltwh);
+
+    this.start_time = performance.now();
+    this.cycle = 50;
+    this.original_obj_left = this.obj.left;
+    const amp = 0.01;
+    this.vib_pos = [
+      this.original_obj_left - amp * this.game_ltwh[2],
+      this.original_obj_left + amp * this.game_ltwh[3]];
+    this.num_vibration = 5;
+    this.idx = 0;
+  }
+
+  animate() {
+    if (performance.now() > this.start_time + this.cycle * this.idx) {
+      if (this.idx < this.num_vibration) {
+        this.obj.left = this.vib_pos[this.idx % this.vib_pos.length];
+      }
+      else {
+        this.obj.left = this.original_obj_left;
+      }
+      this.idx += 1;
+    }
+  }
+
+  is_finished() {
+    return this.idx >= this.num_vibration;
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// game object
+class GameData {
+  constructor(game_ltwh) {
+    this.game_ltwh = game_ltwh;
+
+    this.dict_imgs = {};
+    this.dict_game_objs = {};
+    this.list_overlays = [];
+    this.dict_game_info = {
+      score: 0, best_score: 9999, drawing_order: [], select_destination: false,
+      disabled_actions: [], done: false, user_id: ""
+    };
+    this.dict_animations = {};
+
+    this.ani_idx = 0;
+  }
+
+  process_json_obj(obj_json) {
+    if (obj_json.hasOwnProperty("imgs")) {
+      this.set_images(obj_json);
+    }
+
+    if (obj_json.hasOwnProperty("game_objects")) {
+      this.set_game_objects(obj_json);
+    }
+
+    if (obj_json.hasOwnProperty("overlays")) {
+      this.set_overlays(obj_json);
+    }
+
+    if (obj_json.hasOwnProperty("game_info")) {
+      this.set_game_info(obj_json);
+    }
+
+    if (obj_json.hasOwnProperty("animations")) {
+      this.set_animations(obj_json)
+    }
+  }
+
+  set_images(obj_json) {
+    this.dict_imgs = {};
+
+    for (const item of obj_json.imgs) {
+      this.dict_imgs[item.name] = new Image();
+      this.dict_imgs[item.name].src = item.src;
+    }
+  }
+
+  set_game_objects(obj_json) {
+    this.dict_game_objs = {};
+
+    const game_l = this.game_ltwh[0];
+    const game_t = this.game_ltwh[1];
+    const game_w = this.game_ltwh[2];
+    const game_h = this.game_ltwh[3];
+
+    for (const item of obj_json.game_objects) {
+      if (item.img_name == "ellipse") {
+        this.dict_game_objs[item.name] = new Ellipse(
+          item.name,
+          game_l + item.pos[0] * game_w,
+          game_t + item.pos[1] * game_h,
+          item.size[0] * game_w,
+          item.size[1] * game_h,
+          item.color
+        );
+      }
+      else {
+        this.dict_game_objs[item.name] = new GameObject(
+          item.name,
+          game_l + item.pos[0] * game_w,
+          game_t + item.pos[1] * game_h,
+          item.size[0] * game_w,
+          item.size[1] * game_h,
+          item.angle,
+          this.dict_imgs[item.img_name]);
+      }
+    }
+  }
+
+  set_overlays(obj_json) {
+    this.list_overlays = [];
+
+    const game_l = this.game_ltwh[0];
+    const game_t = this.game_ltwh[1];
+    const game_w = this.game_ltwh[2];
+    const game_h = this.game_ltwh[3];
+
+    for (const item of obj_json.overlays) {
+      if (item.type == "static") {
+        this.list_overlays.push(
+          new StaticOverlay(
+            game_l + item.pos[0] * game_w,
+            game_t + item.pos[1] * game_h,
+            item.radius * game_w));
+      }
+      else if (item.type == "selecting") {
+        this.list_overlays.push(
+          new SelectingOverlay(
+            game_l + item.pos[0] * game_w,
+            game_t + item.pos[1] * game_h,
+            item.radius * game_w,
+            item.id,
+            item.idx));
+      }
+    }
+  }
+
+  set_game_info(obj_json) {
+    if (obj_json.game_info.hasOwnProperty("score")) {
+      // number
+      this.dict_game_info.score = obj_json.game_info.score;
+    }
+
+    if (obj_json.game_info.hasOwnProperty("best_score")) {
+      // number
+      this.dict_game_info.best_score = obj_json.game_info.best_score;
+    }
+
+    if (obj_json.game_info.hasOwnProperty("drawing_order")) {
+      // array of names
+      this.dict_game_info.drawing_order = obj_json.game_info.drawing_order;
+    }
+
+    if (obj_json.game_info.hasOwnProperty("select_destination")) {
+      // true or false
+      this.dict_game_info.select_destination = obj_json.game_info.select_destination;
+    }
+
+    if (obj_json.game_info.hasOwnProperty("disabled_actions")) {
+      // array of names
+      this.dict_game_info.disabled_actions = obj_json.game_info.disabled_actions;
+    }
+
+    if (obj_json.game_info.hasOwnProperty("user_id")) {
+      // true or false
+      this.dict_game_info.user_id = obj_json.game_info.user_id;
+    }
+
+    if (obj_json.game_info.hasOwnProperty("done")) {
+      // true or false
+      this.dict_game_info.done = obj_json.game_info.done;
+    }
+  }
+
+  set_animations(obj_json) {
+    this.dict_animations = {};
+
+    for (const item of obj_json.animations) {
+      if (item.type == "vibrate") {
+        this.dict_animations["s" + this.ani_idx.toString()] =
+          new Vibrate(this.dict_game_objs[item.obj_name], this.game_ltwh);
+      }
+      this.ani_idx += 1;
+    }
+  }
+
+  draw_game_scene(context) {
+    for (const item of this.dict_game_info.drawing_order) {
+      if (this.dict_game_objs.hasOwnProperty(item)) {
+        this.dict_game_objs[item].draw(context);
+      }
+    }
+  }
+
+  draw_game_overlay(context, x_cursor = -1, y_cursor = -1) {
+    if (this.dict_game_info.select_destination) {
+      context.globalAlpha = 0.8;
+      context.fillStyle = "white";
+      context.fillRect(
+        this.game_ltwh[0], this.game_ltwh[1], this.game_ltwh[2], this.game_ltwh[3]);
+      context.globalAlpha = 1.0;
+    }
+
+    for (const overlay of this.list_overlays) {
+      overlay.draw_with_mouse_move(context, x_cursor, y_cursor);
+    }
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // useful functions
 ///////////////////////////////////////////////////////////////////////////////
-function get_control_ui_object(
-  canvas_width, canvas_height, game_size, is_tutorial) {
-  // start button
-  const start_btn_width = parseInt(game_size / 3);
-  const start_btn_height = parseInt(game_size / 10);
-
-  const btn_start = new ButtonRect(game_size / 2, game_size / 2,
-    start_btn_width, start_btn_height, "Start");
-  btn_start.font = "bold 30px arial";
+function create_game_ctrl_ui(
+  canvas_width, canvas_height, game_ltwh) {
+  const game_l = game_ltwh[0];
+  const game_t = game_ltwh[1];
+  const game_w = game_ltwh[2];
+  const game_h = game_ltwh[3];
+  const game_r = game_l + game_w;
 
   // joystick
-  const ctrl_btn_w = parseInt(game_size / 12);
-  const x_ctrl_cen = game_size + (canvas_width - game_size) / 2;
+  const ctrl_btn_w = parseInt(game_w / 12);
+  const x_ctrl_cen = game_r + (canvas_width - game_r) / 2;
   const y_ctrl_cen = canvas_height * 65 / 100;
 
   const x_joy_cen = x_ctrl_cen - ctrl_btn_w * 1.5;
@@ -730,231 +765,26 @@ function get_control_ui_object(
     ctrl_btn_w * 4, ctrl_btn_w, "Select Destination");
 
 
-  // instruction
-  const margin_inst = 10;
-  const label_instruction = new TextObject(game_size + margin_inst, margin_inst,
-    canvas_width - game_size - 2 * margin_inst, 18);
-
   // score
-  const label_score = new TextScore(game_size + margin_inst, game_size * 0.9,
-    canvas_width - game_size - 2 * margin_inst, 24);
+  const margin_inst = 10;
+  const label_score = new TextScore(game_r + margin_inst, canvas_height * 0.9,
+    canvas_width - game_r - 2 * margin_inst, 24);
   label_score.set_score(0);
 
   // create object
   let ctrl_obj = {};
-  ctrl_obj.btn_start = btn_start;
   ctrl_obj.list_joystick_btn = list_joy_btn;
   ctrl_obj.btn_hold = btn_hold;
   ctrl_obj.btn_drop = btn_drop;
-  ctrl_obj.lbl_instruction = label_instruction;
   ctrl_obj.lbl_score = label_score;
   ctrl_obj.btn_select = btn_select;
 
-  // next and prev buttons for tutorial
-  if (is_tutorial) {
-    const next_btn_width = (canvas_width - game_size) / 4;
-    const next_btn_height = next_btn_width * 0.5;
-    const mrgn = 10;
-    ctrl_obj.btn_next = new ButtonRect(
-      canvas_width - next_btn_width * 0.5 - mrgn, game_size * 0.5 - 0.5 * next_btn_height - mrgn,
-      next_btn_width, next_btn_height, "Next");
-    ctrl_obj.btn_next.font = "bold 18px arial";
-    ctrl_obj.btn_prev = new ButtonRect(
-      game_size + next_btn_width * 0.5 + mrgn, game_size * 0.5 - 0.5 * next_btn_height - mrgn,
-      next_btn_width, next_btn_height, "Prev");
-    ctrl_obj.btn_prev.font = "bold 18px arial";
-  }
 
   return ctrl_obj;
 }
 
-function get_game_object(global_object) {
-  let game_obj = {};
-  game_obj.goals = [];
-  game_obj.drops = [];
-  game_obj.walls = [];
-  game_obj.box_origins = [];
-  game_obj.boxes = [];
-  game_obj.agents = [
-    new Agent("human", game_obj, global_object.img_human, global_object.img_robot),
-    new Agent("robot", game_obj, global_object.img_human, global_object.img_robot)];
-  game_obj.overlays = [];
-
-  return game_obj;
-}
-
-function update_game_objects(obj_json, game_obj, global_object) {
-  // set each property
-
-  if (obj_json.hasOwnProperty("boxes")) {
-    game_obj.box_origins = [];
-    for (const coord of obj_json.boxes) {
-      game_obj.box_origins.push(
-        new BoxOrigin(coord[0], coord[1], game_obj));
-    }
-  }
-  if (obj_json.hasOwnProperty("goals")) {
-    game_obj.goals = [];
-    for (const coord of obj_json.goals) {
-      game_obj.goals.push(new Goal(coord[0], coord[1], game_obj, global_object.img_goal));
-    }
-  }
-  if (obj_json.hasOwnProperty("drops")) {
-    game_obj.drops = [];
-    for (const coord of obj_json.drops) {
-      game_obj.drops.push(new DropLoc(coord[0], coord[1], game_obj));
-    }
-  }
-  if (obj_json.hasOwnProperty("walls")) {
-    game_obj.walls = [];
-    for (const coord of obj_json.walls) {
-      game_obj.walls.push(new Wall(coord[0], coord[1], game_obj, global_object.img_wall));
-    }
-  }
-
-  if (game_obj.walls != null && obj_json.hasOwnProperty("wall_dir")) {
-    const num_wall = game_obj.walls.length;
-    for (let i = 0; i < num_wall; i++) {
-      game_obj.walls[i].dir = obj_json.wall_dir[i];
-    }
-  }
-
-  if (obj_json.hasOwnProperty("a1_pos")) {
-    game_obj.agents[0].set_coord(obj_json.a1_pos);
-  }
-
-  if (obj_json.hasOwnProperty("a2_pos")) {
-    game_obj.agents[1].set_coord(obj_json.a2_pos);
-  }
-
-  if (obj_json.hasOwnProperty("box_states")) {
-    game_obj.boxes = [];
-    const num_obj = obj_json.box_states.length;
-    const a1_pos = game_obj.agents[0].get_coord();
-    const a2_pos = game_obj.agents[1].get_coord();
-    let a1_box = null;
-    let a2_box = null;
-    for (let i = 0; i < num_obj; i++) {
-      const idx = obj_json.box_states[i];
-      if (idx == 0) {   // at origin
-        const coord = game_obj.box_origins[i].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "box", game_obj,
-          global_object.img_box, global_object.img_human_box,
-          global_object.img_robot_box, global_object.img_both_box));
-      }
-      else if (idx == 1) {   // with human
-        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "human", game_obj,
-          global_object.img_box, global_object.img_human_box,
-          global_object.img_robot_box, global_object.img_both_box));
-        a1_box = i;
-      }
-      else if (idx == 2) {   // with robot
-        game_obj.boxes.push(new Box(a2_pos[0], a2_pos[1], "robot", game_obj,
-          global_object.img_box, global_object.img_human_box,
-          global_object.img_robot_box, global_object.img_both_box));
-        a2_box = i;
-      }
-      else if (idx == 3) {   // with both
-        game_obj.boxes.push(new Box(a1_pos[0], a1_pos[1], "both", game_obj,
-          global_object.img_box, global_object.img_human_box,
-          global_object.img_robot_box, global_object.img_both_box));
-        a1_box = i;
-        a2_box = i;
-      }
-      else if (idx >= 4 && idx < 4 + game_obj.drops.length) {
-        const coord = game_obj.drops[idx - 4].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "drop", game_obj,
-          global_object.img_box, global_object.img_human_box,
-          global_object.img_robot_box, global_object.img_both_box));
-      }
-      else {   //if (idx >= 4 + drops.length)
-        const coord = game_obj.goals[idx - 4 - game_obj.drops.length].get_coord();
-        game_obj.boxes.push(new Box(coord[0], coord[1], "goal", game_obj,
-          global_object.img_box, global_object.img_human_box,
-          global_object.img_robot_box, global_object.img_both_box));
-      }
-    }
-    game_obj.agents[0].box = a1_box;
-    game_obj.agents[1].box = a2_box;
-  }
-
-  if (obj_json.hasOwnProperty("a1_latent")) {
-    game_obj.agents[0].latent = obj_json.a1_latent;
-  }
-
-  if (obj_json.hasOwnProperty("a2_latent")) {
-    game_obj.agents[1].latent = obj_json.a2_latent;
-  }
-}
-
-function set_overlay(is_selecting_latent, game_obj) {
-  game_obj.overlays = [];
-  let idx = 0
-  if (is_selecting_latent) {
-    const bidx = game_obj.agents[0].box;
-    if (bidx == null) {
-      const num_obj = game_obj.boxes.length;
-      for (let i = 0; i < num_obj; i++) {
-        const obj = game_obj.boxes[i];
-        if (obj.state != "goal") {
-          game_obj.overlays.push(
-            new SelectingOverlay(obj.x_g, obj.y_g, ["pickup", i], idx++, game_obj));
-        }
-      }
-    }
-    else {
-      {
-        const obj = game_obj.box_origins[bidx];
-        game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["origin", 0], idx++, game_obj));
-      }
-
-      for (let i = 0; i < game_obj.goals.length; i++) {
-        const obj = game_obj.goals[i];
-        game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["goal", i], idx++, game_obj));
-      }
-
-      for (let i = 0; i < game_obj.drops.length; i++) {
-        const obj = game_obj.drops[i];
-        game_obj.overlays.push(
-          new SelectingOverlay(obj.x_g, obj.y_g, ["drop", i], idx++, game_obj));
-      }
-    }
-  }
-  else {
-    if (game_obj.agents[0].latent != null) {
-      const a1_latent = game_obj.agents[0].latent;
-      const bidx = game_obj.agents[0].box;
-      // holding a box --> latent should be dropping locations
-      if (bidx != null) {
-        if (a1_latent[0] == "origin") {
-          const obj = game_obj.box_origins[bidx];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
-        }
-        else if (a1_latent[0] == "drop") {
-          const obj = game_obj.drops[a1_latent[1]];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
-        }
-        else if (a1_latent[0] == "goal") {
-          const obj = game_obj.goals[a1_latent[1]];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
-        }
-      }
-      // not holding a box --> latent should be a box
-      else {
-        if (a1_latent[0] == "pickup") {
-          const obj = game_obj.boxes[a1_latent[1]];
-          game_obj.overlays.push(new StaticOverlay(obj.x_g, obj.y_g, game_obj));
-        }
-      }
-    }
-  }
-}
-
-function set_action_btn_disable(is_selecting_latent, game_obj, control_ui) {
-  // ctrl buttons
-  if (is_selecting_latent) {
+function disable_actions(dict_game_info, control_ui, disable) {
+  if (disable) {
     for (const btn of control_ui.list_joystick_btn) {
       btn.disable = true;
     }
@@ -967,126 +797,42 @@ function set_action_btn_disable(is_selecting_latent, game_obj, control_ui) {
       btn.disable = false;
     }
 
-    control_ui.btn_hold.disable = true;
-    control_ui.btn_drop.disable = true;
+    control_ui.btn_hold.disable = false;
+    control_ui.btn_drop.disable = false;
 
-    const a1_pos = game_obj.agents[0].get_coord();
-    const a1_box = game_obj.agents[0].box;
-    const a1_latent = game_obj.agents[0].latent;
-    // if the agent is holding a box, set drop button availability
-    if (a1_box != null) {
-      if (a1_latent != null) {
-        if (a1_latent[0] == "origin" &&
-          is_coord_equal(a1_pos, game_obj.box_origins[a1_box].get_coord())) {
-          control_ui.btn_drop.disable = false;
+    if (dict_game_info.hasOwnProperty("disabled_actions")) {
+      for (const action of dict_game_info.disabled_actions) {
+        if (action == "Pick Up") {
+          control_ui.btn_hold.disable = true;
         }
-        else {
-          const num_obj = game_obj.goals.length;
-          for (let i = 0; i < num_obj; i++) {
-            const obj = game_obj.goals[i];
-            if (a1_latent[0] == "goal" && a1_latent[1] == i &&
-              is_coord_equal(a1_pos, obj.get_coord())) {
-              control_ui.btn_drop.disable = false;
-              break;
-            }
-          }
+        else if (action == "Drop") {
+          control_ui.btn_drop.disable = true;
         }
       }
-    }
-    // if the agent doesn't have a box, set pickup button availability
-    else {
-      if (a1_latent != null) {
-        const num_obj = game_obj.boxes.length;
-        for (let i = 0; i < num_obj; i++) {
-          const obj = game_obj.boxes[i];
-          if (a1_latent[0] == "pickup" && a1_latent[1] == i &&
-            is_coord_equal(a1_pos, obj.get_coord()) && obj.state != "goal") {
-            control_ui.btn_hold.disable = false;
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-
-// methods to draw game scene
-function draw_game_scene(context, game_obj) {
-  for (const obj of game_obj.box_origins) {
-    obj.draw(context);
-  }
-
-  for (const obj of game_obj.goals) {
-    obj.draw(context);
-  }
-
-  for (const obj of game_obj.drops) {
-    obj.draw(context);
-  }
-
-  for (const obj of game_obj.walls) {
-    obj.draw(context);
-  }
-
-  for (const obj of game_obj.boxes) {
-    obj.draw(context);
-  }
-
-  for (const obj of game_obj.agents) {
-    obj.draw(context);
-  }
-}
-
-function draw_with_mouse_move(context, button, x_cursor, y_cursor) {
-  // draw the start button (active)
-  if (x_cursor == -1 || y_cursor == -1) {
-    button.set_mouse_over(false);
-  }
-  else {
-    button.set_mouse_over(button.isPointInObject(context, x_cursor, y_cursor));
-  }
-  button.draw(context);
-}
-
-function draw_game_overlay(
-  context, game_size, game_obj, is_selecting_latent, x_cursor = -1, y_cursor = -1) {
-  if (is_selecting_latent) {
-    context.globalAlpha = 0.8;
-    context.fillStyle = "white";
-    context.fillRect(0, 0, game_size, game_size);
-    context.globalAlpha = 1.0;
-
-    for (const obj of game_obj.overlays) {
-      draw_with_mouse_move(context, obj, x_cursor, y_cursor);
-    }
-  }
-  else {
-    for (const obj of game_obj.overlays) {
-      obj.draw(context);
     }
   }
 }
 
 function draw_action_btn(context, control_ui, x_cursor = -1, y_cursor = -1) {
   for (const btn of control_ui.list_joystick_btn) {
-    draw_with_mouse_move(context, btn, x_cursor, y_cursor);
+    btn.draw_with_mouse_move(context, x_cursor, y_cursor);
   }
-  draw_with_mouse_move(context, control_ui.btn_hold, x_cursor, y_cursor);
-  draw_with_mouse_move(context, control_ui.btn_drop, x_cursor, y_cursor);
-  draw_with_mouse_move(context, control_ui.btn_select, x_cursor, y_cursor);
+  control_ui.btn_hold.draw_with_mouse_move(context, x_cursor, y_cursor);
+  control_ui.btn_drop.draw_with_mouse_move(context, x_cursor, y_cursor);
+  control_ui.btn_select.draw_with_mouse_move(context, x_cursor, y_cursor);
 }
 
-function go_to_next_page(global_object, game_obj, canvas, socket) {
+function go_to_next_page(global_object, game, canvas, socket) {
   if (global_object.cur_page_idx + 1 < global_object.page_list.length) {
     global_object.cur_page_idx++;
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, canvas, socket);
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game, canvas, socket);
   }
 }
 
-function go_to_prev_page(global_object, game_obj, canvas, socket) {
+function go_to_prev_page(global_object, game, canvas, socket) {
   if (global_object.cur_page_idx - 1 >= 0) {
     global_object.cur_page_idx--;
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, canvas, socket);
+    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game, canvas, socket);
   }
 }
 
@@ -1109,26 +855,56 @@ class PageBasic {
   constructor() {
     this.draw_frame = true;
     this.global_object = null;
-    this.game_obj = null;
-    this.ctrl_ui = null;
+    this.game = null;
     this.canvas = null;
     this.ctx = null;
     this.socket = null;
+
+    this.do_emit = false;
+    this.initial_emit_name = 'page_basic';
+    this.initial_emit_data = {};
+    this.setting_event_name = 'setting_event';
+    this.setting_event_data = { data: "" };
   }
 
-  init_page(global_object, game_obj, canvas, socket) {
+  init_page(global_object, game, canvas, socket) {
     // global_object: global variables
-    // game_obj: game objects
-    // ctrl_ui: external control ui
+    // game: game class
     this.global_object = global_object;
-    this.game_obj = game_obj;
-    this.ctrl_ui = get_control_ui_object(canvas.width,
-      canvas.height,
-      game_obj.game_size,
-      global_object.is_tutorial);
+    this.game = game;
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.socket = socket;
+
+    this._init_ctrl_ui();
+
+    this._set_emit_data();
+
+    if (this.do_emit) {
+      this.socket.emit(this.initial_emit_name, this.initial_emit_data);
+    }
+  }
+
+  _init_ctrl_ui() {
+    this.game_ctrl = create_game_ctrl_ui(this.canvas.width,
+      this.canvas.height,
+      this.game.game_ltwh);
+    disable_actions(this.game.dict_game_info, this.game_ctrl, true);
+    this.game_ctrl.btn_select.disable = true;
+
+    this.game_ctrl.lbl_score.set_score(this.game.dict_game_info.score);
+    this.game_ctrl.lbl_score.set_best(this.game.dict_game_info.best_score);
+
+    // instruction
+    const game_r = this.game.game_ltwh[0] + this.game.game_ltwh[2];
+    const margin_inst = 10;
+    this.lbl_instruction = new TextObject(game_r + margin_inst, margin_inst,
+      this.canvas.width - game_r - 2 * margin_inst, 18);
+  }
+
+  _set_emit_data() {
+    this.initial_emit_data.user_id = this.game.dict_game_info.user_id;
+    this.setting_event_data.user_id = this.game.dict_game_info.user_id;
   }
 
   draw_page(mouse_x, mouse_y) {
@@ -1140,31 +916,50 @@ class PageBasic {
     if (this.draw_frame) {
       this.ctx.strokeStyle = "black";
       this.ctx.beginPath();
-      this.ctx.moveTo(this.game_obj.game_size, 0);
-      this.ctx.lineTo(this.game_obj.game_size, this.game_obj.game_size);
+      this.ctx.moveTo(this.game.game_ltwh[2], 0);
+      this.ctx.lineTo(this.game.game_ltwh[2], this.game.game_ltwh[3]);
       this.ctx.stroke();
     }
 
     this._draw_game(mouse_x, mouse_y);
-    this._draw_overlay(mouse_x, mouse_y);
+    this._draw_ctrl_ui(mouse_x, mouse_y);
+    this._draw_instruction(mouse_x, mouse_y);
   }
 
   _draw_game(mouse_x, mouse_y) { }
-  _draw_overlay(mouse_x, mouse_y) {
+  _draw_ctrl_ui(mouse_x, mouse_y) { }
+  _draw_instruction(mouse_x, mouse_y) {
+    // instruction area
     const margin = 5;
-    const x_left = this.game_obj.game_size + margin;
+    const x_left = this.game.game_ltwh[0] + this.game.game_ltwh[2] + margin;
     const y_top = margin;
     const wid = this.canvas.width - margin - x_left;
     const hei = this.canvas.height * 0.5;
     this.ctx.fillStyle = "white";
     this.ctx.fillRect(x_left, y_top, wid, hei);
-    this.ctrl_ui.lbl_instruction.draw(this.ctx);
+
+    // draw instruction
+    this.lbl_instruction.draw(this.ctx);
   }
 
   on_click(mouse_x, mouse_y) {
   }
 
   on_data_update(changed_obj) {
+  }
+
+  process_json_obj(json_obj) {
+    if (json_obj.hasOwnProperty("control_signals")) {
+      if (json_obj.control_signals.hasOwnProperty("next_page")) {
+        go_to_next_page(this.global_object, this.game, this.canvas, this.socket);
+        return;
+      }
+
+      if (json_obj.control_signals.hasOwnProperty("prev_page")) {
+        go_to_prev_page(this.global_object, this.game, this.canvas, this.socket);
+        return;
+      }
+    }
   }
 }
 
@@ -1173,29 +968,32 @@ class PageExperimentHome extends PageBasic {
     super();
   }
 
-  init_page(global_object, game_obj, canvas, socket) {
-    super.init_page(global_object, game_obj, canvas, socket);
-    for (const btn of this.ctrl_ui.list_joystick_btn) {
-      btn.disable = true;
-    }
+  _init_ctrl_ui() {
+    super._init_ctrl_ui();
 
-    this.ctrl_ui.btn_start.disable = false;
-    this.ctrl_ui.btn_hold.disable = true;
-    this.ctrl_ui.btn_drop.disable = true;
-    this.ctrl_ui.btn_select.disable = true;
-    this.ctrl_ui.lbl_instruction.text = "Click the “Start” button to begin the task.";
+    // start button
+    const start_btn_width = parseInt(this.game.game_ltwh[2] / 3);
+    const start_btn_height = parseInt(this.game.game_ltwh[3] / 10);
+
+    this.btn_start = new ButtonRect(
+      this.game.game_ltwh[0] + this.game.game_ltwh[2] / 2,
+      this.game.game_ltwh[1] + this.game.game_ltwh[3] / 2,
+      start_btn_width, start_btn_height, "Start");
+    this.btn_start.font = "bold 30px arial";
+    this.lbl_instruction.text = "Click the “Start” button to begin the task.";
   }
 
-  _draw_game(mouse_x, mouse_y) {
-    super._draw_game(mouse_x, mouse_y);
-    draw_with_mouse_move(this.ctx, this.ctrl_ui.btn_start, mouse_x, mouse_y);
-    draw_action_btn(this.ctx, this.ctrl_ui, mouse_x, mouse_y);
-    this.ctrl_ui.lbl_score.draw(this.ctx);
+  _draw_ctrl_ui(mouse_x, mouse_y) {
+    super._draw_ctrl_ui(mouse_x, mouse_y);
+
+    this.btn_start.draw_with_mouse_move(this.ctx, mouse_x, mouse_y);
+    draw_action_btn(this.ctx, this.game_ctrl, mouse_x, mouse_y);
+    this.game_ctrl.lbl_score.draw(this.ctx);
   }
 
   on_click(mouse_x, mouse_y) {
-    if (this.ctrl_ui.btn_start.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
+    if (this.btn_start.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+      go_to_next_page(this.global_object, this.game, this.canvas, this.socket);
       return;
     }
 
@@ -1208,39 +1006,36 @@ class PageExperimentHome2 extends PageBasic {
     super();
   }
 
-  init_page(global_object, game_obj, canvas, socket) {
-    super.init_page(global_object, game_obj, canvas, socket);
-    for (const btn of this.ctrl_ui.list_joystick_btn) {
-      btn.disable = true;
-    }
+  _init_ctrl_ui() {
+    super._init_ctrl_ui();
 
     const fsize = 30;
-    this.lbl_warning = new TextObject(0, game_obj.game_size / 3 - fsize, game_obj.game_size, fsize);
+    this.lbl_warning = new TextObject(0, this.game.game_ltwh[3] / 3 - fsize, this.game.game_ltwh[2], fsize);
     this.lbl_warning.text = "Please review the instructions for this session listed above. When you are ready, press next to begin.";
     this.lbl_warning.text_align = "center";
     this.lbl_warning.text_baseline = "middle";
 
-    this.btn_real_next = new ButtonRect(game_obj.game_size / 2, game_obj.game_size * 0.6,
+    this.btn_real_next = new ButtonRect(this.game.game_ltwh[2] / 2, this.game.game_ltwh[3] * 0.6,
       100, 50, "Next");
-
-    this.ctrl_ui.btn_start.disable = true;
-    this.ctrl_ui.btn_hold.disable = true;
-    this.ctrl_ui.btn_drop.disable = true;
-    this.ctrl_ui.btn_select.disable = true;
-    this.ctrl_ui.lbl_instruction.text = "";
+    this.lbl_instruction.text = "";
   }
 
   _draw_game(mouse_x, mouse_y) {
     super._draw_game(mouse_x, mouse_y);
-    draw_with_mouse_move(this.ctx, this.btn_real_next, mouse_x, mouse_y);
+  }
+
+  _draw_ctrl_ui(mouse_x, mouse_y) {
+    super._draw_ctrl_ui(mouse_x, mouse_y);
+
+    this.btn_real_next.draw_with_mouse_move(this.ctx, mouse_x, mouse_y);
     this.lbl_warning.draw(this.ctx);
-    draw_action_btn(this.ctx, this.ctrl_ui, mouse_x, mouse_y);
-    this.ctrl_ui.lbl_score.draw(this.ctx);
+    draw_action_btn(this.ctx, this.game_ctrl, mouse_x, mouse_y);
+    this.game_ctrl.lbl_score.draw(this.ctx);
   }
 
   on_click(mouse_x, mouse_y) {
     if (this.btn_real_next.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      go_to_next_page(this.global_object, this.game_obj, this.canvas, this.socket);
+      go_to_next_page(this.global_object, this.game, this.canvas, this.socket);
       return;
     }
 
@@ -1251,113 +1046,82 @@ class PageExperimentHome2 extends PageBasic {
 class PageDuringGame extends PageBasic {
   constructor() {
     super();
-    this.is_selecting_latent = false;
     this.use_manual_selection = false;
     this.do_emit = true;
     this.is_test = false;
     this.initial_emit_name = 'run_game';
     this.initial_emit_data = {};
-    this.action_event_data = { data: "" }
-  }
-
-  init_page(global_object, game_obj, canvas, socket) {
-    super.init_page(global_object, game_obj, canvas, socket);
-
-    this._set_emit_data();
-
-    this.ctrl_ui.btn_start.disable = true;
-    this.__set_controls();
-    if (this.do_emit) {
-      this.socket.emit(this.initial_emit_name, this.initial_emit_data);
-    }
+    this.action_event_name = 'action_event';
+    this.action_event_data = { data: "" };
   }
 
   _set_emit_data() {
-    this.initial_emit_data.user_id = this.global_object.user_id;
-    this.action_event_data.user_id = this.global_object.user_id;
+    super._set_emit_data();
+    this.action_event_data.user_id = this.game.dict_game_info.user_id;
   }
 
-  __set_controls() {
-    if (this.use_manual_selection && !this.is_selecting_latent) {
-      this.ctrl_ui.btn_select.disable = false;
-    }
-    else {
-      this.ctrl_ui.btn_select.disable = true;
-    }
-    this._set_instruction();
-    // ctrl buttons
-    set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
-    set_overlay(this.is_selecting_latent, this.game_obj);
-  }
-
-  _set_instruction() {
-    if (this.is_selecting_latent) {
-      this.ctrl_ui.lbl_instruction.text = "Please select your current destination among the circled options. It can be the same destination as you had previously selected.";
-    }
-    else {
-      if (this.is_test) {
-        this.ctrl_ui.lbl_instruction.text = "Please choose your next action. If your destination has changed, please update it using the select destination button.";
-      }
-      else {
-        this.ctrl_ui.lbl_instruction.text = "Please choose your next action.";
-      }
-    }
+  _init_ctrl_ui() {
+    super._init_ctrl_ui();
+    this.lbl_instruction.text = "Loading the page ...";
   }
 
   _draw_game(mouse_x, mouse_y) {
     super._draw_game(mouse_x, mouse_y);
     // draw scene
-    draw_game_scene(this.ctx, this.game_obj);
-
-    // draw UI
-    draw_action_btn(this.ctx, this.ctrl_ui, mouse_x, mouse_y);
-    draw_game_overlay(this.ctx, this.game_obj.game_size, this.game_obj,
-      this.is_selecting_latent, mouse_x, mouse_y);
-    this.ctrl_ui.lbl_score.draw(this.ctx);
+    this.game.draw_game_scene(this.ctx);
+    this.game.draw_game_overlay(this.ctx, mouse_x, mouse_y);
   }
 
+  _draw_ctrl_ui(mouse_x, mouse_y) {
+    super._draw_ctrl_ui(mouse_x, mouse_y);
+    draw_action_btn(this.ctx, this.game_ctrl, mouse_x, mouse_y);
+
+    this.game_ctrl.lbl_score.draw(this.ctx);
+  }
 
   on_click(mouse_x, mouse_y) {
-    if (this.is_selecting_latent) {
+    if (this.game.dict_game_info.select_destination) {
       // check if a latent is selected
-      for (const obj of this.game_obj.overlays) {
+      for (const obj of this.game.list_overlays) {
         if (obj.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-          this.socket.emit('set_latent', { data: obj.get_id() });
+          this.setting_event_data.data = "Set Latent";
+          this.setting_event_data.id = obj.get_id();
+          this.socket.emit(this.setting_event_name, this.setting_event_data);
           return;
         }
       }
     }
     else {
+      // TODO: contains buttons into a container
       // check latent selection button clicked
-      if (this.ctrl_ui.btn_select.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-        this.is_selecting_latent = true;
-        this.ctrl_ui.btn_select.disable = true;
-        set_action_btn_disable(this.is_selecting_latent, this.game_obj, this.ctrl_ui);
-        set_overlay(this.is_selecting_latent, this.game_obj);
+      if (this.game_ctrl.btn_select.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+        this.game_ctrl.btn_select.disable = true;
+        this.setting_event_data.data = this.game_ctrl.btn_select.text;
+        this.socket.emit(this.setting_event_name, this.setting_event_data);
         return;
       }
       // check if an action is selected
       // joystic buttons
-      for (const joy_btn of this.ctrl_ui.list_joystick_btn) {
+      for (const joy_btn of this.game_ctrl.list_joystick_btn) {
         if (joy_btn.isPointInObject(this.ctx, mouse_x, mouse_y)) {
           joy_btn.disable = true;
           this.action_event_data.data = joy_btn.text;
-          this.socket.emit('action_event', this.action_event_data);
+          this.socket.emit(this.action_event_name, this.action_event_data);
           return;
         }
       }
       // hold button
-      if (this.ctrl_ui.btn_hold.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-        this.ctrl_ui.btn_hold.disable = true;
-        this.action_event_data.data = this.ctrl_ui.btn_hold.text;
-        this.socket.emit('action_event', this.action_event_data);
+      if (this.game_ctrl.btn_hold.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+        this.game_ctrl.btn_hold.disable = true;
+        this.action_event_data.data = this.game_ctrl.btn_hold.text;
+        this.socket.emit(this.action_event_name, this.action_event_data);
         return;
       }
 
-      if (this.ctrl_ui.btn_drop.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-        this.ctrl_ui.btn_drop.disable = true;
-        this.action_event_data.data = this.ctrl_ui.btn_drop.text;
-        this.socket.emit('action_event', this.action_event_data);
+      if (this.game_ctrl.btn_drop.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+        this.game_ctrl.btn_drop.disable = true;
+        this.action_event_data.data = this.game_ctrl.btn_drop.text;
+        this.socket.emit(this.action_event_name, this.action_event_data);
         return;
       }
     }
@@ -1365,20 +1129,44 @@ class PageDuringGame extends PageBasic {
     super.on_click(mouse_x, mouse_y);
   }
 
+  _set_instruction() {
+    if (this.game.dict_game_info.select_destination) {
+      this.lbl_instruction.text = "Please select your current destination among the circled options. It can be the same destination as you had previously selected.";
+    }
+    else {
+      if (this.is_test) {
+        this.lbl_instruction.text = "Please choose your next action. If your destination has changed, please update it using the select destination button.";
+      }
+      else {
+        this.lbl_instruction.text = "Please choose your next action.";
+      }
+    }
+  }
+
   on_data_update(changed_obj) {
-    if (changed_obj.hasOwnProperty("ask_latent")) {
-      this.is_selecting_latent = changed_obj["ask_latent"];
+    super.on_data_update(changed_obj);
+
+    // select button status
+    if (this.use_manual_selection && !this.game.dict_game_info.select_destination) {
+      this.game_ctrl.btn_select.disable = false;
+    }
+    else {
+      this.game_ctrl.btn_select.disable = true;
     }
 
-    if (changed_obj.hasOwnProperty("current_step")) {
-      this.ctrl_ui.lbl_score.set_score(changed_obj["current_step"]);
+    // action buttons status
+    if (this.game.dict_game_info.select_destination) {
+      disable_actions(this.game.dict_game_info, this.game_ctrl, true);
+    }
+    else {
+      disable_actions(this.game.dict_game_info, this.game_ctrl, false);
     }
 
-    if (changed_obj.hasOwnProperty("best_score")) {
-      this.ctrl_ui.lbl_score.set_best(changed_obj["best_score"]);
-    }
+    // score and instructions
+    this.game_ctrl.lbl_score.set_score(this.game.dict_game_info.score);
+    this.game_ctrl.lbl_score.set_best(this.game.dict_game_info.best_score);
 
-    this.__set_controls();
+    this._set_instruction();
   }
 }
 
@@ -1386,27 +1174,30 @@ class PageExperimentEnd extends PageBasic {
   constructor() {
     super();
     this.button_text = "This session is now complete. Please proceed to the survey using the button below.";
+    this.do_emit = true;
   }
 
-  init_page(global_object, game_obj, canvas, socket) {
-    super.init_page(global_object, game_obj, canvas, socket);
-    for (const btn of this.ctrl_ui.list_joystick_btn) {
-      btn.disable = true;
-    }
+  _init_ctrl_ui() {
+    super._init_ctrl_ui();
 
     // completion button
     const fsize = 30;
-    this.lbl_end = new TextObject(0, canvas.height / 2 - fsize, canvas.width, fsize);
+    this.lbl_end = new TextObject(0, this.canvas.height / 2 - fsize, this.canvas.width, fsize);
     this.lbl_end.text = this.button_text;
     this.lbl_end.text_align = "center";
     this.lbl_end.text_baseline = "middle";
 
-    this.ctrl_ui.btn_start.disable = true;
-    this.ctrl_ui.btn_hold.disable = true;
-    this.ctrl_ui.btn_drop.disable = true;
-    this.ctrl_ui.btn_select.disable = true;
-    this.ctrl_ui.lbl_instruction.text = "Instructions for each step will be shown here. " +
+    this.lbl_instruction.text = "Instructions for each step will be shown here. " +
       "Please click the \"Start\" button.";
+  }
+
+  _set_emit_data() {
+    super._set_emit_data();
+    this.initial_emit_name = "done_task";
+    // when done is already set, no need to emit
+    if (this.game.dict_game_info.done) {
+      this.do_emit = false;
+    }
   }
 
   // one exceptional page, so just overwrite the method
@@ -1417,8 +1208,7 @@ class PageExperimentEnd extends PageBasic {
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.lbl_end.draw(this.ctx);
-    this.ctrl_ui.lbl_score.draw(this.ctx);
-    // draw_with_mouse_move(this.ctx, this.btn_end, mouse_x, mouse_y);
+    this.game_ctrl.lbl_score.draw(this.ctx);
   }
 
 

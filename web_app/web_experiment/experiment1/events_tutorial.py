@@ -1,5 +1,4 @@
 from typing import Mapping, Hashable
-import logging
 from flask import request, session
 from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysTogether
@@ -7,13 +6,12 @@ from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 from ai_coach_domain.box_push.agent import (BoxPushSimpleAgent,
                                             BoxPushInteractiveAgent)
 from web_experiment import socketio
-from web_experiment.models import db, User
 import web_experiment.experiment1.events_impl as event_impl
 
 g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysTogether]
 EXP1_TUT_NAMESPACE = '/exp1_tutorial'
-GRID_X = TUTORIAL_MAP["x_grid"]
-GRID_Y = TUTORIAL_MAP["y_grid"]
+SESSION_NAME = 'tutorial1'
+TASK_TYPE = event_impl.TASK_A
 
 AGENT1 = BoxPushSimulator_AlwaysTogether.AGENT1
 AGENT2 = BoxPushSimulator_AlwaysTogether.AGENT2
@@ -22,7 +20,7 @@ GAME_MAP = TUTORIAL_MAP
 
 @socketio.on('connect', namespace=EXP1_TUT_NAMESPACE)
 def initial_canvas():
-  event_impl.initial_canvas(GRID_X, GRID_Y)
+  event_impl.initial_canvas(SESSION_NAME, TASK_TYPE)
 
 
 @socketio.on('my_echo', namespace=EXP1_TUT_NAMESPACE)
@@ -67,7 +65,8 @@ def run_game(msg):
       game.set_autonomous_agent(agent1, agent2)
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
     elif game_type == "box_pickup":
-      agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
+      agent2 = BoxPushSimpleAgent(AGENT2, GAME_MAP["x_grid"],
+                                  GAME_MAP["y_grid"], GAME_MAP["boxes"],
                                   GAME_MAP["goals"], GAME_MAP["walls"],
                                   GAME_MAP["drops"])
       game.set_autonomous_agent(agent1, agent2)
@@ -76,7 +75,8 @@ def run_game(msg):
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
       game.event_input(AGENT2, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
     elif game_type == "to_goal":
-      agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
+      agent2 = BoxPushSimpleAgent(AGENT2, GAME_MAP["x_grid"],
+                                  GAME_MAP["y_grid"], GAME_MAP["boxes"],
                                   GAME_MAP["goals"], GAME_MAP["walls"],
                                   GAME_MAP["drops"])
       game.set_autonomous_agent(agent1, agent2)
@@ -97,56 +97,91 @@ def run_game(msg):
       game.a1_pos = game.boxes[TRAP_BOX]
       game.a2_pos = game.boxes[TRAP_BOX]
       game.event_input(AGENT1, EventType.SET_LATENT, ("goal", 0))
-    elif game_type == "auto_prompt":
-      agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
-                                  GAME_MAP["goals"], GAME_MAP["walls"],
-                                  GAME_MAP["drops"])
-      game.set_autonomous_agent(agent1, agent2)
-      game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
+    # elif game_type == "auto_prompt":
+    #   agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
+    #                               GAME_MAP["goals"], GAME_MAP["walls"],
+    #                               GAME_MAP["drops"])
+    #   game.set_autonomous_agent(agent1, agent2)
+    #   game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
     else:  # "normal"
-      agent2 = BoxPushSimpleAgent(AGENT2, GRID_X, GRID_Y, GAME_MAP["boxes"],
+      agent2 = BoxPushSimpleAgent(AGENT2, GAME_MAP["x_grid"],
+                                  GAME_MAP["y_grid"], GAME_MAP["boxes"],
                                   GAME_MAP["goals"], GAME_MAP["walls"],
                                   GAME_MAP["drops"])
       game.set_autonomous_agent(agent1, agent2)
       game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 0))
+
+      if game_type == "done_task":
+        event_impl.done_task(msg, SESSION_NAME)
+
   else:
     agent2 = BoxPushInteractiveAgent()
     game.set_autonomous_agent(agent1, agent2)
     game.event_input(AGENT1, EventType.SET_LATENT, ("pickup", 2))
 
-  dict_update = game.get_env_info()
-  dict_update["wall_dir"] = GAME_MAP["wall_dir"]
-  if dict_update is not None:
-    session['action_count'] = 0
-    event_impl.update_html_canvas(dict_update, env_id, ask_latent,
-                                  EXP1_TUT_NAMESPACE)
+  game_env = game.get_env_info()
+  dict_update = event_impl.get_game_drawing_obj(game_env, ask_latent, [],
+                                                TASK_TYPE)
+  session["action_count"] = 0
+  event_impl.update_html_canvas(dict_update, env_id, EXP1_TUT_NAMESPACE)
 
 
 @socketio.on('action_event', namespace=EXP1_TUT_NAMESPACE)
 def action_event(msg):
   auto_prompt = "auto_prompt" in msg
+  prompt_on_change = True
+  if "to_goal" in msg:
+    prompt_on_change = False
 
-  def game_finished(game, *args, **kwargs):
+  def go_to_next(msg, game_env):
+    to_box = "to_box" in msg
+    box_pickup = "box_pickup" in msg
+    to_goal = "to_goal" in msg
+
+    if to_box:
+      a1_latent = game_env["a1_latent"]
+      if a1_latent is None or a1_latent[0] != "pickup":
+        return False
+
+      box_coord = game_env["boxes"][a1_latent[1]]
+      a1_pos = game_env["a1_pos"]
+      if a1_pos[0] == box_coord[0] and a1_pos[1] == box_coord[1]:
+        return True
+
+    if box_pickup:
+      num_drops = len(game_env["drops"])
+      num_goals = len(game_env["goals"])
+      a1_box, _ = event_impl.get_holding_box_idx(game_env["box_states"],
+                                                 num_drops, num_goals)
+      return a1_box >= 0
+
+    if to_goal:
+      num_drops = len(game_env["drops"])
+      num_goals = len(game_env["goals"])
+      a1_box, _ = event_impl.get_holding_box_idx(game_env["box_states"],
+                                                 num_drops, num_goals)
+      return a1_box < 0
+
+    return False
+
+  def game_finished(game, user_id, *args, **kwargs):
     game.reset_game()
-    run_game({'user_id': msg["user_id"], 'type': 'normal'})
+    run_game({'user_id': user_id, 'type': 'normal'})
 
   ASK_LATENT_FREQUENCY = 3
   event_impl.action_event(msg, g_id_2_game, None, game_finished,
-                          EXP1_TUT_NAMESPACE, True, auto_prompt,
-                          ASK_LATENT_FREQUENCY)
+                          EXP1_TUT_NAMESPACE, prompt_on_change, auto_prompt,
+                          ASK_LATENT_FREQUENCY, GAME_MAP, SESSION_NAME,
+                          TASK_TYPE, go_to_next)
 
 
-@socketio.on('set_latent', namespace=EXP1_TUT_NAMESPACE)
-def set_latent(msg):
-  event_impl.set_latent(msg, g_id_2_game, EXP1_TUT_NAMESPACE)
+@socketio.on('setting_event', namespace=EXP1_TUT_NAMESPACE)
+def setting_event(msg):
+  def go_to_next(msg):
+    next_when_set = "next_when_set" in msg
+    if next_when_set:
+      return msg["data"] == "Set Latent"
 
+    return False
 
-@socketio.on('done_game', namespace=EXP1_TUT_NAMESPACE)
-def done_game(msg):
-  cur_user = msg["data"]
-  logging.info("User %s completed tutorial1" % (cur_user, ))
-  user = User.query.filter_by(userid=cur_user).first()
-
-  if user is not None:
-    user.tutorial1 = True
-    db.session.commit()
+  event_impl.setting_event(msg, g_id_2_game, EXP1_TUT_NAMESPACE, go_to_next)
