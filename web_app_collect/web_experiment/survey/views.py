@@ -29,71 +29,47 @@ def preexperiment():
   return render_template('preexperiment.html', is_disabled = disabled)
 
 
-def inexperiment_impl(exp_no, current_html_file, next_endpoint_name, session_name = None):
+def inexperiment_impl(current_html_file, next_endpoint_name, session_name):
   cur_user = g.user
   query_data = User.query.filter_by(userid=cur_user).first()
+  session_survey_name = f"session_{session_name}_survey"
 
   if request.method == 'POST':
-    logging.info('User %s submitted in-experiment survey #%d.' %
-                 (cur_user, exp_no))
-    if exp_no == 0:
-      if not query_data.tutorial1_survey:
-        query_data.tutorial1_survey = True
-        db.session.commit()
-    elif exp_no == 1:
-      if not query_data.session_a1_survey:
-        query_data.session_a1_survey = True
-        db.session.commit()
-    elif exp_no == 2:
-      if not query_data.session_a2_survey:
-        query_data.session_a2_survey = True
-        db.session.commit()
-    elif exp_no == 3:
-      if not query_data.session_a3_survey:
-        query_data.session_a3_survey = True
-        db.session.commit()
-    if (session_name):
-      return redirect(url_for(next_endpoint_name, session_name = session_name))
+    logging.info('User %s submitted in-experiment survey %s.' %
+                 (cur_user, session_name))
+    if not getattr(query_data, session_survey_name):
+      setattr(query_data, session_survey_name, True)
+      db.session.commit()                
     return redirect(url_for(next_endpoint_name))
   
   disabled = ''
-  if exp_no == 0:
-    if not query_data.tutorial1_survey:
-      disabled = 'disabled'
-  elif exp_no == 1:
-    if not query_data.session_a1_survey:
-      disabled = 'disabled'
-  elif exp_no == 2:
-    if not query_data.session_a2_survey:
-      disabled = 'disabled'
-  elif exp_no == 3:
-    if not query_data.session_a3_survey:
-      disabled = 'disabled'
+  if not getattr(query_data, session_survey_name):
+    disabled = 'disabled'
   return render_template(current_html_file, is_disabled = disabled)
 
-@survey_bp.route('/survey_tutorial_1', methods=('GET', 'POST'))
+@survey_bp.route('/survey_both_tell_align', methods=('GET', 'POST'))
 @login_required
-def survey_tutorial_1():
+def survey_both_tell_align():
   # survey for session a0
-  return inexperiment_impl(0, 'survey_tutorial_1.html', 'exp1.exp1_both_user_random')
+  return inexperiment_impl('survey_both_tell_align.html', 'exp1.exp1_both_user_random', 'a0')
 
 @survey_bp.route('/survey_both_user_random', methods=('GET', 'POST'))
 @login_required
 def survey_both_user_random():
-  return inexperiment_impl(1, 'survey_both_user_random.html',
-                           'exp1.exp1_both_user_random_2')
+  return inexperiment_impl('survey_both_user_random.html',
+                           'exp1.exp1_both_user_random_2', 'a1')
 
 @survey_bp.route('/survey_both_user_random_2', methods=('GET', 'POST'))
 @login_required
 def survey_both_user_random_2():
-  return inexperiment_impl(2, 'survey_both_user_random_2.html',
-                           'exp1.exp1_both_user_random_3')
+  return inexperiment_impl('survey_both_user_random_2.html',
+                           'exp1.exp1_both_user_random_3', 'a2')
 
 @survey_bp.route('/survey_both_user_random_3', methods=('GET', 'POST'))
 @login_required
 def survey_both_user_random_3():
-  return inexperiment_impl(3, 'survey_both_user_random_3.html',
-                           'survey.completion')                        
+  return inexperiment_impl('survey_both_user_random_3.html',
+                           'survey.completion', 'a3')                        
 
 
 @survey_bp.route('/completion', methods=('GET', 'POST'))

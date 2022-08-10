@@ -115,6 +115,7 @@ def exp1_indv_user_random_2():
     disabled = 'disabled'
   if session["groupid"] == "B":
     filename = "exp1_indv_user_random_2_intervention.html"
+  print(filename)
   return render_template(filename,
                          cur_user=cur_user,
                          is_disabled=disabled)

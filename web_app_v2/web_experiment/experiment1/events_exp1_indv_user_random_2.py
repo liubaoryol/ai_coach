@@ -9,7 +9,7 @@ from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
 g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysAlone]
-EXP1_NAMESPACE = '/exp1_indv_user_random_2_intervention'
+EXP1_NAMESPACE = '/exp1_indv_user_random_2'
 GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
 EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
@@ -67,7 +67,7 @@ def action_event(msg):
 
   ASK_LATENT_FREQUENCY = 5
   event_impl.action_event(msg, g_id_2_game, None, game_finished, EXP1_NAMESPACE,
-                          True, True, ASK_LATENT_FREQUENCY, intervention=True)
+                          True, True, ASK_LATENT_FREQUENCY, intervention=False)
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)

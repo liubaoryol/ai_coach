@@ -10,6 +10,7 @@ class User(db.Model):
   email = db.Column(db.String(120), default='')
   admin = db.Column(db.Boolean, nullable=False, default=False)
   tutorial1 = db.Column(db.Boolean, default=False)
+  session_a0 = db.Column(db.Boolean, default=False)
   session_a1 = db.Column(db.Boolean, default=False)
   session_a1_record = db.Column(db.Boolean, default=False)
   session_a2 = db.Column(db.Boolean, default=False)
@@ -17,11 +18,10 @@ class User(db.Model):
   session_a3 = db.Column(db.Boolean, default=False)
   session_a3_record = db.Column(db.Boolean, default=False)
   
-  
   best_a = db.Column(db.Integer, default=999)
   completed = db.Column(db.Boolean, default=False)
   pre_exp = db.Column(db.Boolean, default = False)
-  tutorial1_survey = db.Column(db.Boolean, default=False) 
+  session_a0_survey = db.Column(db.Boolean, default=False) 
   session_a1_survey = db.Column(db.Boolean, default=False)
   session_a2_survey = db.Column(db.Boolean, default=False)
   session_a3_survey = db.Column(db.Boolean, default=False)

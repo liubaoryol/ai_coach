@@ -109,52 +109,67 @@ def read_file(file_name):
   return traj
 
 
-def update_canvas(env_id, namespace, update_latent, latent_from = 'In Game',
-                  is_movers_domain=True, make_prediction = True):
+def update_canvas(env_id, namespace, update_latent, mode,
+                  is_movers_domain=True):
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
     event_impl.update_html_canvas(dict, env_id, False, namespace)
 
     # update latent states
     if update_latent:
-      update_latent_state(env_id, namespace, latent_from, is_movers_domain, make_prediction)
+      update_latent_state(env_id, namespace, is_movers_domain, mode)
       
 
-def update_latent_state(env_id, namespace, latent_from, is_movers_domain, make_prediction):
+def update_latent_state(env_id, namespace, is_movers_domain, mode):
   latent_human, latent_human_predicted, latent_robot = get_latent_states(
-        is_movers_domain, latent_from, make_prediction=make_prediction)
+        is_movers_domain, mode = mode)
   objs = {}
   objs['latent_human'] = latent_human
   objs['latent_robot'] = latent_robot
   objs['latent_human_predicted'] = latent_human_predicted
-  if make_prediction:
+  
+  if mode == "replay":
+    objs['latent_states'] = "replay"
+  elif mode == "predicted":
     objs['latent_states'] = "predicted"
-  else:
+  elif mode == "collected":
     objs['latent_states'] = "collected"
-
+  print(objs)
   objs_json = json.dumps(objs)
   str_emit = 'update_latent'
   socketio.emit(str_emit, objs_json, room=env_id, namespace=namespace)
 
-# latent_from can be collected from 'In Game', 'After Game', and 'None'
-def get_latent_states(is_movers_domain, latent_from, make_prediction = True):
+def get_latent_states(is_movers_domain, mode):
   dict = session['dict'][session['index']]
   latent_human = ""
   latent_robot = ""
   latent_human_predicted = ""
-  if latent_from == 'In Game':
+  if mode == "replay":
     if dict['a1_latent']:
       latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
-  elif latent_from == 'After Game':
-    latent_human = session['latent_human_recorded'][session['index']]
-    
-  if make_prediction:
     latent, prob =   predict_human_latent(session['dict'],
-                                                    session['index'],
-                                                    is_movers_domain)
+                                          session['index'],
+                                          is_movers_domain)
     latent_human_predicted = f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
-  else:
+  elif mode == "collected":
+    latent_human = session['latent_human_recorded'][session['index']]
+  elif mode == "predicted":
     latent_human_predicted = session['latent_human_predicted'][session['index']]
+
+  # if latent_from == 'In Game':
+  #   if dict['a1_latent']:
+  #     latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
+  # elif latent_from == 'After Game':
+  #   latent_human = session['latent_human_recorded'][session['index']]
+    
+  # if predicted:
+  #   latent_human_predicted = session['latent_human_predicted'][session['index']]
+  #   latent, prob =   predict_human_latent(session['dict'],
+  #                                                   session['index'],
+  #                                                   is_movers_domain)
+  #   latent_human_predicted = f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
+  # else:
+    
   if dict['a2_latent']:
     latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
   return latent_human, latent_human_predicted, latent_robot
@@ -300,6 +315,7 @@ def predict_human_latent_full(traj, is_movers_domain):
                                           MDP_AGENT.num_latents, policy_nxsa,
                                           Tx_nxsasx, init_latent_nxs)
     inferred_x_seq = list_inferred_x_seq[0]
+    print(list_inferred_x_seq)
     latents = [MDP_AGENT.latent_space.idx_to_state[x] for x in inferred_x_seq]
     latents = [f"{latent[0]}, {latent[1]}" for latent in latents]
     return latents

@@ -1,23 +1,26 @@
 from typing import Mapping, Hashable
-from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysTogether
+from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysAlone
 from ai_coach_domain.box_push.maps import EXP1_MAP
-from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AlwaysTogether
-from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyTeamExp1
-from ai_coach_domain.box_push.agent import BoxPushAIAgent_Team2
+from ai_coach_domain.box_push.mdp import (BoxPushAgentMDP_AlwaysAlone,
+                                          BoxPushTeamMDP_AlwaysAlone)
+from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyIndvExp1
+from ai_coach_domain.box_push.agent import BoxPushAIAgent_Indv2
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
-g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysTogether]
-EXP1_NAMESPACE = '/exp1_both_user_random_2_intervention'
+g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysAlone]
+EXP1_NAMESPACE = '/exp1_indv_user_random_2_intervention'
 GRID_X = EXP1_MAP["x_grid"]
 GRID_Y = EXP1_MAP["y_grid"]
-EXP1_MDP = BoxPushTeamMDP_AlwaysTogether(**EXP1_MAP)
+EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
+EXP1_TASK_MDP = BoxPushTeamMDP_AlwaysAlone(**EXP1_MAP)
 
-AGENT1 = BoxPushSimulator_AlwaysTogether.AGENT1
-AGENT2 = BoxPushSimulator_AlwaysTogether.AGENT2
+AGENT1 = BoxPushSimulator_AlwaysAlone.AGENT1
+AGENT2 = BoxPushSimulator_AlwaysAlone.AGENT2
 
 TEMPERATURE = 0.3
-TEAMMATE_POLICY = BoxPushPolicyTeamExp1(EXP1_MDP, TEMPERATURE, AGENT2)
+TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_TASK_MDP, EXP1_MDP, TEMPERATURE,
+                                        AGENT2)
 
 
 @socketio.on('connect', namespace=EXP1_NAMESPACE)
@@ -47,23 +50,24 @@ def test_disconnect():
 
 @socketio.on('run_game', namespace=EXP1_NAMESPACE)
 def run_game(msg):
-  agent2 = BoxPushAIAgent_Team2(TEAMMATE_POLICY)
+  agent2 = BoxPushAIAgent_Indv2(TEAMMATE_POLICY)
+
   event_impl.run_task_game(msg, g_id_2_game, agent2, None, EXP1_MDP, EXP1_MAP,
-                           event_impl.ASK_LATENT, EXP1_NAMESPACE, True)
+                           event_impl.ASK_LATENT, EXP1_NAMESPACE, False)
 
 
 @socketio.on('action_event', namespace=EXP1_NAMESPACE)
 def action_event(msg):
   def game_finished(game, env_id, name_space):
-    session_name = "session_a2"
+    session_name = "session_b2"
     cur_user = msg["user_id"]
     event_impl.task_end(env_id, game, cur_user, session_name,
-                        "BoxPushSimulator_AlwaysTogether", EXP1_MAP, name_space,
-                        True)
+                        "BoxPushSimulator_AlwaysAlone", EXP1_MAP, name_space,
+                        False)
 
   ASK_LATENT_FREQUENCY = 5
   event_impl.action_event(msg, g_id_2_game, None, game_finished, EXP1_NAMESPACE,
-                          True, True, ASK_LATENT_FREQUENCY, intervention = True)
+                          True, True, ASK_LATENT_FREQUENCY, intervention=True)
 
 
 @socketio.on('set_latent', namespace=EXP1_NAMESPACE)
