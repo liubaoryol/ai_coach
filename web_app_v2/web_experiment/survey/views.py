@@ -102,6 +102,12 @@ def survey_indv_user_random():
   return inexperiment_impl('survey_indv_user_random.html',
                            'exp1.exp1_indv_user_random_2', "b1")
 
+@survey_bp.route('/survey_indv_user_random_2', methods=('GET', 'POST'))
+@login_required
+def survey_indv_user_random_2():
+  return inexperiment_impl('survey_indv_user_random_2.html',
+                           'survey.completion', "b2")
+
 
 @survey_bp.route('/completion', methods=('GET', 'POST'))
 @login_required

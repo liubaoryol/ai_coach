@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
-<h2>{% block subtitle %} Feedback Session A2{% endblock %}</h2>
+<h1>{% block title %}Clean up(part 4/5){% endblock %}</h1>
+<h2>{% block subtitle %} Feedback Session B2{% endblock %}</h2>
 <div class="explanation">
     <p>Providing feedback to user with this page - Session: {{session_name}} - Total Steps: {{session_length}}</p>
 </div>
@@ -22,7 +22,7 @@
     initImagePathCurUser(
         "{{ url_for('exp1.static', filename='robot.svg') }}",
         "{{ url_for('exp1.static', filename='woman.svg') }}",
-        "{{ url_for('exp1.static', filename='box.svg') }}",
+        "{{ url_for('exp1.static', filename='Trash_bag.svg') }}",
         "{{ url_for('exp1.static', filename='wall.svg') }}",
         "{{ url_for('exp1.static', filename='goal.svg') }}",
         "{{ url_for('exp1.static', filename='both_box.svg') }}",
@@ -34,7 +34,7 @@
     page_list.push(new PageDuringGame());
 
 
-    initPages(page_list, "feedback_together_latent");
+    initPages(page_list, "feedback_indv_latent");
 </script>
 
 <div class='explanation'>
