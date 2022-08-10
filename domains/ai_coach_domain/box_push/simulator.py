@@ -3,11 +3,11 @@ import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.box_push.defines import (EventType,
-                                             transition_alone_and_together,
-                                             transition_always_together,
-                                             transition_always_alone,
-                                             action_to_idx_for_simulator,
-                                             idx_to_action_for_simulator)
+                                              transition_alone_and_together,
+                                              transition_always_together,
+                                              transition_always_alone,
+                                              action_to_idx_for_simulator,
+                                              idx_to_action_for_simulator)
 from ai_coach_domain.box_push.agent import (BoxPushSimulatorAgent,
                                             BoxPushInteractiveAgent)
 
@@ -40,14 +40,15 @@ class BoxPushSimulator(Simulator):
     self.cb_idx_to_action = cb_idx_to_action
 
   def init_game(self,
-                x_grid: Coord,
-                y_grid: Coord,
+                x_grid: int,
+                y_grid: int,
                 a1_init: Coord,
                 a2_init: Coord,
                 boxes: Sequence[Coord] = [],
                 goals: Sequence[Coord] = [],
                 walls: Sequence[Coord] = [],
                 drops: Sequence[Coord] = [],
+                wall_dir: Sequence[int] = [],
                 **kwargs):
     self.x_grid = x_grid
     self.y_grid = y_grid
@@ -57,6 +58,7 @@ class BoxPushSimulator(Simulator):
     self.goals = goals
     self.walls = walls
     self.drops = drops
+    self.wall_dir = wall_dir
 
     self.reset_game()
 
@@ -215,6 +217,7 @@ class BoxPushSimulator(Simulator):
         "a2_pos": self.a2_pos,
         "a1_latent": self.agent_1.get_current_latent(),
         "a2_latent": self.agent_2.get_current_latent(),
+        "wall_dir": self.wall_dir,
         "current_step": self.current_step
     }
 

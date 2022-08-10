@@ -22,16 +22,6 @@
 <script type="text/javascript" charset="utf-8"
   src="{{ url_for('exp1.static', filename='exp1_game_logic.js') }}"></script>
 <script type="text/javascript">
-  initImagePathCurUser(
-    "{{ url_for('exp1.static', filename='robot.svg') }}",
-    "{{ url_for('exp1.static', filename='woman.svg') }}",
-    "{{ url_for('exp1.static', filename='box.svg') }}",
-    "{{ url_for('exp1.static', filename='wall.svg') }}",
-    "{{ url_for('exp1.static', filename='goal.svg') }}",
-    "{{ url_for('exp1.static', filename='both_box.svg') }}",
-    "{{ url_for('exp1.static', filename='man_bag.svg') }}",
-    "{{ url_for('exp1.static', filename='robot_bag.svg') }}",
-    "{{ cur_user }}");
 
   page_list = [];
 
@@ -54,7 +44,7 @@
   page_list.push(new PageUserSelectionResult(true));
   page_list.push(new PageMiniGame());
 
-  initPages(page_list, "exp1_tutorial", true);
+  initGlobalObject(page_list, "exp1_tutorial", true);
 </script>
 
 
