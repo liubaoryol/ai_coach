@@ -116,7 +116,7 @@ def update_canvas(env_id, namespace, update_latent, mode,
                   is_movers_domain=True):
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
-    event_impl.update_html_canvas(dict, env_id, False, namespace)
+    event_impl.update_html_canvas(dict, env_id, namespace)
 
     # update latent states
     if update_latent:

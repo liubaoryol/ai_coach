@@ -48,8 +48,9 @@ def check_misalignment(box_states, a1_latent, a2_latent, is_mover_domain):
     for state in box_states:
       if state == 0:
         available_box_count += 1
+
     if available_box_count == 0:
-      return 0
+      return False
     # there are more than one bag on the floor but both agents try to pick up the same bag
     if a1_latent == a2_latent and available_box_count > 1:
       if a1_latent[0] == 'pickup':
