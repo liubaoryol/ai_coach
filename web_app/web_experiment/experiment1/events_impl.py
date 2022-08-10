@@ -395,7 +395,7 @@ def get_drawing_objs(game_env, is_a):
 
   for idx, coord in enumerate(game_env["walls"]):
     wid = 1.4
-    hei = 1.4
+    hei = 1
     left = coord[0] + 0.5 - 0.5 * wid
     top = coord[1] + 0.5 - 0.5 * hei
     angle = 0 if game_env["wall_dir"][idx] == 0 else 0.5 * np.pi

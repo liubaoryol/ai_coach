@@ -25,7 +25,7 @@ $(document).ready(function () {
   }, false);
 
   // Connect to the Socket.IO server.
-  var socket = io('http://' + document.domain + ':' + location.port + '/' + global_object.name_space);
+  const socket = io('http://' + document.domain + ':' + location.port + '/' + global_object.name_space);
 
   // alias 
   const cnvs = document.getElementById("myCanvas");
@@ -45,8 +45,8 @@ $(document).ready(function () {
   /////////////////////////////////////////////////////////////////////////////
   // game control logics
   /////////////////////////////////////////////////////////////////////////////
-  var x_mouse = -1;
-  var y_mouse = -1;
+  let x_mouse = -1;
+  let y_mouse = -1;
 
   if (latentBut) {
     latentBut.addEventListener('click', onLatClick, true);
