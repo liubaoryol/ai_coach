@@ -9,8 +9,8 @@ from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
 g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysAlone]
-EXP1_NAMESPACE = '/exp1_indv_user_random'
-SESSION_NAME = "session_b1"
+EXP1_NAMESPACE = '/exp1_indv_user_random_3'
+SESSION_NAME = "session_b3"
 TASK_TYPE = event_impl.TASK_B
 
 EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)

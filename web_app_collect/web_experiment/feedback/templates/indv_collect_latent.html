@@ -23,26 +23,26 @@
   page_list = [];
   page_list.push(new PageDuringGame());
 
-  initGlobalObject(page_list, "indv_collect_latent");
+  initGlobalObject(page_list, "indv_collect");
 </script>
 
-<div class='explanation'>
+<!-- <div class='explanation'>
   <div class="button-center">
     <table class="center">
       <tr>
         <th>Human Latent State</th>
-        <!-- <th>Human Latent State Predicted</th> -->
+        
         <th>Agent Latent State</th>
       </tr>
       <tr>
         <td id="latent_human"></td>
-        <!-- <td id="latent_human_predicted"></td> -->
+        
         <td id="latent_robot"></td>
       </tr>
     </table>
   </div>
 
-</div>
+</div> -->
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
   Your browser does not support the HTML5 canvas tag.
@@ -60,6 +60,11 @@
     <button type="submit" value="next" id="next">Next Step</button>
     <button type="submit" value="prev" id="prev">Previous Step</button>
   </div>
+</div>
+
+<div class='form-control'>
+  <label for="latent_state">Add Custom Latent State</label>
+  <input id="new_latent_state" type='text' placeholder="Custom Latent State">
 </div>
 
 <div>

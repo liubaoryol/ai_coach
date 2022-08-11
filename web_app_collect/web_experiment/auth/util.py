@@ -148,9 +148,9 @@ def update_latent_state(env_id, namespace, is_movers_domain, mode):
 
 def get_latent_states(is_movers_domain, mode):
   dict = session['dict'][session['index']]
-  latent_human = ""
-  latent_robot = ""
-  latent_human_predicted = ""
+  latent_human = "None"
+  latent_robot = "None"
+  latent_human_predicted = "None"
   if mode == "replay":
     if dict['a1_latent']:
       latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"

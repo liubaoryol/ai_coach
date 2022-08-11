@@ -69,7 +69,33 @@ def survey_both_user_random_2():
 @login_required
 def survey_both_user_random_3():
   return inexperiment_impl('survey_both_user_random_3.html',
-                           'survey.completion', 'a3')                        
+                           'inst.clean_up', 'a3')  
+
+@survey_bp.route('/survey_indv_tell_align', methods=('GET', 'POST'))
+@login_required
+def survey_indv_tell_align():
+  return inexperiment_impl('survey_indv_tell_align.html',
+                           'exp1.exp1_indv_user_random', "b0")
+
+
+@survey_bp.route('/survey_indv_user_random', methods=('GET', 'POST'))
+@login_required
+def survey_indv_user_random():
+  return inexperiment_impl('survey_indv_user_random.html',
+                           'exp1.exp1_indv_user_random_2', "b1")
+
+
+@survey_bp.route('/survey_indv_user_random_2', methods=('GET', 'POST'))
+@login_required
+def survey_indv_user_random_2():
+  return inexperiment_impl('survey_indv_user_random_2.html',
+                           'exp1.exp1_indv_user_random_3', "b2")       
+
+@survey_bp.route('/survey_indv_user_random_3', methods=('GET', 'POST'))
+@login_required
+def survey_indv_user_random_3():
+  return inexperiment_impl('survey_indv_user_random_3.html',
+                           'survey.completion', "b3")                                            
 
 
 @survey_bp.route('/completion', methods=('GET', 'POST'))

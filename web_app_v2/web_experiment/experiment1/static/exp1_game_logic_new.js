@@ -33,6 +33,8 @@ $(document).ready(function () {
   const prevBut = document.getElementById('prev');
   const indexBut = document.getElementById('index');
   const latentBut = document.getElementById('latent_button');
+  const customLatentField = document.getElementById('new_latent_state')
+  const dropDownList = document.getElementById('latent_states')
 
   // global object values 
   global_object.game_ltwh[2] = cnvs.height;
@@ -71,8 +73,24 @@ $(document).ready(function () {
     else {
       socket.emit('next');
     }
-
   }
+
+  // new latent state event listener
+  if (customLatentField) {
+    customLatentField.addEventListener("keyup", function (event) {
+      if (event.key === "Enter") {
+        if (dropDownList) {
+          dropDownList.add(new Option(value = customLatentField.value));
+          customLatentField.value
+        }
+      }
+      if (event.key === " ") {
+        event.preventDefault();
+        customLatentField.value = customLatentField.value + " ";
+      }
+    });
+  }
+
 
   // next button click event listener
   prevBut.addEventListener('click', onPrevClick, true);
@@ -154,15 +172,12 @@ $(document).ready(function () {
     else if (latent_states === "predicted") {
       document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
     }
-    else if (latent_states === "replay") {
-      document.getElementById('latent_human').textContent = latent_human;
-      document.getElementById('latent_human_predicted').textContent = latent_human_predicted;
-    }
   });
 
   socket.on('complete', function (json_msg) {
     document.getElementById('proceed').disabled = false;
   });
+
 
   /////////////////////////////////////////////////////////////////////
   // rendering
@@ -194,7 +209,3 @@ $(document).ready(function () {
 
   requestAnimationFrame(update_scene);
 });
-
-
-// run once the entire page is ready
-// $(window).on("load", function() {})

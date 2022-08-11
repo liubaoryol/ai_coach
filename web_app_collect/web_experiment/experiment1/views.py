@@ -4,42 +4,7 @@ from web_experiment.auth.functions import login_required
 from web_experiment.models import User
 from . import exp1_bp
 
-
-@exp1_bp.route('/exp1_both_tell_align', methods=('GET', 'POST'))
-@login_required
-def exp1_both_tell_align():
-  session_name = "a0"
-  file_name = "exp1_both_tell_align.html"
-  next_endpoint = "survey.survey_both_tell_align"
-  return exp1_both_user_random_template(session_name, file_name, next_endpoint)
-
-@exp1_bp.route('/exp1_both_user_random', methods=('GET', 'POST'))
-@login_required
-def exp1_both_user_random():
-  session_name = "a1"
-  file_name = "exp1_both_user_random.html"
-  next_endpoint = "survey.survey_both_user_random"
-  return exp1_both_user_random_template(session_name, file_name, next_endpoint)
-
-@exp1_bp.route('/exp1_both_user_random_2', methods=('GET', 'POST'))
-@login_required
-def exp1_both_user_random_2():
-  session_name = "a2"
-  file_name = "exp1_both_user_random_2.html"
-  next_endpoint = "survey.survey_both_user_random_2"
-  return exp1_both_user_random_template(session_name, file_name, next_endpoint)
-
-@exp1_bp.route('/exp1_both_user_random_3', methods=('GET', 'POST'))
-@login_required
-def exp1_both_user_random_3():
-  session_name = "a3"
-  file_name = "exp1_both_user_random_3.html"
-  next_endpoint = "survey.survey_both_user_random_3"
-  return exp1_both_user_random_template(session_name, file_name, next_endpoint)
-
-
-
-def exp1_both_user_random_template(session_name, file_name, next_endpoint):
+def exp1_template(session_name, file_name, next_endpoint):
   cur_user = g.user
   if request.method == "POST":
     return redirect(
@@ -57,7 +22,70 @@ def exp1_both_user_random_template(session_name, file_name, next_endpoint):
     disabled = 'disabled'
   return render_template(file_name, cur_user=cur_user, is_disabled=disabled)
 
+@exp1_bp.route('/exp1_both_tell_align', methods=('GET', 'POST'))
+@login_required
+def exp1_both_tell_align():
+  session_name = "a0"
+  file_name = "exp1_both_tell_align.html"
+  next_endpoint = "survey.survey_both_tell_align"
+  return exp1_template(session_name, file_name, next_endpoint)
 
+@exp1_bp.route('/exp1_both_user_random', methods=('GET', 'POST'))
+@login_required
+def exp1_both_user_random():
+  session_name = "a1"
+  file_name = "exp1_both_user_random.html"
+  next_endpoint = "survey.survey_both_user_random"
+  return exp1_template(session_name, file_name, next_endpoint)
+
+@exp1_bp.route('/exp1_both_user_random_2', methods=('GET', 'POST'))
+@login_required
+def exp1_both_user_random_2():
+  session_name = "a2"
+  file_name = "exp1_both_user_random_2.html"
+  next_endpoint = "survey.survey_both_user_random_2"
+  return exp1_template(session_name, file_name, next_endpoint)
+
+@exp1_bp.route('/exp1_both_user_random_3', methods=('GET', 'POST'))
+@login_required
+def exp1_both_user_random_3():
+  session_name = "a3"
+  file_name = "exp1_both_user_random_3.html"
+  next_endpoint = "survey.survey_both_user_random_3"
+  return exp1_template(session_name, file_name, next_endpoint)
+
+@exp1_bp.route('/exp1_indv_tell_align', methods=('GET', 'POST'))
+@login_required
+def exp1_indv_tell_align():
+  session_name = "b0"
+  file_name = "exp1_indv_tell_align.html"
+  next_endpoint = "survey.survey_indv_tell_align"
+  return exp1_template(session_name, file_name, next_endpoint)
+
+@exp1_bp.route('/exp1_indv_user_random', methods=('GET', 'POST'))
+@login_required
+def exp1_indv_user_random():
+  session_name = "b1"
+  file_name = "exp1_indv_user_random.html"
+  next_endpoint = "survey.survey_indv_user_random"
+  return exp1_template(session_name, file_name, next_endpoint)
+
+@exp1_bp.route('/exp1_indv_user_random_2', methods=('GET', 'POST'))
+@login_required
+def exp1_indv_user_random_2():
+  session_name = "b2"
+  file_name = "exp1_indv_user_random_2.html"
+  next_endpoint = "survey.survey_indv_user_random_2"
+  return exp1_template(session_name, file_name, next_endpoint)
+
+@exp1_bp.route('/exp1_indv_user_random_3', methods=('GET', 'POST'))
+@login_required
+def exp1_indv_user_random_3():
+  session_name = "b3"
+  file_name = "exp1_indv_user_random_3.html"
+  next_endpoint = "survey.survey_indv_user_random_3"
+  return exp1_template(session_name, file_name, next_endpoint)
+  
 @exp1_bp.route('/tutorial1', methods=('GET', 'POST'))
 @login_required
 def tutorial1():
@@ -69,5 +97,19 @@ def tutorial1():
   if not query_data.tutorial1:
     disabled = 'disabled'
   return render_template('tutorial1.html',
+                         cur_user=cur_user,
+                         is_disabled=disabled)
+
+@exp1_bp.route('/tutorial2', methods=('GET', 'POST'))
+@login_required
+def tutorial2():
+  cur_user = g.user
+  logging.info('User %s accesses to tutorial2.' % (cur_user, ))
+
+  query_data = User.query.filter_by(userid=cur_user).first()
+  disabled = ''
+  if not query_data.tutorial2:
+    disabled = 'disabled'
+  return render_template('tutorial2.html',
                          cur_user=cur_user,
                          is_disabled=disabled)

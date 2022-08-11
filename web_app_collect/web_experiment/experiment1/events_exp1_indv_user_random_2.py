@@ -8,14 +8,15 @@ from ai_coach_domain.box_push.agent import BoxPushAIAgent_Indv2
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
 
-g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysTogether]
-EXP1_NAMESPACE = '/exp1_both_user_random_2_intervention'
-SESSION_NAME = "session_a2"
-TASK_TYPE = event_impl.TASK_A
+g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysAlone]
+EXP1_NAMESPACE = '/exp1_indv_user_random_2'
+SESSION_NAME = "session_b2"
+TASK_TYPE = event_impl.TASK_B
 
-EXP1_MDP = BoxPushTeamMDP_AlwaysTogether(**EXP1_MAP)
-AGENT1 = BoxPushSimulator_AlwaysTogether.AGENT1
-AGENT2 = BoxPushSimulator_AlwaysTogether.AGENT2
+EXP1_MDP = BoxPushAgentMDP_AlwaysAlone(**EXP1_MAP)
+EXP1_TASK_MDP = BoxPushTeamMDP_AlwaysAlone(**EXP1_MAP)
+AGENT1 = BoxPushSimulator_AlwaysAlone.AGENT1
+AGENT2 = BoxPushSimulator_AlwaysAlone.AGENT2
 
 TEMPERATURE = 0.3
 TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_TASK_MDP, EXP1_MDP, TEMPERATURE,
@@ -49,7 +50,8 @@ def test_disconnect():
 
 @socketio.on('run_game', namespace=EXP1_NAMESPACE)
 def run_game(msg):
-  agent2 = BoxPushAIAgent_Team2(TEAMMATE_POLICY)
+  agent2 = BoxPushAIAgent_Indv2(TEAMMATE_POLICY)
+
   event_impl.run_task_game(msg, g_id_2_game, agent2, None, EXP1_MAP,
                            event_impl.ASK_LATENT, EXP1_NAMESPACE, TASK_TYPE)
 
@@ -57,19 +59,9 @@ def run_game(msg):
 @socketio.on('action_event', namespace=EXP1_NAMESPACE)
 def action_event(msg):
   ASK_LATENT_FREQUENCY = 5
-  event_impl.action_event(msg,
-                          g_id_2_game,
-                          None,
-                          event_impl.game_end,
-                          EXP1_NAMESPACE,
-                          True,
-                          True,
-                          ASK_LATENT_FREQUENCY,
-                          EXP1_MAP,
-                          SESSION_NAME,
-                          TASK_TYPE,
-                          None,
-                          intervention=True)
+  event_impl.action_event(msg, g_id_2_game, None, event_impl.game_end,
+                          EXP1_NAMESPACE, True, True, ASK_LATENT_FREQUENCY,
+                          EXP1_MAP, SESSION_NAME, TASK_TYPE)
 
 
 @socketio.on('setting_event', namespace=EXP1_NAMESPACE)
