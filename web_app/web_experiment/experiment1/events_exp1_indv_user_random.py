@@ -20,24 +20,24 @@ TEAMMATE_POLICY = BoxPushPolicyIndvExp1(EXP1_TASK_MDP, EXP1_MDP, TEMPERATURE,
 for session_name in [td.SESSION_B3, td.SESSION_B4, td.SESSION_B5]:
   name_space = '/' + td.EXP1_PAGENAMES[session_name]
 
-  def run_game(msg,
-               session_name=session_name,
-               name_space=name_space,
-               task_type=td.EXP1_TASK_TYPES[session_name]):
-    agent2 = BoxPushAIAgent_Indv2(TEAMMATE_POLICY)
-    event_impl.run_task_game(msg, td.map_g_id_2_game[session_name], agent2,
-                             None, EXP1_MAP, event_impl.ASK_LATENT, name_space,
-                             task_type)
+  def make_run_game(session_name, name_space=name_space):
+    def run_game(msg):
+      agent2 = BoxPushAIAgent_Indv2(TEAMMATE_POLICY)
+      event_impl.run_task_game(msg, td.map_g_id_2_game[session_name], agent2,
+                               None, EXP1_MAP, event_impl.ASK_LATENT,
+                               name_space, td.EXP1_TASK_TYPES[session_name])
 
-  def action_event(msg,
-                   session_name=session_name,
-                   name_space=name_space,
-                   task_type=td.EXP1_TASK_TYPES[session_name]):
-    ASK_LATENT_FREQUENCY = 5
-    event_impl.action_event(msg, td.map_g_id_2_game[session_name], None,
-                            event_impl.game_end, name_space, True, True,
-                            ASK_LATENT_FREQUENCY, EXP1_MAP, session_name,
-                            task_type)
+    return run_game
 
-  socketio.on_event('run_game', run_game, name_space)
-  socketio.on_event('action_event', action_event, name_space)
+  def make_action_event(session_name, name_space=name_space):
+    def action_event(msg):
+      ASK_LATENT_FREQUENCY = 5
+      event_impl.action_event(msg, td.map_g_id_2_game[session_name], None,
+                              event_impl.game_end, name_space, True, True,
+                              ASK_LATENT_FREQUENCY, EXP1_MAP, session_name,
+                              td.EXP1_TASK_TYPES[session_name])
+
+    return action_event
+
+  socketio.on_event('run_game', make_run_game(session_name), name_space)
+  socketio.on_event('action_event', make_action_event(session_name), name_space)

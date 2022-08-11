@@ -7,19 +7,22 @@ from . import exp1_bp
 
 for session_name in td.EXP1_PAGENAMES:
 
-  def func_tmp(session_name=session_name):
-    cur_user = g.user
-    logging.info('User %s accesses to %s.' % (cur_user, session_name))
+  def make_view_func(session_name):
+    def func_tmp():
+      cur_user = g.user
+      logging.info('User %s accesses to %s.' % (cur_user, session_name))
 
-    query_data = User.query.filter_by(userid=cur_user).first()
-    disabled = ''
-    if not getattr(query_data, session_name):
-      disabled = 'disabled'
-    return render_template(td.EXP1_PAGENAMES[session_name] + '.html',
-                           socket_name_space=td.EXP1_PAGENAMES[session_name],
-                           cur_user=cur_user,
-                           is_disabled=disabled)
+      query_data = User.query.filter_by(userid=cur_user).first()
+      disabled = ''
+      if not getattr(query_data, session_name):
+        disabled = 'disabled'
+      return render_template(td.EXP1_PAGENAMES[session_name] + '.html',
+                             socket_name_space=td.EXP1_PAGENAMES[session_name],
+                             cur_user=cur_user,
+                             is_disabled=disabled)
 
-  func = login_required(func_tmp)
+    return func_tmp
+
+  func = login_required(make_view_func(session_name))
   exp1_bp.add_url_rule('/' + td.EXP1_PAGENAMES[session_name],
                        td.EXP1_PAGENAMES[session_name], func)

@@ -145,6 +145,3 @@ $(document).ready(function () {
 
   requestAnimationFrame(update_scene);
 });
-
-// run once the entire page is ready
-// $(window).on("load", function() {})
