@@ -111,7 +111,7 @@ def ping_pong():
   emit('my_pong')
 
 
-def test_disconnect(id_2_game: Mapping[Hashable, BoxPushSimulator]):
+def disconnected(id_2_game: Mapping[Hashable, BoxPushSimulator]):
   env_id = request.sid
   # finish current game
   if env_id in id_2_game:

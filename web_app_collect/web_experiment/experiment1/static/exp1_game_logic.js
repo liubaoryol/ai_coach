@@ -18,19 +18,34 @@ function initGlobalObject(page_list, name_space) {
 ///////////////////////////////////////////////////////////////////////////////
 $(document).ready(function () {
   // block default key event handler (block scroll bar movement by key)
-  window.addEventListener("keydown", function (e) {
-    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
-      e.preventDefault();
-    }
-  }, false);
+  window.addEventListener(
+    "keydown",
+    function (e) {
+      if (
+        ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(
+          e.code
+        ) > -1
+      ) {
+        e.preventDefault();
+      }
+    },
+    false
+  );
 
   // Connect to the Socket.IO server.
-  const socket = io('http://' + document.domain + ':' + location.port + '/' + global_object.name_space);
+  const socket = io(
+    "http://" +
+      document.domain +
+      ":" +
+      location.port +
+      "/" +
+      global_object.name_space
+  );
 
-  // alias 
+  // alias
   const cnvs = document.getElementById("myCanvas");
 
-  // global object values 
+  // global object values
   global_object.game_ltwh[2] = cnvs.height;
   global_object.game_ltwh[3] = cnvs.height;
   /////////////////////////////////////////////////////////////////////////////
@@ -45,7 +60,7 @@ $(document).ready(function () {
   let y_mouse = -1;
 
   // click event listener
-  cnvs.addEventListener('click', onClick, true);
+  cnvs.addEventListener("click", onClick, true);
   function onClick(event) {
     let x_m = event.offsetX;
     let y_m = event.offsetY;
@@ -53,51 +68,56 @@ $(document).ready(function () {
   }
 
   // mouse move event listner
-  cnvs.addEventListener('mousemove', onMouseMove, true);
+  cnvs.addEventListener("mousemove", onMouseMove, true);
   function onMouseMove(event) {
     x_mouse = event.offsetX;
     y_mouse = event.offsetY;
   }
 
   // init canvas
-  socket.on('init_canvas', function (json_msg) {
+  socket.on("init_canvas", function (json_msg) {
     const json_obj = JSON.parse(json_msg);
     game_data.process_json_obj(json_obj);
 
     // set page
     if (game_data.dict_game_info.done) {
       global_object.cur_page_idx = global_object.page_list.length - 1;
-    }
-    else {
+    } else {
       global_object.cur_page_idx = 0;
     }
 
     global_object.page_list[global_object.cur_page_idx].init_page(
-      global_object, game_data, cnvs, socket);
+      global_object,
+      game_data,
+      cnvs,
+      socket
+    );
   });
 
   // update
-  socket.on('draw_canvas', function (json_msg) {
+  socket.on("draw_canvas", function (json_msg) {
     const json_obj = JSON.parse(json_msg);
     game_data.process_json_obj(json_obj);
 
     // update page
     global_object.page_list[global_object.cur_page_idx].on_data_update(null);
-    global_object.page_list[global_object.cur_page_idx].process_json_obj(json_obj);
+    global_object.page_list[global_object.cur_page_idx].process_json_obj(
+      json_obj
+    );
   });
 
   // set task end behavior
-  socket.on('task_end', function () {
+  socket.on("task_end", function () {
     if (document.getElementById("submit").disabled) {
       document.getElementById("submit").disabled = false;
     }
   });
 
   // intervention
-  socket.on('intervention', function (json_msg) {
+  socket.on("intervention", function (json_msg) {
     const env = JSON.parse(json_msg);
-    console.log('hello');
-    let msg = 'Misaligned mental states.\n';
+    console.log("hello");
+    let msg = "Misaligned mental states.\n";
     msg += "predicted human latent state: " + env.latent_human_predicted + "\n";
     msg += "robot latent state: " + env.latent_robot + "\n";
     msg += "P(x): " + env.prob + "\n";
@@ -120,13 +140,15 @@ $(document).ready(function () {
         const item = game_data.dict_animations[key];
         if (item.is_finished()) {
           delete game_data.dict_animations[key];
-        }
-        else {
+        } else {
           item.animate();
         }
       }
 
-      global_object.page_list[global_object.cur_page_idx].draw_page(x_mouse, y_mouse);
+      global_object.page_list[global_object.cur_page_idx].draw_page(
+        x_mouse,
+        y_mouse
+      );
     }
 
     requestAnimationFrame(update_scene);
@@ -134,7 +156,6 @@ $(document).ready(function () {
 
   requestAnimationFrame(update_scene);
 });
-
 
 // run once the entire page is ready
 // $(window).on("load", function() {})

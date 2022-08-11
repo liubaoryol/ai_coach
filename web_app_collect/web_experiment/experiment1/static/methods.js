@@ -49,16 +49,14 @@ class ButtonObject extends DrawingObject {
       context.globalAlpha = 1.0;
       context.fillStyle = "gray";
       context.strokeStyle = "gray";
-    }
-    else {
+    } else {
       this._on_drawing_path(context);
     }
 
     this._set_path();
     if (this.fill_path) {
       context.fill(this.path);
-    }
-    else {
+    } else {
       if (this.border) {
         context.stroke(this.path);
       }
@@ -72,17 +70,18 @@ class ButtonObject extends DrawingObject {
       context.textAlign = this.text_align;
       context.textBaseline = this.text_baseline;
       context.font = this.font;
-      context.fillText(this.text,
+      context.fillText(
+        this.text,
         this.x_origin + this.x_text_offset,
-        this.y_origin + this.y_text_offset);
+        this.y_origin + this.y_text_offset
+      );
     }
   }
 
   draw_with_mouse_move(context, x_cursor, y_cursor) {
     if (x_cursor == -1 || y_cursor == -1) {
       this.set_mouse_over(false);
-    }
-    else {
+    } else {
       this.set_mouse_over(this.isPointInObject(context, x_cursor, y_cursor));
     }
     this.draw(context);
@@ -92,8 +91,7 @@ class ButtonObject extends DrawingObject {
     if (this.mouse_over) {
       context.fillStyle = "green";
       context.strokeStyle = "green";
-    }
-    else {
+    } else {
       context.fillStyle = this.color;
       context.strokeStyle = this.color;
     }
@@ -103,7 +101,7 @@ class ButtonObject extends DrawingObject {
     context.fillStyle = this.text_color;
   }
 
-  _set_path() { }
+  _set_path() {}
 
   isPointInObject(context, x, y) {
     if (this.disable) {
@@ -112,8 +110,7 @@ class ButtonObject extends DrawingObject {
 
     if (this.path != null) {
       return context.isPointInPath(this.path, x, y);
-    }
-    else {
+    } else {
       return false;
     }
   }
@@ -271,16 +268,14 @@ class TextObject extends DrawingObject {
     let x_pos = this.x_left;
     if (this.text_align == "right") {
       x_pos = this.x_left + this.width;
-    }
-    else if (this.text_align == "center") {
+    } else if (this.text_align == "center") {
       x_pos = this.x_left + this.width * 0.5;
     }
 
     let y_pos = this.y_top; // assume "top" as default
     if (this.text_baseline == "middle") {
       y_pos = this.y_top + this.font_size * 0.5;
-    }
-    else if (this.text_baseline == "bottom") {
+    } else if (this.text_baseline == "bottom") {
       y_pos = this.y_top + this.font_size;
     }
     while (idx < num_word) {
@@ -289,15 +284,13 @@ class TextObject extends DrawingObject {
         let str_temp = str_draw;
         if (str_temp == "") {
           str_temp = array_text[idx];
-        }
-        else {
+        } else {
           str_temp = str_temp + " " + array_text[idx];
         }
 
         if (str_temp.length > max_char) {
           break;
-        }
-        else {
+        } else {
           str_draw = str_temp;
           idx = idx + 1;
         }
@@ -314,7 +307,6 @@ class TextObject extends DrawingObject {
     }
   }
 }
-
 
 class TextScore extends TextObject {
   constructor(x_left, y_top, width, font_size) {
@@ -339,26 +331,27 @@ class TextScore extends TextObject {
     let x_pos = this.x_left;
     if (this.text_align == "right") {
       x_pos = this.x_left + this.width;
-    }
-    else if (this.text_align == "center") {
+    } else if (this.text_align == "center") {
       x_pos = this.x_left + this.width * 0.5;
     }
 
     let y_pos = this.y_top; // assume "top" as default
     if (this.text_baseline == "middle") {
       y_pos = this.y_top + this.font_size * 0.5;
-    }
-    else if (this.text_baseline == "bottom") {
+    } else if (this.text_baseline == "bottom") {
       y_pos = this.y_top + this.font_size;
     }
 
     y_pos = y_pos + this.font_size;
-    context.font = "bold " + (this.font_size) + "px arial";
+    context.font = "bold " + this.font_size + "px arial";
     if (this.best == 9999) {
       context.fillText("(Your Best: - )", x_pos, y_pos);
-    }
-    else {
-      context.fillText("(Your Best: " + this.best.toString() + ")", x_pos, y_pos);
+    } else {
+      context.fillText(
+        "(Your Best: " + this.best.toString() + ")",
+        x_pos,
+        y_pos
+      );
     }
   }
 }
@@ -411,19 +404,23 @@ class GameObject extends DrawingObject {
     if (this.img != null) {
       if (this.angle == 0.0) {
         context.drawImage(this.img, this.left, this.top, this.w, this.h);
-      }
-      else {
+      } else {
         const x_cen = this.left + 0.5 * this.w;
         const y_cen = this.top + 0.5 * this.h;
         context.setTransform(1, 0, 0, 1, x_cen, y_cen);
         context.rotate(this.angle);
-        context.drawImage(this.img, -0.5 * this.w, -0.5 * this.h, this.w, this.h);
+        context.drawImage(
+          this.img,
+          -0.5 * this.w,
+          -0.5 * this.h,
+          this.w,
+          this.h
+        );
         context.setTransform(1, 0, 0, 1, 0, 0);
       }
     }
   }
 }
-
 
 class SelectingOverlay extends ButtonObject {
   constructor(x_cen, y_cen, radius, id, idx) {
@@ -491,8 +488,7 @@ class Animation {
     this.game_ltwh = game_ltwh;
   }
 
-  animate() {
-  }
+  animate() {}
 
   is_finished() {
     return true;
@@ -509,7 +505,8 @@ class Vibrate extends Animation {
     const amp = 0.01;
     this.vib_pos = [
       this.original_obj_left - amp * this.game_ltwh[2],
-      this.original_obj_left + amp * this.game_ltwh[3]];
+      this.original_obj_left + amp * this.game_ltwh[3],
+    ];
     this.num_vibration = 5;
     this.idx = 0;
   }
@@ -518,8 +515,7 @@ class Vibrate extends Animation {
     if (performance.now() > this.start_time + this.cycle * this.idx) {
       if (this.idx < this.num_vibration) {
         this.obj.left = this.vib_pos[this.idx % this.vib_pos.length];
-      }
-      else {
+      } else {
         this.obj.left = this.original_obj_left;
       }
       this.idx += 1;
@@ -541,8 +537,13 @@ class GameData {
     this.dict_game_objs = {};
     this.list_overlays = [];
     this.dict_game_info = {
-      score: 0, best_score: 9999, drawing_order: [], select_destination: false,
-      disabled_actions: [], done: false, user_id: ""
+      score: 0,
+      best_score: 9999,
+      drawing_order: [],
+      select_destination: false,
+      disabled_actions: [],
+      done: false,
+      user_id: "",
     };
     this.dict_animations = {};
 
@@ -567,7 +568,7 @@ class GameData {
     }
 
     if (obj_json.hasOwnProperty("animations")) {
-      this.set_animations(obj_json)
+      this.set_animations(obj_json);
     }
   }
 
@@ -598,8 +599,7 @@ class GameData {
           item.size[1] * game_h,
           item.color
         );
-      }
-      else {
+      } else {
         this.dict_game_objs[item.name] = new GameObject(
           item.name,
           game_l + item.pos[0] * game_w,
@@ -607,7 +607,8 @@ class GameData {
           item.size[0] * game_w,
           item.size[1] * game_h,
           item.angle,
-          this.dict_imgs[item.img_name]);
+          this.dict_imgs[item.img_name]
+        );
       }
     }
   }
@@ -626,16 +627,19 @@ class GameData {
           new StaticOverlay(
             game_l + item.pos[0] * game_w,
             game_t + item.pos[1] * game_h,
-            item.radius * game_w));
-      }
-      else if (item.type == "selecting") {
+            item.radius * game_w
+          )
+        );
+      } else if (item.type == "selecting") {
         this.list_overlays.push(
           new SelectingOverlay(
             game_l + item.pos[0] * game_w,
             game_t + item.pos[1] * game_h,
             item.radius * game_w,
             item.id,
-            item.idx));
+            item.idx
+          )
+        );
       }
     }
   }
@@ -658,12 +662,14 @@ class GameData {
 
     if (obj_json.game_info.hasOwnProperty("select_destination")) {
       // true or false
-      this.dict_game_info.select_destination = obj_json.game_info.select_destination;
+      this.dict_game_info.select_destination =
+        obj_json.game_info.select_destination;
     }
 
     if (obj_json.game_info.hasOwnProperty("disabled_actions")) {
       // array of names
-      this.dict_game_info.disabled_actions = obj_json.game_info.disabled_actions;
+      this.dict_game_info.disabled_actions =
+        obj_json.game_info.disabled_actions;
     }
 
     if (obj_json.game_info.hasOwnProperty("user_id")) {
@@ -682,8 +688,10 @@ class GameData {
 
     for (const item of obj_json.animations) {
       if (item.type == "vibrate") {
-        this.dict_animations["s" + this.ani_idx.toString()] =
-          new Vibrate(this.dict_game_objs[item.obj_name], this.game_ltwh);
+        this.dict_animations["s" + this.ani_idx.toString()] = new Vibrate(
+          this.dict_game_objs[item.obj_name],
+          this.game_ltwh
+        );
       }
       this.ani_idx += 1;
     }
@@ -702,7 +710,11 @@ class GameData {
       context.globalAlpha = 0.8;
       context.fillStyle = "white";
       context.fillRect(
-        this.game_ltwh[0], this.game_ltwh[1], this.game_ltwh[2], this.game_ltwh[3]);
+        this.game_ltwh[0],
+        this.game_ltwh[1],
+        this.game_ltwh[2],
+        this.game_ltwh[3]
+      );
       context.globalAlpha = 1.0;
     }
 
@@ -715,8 +727,7 @@ class GameData {
 ///////////////////////////////////////////////////////////////////////////////
 // useful functions
 ///////////////////////////////////////////////////////////////////////////////
-function create_game_ctrl_ui(
-  canvas_width, canvas_height, game_ltwh) {
+function create_game_ctrl_ui(canvas_width, canvas_height, game_ltwh) {
   const game_l = game_ltwh[0];
   const game_t = game_ltwh[1];
   const game_w = game_ltwh[2];
@@ -726,7 +737,7 @@ function create_game_ctrl_ui(
   // joystick
   const ctrl_btn_w = parseInt(game_w / 12);
   const x_ctrl_cen = game_r + (canvas_width - game_r) / 2;
-  const y_ctrl_cen = canvas_height * 65 / 100;
+  const y_ctrl_cen = (canvas_height * 65) / 100;
 
   const x_joy_cen = x_ctrl_cen - ctrl_btn_w * 1.5;
   const y_joy_cen = y_ctrl_cen;
@@ -753,22 +764,37 @@ function create_game_ctrl_ui(
 
   // hold/drop btn
   const btn_hold = new ButtonRect(
-    x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen - ctrl_btn_w * 0.6,
-    ctrl_btn_w * 2, ctrl_btn_w, "Pick Up");
+    x_ctrl_cen + ctrl_btn_w * 1.5,
+    y_ctrl_cen - ctrl_btn_w * 0.6,
+    ctrl_btn_w * 2,
+    ctrl_btn_w,
+    "Pick Up"
+  );
 
   const btn_drop = new ButtonRect(
-    x_ctrl_cen + ctrl_btn_w * 1.5, y_ctrl_cen + ctrl_btn_w * 0.6,
-    ctrl_btn_w * 2, ctrl_btn_w, "Drop");
+    x_ctrl_cen + ctrl_btn_w * 1.5,
+    y_ctrl_cen + ctrl_btn_w * 0.6,
+    ctrl_btn_w * 2,
+    ctrl_btn_w,
+    "Drop"
+  );
 
   const btn_select = new ButtonRect(
-    x_ctrl_cen, y_ctrl_cen + ctrl_btn_w * 2,
-    ctrl_btn_w * 4, ctrl_btn_w, "Select Destination");
-
+    x_ctrl_cen,
+    y_ctrl_cen + ctrl_btn_w * 2,
+    ctrl_btn_w * 4,
+    ctrl_btn_w,
+    "Select Destination"
+  );
 
   // score
   const margin_inst = 10;
-  const label_score = new TextScore(game_r + margin_inst, canvas_height * 0.9,
-    canvas_width - game_r - 2 * margin_inst, 24);
+  const label_score = new TextScore(
+    game_r + margin_inst,
+    canvas_height * 0.9,
+    canvas_width - game_r - 2 * margin_inst,
+    24
+  );
   label_score.set_score(0);
 
   // create object
@@ -778,7 +804,6 @@ function create_game_ctrl_ui(
   ctrl_obj.btn_drop = btn_drop;
   ctrl_obj.lbl_score = label_score;
   ctrl_obj.btn_select = btn_select;
-
 
   return ctrl_obj;
 }
@@ -791,8 +816,7 @@ function disable_actions(dict_game_info, control_ui, disable) {
 
     control_ui.btn_hold.disable = true;
     control_ui.btn_drop.disable = true;
-  }
-  else {
+  } else {
     for (const btn of control_ui.list_joystick_btn) {
       btn.disable = false;
     }
@@ -804,8 +828,7 @@ function disable_actions(dict_game_info, control_ui, disable) {
       for (const action of dict_game_info.disabled_actions) {
         if (action == "Pick Up") {
           control_ui.btn_hold.disable = true;
-        }
-        else if (action == "Drop") {
+        } else if (action == "Drop") {
           control_ui.btn_drop.disable = true;
         }
       }
@@ -825,14 +848,24 @@ function draw_action_btn(context, control_ui, x_cursor = -1, y_cursor = -1) {
 function go_to_next_page(global_object, game, canvas, socket) {
   if (global_object.cur_page_idx + 1 < global_object.page_list.length) {
     global_object.cur_page_idx++;
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game, canvas, socket);
+    global_object.page_list[global_object.cur_page_idx].init_page(
+      global_object,
+      game,
+      canvas,
+      socket
+    );
   }
 }
 
 function go_to_prev_page(global_object, game, canvas, socket) {
   if (global_object.cur_page_idx - 1 >= 0) {
     global_object.cur_page_idx--;
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game, canvas, socket);
+    global_object.page_list[global_object.cur_page_idx].init_page(
+      global_object,
+      game,
+      canvas,
+      socket
+    );
   }
 }
 
@@ -861,9 +894,9 @@ class PageBasic {
     this.socket = null;
 
     this.do_emit = false;
-    this.initial_emit_name = 'page_basic';
+    this.initial_emit_name = "page_basic";
     this.initial_emit_data = {};
-    this.setting_event_name = 'setting_event';
+    this.setting_event_name = "setting_event";
     this.setting_event_data = { data: "" };
   }
 
@@ -886,9 +919,11 @@ class PageBasic {
   }
 
   _init_ctrl_ui() {
-    this.game_ctrl = create_game_ctrl_ui(this.canvas.width,
+    this.game_ctrl = create_game_ctrl_ui(
+      this.canvas.width,
       this.canvas.height,
-      this.game.game_ltwh);
+      this.game.game_ltwh
+    );
     disable_actions(this.game.dict_game_info, this.game_ctrl, true);
     this.game_ctrl.btn_select.disable = true;
 
@@ -898,8 +933,12 @@ class PageBasic {
     // instruction
     const game_r = this.game.game_ltwh[0] + this.game.game_ltwh[2];
     const margin_inst = 10;
-    this.lbl_instruction = new TextObject(game_r + margin_inst, margin_inst,
-      this.canvas.width - game_r - 2 * margin_inst, 18);
+    this.lbl_instruction = new TextObject(
+      game_r + margin_inst,
+      margin_inst,
+      this.canvas.width - game_r - 2 * margin_inst,
+      18
+    );
   }
 
   _set_emit_data() {
@@ -926,8 +965,8 @@ class PageBasic {
     this._draw_instruction(mouse_x, mouse_y);
   }
 
-  _draw_game(mouse_x, mouse_y) { }
-  _draw_ctrl_ui(mouse_x, mouse_y) { }
+  _draw_game(mouse_x, mouse_y) {}
+  _draw_ctrl_ui(mouse_x, mouse_y) {}
   _draw_instruction(mouse_x, mouse_y) {
     // instruction area
     const margin = 5;
@@ -942,21 +981,29 @@ class PageBasic {
     this.lbl_instruction.draw(this.ctx);
   }
 
-  on_click(mouse_x, mouse_y) {
-  }
+  on_click(mouse_x, mouse_y) {}
 
-  on_data_update(changed_obj) {
-  }
+  on_data_update(changed_obj) {}
 
   process_json_obj(json_obj) {
     if (json_obj.hasOwnProperty("control_signals")) {
       if (json_obj.control_signals.hasOwnProperty("next_page")) {
-        go_to_next_page(this.global_object, this.game, this.canvas, this.socket);
+        go_to_next_page(
+          this.global_object,
+          this.game,
+          this.canvas,
+          this.socket
+        );
         return;
       }
 
       if (json_obj.control_signals.hasOwnProperty("prev_page")) {
-        go_to_prev_page(this.global_object, this.game, this.canvas, this.socket);
+        go_to_prev_page(
+          this.global_object,
+          this.game,
+          this.canvas,
+          this.socket
+        );
         return;
       }
     }
@@ -978,7 +1025,10 @@ class PageExperimentHome extends PageBasic {
     this.btn_start = new ButtonRect(
       this.game.game_ltwh[0] + this.game.game_ltwh[2] / 2,
       this.game.game_ltwh[1] + this.game.game_ltwh[3] / 2,
-      start_btn_width, start_btn_height, "Start");
+      start_btn_width,
+      start_btn_height,
+      "Start"
+    );
     this.btn_start.font = "bold 30px arial";
     this.lbl_instruction.text = "Click the “Start” button to begin the task.";
   }
@@ -1010,13 +1060,24 @@ class PageExperimentHome2 extends PageBasic {
     super._init_ctrl_ui();
 
     const fsize = 30;
-    this.lbl_warning = new TextObject(0, this.game.game_ltwh[3] / 3 - fsize, this.game.game_ltwh[2], fsize);
-    this.lbl_warning.text = "Please review the instructions for this session listed above. When you are ready, press next to begin.";
+    this.lbl_warning = new TextObject(
+      0,
+      this.game.game_ltwh[3] / 3 - fsize,
+      this.game.game_ltwh[2],
+      fsize
+    );
+    this.lbl_warning.text =
+      "Please review the instructions for this session listed above. When you are ready, press next to begin.";
     this.lbl_warning.text_align = "center";
     this.lbl_warning.text_baseline = "middle";
 
-    this.btn_real_next = new ButtonRect(this.game.game_ltwh[2] / 2, this.game.game_ltwh[3] * 0.6,
-      100, 50, "Next");
+    this.btn_real_next = new ButtonRect(
+      this.game.game_ltwh[2] / 2,
+      this.game.game_ltwh[3] * 0.6,
+      100,
+      50,
+      "Next"
+    );
     this.lbl_instruction.text = "";
   }
 
@@ -1049,9 +1110,9 @@ class PageDuringGame extends PageBasic {
     this.use_manual_selection = false;
     this.do_emit = true;
     this.is_test = false;
-    this.initial_emit_name = 'run_game';
+    this.initial_emit_name = "run_game";
     this.initial_emit_data = {};
-    this.action_event_name = 'action_event';
+    this.action_event_name = "action_event";
     this.action_event_data = { data: "" };
   }
 
@@ -1090,11 +1151,12 @@ class PageDuringGame extends PageBasic {
           return;
         }
       }
-    }
-    else {
+    } else {
       // TODO: contains buttons into a container
       // check latent selection button clicked
-      if (this.game_ctrl.btn_select.isPointInObject(this.ctx, mouse_x, mouse_y)) {
+      if (
+        this.game_ctrl.btn_select.isPointInObject(this.ctx, mouse_x, mouse_y)
+      ) {
         this.game_ctrl.btn_select.disable = true;
         this.setting_event_data.data = this.game_ctrl.btn_select.text;
         this.socket.emit(this.setting_event_name, this.setting_event_data);
@@ -1131,13 +1193,13 @@ class PageDuringGame extends PageBasic {
 
   _set_instruction() {
     if (this.game.dict_game_info.select_destination) {
-      this.lbl_instruction.text = "Please select your current destination among the circled options. It can be the same destination as you had previously selected.";
-    }
-    else {
+      this.lbl_instruction.text =
+        "Please select your current destination among the circled options. It can be the same destination as you had previously selected.";
+    } else {
       if (this.is_test) {
-        this.lbl_instruction.text = "Please choose your next action. If your destination has changed, please update it using the select destination button.";
-      }
-      else {
+        this.lbl_instruction.text =
+          "Please choose your next action. If your destination has changed, please update it using the select destination button.";
+      } else {
         this.lbl_instruction.text = "Please choose your next action.";
       }
     }
@@ -1147,18 +1209,19 @@ class PageDuringGame extends PageBasic {
     super.on_data_update(changed_obj);
 
     // select button status
-    if (this.use_manual_selection && !this.game.dict_game_info.select_destination) {
+    if (
+      this.use_manual_selection &&
+      !this.game.dict_game_info.select_destination
+    ) {
       this.game_ctrl.btn_select.disable = false;
-    }
-    else {
+    } else {
       this.game_ctrl.btn_select.disable = true;
     }
 
     // action buttons status
     if (this.game.dict_game_info.select_destination) {
       disable_actions(this.game.dict_game_info, this.game_ctrl, true);
-    }
-    else {
+    } else {
       disable_actions(this.game.dict_game_info, this.game_ctrl, false);
     }
 
@@ -1173,7 +1236,8 @@ class PageDuringGame extends PageBasic {
 class PageExperimentEnd extends PageBasic {
   constructor() {
     super();
-    this.button_text = "This session is now complete. Please proceed to the survey using the button below.";
+    this.button_text =
+      "This session is now complete. Please proceed to the survey using the button below.";
     this.do_emit = true;
   }
 
@@ -1182,13 +1246,19 @@ class PageExperimentEnd extends PageBasic {
 
     // completion button
     const fsize = 30;
-    this.lbl_end = new TextObject(0, this.canvas.height / 2 - fsize, this.canvas.width, fsize);
+    this.lbl_end = new TextObject(
+      0,
+      this.canvas.height / 2 - fsize,
+      this.canvas.width,
+      fsize
+    );
     this.lbl_end.text = this.button_text;
     this.lbl_end.text_align = "center";
     this.lbl_end.text_baseline = "middle";
 
-    this.lbl_instruction.text = "Instructions for each step will be shown here. " +
-      "Please click the \"Start\" button.";
+    this.lbl_instruction.text =
+      "Instructions for each step will be shown here. " +
+      'Please click the "Start" button.';
   }
 
   _set_emit_data() {
@@ -1211,7 +1281,5 @@ class PageExperimentEnd extends PageBasic {
     this.game_ctrl.lbl_score.draw(this.ctx);
   }
 
-
-  on_click(mouse_x, mouse_y) {
-  }
+  on_click(mouse_x, mouse_y) {}
 }

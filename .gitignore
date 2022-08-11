@@ -23,10 +23,15 @@ core/ai_coach_core/tests/*_data
 *.png
 *.log
 *.csv
+*.orig
 
 aws_data*
 data_old/
 logs/
 buffers/
 weights/
+node_modules/
+package-lock.json
+.eslintrc.json
+package.json
 

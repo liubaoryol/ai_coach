@@ -1,4 +1,3 @@
-from typing import Mapping, Hashable
 from flask import request, session
 from ai_coach_domain.box_push import (EventType, BoxState, conv_box_state_2_idx)
 from ai_coach_domain.box_push.simulator import BoxPushSimulator_AlwaysTogether
@@ -7,40 +6,17 @@ from ai_coach_domain.box_push.agent import (BoxPushSimpleAgent,
                                             BoxPushInteractiveAgent)
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
+import web_experiment.experiment1.task_data as td
 
-g_id_2_game = {}  # type: Mapping[Hashable, BoxPushSimulator_AlwaysTogether]
-EXP1_TUT_NAMESPACE = '/exp1_tutorial'
-SESSION_NAME = 'tutorial1'
-TASK_TYPE = event_impl.TASK_A
+SESSION_NAME = td.TUTORIAL1
+EXP1_TUT_NAMESPACE = '/' + td.EXP1_PAGENAMES[SESSION_NAME]
+TASK_TYPE = td.EXP1_TASK_TYPES[SESSION_NAME]
 
 AGENT1 = BoxPushSimulator_AlwaysTogether.AGENT1
 AGENT2 = BoxPushSimulator_AlwaysTogether.AGENT2
 GAME_MAP = TUTORIAL_MAP
 
-
-@socketio.on('connect', namespace=EXP1_TUT_NAMESPACE)
-def initial_canvas():
-  event_impl.initial_canvas(SESSION_NAME, TASK_TYPE)
-
-
-@socketio.on('my_echo', namespace=EXP1_TUT_NAMESPACE)
-def test_message(message):
-  event_impl.test_message(message)
-
-
-@socketio.on('disconnect_request', namespace=EXP1_TUT_NAMESPACE)
-def disconnect_request():
-  event_impl.disconnect_request()
-
-
-@socketio.on('my_ping', namespace=EXP1_TUT_NAMESPACE)
-def ping_pong():
-  event_impl.ping_pong()
-
-
-@socketio.on('disconnect', namespace=EXP1_TUT_NAMESPACE)
-def test_disconnect():
-  event_impl.test_disconnect(g_id_2_game)
+g_id_2_game = td.map_g_id_2_game[SESSION_NAME]
 
 
 @socketio.on('run_game', namespace=EXP1_TUT_NAMESPACE)

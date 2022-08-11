@@ -1,17 +1,29 @@
+<!-- prettier-ignore -->
 {% extends 'exp1_session_a_practice.html' %}
 {% block subtitle %}PRACTICE Session A1{% endblock %}
 
 {% block content %}
-<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
-  crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+<script
+  src="//code.jquery.com/jquery-1.12.4.min.js"
+  integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
-  crossorigin="anonymous"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8"
-  src="{{ url_for('exp1.static', filename='exp1_game_logic.js') }}"></script>
+  crossorigin="anonymous"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('exp1.static', filename='methods.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('exp1.static', filename='exp1_game_logic.js') }}"
+></script>
 <script type="text/javascript">
-
   page_list = [];
   page_list.push(new PageExperimentHome());
   page_list.push(new PageExperimentHome2());
@@ -19,17 +31,25 @@
   page_list[page_list.length - 1].use_manual_selection = false;
   page_list.push(new PageExperimentEnd());
 
-  initGlobalObject(page_list, "exp1_both_tell_align");
+  initGlobalObject(page_list, "{{ socket_name_space }}");
 </script>
 
-<canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
+<canvas
+  id="myCanvas"
+  width="900"
+  height="600"
+  style="border: 5px solid #000000"
+  tabindex="1"
+>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 
 <div>
   <div class="button-center">
     <form action="{{ url_for('survey.survey_both_tell_align') }}">
-      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed to Survey</button>
+      <button type="submit" value="submit" id="submit" {{ is_disabled }}>
+        Proceed to Survey
+      </button>
     </form>
   </div>
 </div>
