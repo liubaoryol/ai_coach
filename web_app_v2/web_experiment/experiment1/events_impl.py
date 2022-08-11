@@ -53,6 +53,8 @@ def initial_canvas(session_name, is_a):
 
   user = User.query.filter_by(userid=cur_user).first()
   done = False if session_name is None else getattr(user, session_name, False)
+  done = False
+  
   best_score = get_best_score(cur_user, is_a)
 
   dict_game_info = {

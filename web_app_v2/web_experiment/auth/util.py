@@ -55,6 +55,7 @@ def read_file(file_name):
   goals = EXP1_MAP['goals']
   drops = EXP1_MAP['drops']
   walls = EXP1_MAP['walls']
+  wall_dir = EXP1_MAP['wall_dir']
 
   with open(file_name, newline='') as txtfile:
     lines = txtfile.readlines()
@@ -107,7 +108,8 @@ def read_file(file_name):
           "a2_latent": a2_lat,
           "current_step": step,
           "a1_action": a1_act,
-          "a2_action": a2_act
+          "a2_action": a2_act,
+          "wall_dir": wall_dir
       })
   return traj
 
@@ -119,7 +121,8 @@ def update_canvas(env_id,
                   is_movers_domain=True):
   if 'dict' in session and 'index' in session:
     dict = session['dict'][session['index']]
-    event_impl.update_html_canvas(dict, env_id, False, namespace)
+    dict_update = event_impl.get_game_drawing_obj(dict, False, [], is_movers_domain)
+    event_impl.update_html_canvas(dict_update, env_id, namespace)
 
     # update latent states
     if update_latent:
