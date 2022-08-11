@@ -13,7 +13,8 @@ TASK_TYPE = event_impl.TASK_A
 # TOGETHER_NAMESPACE
 @socketio.on('connect', namespace=NAMESPACE)
 def initial_canvas():
-  event_impl.initial_canvas(session['session_name'], TASK_TYPE)
+  session_name = f"session_{session['session_name']}"
+  event_impl.initial_canvas(session_name, TASK_TYPE)
   update_canvas(request.sid,
                 NAMESPACE,
                 False,
