@@ -33,6 +33,8 @@ $(document).ready(function () {
   const prevBut = document.getElementById('prev');
   const indexBut = document.getElementById('index');
   const latentBut = document.getElementById('latent_button');
+  const customLatentField = document.getElementById('new_latent_state')
+  const dropDownList = document.getElementById('latent_states')
 
   // global object values 
   global_object.game_ltwh[2] = cnvs.height;
@@ -71,8 +73,21 @@ $(document).ready(function () {
     else {
       socket.emit('next');
     }
-
   }
+
+  // new latent state event listener
+  customLatentField.addEventListener("keyup", function (event) {
+    if (event.key === "Enter") {
+      if (dropDownList) {
+        dropDownList.add(new Option(value = customLatentField.value));
+        customLatentField.value
+      }
+    }
+    if (event.key === " ") {
+      event.preventDefault();
+      customLatentField.value = customLatentField.value + " ";
+    }
+  });
 
   // next button click event listener
   prevBut.addEventListener('click', onPrevClick, true);
