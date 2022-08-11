@@ -38,7 +38,7 @@ def collect(session_name, next_endpoint):
                            is_disabled=disabled,
                            session_name=session_name,
                            session_length=session['max_index'],
-                           max_value=session['max_index'] - 1,
+                           max_value=session['max_index'],
                            latent_states=lstates)
   elif session_name.startswith('b'):
     return render_template("indv_collect_latent.html",
@@ -46,7 +46,7 @@ def collect(session_name, next_endpoint):
                            is_disabled=disabled,
                            session_name=session_name,
                            session_length=session['max_index'],
-                           max_value=session['max_index'] - 1,
+                           max_value=session['max_index'],
                            latent_states=lstates)
 
 
@@ -80,4 +80,4 @@ def feedback(session_name, next_endpoint):
                          is_disabled=True,
                          session_name=session['session_name'],
                          session_length=session['max_index'],
-                         max_value=session['max_index'] - 1)
+                         max_value=session['max_index'])

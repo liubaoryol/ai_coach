@@ -24,7 +24,7 @@ def initial_canvas():
 
 @socketio.on('next', namespace=NAMESPACE)
 def next_index(msg):
-  if session['index'] < (session['max_index'] - 1):
+  if session['index'] < (session['max_index']):
     record_latent(msg)
     session['index'] += 1
     update_canvas(request.sid,
@@ -33,7 +33,8 @@ def next_index(msg):
                   mode="None",
                   is_movers_domain=TASK_TYPE)
   # find a better way to only store once
-  if session['index'] == (session['max_index'] - 1):
+  if session['index'] == (session['max_index']):
+    update_canvas(request.sid, NAMESPACE, False, mode = "None", is_movers_domain = TASK_TYPE)
     objs = {}
     objs_json = json.dumps(objs)
     print(session['latent_human_recorded'])
@@ -58,7 +59,7 @@ def prev_index():
 @socketio.on('index', namespace=NAMESPACE)
 def goto_index(msg):
   idx = int(msg['index'])
-  if (idx <= (session['max_index'] - 1) and idx >= 0):
+  if (idx <= (session['max_index']) and idx >= 0):
     session['index'] = idx
     update_canvas(request.sid,
                   NAMESPACE,

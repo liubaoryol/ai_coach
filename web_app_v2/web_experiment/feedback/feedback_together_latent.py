@@ -16,7 +16,8 @@ def initial_canvas():
 
 @socketio.on('next', namespace=TOGETHER_NAMESPACE)
 def next_index():
-  if session['index'] < (session['max_index'] - 1):
+
+  if session['index'] < (session['max_index']):
     session['index'] += 1
     update_canvas_helper(session['groupid'])
 
@@ -31,8 +32,7 @@ def prev_index():
 @socketio.on('index', namespace=TOGETHER_NAMESPACE)
 def goto_index(msg):
   idx = int(msg['index'])
-  print(session)
-  if (idx <= (session['max_index'] - 1) and idx >= 0):
+  if (idx <= (session['max_index']) and idx >= 0):
     session['index'] = idx
     update_canvas_helper(session['groupid'])
 

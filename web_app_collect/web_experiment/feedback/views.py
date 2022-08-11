@@ -25,9 +25,9 @@ def collect(session_name, next_endpoint):
 
     load_session_trajectory(session_name, g.user)
     lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
-
+    print(session['max_index'])
     if session_name.startswith('a'):
-        return render_template("together_collect_latent.html", cur_user = g.user, is_disabled = disabled, session_name = session_name, session_length = session['max_index'], max_value = session['max_index'] - 1, latent_states = lstates)
+        return render_template("together_collect_latent.html", cur_user = g.user, is_disabled = disabled, session_name = session_name, session_length = session['max_index'], max_value = session['max_index'], latent_states = lstates)
     elif session_name.startswith('b'):
-        return render_template("indv_collect_latent.html", cur_user = g.user, is_disabled = disabled, session_name = session_name, session_length = session['max_index'], max_value = session['max_index'] - 1, latent_states = lstates)
+        return render_template("indv_collect_latent.html", cur_user = g.user, is_disabled = disabled, session_name = session_name, session_length = session['max_index'], max_value = session['max_index'], latent_states = lstates)
                     

@@ -35,14 +35,15 @@ def load_session_trajectory(session_name, id):
     traj = read_file(file)
     session["dict"] = traj
     session['index'] = 0
-    session['max_index'] = len(traj)
+    session['max_index'] = len(traj) - 1
     session['replay_id'] = id
     session['session_name'] = session_name
     session['possible_latent_states'] = get_possible_latent_states(
         len(traj[0]['boxes']), len(traj[0]['drops']), len(traj[0]['goals']))
     # dummy latent human prediction
-    session['latent_human_predicted'] = [None] * session['max_index']
-    session['latent_human_recorded'] = [None] * session['max_index']
+    session['latent_human_predicted'] = [None] * len(traj)
+    session['latent_human_recorded'] = [None] * len(traj)
+    
 
     return error
 
