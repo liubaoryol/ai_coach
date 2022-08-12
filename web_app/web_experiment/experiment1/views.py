@@ -8,7 +8,7 @@ from . import exp1_bp
 for session_name in td.EXP1_PAGENAMES:
 
   def make_view_func(session_name):
-    def func_tmp():
+    def view_func():
       cur_user = g.user
       logging.info('User %s accesses to %s.' % (cur_user, session_name))
 
@@ -21,7 +21,7 @@ for session_name in td.EXP1_PAGENAMES:
                              cur_user=cur_user,
                              is_disabled=disabled)
 
-    return func_tmp
+    return view_func
 
   func = login_required(make_view_func(session_name))
   exp1_bp.add_url_rule('/' + td.EXP1_PAGENAMES[session_name],

@@ -19,6 +19,125 @@ class DrawingObject {
   }
 }
 
+class CircleSpotlight extends DrawingObject {
+  constructor(outer_ltwh, x_cen, y_cen, radius) {
+    super();
+    this.outer_ltwh = outer_ltwh;
+    this.x_cen = x_cen;
+    this.y_cen = y_cen;
+    this.radius = radius;
+    this.color = "grey";
+    this.alpha = 0.3;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.save();
+    context.beginPath();
+    context.rect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+    context.arc(this.x_cen, this.y_cen, this.radius, 0, Math.PI * 2, true);
+    context.clip();
+    context.globalAlpha = this.alpha;
+    context.fillStyle = this.color;
+    context.fillRect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+    context.restore();
+  }
+}
+
+class RectSpotlight extends DrawingObject {
+  constructor(outer_ltwh, inner_ltwh, color, alpha) {
+    super();
+    this.outer_ltwh = outer_ltwh;
+    this.inner_ltwh = inner_ltwh;
+    this.color = color;
+    this.alpha = alpha;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.save();
+    context.beginPath();
+    context.rect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+
+    context.moveTo(this.inner_ltwh[0], this.inner_ltwh[1]);
+    context.lineTo(this.inner_ltwh[0], this.inner_ltwh[1] + this.inner_ltwh[3]);
+    context.lineTo(
+      this.inner_ltwh[0] + this.inner_ltwh[2],
+      this.inner_ltwh[1] + this.inner_ltwh[3]
+    );
+    context.lineTo(this.inner_ltwh[0] + this.inner_ltwh[2], this.inner_ltwh[1]);
+
+    context.closePath();
+    // context.arc(x_cen, y_cen, radius, 0, Math.PI * 2, true);
+    context.clip();
+    context.globalAlpha = this.alpha;
+    context.fillStyle = this.color;
+    context.fillRect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+    context.restore();
+  }
+}
+
+class LineSegment extends DrawingObject {
+  constructor(x_start, y_start, x_end, y_end, color = "black", alpha = 1.0) {
+    super();
+    this.x_start = x_start;
+    this.y_start = y_start;
+    this.x_end = x_end;
+    this.y_end = y_end;
+    this.color = color;
+    this.alpha = alpha;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.strokeStyle = this.color;
+    context.globalAlpha = this.alpha;
+    context.beginPath();
+    context.moveTo(this.x_start, this.y_start);
+    context.lineTo(this.x_end, this.y_end);
+    context.stroke();
+  }
+}
+
+class Rectangle extends DrawingObject {
+  constructor(x_left, y_top, width, height, color = "white", alpha = 1.0) {
+    super();
+    this.x_left = x_left;
+    this.y_top = y_top;
+    this.width = width;
+    this.height = height;
+    this.color = color;
+    this.alpha = alpha;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.globalAlpha = this.alpha;
+    context.fillStyle = this.color;
+    context.fillRect(this.x_left, this.y_top, this.width, this.height);
+  }
+}
+
 class ButtonObject extends DrawingObject {
   constructor(x_origin, y_origin, width, height) {
     super();
@@ -89,15 +208,18 @@ class ButtonObject extends DrawingObject {
 
   _on_drawing_path(context) {
     if (this.mouse_over) {
+      context.globalAlpha = 1.0;
       context.fillStyle = "green";
       context.strokeStyle = "green";
     } else {
+      context.globalAlpha = 1.0;
       context.fillStyle = this.color;
       context.strokeStyle = this.color;
     }
   }
 
   _on_drawing_text(context) {
+    context.globalAlpha = 1.0;
     context.fillStyle = this.text_color;
   }
 
@@ -254,6 +376,7 @@ class TextObject extends DrawingObject {
 
   draw(context) {
     super.draw(context);
+    context.globalAlpha = 1.0;
     context.textAlign = this.text_align;
     context.textBaseline = this.text_baseline;
     context.font = "bold " + this.font_size + "px arial";
@@ -373,6 +496,7 @@ class Ellipse extends DrawingObject {
   draw(context) {
     super.draw(context);
     context.fillStyle = this.color;
+    context.globalAlpha = 1.0;
     const x_cen = this.left + this.w * 0.5;
     const y_cen = this.top + this.h * 0.5;
     const rad_x = this.w * 0.5;
@@ -402,6 +526,7 @@ class GameObject extends DrawingObject {
   draw(context) {
     super.draw(context);
     if (this.img != null) {
+      context.globalAlpha = 1.0;
       if (this.angle == 0.0) {
         context.drawImage(this.img, this.left, this.top, this.w, this.h);
       } else {
@@ -869,18 +994,6 @@ function go_to_prev_page(global_object, game, canvas, socket) {
   }
 }
 
-function draw_spotlight(context, canvas, x_cen, y_cen, radius, color, alpha) {
-  context.save();
-  context.beginPath();
-  context.rect(0, 0, canvas.width, canvas.height);
-  context.arc(x_cen, y_cen, radius, 0, Math.PI * 2, true);
-  context.clip();
-  context.globalAlpha = alpha;
-  context.fillStyle = color;
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  context.restore();
-}
-
 // Page Objects
 class PageBasic {
   // class for a page with the spotlight method
@@ -908,6 +1021,29 @@ class PageBasic {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.socket = socket;
+
+    this.boundary = new LineSegment(
+      this.game.game_ltwh[2],
+      0,
+      this.game.game_ltwh[2],
+      this.game.game_ltwh[3],
+      "black",
+      1.0
+    );
+
+    const margin = 5;
+    const x_left = this.game.game_ltwh[0] + this.game.game_ltwh[2] + margin;
+    const y_top = margin;
+    const wid = this.canvas.width - margin - x_left;
+    const hei = this.canvas.height * 0.5;
+    this.instruction_area = new Rectangle(
+      x_left,
+      y_top,
+      wid,
+      hei,
+      "white",
+      1.0
+    );
 
     this._init_ctrl_ui();
 
@@ -953,11 +1089,7 @@ class PageBasic {
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     if (this.draw_frame) {
-      this.ctx.strokeStyle = "black";
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.game.game_ltwh[2], 0);
-      this.ctx.lineTo(this.game.game_ltwh[2], this.game.game_ltwh[3]);
-      this.ctx.stroke();
+      this.boundary.draw(this.ctx);
     }
 
     this._draw_game(mouse_x, mouse_y);
@@ -969,13 +1101,7 @@ class PageBasic {
   _draw_ctrl_ui(mouse_x, mouse_y) {}
   _draw_instruction(mouse_x, mouse_y) {
     // instruction area
-    const margin = 5;
-    const x_left = this.game.game_ltwh[0] + this.game.game_ltwh[2] + margin;
-    const y_top = margin;
-    const wid = this.canvas.width - margin - x_left;
-    const hei = this.canvas.height * 0.5;
-    this.ctx.fillStyle = "white";
-    this.ctx.fillRect(x_left, y_top, wid, hei);
+    this.instruction_area.draw(this.ctx);
 
     // draw instruction
     this.lbl_instruction.draw(this.ctx);

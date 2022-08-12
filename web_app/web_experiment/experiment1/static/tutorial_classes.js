@@ -45,9 +45,7 @@ class PageHomeTutorial extends PageExperimentHome {
   constructor() {
     super();
 
-    this.x_cen = null;
-    this.y_cen = null;
-    this.radius = null;
+    this.spotlight = null;
   }
 
   _init_ctrl_ui() {
@@ -81,16 +79,8 @@ class PageHomeTutorial extends PageExperimentHome {
   }
 
   _draw_instruction(mouse_x, mouse_y) {
-    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
-      draw_spotlight(
-        this.ctx,
-        this.canvas,
-        this.x_cen,
-        this.y_cen,
-        this.radius,
-        "gray",
-        0.3
-      );
+    if (this.spotlight != null) {
+      this.spotlight.draw(this.ctx);
     }
 
     super._draw_instruction(mouse_x, mouse_y);
@@ -122,9 +112,12 @@ class PageInstruction extends PageHomeTutorial {
   _init_ctrl_ui() {
     super._init_ctrl_ui();
 
-    this.x_cen = this.lbl_instruction.x_left + 0.5 * this.lbl_instruction.width;
-    this.y_cen = (this.game.game_ltwh[3] * 1) / 5;
-    this.radius = this.y_cen * 0.1;
+    const x_cen =
+      this.lbl_instruction.x_left + 0.5 * this.lbl_instruction.width;
+    const y_cen = (this.game.game_ltwh[3] * 1) / 5;
+    const radius = y_cen * 0.1;
+    const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
+    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
 
     this.btn_next.disable = false;
     this.lbl_instruction.text =
@@ -151,9 +144,7 @@ class PageGameTutorial extends PageDuringGame {
   constructor() {
     super();
 
-    this.x_cen = null;
-    this.y_cen = null;
-    this.radius = null;
+    this.spotlight = null;
   }
 
   _init_ctrl_ui() {
@@ -186,16 +177,8 @@ class PageGameTutorial extends PageDuringGame {
   }
 
   _draw_instruction(mouse_x, mouse_y) {
-    if (this.x_cen != null && this.y_cen != null && this.radius != null) {
-      draw_spotlight(
-        this.ctx,
-        this.canvas,
-        this.x_cen,
-        this.y_cen,
-        this.radius,
-        "gray",
-        0.3
-      );
+    if (this.spotlight != null) {
+      this.spotlight.draw(this.ctx);
     }
 
     super._draw_instruction(mouse_x, mouse_y);
@@ -226,9 +209,12 @@ class PageJoystick extends PageGameTutorial {
 
   _init_ctrl_ui() {
     super._init_ctrl_ui();
-    this.x_cen = this.game_ctrl.list_joystick_btn[0].x_origin;
-    this.y_cen = this.game_ctrl.list_joystick_btn[0].y_origin;
-    this.radius = this.game_ctrl.list_joystick_btn[0].width * 1.7;
+    const x_cen = this.game_ctrl.list_joystick_btn[0].x_origin;
+    const y_cen = this.game_ctrl.list_joystick_btn[0].y_origin;
+    const radius = this.game_ctrl.list_joystick_btn[0].width * 1.7;
+    const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
+    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+
     this.clicked_btn = {};
   }
 
@@ -245,7 +231,7 @@ class PageJoystick extends PageGameTutorial {
       if (joy_btn.isPointInObject(this.ctx, mouse_x, mouse_y)) {
         this.action_event_data.data = joy_btn.text;
         this.socket.emit("action_event", this.action_event_data);
-        this.x_cen = null; // remove spotlight
+        this.spotlight = null; // remove spotlight
         this.clicked_btn[joy_btn.text] = 1;
         joy_btn.color = "LightGreen";
         const num_key = Object.keys(this.clicked_btn).length;
@@ -352,9 +338,11 @@ class PageTarget2 extends PageGameTutorial {
 
   _init_ctrl_ui() {
     super._init_ctrl_ui();
-    this.x_cen = this.game_ctrl.btn_hold.x_origin;
-    this.y_cen = this.game_ctrl.btn_hold.y_origin;
-    this.radius = this.game_ctrl.btn_hold.width * 0.6;
+    const x_cen = this.game_ctrl.btn_hold.x_origin;
+    const y_cen = this.game_ctrl.btn_hold.y_origin;
+    const radius = this.game_ctrl.btn_hold.width * 0.6;
+    const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
+    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
     this.btn_next.disable = true;
   }
 
@@ -386,7 +374,7 @@ class PageTarget2 extends PageGameTutorial {
   on_click(mouse_x, mouse_y) {
     // hold button
     if (this.game_ctrl.btn_hold.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      this.x_cen = null; // remove spotlight
+      this.spotlight = null; // remove spotlight
     }
 
     super.on_click(mouse_x, mouse_y);
@@ -395,7 +383,7 @@ class PageTarget2 extends PageGameTutorial {
   on_data_update(changed_obj) {
     super.on_data_update(changed_obj);
 
-    if (this.x_cen != null) {
+    if (this.spotlight != null) {
       disable_actions(this.game.dict_game_info, this.game_ctrl, true);
       this.game_ctrl.btn_hold.disable = false;
     }
@@ -441,11 +429,13 @@ class PageScore extends PageGameTutorial {
 
   _init_ctrl_ui() {
     super._init_ctrl_ui();
-    this.x_cen =
+    const x_cen =
       this.game_ctrl.lbl_score.x_left + 0.95 * this.game_ctrl.lbl_score.width;
-    this.y_cen =
+    const y_cen =
       this.game_ctrl.lbl_score.y_top + this.game_ctrl.lbl_score.font_size * 0.5;
-    this.radius = this.game_ctrl.lbl_score.font_size * 2;
+    const radius = this.game_ctrl.lbl_score.font_size * 2;
+    const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
+    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
     this.btn_next.disable = false;
 
     // since do_emit is false, we need to set instruction here
@@ -501,9 +491,12 @@ class PageTargetHint extends PageGameTutorial {
 
   _init_ctrl_ui() {
     super._init_ctrl_ui();
-    this.x_cen = this.lbl_instruction.x_left + 0.5 * this.lbl_instruction.width;
-    this.y_cen = (this.game.game_ltwh[3] * 1) / 5;
-    this.radius = this.y_cen * 0.1;
+    const x_cen =
+      this.lbl_instruction.x_left + 0.5 * this.lbl_instruction.width;
+    const y_cen = (this.game.game_ltwh[3] * 1) / 5;
+    const radius = this.y_cen * 0.1;
+    const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
+    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
     this.btn_next.disable = false;
   }
 
@@ -526,9 +519,12 @@ class PageTargetNoHint extends PageGameTutorial {
 
   _init_ctrl_ui() {
     super._init_ctrl_ui();
-    this.x_cen = this.lbl_instruction.x_left + 0.5 * this.lbl_instruction.width;
-    this.y_cen = (this.game.game_ltwh[3] * 1) / 5;
-    this.radius = this.y_cen * 0.1;
+    const x_cen =
+      this.lbl_instruction.x_left + 0.5 * this.lbl_instruction.width;
+    const y_cen = (this.game.game_ltwh[3] * 1) / 5;
+    const radius = this.y_cen * 0.1;
+    const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
+    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
     this.btn_next.disable = false;
   }
 
@@ -555,9 +551,11 @@ class PageUserLatent extends PageGameTutorial {
 
   _init_ctrl_ui() {
     super._init_ctrl_ui();
-    this.x_cen = this.game_ctrl.btn_select.x_origin;
-    this.y_cen = this.game_ctrl.btn_select.y_origin;
-    this.radius = this.game_ctrl.btn_select.width * 0.6;
+    const x_cen = this.game_ctrl.btn_select.x_origin;
+    const y_cen = this.game_ctrl.btn_select.y_origin;
+    const radius = this.game_ctrl.btn_select.width * 0.6;
+    const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
+    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
 
     this.btn_next.disable = true;
   }
@@ -578,7 +576,7 @@ class PageUserLatent extends PageGameTutorial {
 
   on_click(mouse_x, mouse_y) {
     if (this.game_ctrl.btn_select.isPointInObject(this.ctx, mouse_x, mouse_y)) {
-      this.x_cen = null;
+      this.spotlight = null;
     }
 
     super.on_click(mouse_x, mouse_y);
