@@ -37,18 +37,42 @@ EXP1_PAGENAMES = {
     TUTORIAL2: 'tutorial2',
 }
 
-EXP1_TASK_TYPES = {
-    SESSION_A1: True,
-    SESSION_A2: True,
-    SESSION_A3: True,
-    SESSION_A4: True,
-    SESSION_B1: False,
-    SESSION_B2: False,
-    SESSION_B3: False,
-    SESSION_B4: False,
-    SESSION_B5: False,
-    TUTORIAL1: True,
-    TUTORIAL2: False,
+EXP1_SESSION_TITLE = {
+    SESSION_A1: 'Session A1',
+    SESSION_A2: 'Session A2',
+    SESSION_A3: 'Session A3',
+    SESSION_A4: 'Session A4',
+    SESSION_B1: 'Session B1',
+    SESSION_B2: 'Session B2',
+    SESSION_B3: 'Session B3',
+    SESSION_B4: 'Session B4',
+    SESSION_B5: 'Session B5',
+    TUTORIAL1: 'Interactive Tutorial',
+    TUTORIAL2: 'Interactive Tutorial',
+}
+
+SURVEY_PAGENAMES = {
+    SESSION_A1: 'survey_both_tell_align',
+    SESSION_A2: 'survey_both_tell_align_2',
+    SESSION_A3: 'survey_both_user_random',
+    SESSION_A4: 'survey_both_user_random_2',
+    SESSION_B1: 'survey_indv_tell_align',
+    SESSION_B2: 'survey_indv_tell_random',
+    SESSION_B3: 'survey_indv_user_random',
+    SESSION_B4: 'survey_indv_user_random_2',
+    SESSION_B5: 'survey_indv_user_random_3',
+}
+
+SURVEY_ENDPOINT = {
+    SESSION_A1: 'survey.' + SURVEY_PAGENAMES[SESSION_A1],
+    SESSION_A2: 'survey.' + SURVEY_PAGENAMES[SESSION_A2],
+    SESSION_A3: 'survey.' + SURVEY_PAGENAMES[SESSION_A3],
+    SESSION_A4: 'survey.' + SURVEY_PAGENAMES[SESSION_A4],
+    SESSION_B1: 'survey.' + SURVEY_PAGENAMES[SESSION_B1],
+    SESSION_B2: 'survey.' + SURVEY_PAGENAMES[SESSION_B2],
+    SESSION_B3: 'survey.' + SURVEY_PAGENAMES[SESSION_B3],
+    SESSION_B4: 'survey.' + SURVEY_PAGENAMES[SESSION_B4],
+    SESSION_B5: 'survey.' + SURVEY_PAGENAMES[SESSION_B5],
 }
 
 map_g_id_2_game_data = {

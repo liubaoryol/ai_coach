@@ -2,6 +2,7 @@
 
 {% block header %}
 <h1>{% block title %}{% endblock %}</h1>
+<h2>{% block subtitle %}In-Experiment Survey: {{ session_title }}{% endblock %}</h2>
 <div class="explanation">
   <p>Please complete the following survey based on your experience in the previous task.</p>
 </div>
@@ -9,10 +10,10 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post" action={% block url %}{% endblock%} >
+  <form method="post" action="{{ post_endpoint }}">
     <div>
       <label class="statement" for="maintained">
-      During the task, I moved towards the locations circled in red.
+        During the task, I moved towards the locations circled in red.
       </label>
       <ul class='likert'>
         <li>
@@ -39,7 +40,7 @@
     </div>
     <div>
       <label class="statement" for="fluency">
-      The human-robot team worked fluently together.
+        The human-robot team worked fluently together.
       </label>
       <ul class='likert'>
         <li>
@@ -66,7 +67,7 @@
     </div>
     <div>
       <label class="statement" for="mycarry">
-      I was the most important team member on the team.
+        I was the most important team member on the team.
       </label>
       <ul class='likert'>
         <li>
@@ -93,7 +94,7 @@
     </div>
     <div>
       <label class="statement" for="robotcarry">
-      The robot contributed equally to the team performance.
+        The robot contributed equally to the team performance.
       </label>
       <ul class='likert'>
         <li>
@@ -120,7 +121,7 @@
     </div>
     <div>
       <label class="statement" for="robotperception">
-      The robot perceives accurately what my goals are.
+        The robot perceives accurately what my goals are.
       </label>
       <ul class='likert'>
         <li>
@@ -147,7 +148,7 @@
     </div>
     <div>
       <label class="statement" for="cooperative">
-      The robot was cooperative.
+        The robot was cooperative.
       </label>
       <ul class='likert'>
         <li>

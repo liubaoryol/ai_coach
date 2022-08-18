@@ -849,8 +849,6 @@ class GameData {
     if (this.loading) {
       return;
     }
-    console.log(this.dict_drawing_objs);
-    console.log(this.drawing_order);
     for (const item of this.drawing_order) {
       if (this.dict_drawing_objs.hasOwnProperty(item)) {
         const obj = this.dict_drawing_objs[item];
