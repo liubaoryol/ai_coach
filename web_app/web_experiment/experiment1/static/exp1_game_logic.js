@@ -2,14 +2,11 @@
 // global variables
 ///////////////////////////////////////////////////////////////////////////////
 var global_object = {};
-global_object.cur_page_idx = 0;
-global_object.game_ltwh = [0, 0, 0, 0];
 
 ///////////////////////////////////////////////////////////////////////////////
 // Initialization methods
 ///////////////////////////////////////////////////////////////////////////////
-function initGlobalObject(page_list, name_space) {
-  global_object.page_list = page_list;
+function initGlobalObject(name_space) {
   global_object.name_space = name_space;
 }
 
@@ -32,8 +29,12 @@ $(document).ready(function () {
     false
   );
 
+  // alias
+  const cnvs = document.getElementById("myCanvas");
+  const context = cnvs.getContext("2d");
+
   // Connect to the Socket.IO server.
-  const socket = io(
+  var socket = io(
     "http://" +
       document.domain +
       ":" +
@@ -42,20 +43,11 @@ $(document).ready(function () {
       global_object.name_space
   );
 
-  // alias
-  const cnvs = document.getElementById("myCanvas");
-
-  // global object values
-  global_object.game_ltwh[2] = cnvs.height;
-  global_object.game_ltwh[3] = cnvs.height;
-  /////////////////////////////////////////////////////////////////////////////
-  // game data
-  /////////////////////////////////////////////////////////////////////////////
-  let game_data = new GameData(global_object.game_ltwh);
-
   /////////////////////////////////////////////////////////////////////////////
   // game control logics
   /////////////////////////////////////////////////////////////////////////////
+  let game_data = new GameData(cnvs.width, cnvs.height);
+
   let x_mouse = -1;
   let y_mouse = -1;
 
@@ -64,7 +56,7 @@ $(document).ready(function () {
   function onClick(event) {
     let x_m = event.offsetX;
     let y_m = event.offsetY;
-    global_object.page_list[global_object.cur_page_idx].on_click(x_m, y_m);
+    game_data.on_click(context, socket, x_m, y_m);
   }
 
   // mouse move event listner
@@ -74,42 +66,25 @@ $(document).ready(function () {
     y_mouse = event.offsetY;
   }
 
-  // init canvas
-  socket.on("init_canvas", function (json_msg) {
-    const json_obj = JSON.parse(json_msg);
-    game_data.process_json_obj(json_obj);
-
-    // set page
-    if (game_data.dict_game_info.done) {
-      global_object.cur_page_idx = global_object.page_list.length - 1;
-    } else {
-      global_object.cur_page_idx = 0;
-    }
-
-    global_object.page_list[global_object.cur_page_idx].init_page(
-      global_object,
-      game_data,
-      cnvs,
-      socket
-    );
-  });
+  // // init canvas
+  // socket.on("init_canvas", function (json_msg) {
+  //   const json_obj = JSON.parse(json_msg);
+  //   game_data.process_json_obj(json_obj);
+  // });
 
   // update
-  socket.on("draw_canvas", function (json_msg) {
+  socket.on("update_gamedata", function (json_msg) {
     const json_obj = JSON.parse(json_msg);
     game_data.process_json_obj(json_obj);
-
-    // update page
-    global_object.page_list[global_object.cur_page_idx].on_data_update(null);
-    global_object.page_list[global_object.cur_page_idx].process_json_obj(
-      json_obj
-    );
+    game_data.loading = false;
   });
 
   // set task end behavior
   socket.on("task_end", function () {
-    if (document.getElementById("submit").disabled) {
-      document.getElementById("submit").disabled = false;
+    if (document.getElementById("submit") != null) {
+      if (document.getElementById("submit").disabled) {
+        document.getElementById("submit").disabled = false;
+      }
     }
   });
 
@@ -120,26 +95,19 @@ $(document).ready(function () {
   function update_scene(timestamp) {
     const cur_time = performance.now();
     const elapsed = cur_time - old_time_stamp;
-
     if (elapsed > update_duration) {
       old_time_stamp = cur_time;
 
       // animation
-      for (const key in game_data.dict_animations) {
-        const item = game_data.dict_animations[key];
+      for (const [key, item] of Object.entries(game_data.dict_animations)) {
         if (item.is_finished()) {
           delete game_data.dict_animations[key];
         } else {
           item.animate();
         }
       }
-
-      global_object.page_list[global_object.cur_page_idx].draw_page(
-        x_mouse,
-        y_mouse
-      );
+      game_data.draw_game(context, x_mouse, y_mouse);
     }
-
     requestAnimationFrame(update_scene);
   }
 

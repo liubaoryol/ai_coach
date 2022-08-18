@@ -14,6 +14,8 @@ for session_name in td.EXP1_PAGENAMES:
 
       query_data = User.query.filter_by(userid=cur_user).first()
       disabled = ''
+      print(cur_user + " - " + session_name)
+      print(getattr(query_data, session_name))
       if not getattr(query_data, session_name):
         disabled = 'disabled'
       return render_template(td.EXP1_PAGENAMES[session_name] + '.html',

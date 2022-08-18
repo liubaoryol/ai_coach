@@ -91,7 +91,7 @@ class BoxPushSimulator(Simulator):
       self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
     if self.agent_2 is not None:
       self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
-    self.changed_state = []
+    self.changed_state = set()
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
@@ -134,7 +134,7 @@ class BoxPushSimulator(Simulator):
 
     self._transition(a1_action, a2_action)
     self.current_step += 1
-    self.changed_state.append("current_step")
+    self.changed_state.add("current_step")
 
     # update mental model
     tuple_actions = (a1_action, a2_action)
@@ -142,8 +142,8 @@ class BoxPushSimulator(Simulator):
                                      self.get_state_for_each_agent(self.AGENT1))
     self.agent_2.update_mental_state(a2_cur_state, tuple_actions,
                                      self.get_state_for_each_agent(self.AGENT2))
-    self.changed_state.append("a1_latent")
-    self.changed_state.append("a2_latent")
+    self.changed_state.add("a1_latent")
+    self.changed_state.add("a2_latent")
 
   def _transition(self, a1_action, a2_action):
     list_next_env = self.transition_fn(self.box_states, self.a1_pos,
@@ -161,9 +161,9 @@ class BoxPushSimulator(Simulator):
     self.a2_pos = a2_pos
     self.box_states = box_states
 
-    self.changed_state.append("a1_pos")
-    self.changed_state.append("a2_pos")
-    self.changed_state.append("box_states")
+    self.changed_state.add("a1_pos")
+    self.changed_state.add("a2_pos")
+    self.changed_state.add("box_states")
 
   def get_num_box_state(self):
     '''
@@ -186,13 +186,13 @@ class BoxPushSimulator(Simulator):
         self.agent_1.set_action(event_type)
       else:
         self.agent_1.set_latent(value)
-        self.changed_state.append("a1_latent")
+        self.changed_state.add("a1_latent")
     elif agent == BoxPushSimulator.AGENT2:
       if event_type != EventType.SET_LATENT:
         self.agent_2.set_action(event_type)
       else:
         self.agent_2.set_latent(value)
-        self.changed_state.append("a2_latent")
+        self.changed_state.add("a2_latent")
 
   def get_joint_action(self) -> Mapping[Hashable, Hashable]:
 
@@ -230,7 +230,7 @@ class BoxPushSimulator(Simulator):
         dict_changed_obj[state] = self.agent_2.get_current_latent()
       else:
         dict_changed_obj[state] = getattr(self, state)
-    self.changed_state = []
+    self.changed_state = set()
     return dict_changed_obj
 
   def save_history(self, file_name, header):

@@ -11,13 +11,14 @@ class PageTutorialStart extends PageBasic {
 
     // tutorial start button
     this.btn_tutorial = new ButtonRect(
+      "Interactive Tutorial",
       this.canvas.width / 2,
       this.canvas.height / 2,
       this.game.game_ltwh[2] / 2,
       this.game.game_ltwh[3] / 5,
-      "Interactive Tutorial"
+      "Interactive Tutorial",
+      30
     );
-    this.btn_tutorial.font = "bold 30px arial";
     this.btn_tutorial.disable = false;
   }
 
@@ -57,21 +58,23 @@ class PageHomeTutorial extends PageExperimentHome {
     const next_btn_height = next_btn_width * 0.5;
     const mrgn = 10;
     this.btn_next = new ButtonRect(
+      "Next",
       this.canvas.width - next_btn_width * 0.5 - mrgn,
       this.canvas.height * 0.5 - 0.5 * next_btn_height - mrgn,
       next_btn_width,
       next_btn_height,
-      "Next"
+      "Next",
+      18
     );
-    this.btn_next.font = "bold 18px arial";
     this.btn_prev = new ButtonRect(
+      "Prev",
       game_r + next_btn_width * 0.5 + mrgn,
       this.canvas.height * 0.5 - 0.5 * next_btn_height - mrgn,
       next_btn_width,
       next_btn_height,
-      "Prev"
+      "Prev",
+      18
     );
-    this.btn_prev.font = "bold 18px arial";
 
     this.btn_prev.disable = false;
     this.btn_next.disable = true;
@@ -117,7 +120,13 @@ class PageInstruction extends PageHomeTutorial {
     const y_cen = (this.game.game_ltwh[3] * 1) / 5;
     const radius = y_cen * 0.1;
     const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
-    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+    this.spotlight = new CircleSpotlight(
+      "Spotlight",
+      canvas_ltwh,
+      x_cen,
+      y_cen,
+      radius
+    );
 
     this.btn_next.disable = false;
     this.lbl_instruction.text =
@@ -156,21 +165,23 @@ class PageGameTutorial extends PageDuringGame {
     const next_btn_height = next_btn_width * 0.5;
     const mrgn = 10;
     this.btn_next = new ButtonRect(
+      "Next",
       this.canvas.width - next_btn_width * 0.5 - mrgn,
       this.canvas.height * 0.5 - 0.5 * next_btn_height - mrgn,
       next_btn_width,
       next_btn_height,
-      "Next"
+      "Next",
+      18
     );
-    this.btn_next.font = "bold 18px arial";
     this.btn_prev = new ButtonRect(
+      "Prev",
       game_r + next_btn_width * 0.5 + mrgn,
       this.canvas.height * 0.5 - 0.5 * next_btn_height - mrgn,
       next_btn_width,
       next_btn_height,
-      "Prev"
+      "Prev",
+      18
     );
-    this.btn_prev.font = "bold 18px arial";
 
     this.btn_prev.disable = false;
     this.btn_next.disable = true;
@@ -213,7 +224,13 @@ class PageJoystick extends PageGameTutorial {
     const y_cen = this.game_ctrl.list_joystick_btn[0].y_origin;
     const radius = this.game_ctrl.list_joystick_btn[0].width * 1.7;
     const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
-    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+    this.spotlight = new CircleSpotlight(
+      "Spotlight",
+      canvas_ltwh,
+      x_cen,
+      y_cen,
+      radius
+    );
 
     this.clicked_btn = {};
   }
@@ -342,7 +359,13 @@ class PageTarget2 extends PageGameTutorial {
     const y_cen = this.game_ctrl.btn_hold.y_origin;
     const radius = this.game_ctrl.btn_hold.width * 0.6;
     const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
-    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+    this.spotlight = new CircleSpotlight(
+      "Spotlight",
+      canvas_ltwh,
+      x_cen,
+      y_cen,
+      radius
+    );
     this.btn_next.disable = true;
   }
 
@@ -435,7 +458,13 @@ class PageScore extends PageGameTutorial {
       this.game_ctrl.lbl_score.y_top + this.game_ctrl.lbl_score.font_size * 0.5;
     const radius = this.game_ctrl.lbl_score.font_size * 2;
     const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
-    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+    this.spotlight = new CircleSpotlight(
+      "Spotlight",
+      canvas_ltwh,
+      x_cen,
+      y_cen,
+      radius
+    );
     this.btn_next.disable = false;
 
     // since do_emit is false, we need to set instruction here
@@ -496,7 +525,13 @@ class PageTargetHint extends PageGameTutorial {
     const y_cen = (this.game.game_ltwh[3] * 1) / 5;
     const radius = this.y_cen * 0.1;
     const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
-    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+    this.spotlight = new CircleSpotlight(
+      "Spotlight",
+      canvas_ltwh,
+      x_cen,
+      y_cen,
+      radius
+    );
     this.btn_next.disable = false;
   }
 
@@ -524,7 +559,13 @@ class PageTargetNoHint extends PageGameTutorial {
     const y_cen = (this.game.game_ltwh[3] * 1) / 5;
     const radius = this.y_cen * 0.1;
     const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
-    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+    this.spotlight = new CircleSpotlight(
+      "Spotlight",
+      canvas_ltwh,
+      x_cen,
+      y_cen,
+      radius
+    );
     this.btn_next.disable = false;
   }
 
@@ -555,7 +596,13 @@ class PageUserLatent extends PageGameTutorial {
     const y_cen = this.game_ctrl.btn_select.y_origin;
     const radius = this.game_ctrl.btn_select.width * 0.6;
     const canvas_ltwh = [0, 0, this.canvas.width, this.canvas.height];
-    this.spotlight = new CircleSpotlight(canvas_ltwh, x_cen, y_cen, radius);
+    this.spotlight = new CircleSpotlight(
+      "Spotlight",
+      canvas_ltwh,
+      x_cen,
+      y_cen,
+      radius
+    );
 
     this.btn_next.disable = true;
   }
@@ -636,7 +683,7 @@ class PageSelectionPrompt extends PageGameTutorial {
 
   _set_instruction() {
     this.lbl_instruction.text =
-      "We will also prompt the destination selection automatically and periodically during the TEST sessions. " +
+      "We will also prompt the destination selection auto-matically and periodically during the TEST sessions. " +
       "Please move the human player several steps. When the destination selection is prompted, " +
       "please click on your current destination.";
   }
@@ -661,7 +708,7 @@ class PageMiniGame extends PageGameTutorial {
     this.lbl_instruction.text =
       "Now, we are at the final step of the tutorial. " +
       "Feel free to interact with the interface and get familiar with the task. " +
-      "You can also press the back button to revisit any of the previous prompts. " +
+      "You can also press the back button to revisit any of the previous prompts. \n" +
       "Once you are ready, please proceed to the PRACTICE sessions " +
       "(using the button at the bottom of this page).";
   }
