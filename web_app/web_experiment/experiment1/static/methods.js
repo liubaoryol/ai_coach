@@ -628,6 +628,49 @@ class Vibrate extends Animation {
   }
 }
 
+class SpinningCircle {
+  constructor(canvas_width, canvas_height) {
+    this.start = performance.now();
+    this.lines = 16;
+    this.canvas_width = canvas_width;
+    this.canvas_height = canvas_height;
+    this.disable = false;
+  }
+
+  on() {
+    this.start = performance.now();
+    this.disable = false;
+  }
+
+  off() {
+    this.disable = true;
+  }
+
+  draw(context) {
+    if (this.disable) {
+      return;
+    }
+
+    // ref: http://jsfiddle.net/qKkkw/
+    const rotation =
+      parseInt(((performance.now() - this.start) / 1000) * this.lines) /
+      this.lines;
+    context.save();
+    context.translate(this.canvas_width / 2, this.canvas_height / 2);
+    context.rotate(Math.PI * 2 * rotation);
+    for (let i = 0; i < this.lines; i++) {
+      context.beginPath();
+      context.rotate((Math.PI * 2) / this.lines);
+      context.moveTo(this.canvas_width / 50, 0);
+      context.lineTo(this.canvas_width / 20, 0);
+      context.lineWidth = this.canvas_width / 150;
+      context.strokeStyle = "rgba(0,0,0," + i / this.lines + ")";
+      context.stroke();
+    }
+    context.restore();
+  }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // game object
 class GameData {
@@ -636,16 +679,12 @@ class GameData {
     this.canvas_height = canvas_height;
 
     this.dict_imgs = {};
-    // this.dict_game_info = {
-    //   done: false,
-    //   user_id: "",
-    // };
     this.dict_drawing_objs = {};
     this.drawing_order = [];
     this.dict_animations = {};
 
     this.ani_idx = 0;
-    this.loading = false;
+    this.spinning_circle = new SpinningCircle(canvas_width, canvas_height);
   }
 
   process_json_obj(obj_json) {
@@ -836,12 +875,8 @@ class GameData {
       }
     }
 
-    if (this.loading) {
-      context.beginPath();
-      context.globalAlpha = 0.3;
-      context.fillStyle = "grey";
-      context.fillRect(0, 0, this.canvas_width, this.canvas_height);
-    }
+    // loading
+    this.spinning_circle.draw(context);
   }
 
   // change this to accept callback function
@@ -855,7 +890,7 @@ class GameData {
         if (obj.interactive) {
           if (obj.isPointInObject(context, x_mouse, y_mouse)) {
             socket.emit("button_clicked", { name: obj.name });
-            this.loading = true;
+            this.spinning_circle.on();
           }
         }
       }

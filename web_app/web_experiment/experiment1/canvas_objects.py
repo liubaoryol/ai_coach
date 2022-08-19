@@ -35,6 +35,7 @@ IMG_ROBOT_BAG = 'robot_bag'
 SEL_LAYER = "translucent layer"
 BOX_ORIGIN = "box origin"
 CUR_LATENT = "human latent"
+PO_LAYER = "po layer"
 
 
 def latent2selbtn(latent):

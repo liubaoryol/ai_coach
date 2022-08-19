@@ -66,17 +66,11 @@ $(document).ready(function () {
     y_mouse = event.offsetY;
   }
 
-  // // init canvas
-  // socket.on("init_canvas", function (json_msg) {
-  //   const json_obj = JSON.parse(json_msg);
-  //   game_data.process_json_obj(json_obj);
-  // });
-
   // update
   socket.on("update_gamedata", function (json_msg) {
     const json_obj = JSON.parse(json_msg);
     game_data.process_json_obj(json_obj);
-    game_data.loading = false;
+    game_data.spinning_circle.off();
   });
 
   // set task end behavior

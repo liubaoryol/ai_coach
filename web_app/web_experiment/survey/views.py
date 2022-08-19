@@ -6,8 +6,8 @@ from flask import (flash, g, redirect, render_template, request, url_for,
 from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
-import web_experiment.survey.names as sn
 import web_experiment.experiment1.task_data as td
+import web_experiment.survey.names as sn
 from . import survey_bp
 
 
@@ -151,7 +151,7 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name):
   return render_template(current_html_file,
                          answers=survey_answers,
                          post_endpoint=url_for(
-                             td.SURVEY_ENDPOINT[session_name]),
+                             sn.SURVEY_ENDPOINT[session_name]),
                          session_title=td.EXP1_SESSION_TITLE[session_name])
 
 
@@ -167,8 +167,8 @@ for idx in range(len(td.LIST_SESSIONS)):
     return inexp_survey_view
 
   func = login_required(make_inexp_survey_view(idx))
-  survey_bp.add_url_rule('/' + td.SURVEY_PAGENAMES[session_name],
-                         td.SURVEY_PAGENAMES[session_name],
+  survey_bp.add_url_rule('/' + sn.SURVEY_PAGENAMES[session_name],
+                         sn.SURVEY_PAGENAMES[session_name],
                          func,
                          methods=('GET', 'POST'))
 

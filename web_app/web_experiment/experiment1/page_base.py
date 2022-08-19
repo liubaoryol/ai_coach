@@ -14,6 +14,7 @@ class GameFlags:
   action_count: int = 0
   clicked_btn: Set[str] = field(default_factory=set)
   aligned_a2_action: bool = False
+  partial_obs: bool = False
 
 
 class UserGameData:
@@ -173,6 +174,7 @@ class CanvasPageBase(abc.ABC):
     if self._SHOW_GAME and game_env is not None:
       game_objs = self._game_scene(game_env,
                                    self._IS_MOVERS,
+                                   flags,
                                    include_background=True)
       for obj in game_objs:
         dict_objs[obj.name] = obj
@@ -206,6 +208,29 @@ class CanvasPageBase(abc.ABC):
     a1_box, _ = get_holding_box_idx(game_env["box_states"], num_drops,
                                     num_goals)
     overlay_obs = []
+
+    if flags.partial_obs:
+      po_outer_ltwh = [
+          self.GAME_LEFT, self.GAME_TOP, self.GAME_WIDTH, self.GAME_HEIGHT
+      ]
+      a1_pos = game_env["a1_pos"]
+      x_grid = game_env["x_grid"]
+      y_grid = game_env["y_grid"]
+      inner_left = max(0, a1_pos[0] - 1)
+      inner_top = max(0, a1_pos[1] - 1)
+      inner_right = min(a1_pos[0] + 2, x_grid)
+      inner_bottom = min(a1_pos[1] + 2, y_grid)
+      inner_width = inner_right - inner_left
+      inner_height = inner_bottom - inner_top
+
+      pos = coord_2_canvas(inner_left, inner_top)
+      size = size_2_canvas(inner_width, inner_height)
+      po_inner_ltwh = [pos[0], pos[1], size[0], size[1]]
+      obj = co.RectSpotlight(co.PO_LAYER,
+                             po_outer_ltwh,
+                             po_inner_ltwh,
+                             alpha=0.3)
+      overlay_obs.append(obj)
 
     if show_latent:
       a1_latent = game_env["a1_latent"]
@@ -297,6 +322,9 @@ class CanvasPageBase(abc.ABC):
                                     num_goals)
     overlay_names = []
 
+    if flags.partial_obs:
+      overlay_names.append(co.PO_LAYER)
+
     if show_latent:
       a1_latent = game_env["a1_latent"]
       if a1_latent is not None:
@@ -341,7 +369,8 @@ class CanvasPageBase(abc.ABC):
   def _game_scene(self,
                   game_env,
                   is_movers,
-                  include_background=True) -> List[co.DrawingObject]:
+                  flags: GameFlags,
+                  include_background: bool = True) -> List[co.DrawingObject]:
     x_grid = game_env["x_grid"]
     y_grid = game_env["y_grid"]
 
@@ -463,9 +492,20 @@ class CanvasPageBase(abc.ABC):
                           size_2_canvas(wid, hei), 0, co.IMG_ROBOT)
       game_objs.append(obj)
 
+    # if flags.partial_obs:
+    #   a1_pos = game_env["a1_pos"]
+    #   a2_pos = game_env["a2_pos"]
+    #   diff = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
+    #   if diff > 1:
+    #     new_game_obj = []
+    #     for obj in game_objs:
+    #       if obj.name != co.IMG_ROBOT and obj.name != co.IMG_ROBOT_BAG:
+    #         new_game_obj.append(obj)
+    #     game_objs = new_game_obj
+
     return game_objs
 
-  def _game_scene_names(self, game_env, is_movers) -> List:
+  def _game_scene_names(self, game_env, is_movers, flags: GameFlags) -> List:
     drawing_names = []
     for idx, _ in enumerate(game_env["boxes"]):
       drawing_names.append(co.BOX_ORIGIN + str(idx))
@@ -506,6 +546,17 @@ class CanvasPageBase(abc.ABC):
 
     if a2_hold_box < 0:
       drawing_names.append(co.IMG_ROBOT)
+
+    if flags.partial_obs:
+      a1_pos = game_env["a1_pos"]
+      a2_pos = game_env["a2_pos"]
+      diff = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
+      if diff > 1:
+        new_drawing_names = []
+        for obj in drawing_names:
+          if obj != co.IMG_ROBOT and obj != co.IMG_ROBOT_BAG:
+            new_drawing_names.append(obj)
+        drawing_names = new_drawing_names
 
     return drawing_names
 

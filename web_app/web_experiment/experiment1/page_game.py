@@ -198,7 +198,7 @@ class CanvasPageGame(pg.CanvasPageBase):
     drawing_order.append(self.GAME_BORDER)
 
     drawing_order = drawing_order + self._game_scene_names(
-        game_env, self._IS_MOVERS)
+        game_env, self._IS_MOVERS, flags)
     drawing_order = drawing_order + self._game_overlay_names(
         game_env, flags, not flags.select)
     drawing_order = drawing_order + co.ACTION_BUTTONS
@@ -297,7 +297,7 @@ class CanvasPageGame(pg.CanvasPageBase):
       game_updated: bool = True) -> Mapping[str, co.DrawingObject]:
     dict_objs = {}
     if game_updated:
-      for obj in self._game_scene(game_env, self._IS_MOVERS, False):
+      for obj in self._game_scene(game_env, self._IS_MOVERS, flags, False):
         dict_objs[obj.name] = obj
 
       obj = self._get_score_obj(game_env["current_step"], best_score)

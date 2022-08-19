@@ -167,7 +167,7 @@ class CanvasPageTutorialBase(pgg.CanvasPageGame):
     drawing_order.append(self.GAME_BORDER)
 
     drawing_order = drawing_order + self._game_scene_names(
-        game_env, self._IS_MOVERS)
+        game_env, self._IS_MOVERS, flags)
     drawing_order = drawing_order + self._game_overlay_names(
         game_env, flags, not flags.select)
     drawing_order = drawing_order + co.ACTION_BUTTONS

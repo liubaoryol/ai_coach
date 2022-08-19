@@ -3,6 +3,7 @@ from flask import render_template, g, url_for
 from web_experiment.auth.functions import login_required
 from web_experiment.models import User
 import web_experiment.experiment1.task_data as td
+import web_experiment.survey.names as sn
 from . import exp1_bp
 
 EXP1_TEMPLATE = {
@@ -20,15 +21,15 @@ EXP1_TEMPLATE = {
 }
 
 EXP1_NEXT_ENDPOINT = {
-    td.SESSION_A1: td.SURVEY_ENDPOINT[td.SESSION_A1],
-    td.SESSION_A2: td.SURVEY_ENDPOINT[td.SESSION_A2],
-    td.SESSION_A3: td.SURVEY_ENDPOINT[td.SESSION_A3],
-    td.SESSION_A4: td.SURVEY_ENDPOINT[td.SESSION_A4],
-    td.SESSION_B1: td.SURVEY_ENDPOINT[td.SESSION_B1],
-    td.SESSION_B2: td.SURVEY_ENDPOINT[td.SESSION_B2],
-    td.SESSION_B3: td.SURVEY_ENDPOINT[td.SESSION_B3],
-    td.SESSION_B4: td.SURVEY_ENDPOINT[td.SESSION_B4],
-    td.SESSION_B5: td.SURVEY_ENDPOINT[td.SESSION_B5],
+    td.SESSION_A1: sn.SURVEY_ENDPOINT[td.SESSION_A1],
+    td.SESSION_A2: sn.SURVEY_ENDPOINT[td.SESSION_A2],
+    td.SESSION_A3: sn.SURVEY_ENDPOINT[td.SESSION_A3],
+    td.SESSION_A4: sn.SURVEY_ENDPOINT[td.SESSION_A4],
+    td.SESSION_B1: sn.SURVEY_ENDPOINT[td.SESSION_B1],
+    td.SESSION_B2: sn.SURVEY_ENDPOINT[td.SESSION_B2],
+    td.SESSION_B3: sn.SURVEY_ENDPOINT[td.SESSION_B3],
+    td.SESSION_B4: sn.SURVEY_ENDPOINT[td.SESSION_B4],
+    td.SESSION_B5: sn.SURVEY_ENDPOINT[td.SESSION_B5],
     td.TUTORIAL1: 'exp1.' + td.EXP1_PAGENAMES[td.SESSION_A1],
     td.TUTORIAL2: 'exp1.' + td.EXP1_PAGENAMES[td.SESSION_B1],
 }
