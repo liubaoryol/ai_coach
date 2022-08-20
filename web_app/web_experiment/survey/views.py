@@ -6,7 +6,7 @@ from flask import (flash, g, redirect, render_template, request, url_for,
 from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
-import web_experiment.experiment1.task_data as td
+import web_experiment.experiment1.task_define as td
 import web_experiment.survey.names as sn
 from . import survey_bp
 

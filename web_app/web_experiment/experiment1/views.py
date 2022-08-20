@@ -2,7 +2,7 @@ import logging
 from flask import render_template, g, url_for
 from web_experiment.auth.functions import login_required
 from web_experiment.models import User
-import web_experiment.experiment1.task_data as td
+import web_experiment.experiment1.task_define as td
 import web_experiment.survey.names as sn
 from . import exp1_bp
 

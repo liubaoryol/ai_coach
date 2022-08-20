@@ -1,12 +1,15 @@
+from typing import Mapping, Any
 import json
 import logging
 from flask import (session, request, current_app, url_for)
 from flask_socketio import emit
 from web_experiment import socketio
 from web_experiment.models import User
-import web_experiment.experiment1.task_data as td
+import web_experiment.experiment1.task_define as td
 import web_experiment.experiment1.page_base as pg
 import web_experiment.experiment1.canvas_objects as co
+
+g_id_2_game_data = {}  # type: Mapping[Any, pg.UserGameData]
 
 
 def initial_canvas(session_name):
@@ -14,11 +17,11 @@ def initial_canvas(session_name):
   user = User.query.filter_by(userid=cur_user).first()
 
   env_id = request.sid
-  td.map_g_id_2_game_data[session_name][env_id] = pg.UserGameData(user=user)
+  g_id_2_game_data[env_id] = pg.UserGameData(user=user)
 
   done = getattr(user, session_name, False)
 
-  user_game_data = td.map_g_id_2_game_data[session_name][env_id]
+  user_game_data = g_id_2_game_data[env_id]
   user_game_data.num_pages = len(td.EXP1_GAMEPAGES[session_name])
   user_game_data.session_name = session_name
   user_game_data.save_path = current_app.config["TRAJECTORY_PATH"]
@@ -57,17 +60,15 @@ def initial_canvas(session_name):
 
 
 def disconnected(session_name):
-  id_2_game_data = td.map_g_id_2_game_data[session_name]
-
   env_id = request.sid
   # finish current game
-  if env_id in id_2_game_data:
-    del id_2_game_data[env_id]
+  if env_id in g_id_2_game_data:
+    del g_id_2_game_data[env_id]
 
 
 def button_clicked(button, session_name):
   env_id = request.sid
-  user_game_data = td.map_g_id_2_game_data[session_name][env_id]
+  user_game_data = g_id_2_game_data[env_id]
   page_idx = user_game_data.cur_page_idx
   prev_task_done = getattr(user_game_data.user, session_name, False)
 

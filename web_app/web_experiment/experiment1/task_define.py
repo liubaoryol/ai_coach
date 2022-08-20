@@ -1,5 +1,5 @@
 from typing import Mapping, Any, Sequence
-from web_experiment.experiment1.page_base import CanvasPageBase, UserGameData
+from web_experiment.experiment1.page_base import CanvasPageBase
 import web_experiment.experiment1.page_exp1_common as pgc
 import web_experiment.experiment1.page_exp1_game as pge
 import web_experiment.experiment1.page_tutorial as pgt
@@ -50,20 +50,6 @@ EXP1_SESSION_TITLE = {
     TUTORIAL1: 'Interactive Tutorial',
     TUTORIAL2: 'Interactive Tutorial',
 }
-
-map_g_id_2_game_data = {
-    SESSION_A1: {},
-    SESSION_A2: {},
-    SESSION_A3: {},
-    SESSION_A4: {},
-    SESSION_B1: {},
-    SESSION_B2: {},
-    SESSION_B3: {},
-    SESSION_B4: {},
-    SESSION_B5: {},
-    TUTORIAL1: {},
-    TUTORIAL2: {},
-}  # type: Mapping[Any, Mapping[Any, UserGameData]]
 
 EXP1_GAMEPAGES = {
     SESSION_A1: [

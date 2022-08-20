@@ -1,4 +1,4 @@
-import web_experiment.experiment1.task_data as td
+import web_experiment.experiment1.task_define as td
 
 SURVEY_TEMPLATE = {
     td.SESSION_A1: 'inexperiment_session_a.html',

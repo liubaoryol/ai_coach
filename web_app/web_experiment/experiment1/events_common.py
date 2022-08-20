@@ -1,6 +1,6 @@
 from web_experiment import socketio
 import web_experiment.experiment1.events_impl as event_impl
-import web_experiment.experiment1.task_data as td
+import web_experiment.experiment1.task_define as td
 
 for session_name in td.EXP1_PAGENAMES:
   name_space = '/' + td.EXP1_PAGENAMES[session_name]

@@ -21,14 +21,4 @@
 </div>
 {% endblock %}
 
-{% block form %}
-<div>
-  <div class="button-center">
-    <form action="{{ next_endpoint }}">
-      <button type="submit" value="submit" id="submit" {{ is_disabled }}>
-        Proceed to Survey
-      </button>
-    </form>
-  </div>
-</div>
-{% endblock %}
+{% block submit %}Proceed to Survey{% endblock %}
