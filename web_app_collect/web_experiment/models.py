@@ -26,22 +26,22 @@ class User(db.Model):
   session_b2_record = db.Column(db.Boolean, default=False)
   session_b3 = db.Column(db.Boolean, default=False)
   session_b3_record = db.Column(db.Boolean, default=False)
-  
+
   best_a = db.Column(db.Integer, default=999)
   best_b = db.Column(db.Integer, default=999)
-  
+
   completed = db.Column(db.Boolean, default=False)
-  pre_exp = db.Column(db.Boolean, default = False)
-  session_a0_survey = db.Column(db.Boolean, default=False) 
+  pre_exp = db.Column(db.Boolean, default=False)
+  session_a0_survey = db.Column(db.Boolean, default=False)
   session_a1_survey = db.Column(db.Boolean, default=False)
   session_a2_survey = db.Column(db.Boolean, default=False)
   session_a3_survey = db.Column(db.Boolean, default=False)
 
-  session_b0_survey = db.Column(db.Boolean, default=False) 
+  session_b0_survey = db.Column(db.Boolean, default=False)
   session_b1_survey = db.Column(db.Boolean, default=False)
   session_b2_survey = db.Column(db.Boolean, default=False)
   session_b3_survey = db.Column(db.Boolean, default=False)
-  
+
   post_exp = db.relationship('PostExperiment',
                              backref='user',
                              lazy=True,
@@ -68,7 +68,7 @@ class PreExperiment(db.Model):
 
 class InExperiment(db.Model):
   id = db.Column(db.Integer, primary_key=True)
-  exp_number = db.Column(db.Integer, nullable=False)
+  session_name = db.Column(db.String(80), default='')
   maintained = db.Column(db.Integer, nullable=False)
   fluency = db.Column(db.Integer, nullable=False)
   mycarry = db.Column(db.Integer, nullable=False)

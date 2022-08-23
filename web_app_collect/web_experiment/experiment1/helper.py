@@ -2,6 +2,7 @@ import json
 import web_experiment.auth.util as util
 from ai_coach_domain.box_push.simulator import (BoxPushSimulator)
 from web_experiment import socketio
+from web_experiment.define import EDomainType
 
 
 def task_intervention(game_history, game: BoxPushSimulator, room_id,
@@ -18,7 +19,8 @@ def task_intervention(game_history, game: BoxPushSimulator, room_id,
         "a1_action": game.cb_action_to_idx(game.AGENT1, a1act),
         "a2_action": game.cb_action_to_idx(game.AGENT2, a2act)
     })
-  latent, prob = util.predict_human_latent(traj, len(traj) - 1, True)
+  latent, prob = util.predict_human_latent(traj,
+                                           len(traj) - 1, EDomainType.Movers)
 
   latent_human_predicted = f"{latent[0]}, {latent[1]}"
   latent_robot = f"{latent_robot[0]}, {latent_robot[1]}"

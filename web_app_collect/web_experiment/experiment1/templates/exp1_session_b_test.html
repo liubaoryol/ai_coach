@@ -1,20 +1,35 @@
-{% extends 'base.html' %}
+{% extends 'session_contents.html' %}
 
 {% block header %}
 <h1>{% block title %}Clean up (part 4/5){% endblock %}</h1>
-<h2>{% block subtitle %}{% endblock %}</h2>
+<h2>{% block subtitle %}TEST Session {{ session_title }}{% endblock %}</h2>
 <div class="explanation">
   <p>In this task,</p>
   <ul>
-  <li>Your goal is to move all the bags to the flag as soon as possible. </li>
-  <li>You can only pick up the bag circled in red. </li>
-  <li>You CAN pick up the bag alone.</li>
+    <li>Your goal is to move all the bags to the flag as soon as possible.</li>
+    <li>You can only pick up the bag circled in red.</li>
+    <li>You CAN pick up the bag alone.</li>
   </ul>
 
   <p><b>Special instructions for the test session,</b></p>
   <ul>
-  <li>You will be periodically prompted to select your destination (red circle).</li>
-  <li>Since you will be selecting the destination, you can use this added flexibility to complete the task faster.</li>
+    <li>
+      You will be periodically prompted to select your destination (red circle).
+    </li>
+    <li>
+      Since you will be selecting the destination, you can use this added
+      flexibility to complete the task faster.
+    </li>
   </ul>
+</div>
+{% endblock %}
+
+{% block submit_form %}
+<div class="button-center">
+  <form action="{{ post_endpoint }}" method="post">
+    <button type="submit" value="submit" id="submit" {{ is_disabled }}>
+      Proceed
+    </button>
+  </form>
 </div>
 {% endblock %}

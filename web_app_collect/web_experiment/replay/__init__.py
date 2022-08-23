@@ -10,4 +10,4 @@ replay_bp = Blueprint('replay',
                       static_folder='static',
                       static_url_path='/replay/static')
 
-from . import views, event_replay_a_record, event_replay_b_record
+from . import event_replay_record, views

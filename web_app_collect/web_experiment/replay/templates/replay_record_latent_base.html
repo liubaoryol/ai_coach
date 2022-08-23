@@ -3,7 +3,6 @@
 {% block title %}Replay Previous Games{% endblock %}
 
 {% block content %}
-
 <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
   crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
@@ -13,12 +12,9 @@
 <script type="text/javascript" charset="utf-8"
   src="{{ url_for('exp1.static', filename='exp1_game_logic_new.js') }}"></script>
 <script type="text/javascript">
-
-  page_list = [];
-  page_list.push(new PageDuringGame());
-
-  initGlobalObject(page_list, "alone_record");
+  initGlobalObject("{{ socket_name_space }}");
 </script>
+
 
 <div class='explanation'>
   <p>
@@ -58,7 +54,7 @@
     <form onsubmit="return false;">
       <div>
         <label class="index" for="index"> Enter Index</label>
-        <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_value}}">
+        <input type="number" name="index" value="0" id="indexValue" min="0" max="{{session_length - 1}}">
       </div>
       <div class="button-center">
         <button type="submit" value="index" id="index">Go to Index</button>
@@ -74,12 +70,5 @@
   </form>
 </div>
 
-<div style="visibility: hidden">
-  <div class="button-center">
-    <form action="{{ url_for('survey.survey_both_tell_align') }}">
-      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed to Survey</button>
-    </form>
-  </div>
-</div>
 
 {% endblock %}

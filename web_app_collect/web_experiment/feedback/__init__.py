@@ -10,5 +10,4 @@ feedback_bp = Blueprint('feedback',
                         static_folder='static',
                         static_url_path='/feedback/static')
 
-from . import views, helper  # noqa: E402, F401
-from . import together_collect_latent, indv_collect_latent
+from . import event_collect_latent, views, helper  # noqa: E402, F401
