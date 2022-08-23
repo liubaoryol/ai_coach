@@ -645,7 +645,7 @@ class CanvasPageLatent(CanvasPageTutorialBase):
 
   def _get_button_commands(self, clicked_btn, flags: pg.GameFlags):
     if clicked_btn == co.BTN_SELECT:
-      return {"delete": co.BTN_SELECT}
+      return {"delete": [self.SPOTLIGHT]}
 
     return None
 

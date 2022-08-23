@@ -7,7 +7,7 @@ for session_name in td.EXP1_PAGENAMES:
 
   def make_init_canvas(session_name):
     def initial_canvas():
-      event_impl.initial_canvas(session_name)
+      event_impl.initial_canvas(session_name, td.EXP1_GAMEPAGES[session_name])
 
     return initial_canvas
 
@@ -20,7 +20,8 @@ for session_name in td.EXP1_PAGENAMES:
   def make_button_clicked(session_name):
     def button_clicked(msg):
       button = msg["name"]
-      event_impl.button_clicked(button, session_name)
+      event_impl.button_clicked(button, session_name,
+                                td.EXP1_GAMEPAGES[session_name])
 
     return button_clicked
 

@@ -719,7 +719,7 @@ class GameData {
 
     if (obj_json.commands.hasOwnProperty("delete")) {
       for (const item of obj_json.commands.delete) {
-        if (this.dict_drawing_objs.hasOwnProperty[item]) {
+        if (this.dict_drawing_objs.hasOwnProperty(item)) {
           delete this.dict_drawing_objs[item];
         }
       }

@@ -1,18 +1,17 @@
-from typing import Mapping, Any
+from typing import Mapping, Any, Sequence
 import json
 import logging
 from flask import (session, request, current_app, url_for)
 from flask_socketio import emit
 from web_experiment import socketio
 from web_experiment.models import User
-import web_experiment.experiment1.task_define as td
 import web_experiment.experiment1.page_base as pg
 import web_experiment.experiment1.canvas_objects as co
 
 g_id_2_game_data = {}  # type: Mapping[Any, pg.UserGameData]
 
 
-def initial_canvas(session_name):
+def initial_canvas(session_name, page_lists: Sequence[pg.CanvasPageBase]):
   cur_user = session.get('user_id')
   user = User.query.filter_by(userid=cur_user).first()
 
@@ -22,7 +21,7 @@ def initial_canvas(session_name):
   done = getattr(user, session_name, False)
 
   user_game_data = g_id_2_game_data[env_id]
-  user_game_data.num_pages = len(td.EXP1_GAMEPAGES[session_name])
+  user_game_data.num_pages = len(page_lists)
   user_game_data.session_name = session_name
   user_game_data.save_path = current_app.config["TRAJECTORY_PATH"]
 
@@ -31,7 +30,7 @@ def initial_canvas(session_name):
   else:
     user_game_data.cur_page_idx = 0
 
-  cur_page = td.EXP1_GAMEPAGES[session_name][user_game_data.cur_page_idx]
+  cur_page = page_lists[user_game_data.cur_page_idx]
 
   page_drawing_info = cur_page.init_user_data_and_get_drawing_info(
       user_game_data)
@@ -66,17 +65,18 @@ def disconnected(session_name):
     del g_id_2_game_data[env_id]
 
 
-def button_clicked(button, session_name):
+def button_clicked(button, session_name,
+                   page_lists: Sequence[pg.CanvasPageBase]):
   env_id = request.sid
   user_game_data = g_id_2_game_data[env_id]
   page_idx = user_game_data.cur_page_idx
   prev_task_done = getattr(user_game_data.user, session_name, False)
 
-  page_drawing_info = td.EXP1_GAMEPAGES[session_name][page_idx].button_clicked(
+  page_drawing_info = page_lists[page_idx].button_clicked(
       user_game_data, button)
 
   if page_idx != user_game_data.cur_page_idx:
-    updated_page = td.EXP1_GAMEPAGES[session_name][user_game_data.cur_page_idx]
+    updated_page = page_lists[user_game_data.cur_page_idx]
     page_drawing_info = updated_page.init_user_data_and_get_drawing_info(
         user_game_data)
 
