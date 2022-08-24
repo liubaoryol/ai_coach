@@ -9,7 +9,8 @@ from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
 from web_experiment.models import db, User
 import web_experiment.experiment1.canvas_objects as co
 from web_experiment.experiment1.page_exp1_base import Exp1UserData, Exp1PageBase
-from web_experiment.experiment1.game_scene import game_scene, game_scene_names
+from web_experiment.experiment1.page_game_scene import (game_scene,
+                                                        game_scene_names)
 
 
 def get_file_name(save_path, user_id, session_name):
