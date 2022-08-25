@@ -31,7 +31,6 @@ class User(db.Model):
   best_b = db.Column(db.Integer, default=999)
 
   completed = db.Column(db.Boolean, default=False)
-  pre_exp = db.Column(db.Boolean, default=False)
   session_a0_survey = db.Column(db.Boolean, default=False)
   session_a1_survey = db.Column(db.Boolean, default=False)
   session_a2_survey = db.Column(db.Boolean, default=False)
@@ -42,6 +41,15 @@ class User(db.Model):
   session_b2_survey = db.Column(db.Boolean, default=False)
   session_b3_survey = db.Column(db.Boolean, default=False)
 
+  pre_exp = db.relationship('PreExperiment',
+                            backref='user',
+                            lazy=True,
+                            uselist=False,
+                            passive_deletes=True)
+  in_exp = db.relationship('InExperiment',
+                           backref='user',
+                           lazy=True,
+                           passive_deletes=True)
   post_exp = db.relationship('PostExperiment',
                              backref='user',
                              lazy=True,
