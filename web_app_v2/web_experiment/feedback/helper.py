@@ -34,7 +34,6 @@ def store_latent_locally(user_id, session_name, game_type, map_info, lstates):
 
 
 def get_latent_file_name(user_id, session_name):
-  session_name = "session" + "_" + session_name
   traj_dir = os.path.join(current_app.config["LATENT_PATH"], user_id)
   # save somewhere
   if not os.path.exists(traj_dir):
@@ -55,12 +54,14 @@ def load_latent(user_id, session_name):
     return result
 
 
+"""
+  Input is a regular expression of the latent file to read
+"""
+
+
 def get_latent_files(user_id, session_name):
-  """
-    Input is a regular expression of the latent file to read
-  """
   traj_path = current_app.config["LATENT_PATH"]
-  path = f"{user_id}/lstates_session_{session_name}_{user_id}*.txt"
+  path = f"{user_id}/lstates_{session_name}_{user_id}*.txt"
 
   fileExpr = os.path.join(traj_path, path)
 
@@ -69,10 +70,12 @@ def get_latent_files(user_id, session_name):
   return files
 
 
+"""
+  Check if latent state is already recorded and stored in a file.
+"""
+
+
 def check_latent_exist(user_id, session_name):
-  """
-    Check if latent state is already recorded and stored in a file.
-  """
   return (len(get_latent_files(user_id, session_name)) > 0)
 
 
