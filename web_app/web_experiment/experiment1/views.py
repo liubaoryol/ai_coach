@@ -1,171 +1,60 @@
 import logging
-from flask import render_template, g
+from flask import render_template, g, url_for
 from web_experiment.auth.functions import login_required
 from web_experiment.models import User
+import web_experiment.experiment1.task_define as td
+import web_experiment.survey.names as sn
 from . import exp1_bp
 
+EXP1_TEMPLATE = {
+    td.SESSION_A1: 'exp1_session_a_practice.html',
+    td.SESSION_A2: 'exp1_session_a_practice.html',
+    td.SESSION_A3: 'exp1_session_a_test.html',
+    td.SESSION_A4: 'exp1_session_a_test.html',
+    td.SESSION_B1: 'exp1_session_b_practice.html',
+    td.SESSION_B2: 'exp1_session_b_practice.html',
+    td.SESSION_B3: 'exp1_session_b_test.html',
+    td.SESSION_B4: 'exp1_session_b_test.html',
+    td.SESSION_B5: 'exp1_session_b_test.html',
+    td.TUTORIAL1: 'tutorial1.html',
+    td.TUTORIAL2: 'tutorial2.html',
+}
 
-@exp1_bp.route('/exp1_both_tell_align')
-@login_required
-def exp1_both_tell_align():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_both_tell_align.' % (cur_user, ))
+EXP1_NEXT_ENDPOINT = {
+    td.SESSION_A1: sn.SURVEY_ENDPOINT[td.SESSION_A1],
+    td.SESSION_A2: sn.SURVEY_ENDPOINT[td.SESSION_A2],
+    td.SESSION_A3: sn.SURVEY_ENDPOINT[td.SESSION_A3],
+    td.SESSION_A4: sn.SURVEY_ENDPOINT[td.SESSION_A4],
+    td.SESSION_B1: sn.SURVEY_ENDPOINT[td.SESSION_B1],
+    td.SESSION_B2: sn.SURVEY_ENDPOINT[td.SESSION_B2],
+    td.SESSION_B3: sn.SURVEY_ENDPOINT[td.SESSION_B3],
+    td.SESSION_B4: sn.SURVEY_ENDPOINT[td.SESSION_B4],
+    td.SESSION_B5: sn.SURVEY_ENDPOINT[td.SESSION_B5],
+    td.TUTORIAL1: 'exp1.' + td.EXP1_PAGENAMES[td.SESSION_A1],
+    td.TUTORIAL2: 'exp1.' + td.EXP1_PAGENAMES[td.SESSION_B1],
+}
 
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_a1:
-    disabled = 'disabled'
-  return render_template('exp1_both_tell_align.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
+for session_name in td.EXP1_PAGENAMES:
 
+  def make_view_func(session_name):
+    def view_func():
+      cur_user = g.user
+      logging.info('User %s accesses to %s.' % (cur_user, session_name))
 
-@exp1_bp.route('/exp1_both_tell_align_2')
-@login_required
-def exp1_both_tell_align_2():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_both_tell_align_2.' % (cur_user, ))
+      query_data = User.query.filter_by(userid=cur_user).first()
+      disabled = ''
+      if not getattr(query_data, session_name):
+        disabled = 'disabled'
+      return render_template(EXP1_TEMPLATE[session_name],
+                             socket_name_space=td.EXP1_PAGENAMES[session_name],
+                             cur_user=cur_user,
+                             is_disabled=disabled,
+                             session_title=td.EXP1_SESSION_TITLE[session_name],
+                             next_endpoint=url_for(
+                                 EXP1_NEXT_ENDPOINT[session_name]))
 
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_a2:
-    disabled = 'disabled'
-  return render_template('exp1_both_tell_align_2.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
+    return view_func
 
-
-@exp1_bp.route('/exp1_both_user_random')
-@login_required
-def exp1_both_user_random():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_both_user_random.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_a3:
-    disabled = 'disabled'
-  return render_template('exp1_both_user_random.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/exp1_both_user_random_2')
-@login_required
-def exp1_both_user_random_2():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_both_user_random_2.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_a4:
-    disabled = 'disabled'
-  return render_template('exp1_both_user_random_2.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/exp1_indv_tell_align')
-@login_required
-def exp1_indv_tell_align():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_indv_tell_align.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_b1:
-    disabled = 'disabled'
-  return render_template('exp1_indv_tell_align.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/exp1_indv_tell_random')
-@login_required
-def exp1_indv_tell_random():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_indv_tell_align.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_b2:
-    disabled = 'disabled'
-  return render_template('exp1_indv_tell_random.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/exp1_indv_user_random')
-@login_required
-def exp1_indv_user_random():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_indv_user_random.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_b3:
-    disabled = 'disabled'
-  return render_template('exp1_indv_user_random.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/exp1_indv_user_random_2')
-@login_required
-def exp1_indv_user_random_2():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_indv_user_random_2.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_b4:
-    disabled = 'disabled'
-  return render_template('exp1_indv_user_random_2.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/exp1_indv_user_random_3')
-@login_required
-def exp1_indv_user_random_3():
-  cur_user = g.user
-  logging.info('User %s accesses to exp1_indv_user_random_3.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.session_b5:
-    disabled = 'disabled'
-  return render_template('exp1_indv_user_random_3.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/tutorial1', methods=('GET', 'POST'))
-@login_required
-def tutorial1():
-  cur_user = g.user
-  logging.info('User %s accesses to tutorial1.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  print(query_data.tutorial1)
-  if not query_data.tutorial1:
-    disabled = 'disabled'
-  return render_template('tutorial1.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
-
-
-@exp1_bp.route('/tutorial2', methods=('GET', 'POST'))
-@login_required
-def tutorial2():
-  cur_user = g.user
-  logging.info('User %s accesses to tutorial2.' % (cur_user, ))
-
-  query_data = User.query.filter_by(userid=cur_user).first()
-  disabled = ''
-  if not query_data.tutorial2:
-    disabled = 'disabled'
-  return render_template('tutorial2.html',
-                         cur_user=cur_user,
-                         is_disabled=disabled)
+  func = login_required(make_view_func(session_name))
+  exp1_bp.add_url_rule('/' + td.EXP1_PAGENAMES[session_name],
+                       td.EXP1_PAGENAMES[session_name], func)

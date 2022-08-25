@@ -105,7 +105,8 @@ class CachedPolicyInterface(PolicyInterface):
               "The Q-values for the policy has been loaded from a file ({}). "
               "If any related implementation is changed, "
               "be sure to delete the saved file and regenerate it.".format(
-                  "prefix: " + os.path.basename(self.file_prefix)))
+                  "prefix: " + os.path.basename(self.file_prefix)),
+              stacklevel=2)
 
         self.list_policy.append(
             mdp_lib.softmax_policy_from_q_value(np_q_value, self.temperature))

@@ -8,27 +8,52 @@
 {% endblock %}
 
 {% block content %}
-<script>
-  count = 0;
-  onLoad = function () {
-    count++;
-    console.log(count);
-    if (count == 2) {
-      alert('Submitted Form');
-      document.getElementById("submit").disabled = false;
-    }
-  }
-</script>
 <div class="form-control">
   <form method="post" action="{{ url_for('survey.preexperiment') }}">
     <div>
-      <iframe
-        src="https://docs.google.com/forms/d/e/1FAIpQLSfR6CBfg94JnwRYImtM6IrIriRp6sMU969B8qQBUqduXxw55g/viewform?embedded=true"
-        s onLoad="onLoad()">Loading…</iframe>
+      <label class="statement" for="age">Age</label>
+      <input name="age" id="age" value="{{ answers['age'] }}" required>
     </div>
 
+    <div>
+      <label class="statement" for="gender">Gender</label>
+      <input name="gender" id="gender" value="{{ answers['gender'] }}" required>
+    </div>
+
+    <div>
+      <label class="statement" for="frequency">
+      How often do you play video games?
+      </label>
+      <ul class='likert'>
+        <li>
+          <input type="radio" name="frequency" value="0" {{ answers['frequency0'] }} required>
+          <label>Never</label>
+        </li>
+        <li>
+          <input type="radio" name="frequency" value="1" {{ answers['frequency1'] }}>
+          <label>A few times a year</label>
+        </li>
+        <li>
+          <input type="radio" name="frequency" value="2" {{ answers['frequency2'] }}>
+          <label>A few times a month</label>
+        </li>
+        <li>
+          <input type="radio" name="frequency" value="3" {{ answers['frequency3'] }}>
+          <label>A few times every week</label>
+        </li>
+        <li>
+          <input type="radio" name="frequency" value="4" {{ answers['frequency4'] }}>
+          <label>On a daily basis</label>
+        </li>
+      </ul>
+    </div>
+
+    <div>
+      <label class="statement" for="comments">Open-ended comments (optional)</label>
+      <textarea id="opencomment" name="opencomment" rows="4" cols="50">{{ answers['precomment'] }}</textarea>
+    </div>
     <div class="button-center">
-      <button type="submit" value="submit" id="submit" {{ is_disabled }}>Proceed</button>
+      <button type="submit" value="submit">Next</button>
     </div>
   </form>
 </div>

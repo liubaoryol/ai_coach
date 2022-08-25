@@ -3,6 +3,8 @@ from flask import flash, redirect, render_template, request, session, url_for
 # from web_experiment.db import query_db
 from web_experiment.models import User, db
 from web_experiment.auth import ADMIN_ID
+from web_experiment.define import (GROUP_NAMES, GROUP_A, GROUP_B, GROUP_C,
+                                   GROUP_D)
 from . import consent_bp
 
 
@@ -35,4 +37,8 @@ def consent():
 
     flash(error)
 
-  return render_template('consent.html')
+  group_ids = [GROUP_A, GROUP_B, GROUP_C, GROUP_D]
+
+  return render_template('consent.html',
+                         group_ids=group_ids,
+                         group_names=GROUP_NAMES)

@@ -6,6 +6,8 @@ from flask import (flash, g, redirect, render_template, request, url_for,
 from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
+import web_experiment.experiment1.task_define as td
+import web_experiment.survey.names as sn
 from . import survey_bp
 
 
@@ -145,69 +147,30 @@ def inexperiment_impl(exp_no, current_html_file, next_endpoint_name):
                    str(query_data.robotperception)] = 'checked'
     survey_answers['incomment'] = query_data.comment
 
-  return render_template(current_html_file, answers=survey_answers)
+  session_name = td.LIST_SESSIONS[exp_no - 1]
+  return render_template(current_html_file,
+                         answers=survey_answers,
+                         post_endpoint=url_for(
+                             sn.SURVEY_ENDPOINT[session_name]),
+                         session_title=td.EXP1_SESSION_TITLE[session_name])
 
 
-@survey_bp.route('/survey_both_tell_align', methods=('GET', 'POST'))
-@login_required
-def survey_both_tell_align():
-  return inexperiment_impl(1, 'survey_both_tell_align.html',
-                           'exp1.exp1_both_tell_align_2')
+for idx in range(len(td.LIST_SESSIONS)):
 
+  session_name = td.LIST_SESSIONS[idx]
 
-@survey_bp.route('/survey_both_tell_align_2', methods=('GET', 'POST'))
-@login_required
-def survey_both_tell_align_2():
-  return inexperiment_impl(2, 'survey_both_tell_align_2.html',
-                           'exp1.exp1_both_user_random')
+  def make_inexp_survey_view(idx, session_name=session_name):
+    def inexp_survey_view():
+      return inexperiment_impl(idx + 1, sn.SURVEY_TEMPLATE[session_name],
+                               sn.SURVEY_NEXT_ENDPOINT[session_name])
 
+    return inexp_survey_view
 
-@survey_bp.route('/survey_both_user_random', methods=('GET', 'POST'))
-@login_required
-def survey_both_user_random():
-  return inexperiment_impl(3, 'survey_both_user_random.html',
-                           'exp1.exp1_both_user_random_2')
-
-
-@survey_bp.route('/survey_both_user_random_2', methods=('GET', 'POST'))
-@login_required
-def survey_both_user_random_2():
-  return inexperiment_impl(4, 'survey_both_user_random_2.html', 'inst.clean_up')
-
-
-@survey_bp.route('/survey_indv_tell_align', methods=('GET', 'POST'))
-@login_required
-def survey_indv_tell_align():
-  return inexperiment_impl(5, 'survey_indv_tell_align.html',
-                           'exp1.exp1_indv_tell_random')
-
-
-@survey_bp.route('/survey_indv_tell_random', methods=('GET', 'POST'))
-@login_required
-def survey_indv_tell_random():
-  return inexperiment_impl(6, 'survey_indv_tell_random.html',
-                           'exp1.exp1_indv_user_random')
-
-
-@survey_bp.route('/survey_indv_user_random', methods=('GET', 'POST'))
-@login_required
-def survey_indv_user_random():
-  return inexperiment_impl(7, 'survey_indv_user_random.html',
-                           'exp1.exp1_indv_user_random_2')
-
-
-@survey_bp.route('/survey_indv_user_random_2', methods=('GET', 'POST'))
-@login_required
-def survey_indv_user_random_2():
-  return inexperiment_impl(8, 'survey_indv_user_random_2.html',
-                           'exp1.exp1_indv_user_random_3')
-
-
-@survey_bp.route('/survey_indv_user_random_3', methods=('GET', 'POST'))
-@login_required
-def survey_indv_user_random_3():
-  return inexperiment_impl(9, 'survey_indv_user_random_3.html',
-                           'survey.completion')
+  func = login_required(make_inexp_survey_view(idx))
+  survey_bp.add_url_rule('/' + sn.SURVEY_PAGENAMES[session_name],
+                         sn.SURVEY_PAGENAMES[session_name],
+                         func,
+                         methods=('GET', 'POST'))
 
 
 @survey_bp.route('/completion', methods=('GET', 'POST'))

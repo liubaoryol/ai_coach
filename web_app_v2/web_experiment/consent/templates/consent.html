@@ -30,10 +30,13 @@
       <input name="userid" id="userid" required>
       <label class="statement" for="groupid">User Group</label>
       <select name="groupid" id="groupid">
-        <option value="A">Group A</option>
+        {% for id in group_ids %}
+        <option value="{{ id }}">{{ group_names[id] }}</option>
+        {% endfor %}
+        <!-- <option value="A">Group A</option>
         <option value="B">Group B</option>
         <option value="C">Group C</option>
-        <option value="D">Group D</option>
+        <option value="D">Group D</option> -->
       </select>
 
     </div>

@@ -1,52 +1,60 @@
-import logging
-from flask import flash, redirect, render_template, request, session, url_for, g, current_app
-# from web_experiment.db import query_db
+from flask import redirect, render_template, request, session, url_for, g
 from . import feedback_bp
-from web_experiment.auth.util import load_session_trajectory, predict_human_latent_full
-from web_experiment.feedback.helper import load_latent
-from web_experiment.models import User
+import web_experiment.experiment1.define as td
+from web_experiment.auth.util import load_session_trajectory, get_domain_type
+from web_experiment.models import User, db
+from web_experiment.define import EDomainType
+from web_experiment.feedback.define import COLLECT_NAMESPACES
 
-@feedback_bp.route('/collect/<session_name>/<next_endpoint>', methods=('GET', 'POST'))
-def collect(session_name, next_endpoint):
-    if request.method == "POST":
-        return redirect(url_for(next_endpoint))
-    cur_user = g.user
-    disabled = ''
-    query_data = User.query.filter_by(userid = cur_user).first()
-    print(query_data.session_a1_record)
-    if session_name == "a1" and not query_data.session_a1_record:
-        disabled = 'disabled'
-    elif session_name == "a2" and not query_data.session_a2_record:
-        disabled = 'disabled'
-    elif session_name == "a3" and not query_data.session_a3_record:
-        disabled = 'disabled'
-        
-    load_session_trajectory(session_name, g.user)
-    lstates = [f"{latent_state[0]}, {latent_state[1]}" for latent_state in session['possible_latent_states']]
 
-    if session_name.startswith('a'):
-        return render_template("together_collect_latent.html", cur_user = g.user, is_disabled = disabled, session_name = session['session_name'], session_length = session['max_index'], max_value = session['max_index'] - 1, latent_states = lstates)
+def get_record_session_name(game_session_name):
+  return f"{game_session_name}_record"
 
-@feedback_bp.route('/feedback/<session_name>/<next_endpoint>', methods=('GET', 'POST'))
-def feedback(session_name, next_endpoint):
-    filename = "together_feedback_latent_collected.html"
-    if request.method == "POST":
-        return redirect(url_for(next_endpoint))
 
-    if session['groupid'] == "D":
-        load_session_trajectory(session_name, g.user)
-        lstates_full = predict_human_latent_full(session['dict'], is_movers_domain=True)
-        # add a dummy for the last time frame
-        lstates_full.append("None")
-        session['latent_human_predicted'] = lstates_full
-        filename = "together_feedback_latent_predicted.html"
-    elif session['groupid'] == "C":
-        session['latent_human_recorded'] = load_latent(session['user_id'], session_name)
+COLLECT_TEMPLATE = {
+    EDomainType.Movers: 'collect_latent_movers.html',
+    EDomainType.Cleanup: 'collect_latent_cleanup.html',
+}
 
-    return render_template(filename,
-                        cur_user=g.user,
-                        is_disabled=True,
-                        session_name=session['session_name'],
-                        session_length=session['max_index'],
-                        max_value=session['max_index'] - 1)
-                    
+COLLECT_NEXT_ENDPOINT = {
+    get_record_session_name(td.SESSION_A0): 'survey.survey_both_tell_align',
+    get_record_session_name(td.SESSION_A1): 'survey.survey_both_user_random',
+    get_record_session_name(td.SESSION_A2): 'survey.survey_both_user_random_2',
+    get_record_session_name(td.SESSION_A3): 'survey.survey_both_user_random_3',
+    get_record_session_name(td.SESSION_B0): 'survey.survey_indv_tell_align',
+    get_record_session_name(td.SESSION_B1): 'survey.survey_indv_user_random',
+    get_record_session_name(td.SESSION_B2): 'survey.survey_indv_user_random_2',
+    get_record_session_name(td.SESSION_B3): 'survey.survey_indv_user_random_3',
+}
+
+
+@feedback_bp.route('/collect/<session_name>', methods=('GET', 'POST'))
+def collect(session_name):
+  cur_user = g.user
+  query_data = User.query.filter_by(userid=cur_user).first()
+  session_record_name = get_record_session_name(session_name)
+  if request.method == "POST":
+    if not getattr(query_data, session_record_name):
+      setattr(query_data, session_record_name, True)
+      db.session.commit()
+    return redirect(url_for(COLLECT_NEXT_ENDPOINT[session_record_name]))
+
+  disabled = ''
+  if not getattr(query_data, session_record_name):
+    disabled = 'disabled'
+
+  load_session_trajectory(session_name, g.user)
+  lstates = [
+      f"{latent_state[0]}, {latent_state[1]}"
+      for latent_state in session['possible_latent_states']
+  ]
+  print(session['max_index'])
+  domain_type = get_domain_type(session_name)
+  loaded_session_title = td.EXP1_SESSION_TITLE[session_name]
+  return render_template(COLLECT_TEMPLATE[domain_type],
+                         cur_user=g.user,
+                         is_disabled=disabled,
+                         session_title=loaded_session_title,
+                         session_length=session['max_index'],
+                         socket_name_space=COLLECT_NAMESPACES[domain_type],
+                         latent_states=lstates)

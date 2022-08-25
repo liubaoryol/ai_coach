@@ -2,21 +2,12 @@
 // global variables
 ///////////////////////////////////////////////////////////////////////////////
 var global_object = {};
-global_object.cur_page_idx = 0;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Initialization methods
 ///////////////////////////////////////////////////////////////////////////////
-function initImagePathCurUser(src_robot, src_human, src_box,
-  src_wall, src_goal, src_both_box, src_human_box, src_robot_box, cur_user) {
-  set_img_path_and_cur_user(global_object, src_robot, src_human, src_box,
-    src_wall, src_goal, src_both_box, src_human_box, src_robot_box, cur_user);
-}
-
-function initPages(page_list, name_space, is_tutorial = false) {
-  global_object.page_list = page_list;
+function initGlobalObject(name_space) {
   global_object.name_space = name_space;
-  global_object.is_tutorial = is_tutorial;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -24,164 +15,107 @@ function initPages(page_list, name_space, is_tutorial = false) {
 ///////////////////////////////////////////////////////////////////////////////
 $(document).ready(function () {
   // block default key event handler (block scroll bar movement by key)
-  window.addEventListener("keydown", function (e) {
-    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
-      e.preventDefault();
-    }
-  }, false);
+  window.addEventListener(
+    "keydown",
+    function (e) {
+      if (
+        ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(
+          e.code
+        ) > -1
+      ) {
+        e.preventDefault();
+      }
+    },
+    false
+  );
+
+  // alias
+  const cnvs = document.getElementById("myCanvas");
+  const context = cnvs.getContext("2d");
 
   // Connect to the Socket.IO server.
-  var socket = io('http://' + document.domain + ':' + location.port + '/' + global_object.name_space);
+  var socket = io(
+    "http://" +
+      document.domain +
+      ":" +
+      location.port +
+      "/" +
+      global_object.name_space
+  );
 
-  // alias 
-  const cnvs = document.getElementById("myCanvas");
-
-  /////////////////////////////////////////////////////////////////////////////
-  // game instances and methods
-  /////////////////////////////////////////////////////////////////////////////
-  let game_obj = get_game_object(global_object);
-  game_obj.game_size = cnvs.height;
-  game_obj.score = 0;
-
-  /////////////////////////////////////////////////////////////////////////////
-  // initialize global UI
-  /////////////////////////////////////////////////////////////////////////////
-
-  // game control ui
-  let control_ui = get_control_ui_object(cnvs.width, cnvs.height, game_obj.game_size);
-
-  // next and prev buttons for tutorial
-  if (global_object.is_tutorial) {
-    const next_btn_width = (cnvs.width - game_obj.game_size) / 4;
-    const next_btn_height = next_btn_width * 0.5;
-    const mrgn = 10;
-    control_ui.btn_next = new ButtonRect(
-      cnvs.width - next_btn_width * 0.5 - mrgn, game_obj.game_size * 0.5 - 0.5 * next_btn_height - mrgn,
-      next_btn_width, next_btn_height, "Next");
-    control_ui.btn_next.font = "bold 18px arial";
-    control_ui.btn_prev = new ButtonRect(
-      game_obj.game_size + next_btn_width * 0.5 + mrgn, game_obj.game_size * 0.5 - 0.5 * next_btn_height - mrgn,
-      next_btn_width, next_btn_height, "Prev");
-    control_ui.btn_prev.font = "bold 18px arial";
-  }
   /////////////////////////////////////////////////////////////////////////////
   // game control logics
   /////////////////////////////////////////////////////////////////////////////
-  var x_mouse = -1;
-  var y_mouse = -1;
+  let game_data = new GameData(cnvs.width, cnvs.height);
+
+  let x_mouse = -1;
+  let y_mouse = -1;
 
   // click event listener
-  cnvs.addEventListener('click', onClick, true);
+  cnvs.addEventListener("click", onClick, true);
   function onClick(event) {
     let x_m = event.offsetX;
     let y_m = event.offsetY;
-    global_object.page_list[global_object.cur_page_idx].on_click(x_m, y_m);
+    game_data.on_click(context, socket, x_m, y_m);
   }
 
   // mouse move event listner
-  cnvs.addEventListener('mousemove', onMouseMove, true);
+  cnvs.addEventListener("mousemove", onMouseMove, true);
   function onMouseMove(event) {
     x_mouse = event.offsetX;
     y_mouse = event.offsetY;
   }
 
-  // for actual tasks, set game end behavior
-  if (!global_object.is_tutorial) {
-    socket.on('game_end', function () {
-      document.getElementById("submit").disabled = false;
-      global_object.cur_page_idx = global_object.page_list.length - 1;
-      global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
-    });
-  }
-
-  // init canvas
-  socket.on('init_canvas', function (json_msg) {
-    const env = JSON.parse(json_msg);
-    game_obj.grid_x = env.grid_x;
-    game_obj.grid_y = env.grid_y;
-
-    if (document.getElementById("submit").disabled) {
-      global_object.cur_page_idx = 0;
-    }
-    else {
-      global_object.cur_page_idx = global_object.page_list.length - 1;
-    }
-    global_object.page_list[global_object.cur_page_idx].init_page(global_object, game_obj, control_ui, cnvs, socket);
+  // update
+  socket.on("update_gamedata", function (json_msg) {
+    const json_obj = JSON.parse(json_msg);
+    game_data.process_json_obj(json_obj);
+    game_data.spinning_circle.off();
   });
 
   // intervention
-  socket.on('intervention', function (json_msg) {
+  socket.on("intervention", function (json_msg) {
     const env = JSON.parse(json_msg);
-    console.log('hello');
-    var msg = 'Misaligned mental states.\n'
+    console.log("hello");
+    let msg = "Misaligned mental states.\n";
     msg += "predicted human latent state: " + env.latent_human_predicted + "\n";
     msg += "robot latent state: " + env.latent_robot + "\n";
     msg += "P(x): " + env.prob + "\n";
     alert(msg);
   });
 
-  let unchanged_agents = null;
-  let vib_count = 0;
-  // latent selection
-  socket.on('draw_canvas', function (json_msg) {
-    const obj_json = JSON.parse(json_msg);
-
-    // set objects
-    update_game_objects(obj_json, game_obj, global_object);
-
-    // update page
-    global_object.page_list[global_object.cur_page_idx].on_data_update(obj_json);
-
-    // to find agents whose state is not changed -- after set_object
-    unchanged_agents = [];
-    if (obj_json.hasOwnProperty("unchanged_agents")) {
-      for (const idx of obj_json.unchanged_agents) {
-        unchanged_agents.push(game_obj.agents[idx]);
-      }
-    }
-    vib_count = 0;
-  });
-
-
-  const perturbations = [-0.05, 0.1, -0.1, 0.1, -0.05];
-  function vibrate_agent_pos(agent, idx) {
-    if (agent.box != null) {
-      const pos = game_obj.boxes[agent.box].get_coord();
-      const pos_v = [pos[0] + perturbations[idx], pos[1]];
-      game_obj.boxes[agent.box].set_coord(pos_v);
-    }
-    else {
-      const pos = agent.get_coord();
-      const pos_v = [pos[0] + perturbations[idx], pos[1]];
-      agent.set_coord(pos_v);
-    }
-  }
-
-  let old_time_stamp = 0;
+  // rendering
+  let old_time_stamp = performance.now();
   const update_duration = 50;
   function update_scene(timestamp) {
-    const elapsed = timestamp - old_time_stamp;
-
+    const cur_time = performance.now();
+    const elapsed = cur_time - old_time_stamp;
     if (elapsed > update_duration) {
-      old_time_stamp = timestamp;
+      old_time_stamp = cur_time;
 
-      if (unchanged_agents != null && unchanged_agents.length > 0) {
-        if (vib_count < perturbations.length) {
-          for (const agt of unchanged_agents) {
-            vibrate_agent_pos(agt, vib_count);
-          }
-          vib_count++;
+      // animation
+      for (const [key, item] of Object.entries(game_data.dict_animations)) {
+        if (item.is_finished()) {
+          delete game_data.dict_animations[key];
+        } else {
+          item.animate();
         }
       }
-      global_object.page_list[global_object.cur_page_idx].draw_page(x_mouse, y_mouse);
+      game_data.draw_game(context, x_mouse, y_mouse);
     }
-
     requestAnimationFrame(update_scene);
   }
-
   requestAnimationFrame(update_scene);
+
+  /////////////////////////////////////////////////////////////////////
+  // button control
+  /////////////////////////////////////////////////////////////////////
+  // set task end behavior
+  socket.on("task_end", function () {
+    if (document.getElementById("submit") != null) {
+      if (document.getElementById("submit").disabled) {
+        document.getElementById("submit").disabled = false;
+      }
+    }
+  });
 });
-
-
-// run once the entire page is ready
-// $(window).on("load", function() {})
