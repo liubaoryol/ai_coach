@@ -1,14 +1,12 @@
 from web_experiment.auth.page_replay import CanvasPageReplayBoxPush
-
-SESSION_RECORD_A = "session_record_movers"
-SESSION_RECORD_B = "session_record_cleanup"
+from web_experiment.define import EDomainType
 
 RECORD_NAMESPACES = {
-    SESSION_RECORD_A: "record_movers",
-    SESSION_RECORD_B: "record_cleanup",
+    EDomainType.Movers: "record_movers",
+    EDomainType.Cleanup: "record_cleanup",
 }
 
 RECORD_CANVAS_PAGELIST = {
-    SESSION_RECORD_A: [CanvasPageReplayBoxPush(True)],
-    SESSION_RECORD_B: [CanvasPageReplayBoxPush(False)],
+    EDomainType.Movers: [CanvasPageReplayBoxPush(True)],
+    EDomainType.Cleanup: [CanvasPageReplayBoxPush(False)],
 }

@@ -3,7 +3,7 @@ from flask import request, session, current_app
 from web_experiment import socketio
 from web_experiment.models import User
 import web_experiment.experiment1.events_impl as event_impl
-import web_experiment.experiment1.task_define as td
+import web_experiment.experiment1.define as td
 from web_experiment.experiment1.page_exp1_base import Exp1UserData
 
 g_id_2_user_data = {}  # type: Mapping[str, Exp1UserData]

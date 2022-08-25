@@ -5,7 +5,7 @@ from web_experiment.models import (db, User, PostExperiment, InExperiment,
                                    PreExperiment)
 from web_experiment.auth.functions import admin_required
 from web_experiment.auth.util import load_session_trajectory, get_domain_type
-import web_experiment.experiment1.task_define as td
+import web_experiment.experiment1.define as td
 from web_experiment.auth.define import (EDomainType, REPLAY_NAMESPACES,
                                         SESSION_REPLAY_A, SESSION_REPLAY_B)
 from . import auth_bp
@@ -132,25 +132,3 @@ for replay_session_name in REPLAY_NAMESPACES:
 
   func = admin_required(make_replay_view())
   auth_bp.add_url_rule('/' + namespace, namespace, func)
-
-# @auth_bp.route('/replayA')
-# @admin_required
-# def replayA():
-#   return render_template("replay_base.html",
-#                          cur_user=g.user,
-#                          is_disabled=True,
-#                          user_id=session['replay_id'],
-#                          session_name=session['session_name'],
-#                          session_length=session['max_index'],
-#                          max_value=session['max_index'] - 1)
-
-# @auth_bp.route('/replayB')
-# @admin_required
-# def replayB():
-#   return render_template("replay_base.html",
-#                          cur_user=g.user,
-#                          is_disabled=True,
-#                          user_id=session['replay_id'],
-#                          session_name=session['session_name'],
-#                          session_length=session['max_index'],
-#                          max_value=session['max_index'] - 1)

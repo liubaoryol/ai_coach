@@ -18,7 +18,7 @@ from ai_coach_domain.box_push.defines import (idx_to_action_for_simulator,
 from web_experiment.define import EMode, EDomainType
 import web_experiment.experiment1.events_impl as event_impl
 from web_experiment.experiment1.page_base import CanvasPageBase
-import web_experiment.experiment1.task_define as td
+import web_experiment.experiment1.define as td
 from web_experiment.auth.page_replay import UserDataReplay
 
 
