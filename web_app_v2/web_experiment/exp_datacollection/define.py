@@ -22,34 +22,34 @@ SESSION_TITLE = {
 
 
 class SocketType(Enum):
-  Movers_tell_aligned = 0
-  Movers_user_random = 1
-  Cleanup_tell_aligned = 2
-  Cleanup_user_random = 3
-  Movers_tutorial = 4
-  Cleanup_tutorial = 5
+  '''
+  The socket name should be unique across all experiments.
+  (i.e. if DataCollection experiment and Intervention experiment have a socket,
+  whose name is the same, socketio cannot distinguish the event handlers to use
+  '''
+  DataCol_movers_tell_aligned = 0
+  DataCol_movers_user_random = 1
+  DataCol_cleanup_tell_aligned = 2
+  DataCol_cleanup_user_random = 3
+  DataCol_movers_tutorial = 4
+  DataCol_cleanup_tutorial = 5
 
 
 def get_socket_type(page_key):
   if page_key == PageKey.DataCol_A0:
-    return SocketType.Movers_tell_aligned
+    return SocketType.DataCol_movers_tell_aligned
   elif page_key in [PageKey.DataCol_A1, PageKey.DataCol_A2, PageKey.DataCol_A3]:
-    return SocketType.Movers_user_random
+    return SocketType.DataCol_movers_user_random
   elif page_key == PageKey.DataCol_B0:
-    return SocketType.Cleanup_tell_aligned
+    return SocketType.DataCol_cleanup_tell_aligned
   elif page_key in [PageKey.DataCol_B1, PageKey.DataCol_B2, PageKey.DataCol_B3]:
-    return SocketType.Cleanup_user_random
+    return SocketType.DataCol_cleanup_user_random
   elif page_key == PageKey.DataCol_T1:
-    return SocketType.Movers_tutorial
+    return SocketType.DataCol_movers_tutorial
   elif page_key == PageKey.DataCol_T2:
-    return SocketType.Cleanup_tutorial
+    return SocketType.DataCol_cleanup_tutorial
   else:
     return None
-
-
-def get_socket_namespace(page_key):
-  socket_type = get_socket_type(page_key)
-  return page_key + "_" + str(socket_type.value)
 
 
 PAGE_LIST_MOVERS_TELL_ALIGNED = [
@@ -118,10 +118,10 @@ PAGE_LIST_CLEANUP_TUTORIAL = [
 ]
 
 GAMEPAGES = {
-    SocketType.Movers_tell_aligned: PAGE_LIST_MOVERS_TELL_ALIGNED,
-    SocketType.Movers_user_random: PAGE_LIST_MOVERS_USER_RANDOM,
-    SocketType.Cleanup_tell_aligned: PAGE_LIST_CLEANUP_TELL_ALIGNED,
-    SocketType.Cleanup_user_random: PAGE_LIST_CLEANUP_USER_RANDOM,
-    SocketType.Movers_tutorial: PAGE_LIST_MOVERS_TUTORIAL,
-    SocketType.Cleanup_tutorial: PAGE_LIST_CLEANUP_TUTORIAL,
+    SocketType.DataCol_movers_tell_aligned: PAGE_LIST_MOVERS_TELL_ALIGNED,
+    SocketType.DataCol_movers_user_random: PAGE_LIST_MOVERS_USER_RANDOM,
+    SocketType.DataCol_cleanup_tell_aligned: PAGE_LIST_CLEANUP_TELL_ALIGNED,
+    SocketType.DataCol_cleanup_user_random: PAGE_LIST_CLEANUP_USER_RANDOM,
+    SocketType.DataCol_movers_tutorial: PAGE_LIST_MOVERS_TUTORIAL,
+    SocketType.DataCol_cleanup_tutorial: PAGE_LIST_CLEANUP_TUTORIAL,
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]

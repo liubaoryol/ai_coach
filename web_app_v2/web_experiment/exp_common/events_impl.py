@@ -56,14 +56,7 @@ def initial_canvas(session_name: str, user_game_data: UserData,
                   animations=animations)
 
 
-# def disconnected(session_name, env):
-#   env_id = request.sid
-#   # finish current game
-#   if env_id in g_id_2_game_data:
-#     del g_id_2_game_data[env_id]
-
-
-def button_clicked(button, session_name, user_game_data: UserData,
+def button_clicked(button, user_game_data: UserData,
                    page_lists: Sequence[CanvasPageBase]):
   page_idx = user_game_data.data[UserData.PAGE_IDX]
   user = user_game_data.data[UserData.USER]
@@ -90,7 +83,7 @@ def button_clicked(button, session_name, user_game_data: UserData,
                   animations=animations)
 
   if not prev_task_done and updated_task_done:
-    done_task(user.userid, session_name)
+    done_task(user.userid, user_game_data.data[UserData.SESSION_NAME])
 
 
 # emit methods

@@ -17,11 +17,6 @@ COLLECT_TEMPLATE = {
     EDomainType.Cleanup: 'collect_latent_cleanup.html',
 }
 
-# FEEDBACK_NEXT_ENDPOINT = {
-#     expdef.SESSION_A1: 'expdef.' + expdef.EXP1_PAGENAMES[expdef.SESSION_A2],
-#     expdef.SESSION_B1: 'expdef.' + expdef.EXP1_PAGENAMES[expdef.SESSION_B2],
-# }
-
 
 def collect(session_name):
   cur_user = g.user
@@ -70,7 +65,6 @@ def feedback(session_name):
   groupid = session["groupid"]
   exp_type = session["exp_type"]
   if request.method == "POST":
-    # return redirect(url_for(FEEDBACK_NEXT_ENDPOINT[session_name]))
     return redirect(get_next_url(cur_endpoint, session_name, groupid, exp_type))
 
   domain_type = get_domain_type(session_name)

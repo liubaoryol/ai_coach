@@ -6,8 +6,7 @@ from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
                                                 BoxPushSimulator_AlwaysAlone,
                                                 BoxPushSimulator)
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
-from web_experiment.models import db, ExpDataCollection, ExpIntervention
-from web_experiment.define import ExpType
+from web_experiment.models import db, User
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_exp1_base import (Exp1UserData,
                                                       Exp1PageBase)
@@ -294,14 +293,11 @@ class Exp1PageGame(Exp1PageBase):
       best_score = user.best_b
 
     if best_score > game.current_step:
-      if user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Data_collection:
-        exp = ExpDataCollection.query.filter_by(subject_id=user_id).first()
-      elif user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Intervention:
-        exp = ExpIntervention.query.filter_by(subject_id=user_id).first()
+      user = User.query.filter_by(userid=user_id).first()
       if self._IS_MOVERS:
-        exp.best_a = game.current_step
+        user.best_a = game.current_step
       else:
-        exp.best_b = game.current_step
+        user.best_b = game.current_step
 
       db.session.commit()
       user_game_data.data[Exp1UserData.USER] = user

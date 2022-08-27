@@ -21,46 +21,46 @@ SESSION_TITLE = {
 
 
 class SocketType(Enum):
-  Movers_tell_aligned = 0
-  Movers_user_random = 1
-  Cleanup_tell_aligned = 2
-  Cleanup_user_random = 3
-  Movers_tutorial = 4
-  Cleanup_tutorial = 5
-  Movers_user_random_interv = 6
-  Cleanup_user_random_interv = 7
+  '''
+  The socket name should be unique across all experiments.
+  (i.e. if DataCollection experiment and Intervention experiment have a socket,
+  whose name is the same, socketio cannot distinguish which event handler to use
+  '''
+  Interv_movers_tell_aligned = 0
+  Interv_movers_user_random = 1
+  Interv_cleanup_tell_aligned = 2
+  Interv_cleanup_user_random = 3
+  Interv_movers_tutorial = 4
+  Interv_cleanup_tutorial = 5
+  Interv_movers_intervention = 6
+  Interv_cleanup_intervention = 7
 
 
 def get_socket_type(page_key, group_id):
   if page_key == PageKey.Interv_A0:
-    return SocketType.Movers_tell_aligned
+    return SocketType.Interv_movers_tell_aligned
   elif page_key == PageKey.Interv_A1:
-    return SocketType.Movers_user_random
+    return SocketType.Interv_movers_user_random
   elif page_key == PageKey.Interv_A2:
     if group_id == GroupName.Group_B:
-      return SocketType.Movers_user_random_interv
+      return SocketType.Interv_movers_intervention
     else:
-      return SocketType.Movers_user_random
+      return SocketType.Interv_movers_user_random
   elif page_key == PageKey.Interv_B0:
-    return SocketType.Cleanup_tell_aligned
+    return SocketType.Interv_cleanup_tell_aligned
   elif page_key == PageKey.Interv_B1:
-    return SocketType.Cleanup_user_random
+    return SocketType.Interv_cleanup_user_random
   elif page_key == PageKey.Interv_B2:
     if group_id == GroupName.Group_B:
-      return SocketType.Cleanup_user_random_interv
+      return SocketType.Interv_cleanup_intervention
     else:
-      return SocketType.Cleanup_user_random
+      return SocketType.Interv_cleanup_user_random
   elif page_key == PageKey.Interv_T1:
-    return SocketType.Movers_tutorial
+    return SocketType.Interv_movers_tutorial
   elif page_key == PageKey.Interv_T2:
-    return SocketType.Cleanup_tutorial
+    return SocketType.Interv_cleanup_tutorial
   else:
     return None
-
-
-def get_socket_namespace(page_key, group_id):
-  socket_type = get_socket_type(page_key, group_id)
-  return page_key + "_" + str(socket_type.value)
 
 
 PAGELIST_MOVERS_TELL_ALIGNED = [
@@ -141,12 +141,12 @@ PAGELIST_CLEANUP_TUTORIAL = [
 ]
 
 GAMEPAGES = {
-    SocketType.Movers_tell_aligned: PAGELIST_MOVERS_TELL_ALIGNED,
-    SocketType.Movers_user_random: PAGELIST_MOVERS_USER_RANDOM,
-    SocketType.Movers_user_random_interv: PAGELIST_MOVERS_USER_RAND_INTERV,
-    SocketType.Cleanup_tell_aligned: PAGELIST_CLEANUP_TELL_ALIGNED,
-    SocketType.Cleanup_user_random: PAGELIST_CLEANUP_USER_RANDOM,
-    SocketType.Cleanup_user_random_interv: PAGELIST_CLEANUP_USER_RAND_INTERV,
-    SocketType.Movers_tutorial: PAGELIST_MOVERS_TUTORIAL,
-    SocketType.Cleanup_tutorial: PAGELIST_CLEANUP_TUTORIAL,
+    SocketType.Interv_movers_tell_aligned: PAGELIST_MOVERS_TELL_ALIGNED,
+    SocketType.Interv_movers_user_random: PAGELIST_MOVERS_USER_RANDOM,
+    SocketType.Interv_movers_intervention: PAGELIST_MOVERS_USER_RAND_INTERV,
+    SocketType.Interv_cleanup_tell_aligned: PAGELIST_CLEANUP_TELL_ALIGNED,
+    SocketType.Interv_cleanup_user_random: PAGELIST_CLEANUP_USER_RANDOM,
+    SocketType.Interv_cleanup_intervention: PAGELIST_CLEANUP_USER_RAND_INTERV,
+    SocketType.Interv_movers_tutorial: PAGELIST_MOVERS_TUTORIAL,
+    SocketType.Interv_cleanup_tutorial: PAGELIST_CLEANUP_TUTORIAL,
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]
