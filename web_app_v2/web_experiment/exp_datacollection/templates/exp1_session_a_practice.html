@@ -20,13 +20,3 @@
   </ul>
 </div>
 {% endblock %}
-
-{% block submit_form %}
-<div class="button-center">
-  <form action="{{ post_endpoint }}" method="post">
-    <button type="submit" value="submit" id="submit" {{ is_disabled }}>
-      Proceed
-    </button>
-  </form>
-</div>
-{% endblock %}

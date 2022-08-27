@@ -2,11 +2,15 @@ import logging
 import re
 from flask import flash, redirect, render_template, request, url_for, g, session
 from web_experiment.models import (db, User, PostExperiment, InExperiment,
-                                   PreExperiment)
+                                   PreExperiment, ExpDataCollection,
+                                   ExpIntervention)
 from web_experiment.auth.functions import admin_required
-from web_experiment.auth.util import load_session_trajectory, get_domain_type
-import web_experiment.experiment1.define as exp1
+from web_experiment.auth.util import load_session_trajectory
+import web_experiment.exp_intervention.define as intv
+import web_experiment.exp_datacollection.define as dcol
 from web_experiment.auth.define import EDomainType, REPLAY_NAMESPACES
+from web_experiment.define import (GroupName, get_domain_type, ExpType,
+                                   DATACOL_TASKS, INTERV_TASKS)
 from . import auth_bp
 
 
@@ -16,6 +20,7 @@ def register():
   if request.method == 'POST':
     if 'userid' in request.form:
       userid = request.form['userid'].lower()
+      groupid = request.form['groupid']
       error = None
 
       if not userid:
@@ -28,8 +33,12 @@ def register():
           error = 'User {} is already registered.'.format(userid)
 
       if error is None:
-        new_user = User(userid=userid)
+        new_user = User(userid=userid, groupid=groupid)
+        exp_dcol = ExpDataCollection(subject_id=userid)
+        exp_intv = ExpIntervention(subject_id=userid)
         db.session.add(new_user)
+        db.session.add(exp_dcol)
+        db.session.add(exp_intv)
         db.session.commit()
         logging.info('User %s added a new user %s.' % (g.user, userid))
         return redirect(url_for('auth.register'))
@@ -37,6 +46,14 @@ def register():
       flash(error)
     elif 'delid' in request.form:
       delid = request.form['delid'].lower()
+
+      query = ExpDataCollection.query.filter_by(subject_id=delid).first()
+      if query is not None:
+        db.session.delete(query)
+
+      query = ExpIntervention.query.filter_by(subject_id=delid).first()
+      if query is not None:
+        db.session.delete(query)
 
       query_pre = PreExperiment.query.filter_by(subject_id=delid).first()
       if query_pre is not None:
@@ -97,20 +114,37 @@ def register():
       if (error):
         flash(error)
 
-  # user_list = User.query.all()
   user_list = []
   for user in User.query.all():
-    dict_user = {"userid": user.userid, "email": user.email}
+    dict_user = {
+        "userid": user.userid,
+        "email": user.email,
+        "groupid": user.groupid,
+        "completed": "Y" if user.completed else "N"
+    }
     user_list.append(dict_user)
 
+  group_ids = [
+      GroupName.Group_A, GroupName.Group_B, GroupName.Group_C, GroupName.Group_D
+  ]
+
+  exp_type = session["exp_type"]
+  if exp_type == ExpType.Data_collection:
+    list_task_sessions = DATACOL_TASKS
+    session_titles = dcol.SESSION_TITLE
+  elif exp_type == ExpType.Intervention:
+    list_task_sessions = INTERV_TASKS
+    session_titles = intv.SESSION_TITLE
+
   # session title
-  session_titles = {}
-  for session_name in exp1.LIST_SESSIONS:
-    session_titles[session_name] = exp1.EXP1_SESSION_TITLE[session_name]
+  task_session_titles = {}
+  for session_name in list_task_sessions:
+    task_session_titles[session_name] = session_titles[session_name]
 
   return render_template('register.html',
                          userlist=user_list,
-                         session_titles=session_titles)
+                         session_titles=task_session_titles,
+                         group_ids=group_ids)
 
 
 for domain_type in REPLAY_NAMESPACES:
@@ -118,8 +152,14 @@ for domain_type in REPLAY_NAMESPACES:
 
   def make_replay_view(namespace=namespace):
     def replay_view():
+      exp_type = session["exp_type"]
+      if exp_type == ExpType.Data_collection:
+        session_titles = dcol.SESSION_TITLE
+      elif exp_type == ExpType.Intervention:
+        session_titles = intv.SESSION_TITLE
+
       loaded_session_name = session['loaded_session_name']
-      loaded_session_title = exp1.EXP1_SESSION_TITLE[loaded_session_name]
+      loaded_session_title = session_titles[loaded_session_name]
       return render_template("replay_base.html",
                              user_id=session["replay_id"],
                              session_title=loaded_session_title,

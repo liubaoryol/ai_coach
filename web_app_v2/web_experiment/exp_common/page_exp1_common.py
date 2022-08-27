@@ -1,7 +1,9 @@
 from typing import Mapping
-import web_experiment.experiment1.canvas_objects as co
-from web_experiment.experiment1.page_exp1_base import Exp1PageBase, Exp1UserData
-from web_experiment.models import User, db
+from web_experiment.define import ExpType
+import web_experiment.exp_common.canvas_objects as co
+from web_experiment.exp_common.page_exp1_base import (Exp1PageBase,
+                                                      Exp1UserData)
+from web_experiment.models import db, ExpIntervention, ExpDataCollection
 
 
 class CanvasPageStart(Exp1PageBase):
@@ -10,8 +12,6 @@ class CanvasPageStart(Exp1PageBase):
 
   def init_user_data(self, user_game_data: Exp1UserData):
     return super().init_user_data(user_game_data)
-    # user_game_data.data[Exp1UserData.DONE] = False
-    # user_game_data.data[Exp1UserData.SELECT] = False
 
   def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
     '''
@@ -126,11 +126,15 @@ class CanvasPageEnd(Exp1PageBase):
     user = user_game_data.data[Exp1UserData.USER]
     user_id = user.userid
     session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
-    if not getattr(user, session_name):
-      user = User.query.filter_by(userid=user_id).first()
-      setattr(user, session_name, True)
+    if user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Data_collection:
+      exp = ExpDataCollection.query.filter_by(subject_id=user_id).first()
+    elif user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Intervention:
+      exp = ExpIntervention.query.filter_by(subject_id=user_id).first()
+
+    if not getattr(exp, session_name):
+      setattr(exp, session_name, True)
       db.session.commit()
-      user_game_data.data[Exp1UserData.USER] = user
+      user_game_data.data[Exp1UserData.SESSION_DONE] = True
 
   def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
     return

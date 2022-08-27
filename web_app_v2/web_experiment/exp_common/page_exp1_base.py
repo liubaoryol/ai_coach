@@ -1,8 +1,8 @@
 import abc
 from typing import Mapping, Any
 from ai_coach_domain.box_push.simulator import BoxPushSimulator
-from web_experiment.experiment1.page_base import UserData, CanvasPageBase
-import web_experiment.experiment1.canvas_objects as co
+from web_experiment.exp_common.page_base import UserData, CanvasPageBase
+import web_experiment.exp_common.canvas_objects as co
 
 
 class Exp1UserData(UserData):
@@ -11,7 +11,7 @@ class Exp1UserData(UserData):
   '''
   GAME = "game"
   SELECT = "select"
-  DONE = "done"
+  GAME_DONE = "game_done"
   ACTION_COUNT = "action_count"
   PARTIAL_OBS = "partial_obs"
   SCORE = "score"
@@ -22,7 +22,7 @@ class Exp1UserData(UserData):
     super().__init__(user)
     self.data[Exp1UserData.GAME] = None
     self.data[Exp1UserData.SELECT] = False
-    self.data[Exp1UserData.DONE] = False
+    self.data[Exp1UserData.GAME_DONE] = False
     self.data[Exp1UserData.ACTION_COUNT] = 0
     self.data[Exp1UserData.PARTIAL_OBS] = True
     self.data[Exp1UserData.SCORE] = 0
@@ -81,7 +81,7 @@ class Exp1PageBase(CanvasPageBase):
     '''
     user_game_data: NOTE - values will be updated
     '''
-    user_game_data.data[user_game_data.DONE] = False
+    user_game_data.data[user_game_data.GAME_DONE] = False
 
   @abc.abstractmethod
   def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):

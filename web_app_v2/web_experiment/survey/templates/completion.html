@@ -3,23 +3,28 @@
 {% block header %}
 <h1>{% block title %}Post-Experiment Survey (part 5/5){% endblock %}</h1>
 <div class="explanation">
-<p>Now, we are at the final screen of your study session. Thank you for volunteering to participate in this study. We sincerely appreciate it. To complete the session, please complete the following questionnaire and press submit. All questions are optional.</p>
+  <p>Now, we are at the final screen of your study session. Thank you for volunteering to participate in this study. We
+    sincerely appreciate it. To complete the session, please complete the following questionnaire and press submit. All
+    questions are optional.</p>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="form-control">
-  <form method="post" action="{{ url_for('survey.completion') }}">
+  <form method="post">
     <div>
-      <label class="statement" for="comment">Please provide any comments that you might have regarding the study.</label>
-      <textarea id="comment" name="comment" rows="4" cols="50" maxlength = "500">{{ saved_comment }}</textarea>
+      <label class="statement" for="comment">Please provide any comments that you might have regarding the
+        study.</label>
+      <textarea id="comment" name="comment" rows="4" cols="50" maxlength="500">{{ saved_comment }}</textarea>
     </div>
     <div>
-      <label class="statement" for="question">Please share any questions that you might have regarding the study.</label>
-      <textarea id="question" name="question" rows="4" cols="50" maxlength = "500">{{ saved_question }}</textarea>
+      <label class="statement" for="question">Please share any questions that you might have regarding the
+        study.</label>
+      <textarea id="question" name="question" rows="4" cols="50" maxlength="500">{{ saved_question }}</textarea>
     </div>
     <div>
-      <label class="statement" for="email">Please submit the email at which you would like to receive the $5 gift card.</label>
+      <label class="statement" for="email">Please submit the email at which you would like to receive the $5 gift
+        card.</label>
       <input name="email" id="email" value="{{ saved_email }}">
     </div>
     <div class="button-center">

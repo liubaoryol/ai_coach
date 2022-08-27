@@ -6,36 +6,24 @@ from flask import (flash, g, redirect, render_template, request, url_for,
 from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
-from web_experiment.define import GROUP_A, GROUP_B, GROUP_C, GROUP_D
-import web_experiment.experiment1.define as td
-from web_experiment.survey.define import (SURVEY_TEMPLATE, SURVEY_PAGENAMES,
-                                          SURVEY_ENDPOINT)
+from web_experiment.define import (PageKey, get_next_url, ExpType, EDomainType,
+                                   get_domain_type)
+import web_experiment.exp_intervention.define as intv
+import web_experiment.exp_datacollection.define as dcol
 from . import survey_bp
 
-
-def get_next_endpoint(session_name, groupid):
-  if session_name == td.SESSION_A2:
-    return 'inst.clean_up'
-  elif session_name == td.SESSION_B2:
-    return 'survey.completion'
-  else:
-    if groupid == GROUP_C:
-      return 'feedback.collect'
-    elif groupid == GROUP_D:
-      return 'feedback.feedback'
-    else:
-      if session_name == td.SESSION_A1:
-        return 'exp1.' + td.EXP1_PAGENAMES[td.SESSION_A2]
-      elif session_name == td.SESSION_B1:
-        return 'exp1.' + td.EXP1_PAGENAMES[td.SESSION_B2]
-      else:
-        raise ValueError
+SURVEY_TEMPLATE = {
+    EDomainType.Movers: 'inexperiment_session_a.html',
+    EDomainType.Cleanup: 'inexperiment_session_b.html',
+}
 
 
-@survey_bp.route('/preexperiment', methods=('GET', 'POST'))
-@login_required
 def preexperiment():
   cur_user = g.user
+  cur_endpoint = survey_bp.name + "." + PageKey.PreExperiment
+  group_id = session["groupid"]
+  exp_type = session["exp_type"]
+
   if request.method == 'POST':
     logging.info('User %s submitted pre-experiment survey.' % (cur_user, ))
     age = request.form['age']
@@ -81,7 +69,8 @@ def preexperiment():
                                   comment=comments)
       db.session.add(new_pre_exp)
       db.session.commit()
-      return redirect(url_for('inst.movers_and_packers'))
+      # return redirect(url_for('inst.movers_and_packers'))
+      return redirect(get_next_url(cur_endpoint, None, group_id, exp_type))
 
     flash(error)
 
@@ -96,8 +85,12 @@ def preexperiment():
   return render_template('preexperiment.html', answers=survey_answers)
 
 
-def inexperiment_impl(session_name, current_html_file, next_endpoint_name):
+def inexp_survey_view(session_name):
   cur_user = g.user
+  cur_endpoint = survey_bp.name + "." + PageKey.InExperiment
+  group_id = session["groupid"]
+  exp_type = session["exp_type"]
+
   if request.method == 'POST':
     logging.info('User %s submitted the survey for %s.' %
                  (cur_user, session_name))
@@ -151,7 +144,9 @@ def inexperiment_impl(session_name, current_html_file, next_endpoint_name):
                                 comment=comments)
       db.session.add(new_in_exp)
       db.session.commit()
-      return redirect(url_for(next_endpoint_name, session_name=session_name))
+      # return redirect(url_for(next_endpoint_name, session_name=session_name))
+      return redirect(
+          get_next_url(cur_endpoint, session_name, group_id, exp_type))
 
     flash(error)
   query_data = InExperiment.query.filter_by(subject_id=cur_user,
@@ -167,33 +162,16 @@ def inexperiment_impl(session_name, current_html_file, next_endpoint_name):
                    str(query_data.robotperception)] = 'checked'
     survey_answers['incomment'] = query_data.comment
 
-  return render_template(current_html_file,
+  if exp_type == ExpType.Data_collection:
+    session_title = dcol.SESSION_TITLE[session_name]
+  elif exp_type == ExpType.Intervention:
+    session_title = intv.SESSION_TITLE[session_name]
+
+  return render_template(SURVEY_TEMPLATE[get_domain_type(session_name)],
                          answers=survey_answers,
-                         post_endpoint=url_for(SURVEY_ENDPOINT[session_name]),
-                         session_title=td.EXP1_SESSION_TITLE[session_name])
+                         session_title=session_title)
 
 
-for session_name in SURVEY_PAGENAMES:
-
-  def make_inexp_survey_view(session_name):
-    def inexp_survey_view():
-      groupid = session["groupid"]
-      next_endpoint = get_next_endpoint(session_name, groupid)
-
-      return inexperiment_impl(session_name, SURVEY_TEMPLATE[session_name],
-                               next_endpoint)
-
-    return inexp_survey_view
-
-  func = login_required(make_inexp_survey_view(session_name))
-  survey_bp.add_url_rule('/' + SURVEY_PAGENAMES[session_name],
-                         SURVEY_PAGENAMES[session_name],
-                         func,
-                         methods=('GET', 'POST'))
-
-
-@survey_bp.route('/completion', methods=('GET', 'POST'))
-@login_required
 def completion():
   cur_user = g.user
   if request.method == 'POST':
@@ -260,10 +238,29 @@ def completion():
                          saved_question=questions)
 
 
-@survey_bp.route('/thankyou', methods=('GET', 'POST'))
-@login_required
 def thankyou():
   cur_user = g.user
   session.clear()
   logging.info('User %s completed the experiment.' % (cur_user, ))
   return render_template('thankyou.html')
+
+
+survey_bp.add_url_rule('/' + PageKey.PreExperiment,
+                       PageKey.PreExperiment,
+                       login_required(preexperiment),
+                       methods=('GET', 'POST'))
+
+survey_bp.add_url_rule('/' + PageKey.InExperiment + "/<session_name>",
+                       PageKey.InExperiment,
+                       login_required(inexp_survey_view),
+                       methods=('GET', 'POST'))
+
+survey_bp.add_url_rule('/' + PageKey.Completion,
+                       PageKey.Completion,
+                       login_required(completion),
+                       methods=('GET', 'POST'))
+
+survey_bp.add_url_rule('/' + PageKey.Thankyou,
+                       PageKey.Thankyou,
+                       login_required(thankyou),
+                       methods=('GET', 'POST'))

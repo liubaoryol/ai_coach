@@ -4,24 +4,24 @@ import logging
 from flask import url_for
 from flask_socketio import emit
 from web_experiment import socketio
-from web_experiment.experiment1.page_base import (CanvasPageBase, UserData,
-                                                  get_objs_as_dictionary)
-import web_experiment.experiment1.canvas_objects as co
+from web_experiment.exp_common.page_base import (CanvasPageBase, UserData,
+                                                 get_objs_as_dictionary)
+import web_experiment.exp_common.canvas_objects as co
 
 
 def get_imgs():
   # yapf: disable
   imgs = [
-      {'name': co.IMG_ROBOT, 'src': url_for('exp1.static', filename='robot.svg')},  # noqa: E501
-      {'name': co.IMG_WOMAN, 'src': url_for('exp1.static', filename='woman.svg')},  # noqa: E501
-      {'name': co.IMG_MAN, 'src': url_for('exp1.static', filename='man.svg')},
-      {'name': co.IMG_BOX, 'src': url_for('exp1.static', filename='box.svg')},
-      {'name': co.IMG_TRASH_BAG, 'src': url_for('exp1.static', filename='trash_bag.svg')},  # noqa: E501
-      {'name': co.IMG_WALL, 'src': url_for('exp1.static', filename='wall.svg')},
-      {'name': co.IMG_GOAL, 'src': url_for('exp1.static', filename='goal.svg')},
-      {'name': co.IMG_BOTH_BOX, 'src': url_for('exp1.static', filename='both_box.svg')},  # noqa: E501
-      {'name': co.IMG_MAN_BAG, 'src': url_for('exp1.static', filename='man_bag.svg')},  # noqa: E501
-      {'name': co.IMG_ROBOT_BAG, 'src': url_for('exp1.static', filename='robot_bag.svg')},  # noqa: E501
+      {'name': co.IMG_ROBOT, 'src': url_for('static', filename='boxpush_images/robot.svg')},  # noqa: E501
+      {'name': co.IMG_WOMAN, 'src': url_for('static', filename='boxpush_images/woman.svg')},  # noqa: E501
+      {'name': co.IMG_MAN, 'src': url_for('static', filename='boxpush_images/man.svg')},  # noqa: E501
+      {'name': co.IMG_BOX, 'src': url_for('static', filename='boxpush_images/box.svg')},  # noqa: E501
+      {'name': co.IMG_TRASH_BAG, 'src': url_for('static', filename='boxpush_images/trash_bag.svg')},  # noqa: E501
+      {'name': co.IMG_WALL, 'src': url_for('static', filename='boxpush_images/wall.svg')},  # noqa: E501
+      {'name': co.IMG_GOAL, 'src': url_for('static', filename='boxpush_images/goal.svg')},  # noqa: E501
+      {'name': co.IMG_BOTH_BOX, 'src': url_for('static', filename='boxpush_images/both_box.svg')},  # noqa: E501
+      {'name': co.IMG_MAN_BAG, 'src': url_for('static', filename='boxpush_images/man_bag.svg')},  # noqa: E501
+      {'name': co.IMG_ROBOT_BAG, 'src': url_for('static', filename='boxpush_images/robot_bag.svg')},  # noqa: E501
   ]
   # yapf: enable
 
@@ -31,14 +31,11 @@ def get_imgs():
 def initial_canvas(session_name: str, user_game_data: UserData,
                    page_lists: Sequence[CanvasPageBase]):
 
-  user = user_game_data.data[UserData.USER]
-  done = getattr(user, session_name, False)
-
   num_pages = len(page_lists)
   user_game_data.data[UserData.NUM_PAGES] = num_pages
   user_game_data.data[UserData.SESSION_NAME] = session_name
 
-  if done:
+  if user_game_data.data[UserData.SESSION_DONE]:
     cur_page_idx = num_pages - 1
   else:
     cur_page_idx = 0
@@ -71,7 +68,7 @@ def button_clicked(button, session_name, user_game_data: UserData,
   page_idx = user_game_data.data[UserData.PAGE_IDX]
   user = user_game_data.data[UserData.USER]
 
-  prev_task_done = getattr(user, session_name, False)
+  prev_task_done = user_game_data.data[UserData.SESSION_DONE]
   dict_prev_game_data = user_game_data.get_data_to_compare()
 
   page_lists[page_idx].button_clicked(user_game_data, button)
@@ -84,8 +81,7 @@ def button_clicked(button, session_name, user_game_data: UserData,
     updated_page.init_user_data(user_game_data)
     page_drawing_info = updated_page.get_updated_drawing_info(user_game_data)
 
-  user = user_game_data.data[UserData.USER]
-  updated_task_done = getattr(user, session_name, False)
+  updated_task_done = user_game_data.data[UserData.SESSION_DONE]
 
   commands, drawing_objs, drawing_order, animations = page_drawing_info
   update_gamedata(commands=commands,

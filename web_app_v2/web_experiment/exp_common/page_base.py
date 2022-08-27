@@ -1,6 +1,6 @@
 import abc
 from typing import Mapping, Any
-import web_experiment.experiment1.canvas_objects as co
+import web_experiment.exp_common.canvas_objects as co
 
 
 class UserData:
@@ -11,6 +11,8 @@ class UserData:
   NUM_PAGES = "num_pages"
   SESSION_NAME = "session_name"
   USER = "user"
+  EXP_TYPE = "exp_type"
+  SESSION_DONE = "session_done"
 
   def __init__(self, user) -> None:
     self.data = {
@@ -18,6 +20,8 @@ class UserData:
         self.NUM_PAGES: 0,
         self.SESSION_NAME: "",
         self.USER: user,
+        self.EXP_TYPE: "",
+        self.SESSION_DONE: False
     }
 
   def go_to_next_page(self):

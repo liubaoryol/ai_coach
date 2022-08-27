@@ -10,11 +10,9 @@ from ai_coach_domain.box_push.agent import (BoxPushInteractiveAgent,
                                             BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Host)
 from ai_coach_domain.box_push import EventType
-from web_experiment.experiment1.page_exp1_game_base import (
+from web_experiment.exp_common.page_exp1_game_base import (
     Exp1UserData, Exp1PageGame, get_valid_box_to_pickup,
     are_agent_states_changed)
-from web_experiment.experiment1.helper import task_intervention
-from web_experiment.define import EDomainType
 
 
 class CanvasPageMoversTellAligned(Exp1PageGame):
@@ -75,14 +73,13 @@ class CanvasPageMoversTellAligned(Exp1PageGame):
 
 
 class CanvasPageMoversUserRandom(Exp1PageGame):
-  def __init__(self, game_map, intervention: bool) -> None:
+  def __init__(self, game_map) -> None:
     super().__init__(True, False, game_map, False, False, 5)
 
     TEMPERATURE = 0.3
     mdp = BoxPushTeamMDP_AlwaysTogether(**game_map)
     self._TEAMMATE_POLICY = BoxPushPolicyTeamExp1(mdp, TEMPERATURE,
                                                   self._AGENT2)
-    self._INTERVENTION = intervention
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -93,16 +90,6 @@ class CanvasPageMoversUserRandom(Exp1PageGame):
     game.set_autonomous_agent(agent1, agent2)
 
     user_game_data.data[Exp1UserData.SELECT] = False
-
-  def _on_action_taken(self, user_game_data: Exp1UserData,
-                       dict_prev_game: Mapping[str, Any],
-                       tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
-
-    if self._INTERVENTION:
-      game = user_game_data.get_game_ref()
-      domain = EDomainType.Movers if self._IS_MOVERS else EDomainType.Cleanup
-      task_intervention(game.history, game, domain)
 
 
 class CanvasPageCleanUpTellAligned(Exp1PageGame):
@@ -410,7 +397,7 @@ class CanvasPageCleanUpTellRandom(Exp1PageGame):
 
 
 class CanvasPageCleanUpUserRandom(Exp1PageGame):
-  def __init__(self, game_map, intervention: bool) -> None:
+  def __init__(self, game_map) -> None:
     super().__init__(False, False, game_map, False, False, 5)
 
     TEMPERATURE = 0.3
@@ -418,7 +405,6 @@ class CanvasPageCleanUpUserRandom(Exp1PageGame):
     task_mdp = BoxPushTeamMDP_AlwaysAlone(**game_map)
     self._TEAMMATE_POLICY = BoxPushPolicyIndvExp1(task_mdp, mdp, TEMPERATURE,
                                                   self._AGENT2)
-    self._INTERVENTION = intervention
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -429,13 +415,3 @@ class CanvasPageCleanUpUserRandom(Exp1PageGame):
     game.set_autonomous_agent(agent1, agent2)
 
     user_game_data.data[Exp1UserData.SELECT] = False
-
-  def _on_action_taken(self, user_game_data: Exp1UserData,
-                       dict_prev_game: Mapping[str, Any],
-                       tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
-
-    if self._INTERVENTION:
-      game = user_game_data.get_game_ref()
-      domain = EDomainType.Movers if self._IS_MOVERS else EDomainType.Cleanup
-      task_intervention(game.history, game, domain)

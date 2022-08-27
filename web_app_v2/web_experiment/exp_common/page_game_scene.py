@@ -1,7 +1,7 @@
 from typing import Mapping, Any, List, Tuple, Callable
 import numpy as np
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
-import web_experiment.experiment1.canvas_objects as co
+import web_experiment.exp_common.canvas_objects as co
 
 
 def game_scene(

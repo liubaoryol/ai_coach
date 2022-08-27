@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post" action="{{ url_for('survey.preexperiment') }}">
+  <form method="post">
     <div>
       <label class="statement" for="age">Age</label>
       <input name="age" id="age" value="{{ answers['age'] }}" required>
@@ -22,7 +22,7 @@
 
     <div>
       <label class="statement" for="frequency">
-      How often do you play video games?
+        How often do you play video games?
       </label>
       <ul class='likert'>
         <li>

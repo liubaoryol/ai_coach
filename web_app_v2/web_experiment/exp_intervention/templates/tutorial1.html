@@ -12,13 +12,3 @@
   </p>
 </div>
 {% endblock %}
-
-{% block submit_form %}
-<div class="button-center">
-  <form action="{{ next_endpoint }}">
-    <button type="submit" value="submit" id="submit" {{ is_disabled }}>
-      Proceed
-    </button>
-  </form>
-</div>
-{% endblock %}

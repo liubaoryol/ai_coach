@@ -1,12 +1,12 @@
 from typing import Mapping, Sequence, Any
-from web_experiment.experiment1.page_exp1_game_base import (Exp1PageBase,
-                                                            Exp1PageGame,
-                                                            Exp1UserData,
-                                                            get_holding_box_idx)
-from web_experiment.experiment1.page_exp1_common import CanvasPageStart
-import web_experiment.experiment1.canvas_objects as co
-from web_experiment.models import db, User
-
+from web_experiment.exp_common.page_exp1_game_base import (Exp1PageBase,
+                                                           Exp1PageGame,
+                                                           Exp1UserData,
+                                                           get_holding_box_idx)
+from web_experiment.exp_common.page_exp1_common import CanvasPageStart
+import web_experiment.exp_common.canvas_objects as co
+from web_experiment.models import db, ExpDataCollection, ExpIntervention
+from web_experiment.define import ExpType
 from ai_coach_domain.box_push.agent import (BoxPushSimpleAgent,
                                             BoxPushInteractiveAgent)
 from ai_coach_domain.box_push import conv_box_state_2_idx, EventType, BoxState
@@ -182,7 +182,7 @@ class CanvasPageTutorialBase(Exp1PageGame):
     '''
 
     game = user_game_data.get_game_ref()
-    user_game_data.data[Exp1UserData.DONE] = True
+    user_game_data.data[Exp1UserData.GAME_DONE] = True
     game.reset_game()
     user_game_data.data[Exp1UserData.SCORE] = game.current_step
     self.init_user_data(user_game_data)
@@ -743,11 +743,14 @@ class CanvasPageMiniGame(CanvasPageTutorialBase):
     user = user_game_data.data[Exp1UserData.USER]
     session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
     user_id = user.userid
-    if not getattr(user, session_name):
-      user = User.query.filter_by(userid=user_id).first()
-      setattr(user, session_name, True)
+    if user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Data_collection:
+      exp = ExpDataCollection.query.filter_by(subject_id=user_id).first()
+    elif user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Intervention:
+      exp = ExpIntervention.query.filter_by(subject_id=user_id).first()
+    if not getattr(exp, session_name):
+      setattr(exp, session_name, True)
       db.session.commit()
-      user_game_data.data[Exp1UserData.USER] = user
+      user_game_data.data[Exp1UserData.SESSION_DONE] = True
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:

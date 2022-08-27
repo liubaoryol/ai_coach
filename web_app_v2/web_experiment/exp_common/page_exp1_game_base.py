@@ -6,11 +6,13 @@ from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
                                                 BoxPushSimulator_AlwaysAlone,
                                                 BoxPushSimulator)
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
-from web_experiment.models import db, User
-import web_experiment.experiment1.canvas_objects as co
-from web_experiment.experiment1.page_exp1_base import Exp1UserData, Exp1PageBase
-from web_experiment.experiment1.page_game_scene import (game_scene,
-                                                        game_scene_names)
+from web_experiment.models import db, ExpDataCollection, ExpIntervention
+from web_experiment.define import ExpType
+import web_experiment.exp_common.canvas_objects as co
+from web_experiment.exp_common.page_exp1_base import (Exp1UserData,
+                                                      Exp1PageBase)
+from web_experiment.exp_common.page_game_scene import (game_scene,
+                                                       game_scene_names)
 
 
 def get_file_name(save_path, user_id, session_name):
@@ -113,7 +115,7 @@ class Exp1PageGame(Exp1PageBase):
     self._AGENT2 = BoxPushSimulator.AGENT2
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    user_game_data.data[Exp1UserData.DONE] = False
+    user_game_data.data[Exp1UserData.GAME_DONE] = False
     user_game_data.data[Exp1UserData.SELECT] = False
 
     game = user_game_data.get_game_ref()
@@ -269,7 +271,7 @@ class Exp1PageGame(Exp1PageBase):
     user_game_data: NOTE - values will be updated
     '''
 
-    user_game_data.data[Exp1UserData.DONE] = True
+    user_game_data.data[Exp1UserData.GAME_DONE] = True
 
     game = user_game_data.get_game_ref()
     user = user_game_data.data[Exp1UserData.USER]
@@ -292,11 +294,14 @@ class Exp1PageGame(Exp1PageBase):
       best_score = user.best_b
 
     if best_score > game.current_step:
-      user = User.query.filter_by(userid=user_id).first()
+      if user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Data_collection:
+        exp = ExpDataCollection.query.filter_by(subject_id=user_id).first()
+      elif user_game_data.data[Exp1UserData.EXP_TYPE] == ExpType.Intervention:
+        exp = ExpIntervention.query.filter_by(subject_id=user_id).first()
       if self._IS_MOVERS:
-        user.best_a = game.current_step
+        exp.best_a = game.current_step
       else:
-        user.best_b = game.current_step
+        exp.best_b = game.current_step
 
       db.session.commit()
       user_game_data.data[Exp1UserData.USER] = user
@@ -385,7 +390,7 @@ class Exp1PageGame(Exp1PageBase):
     game_env = game.get_env_info()
 
     selecting = user_data.data[Exp1UserData.SELECT]
-    game_done = user_data.data[Exp1UserData.DONE]
+    game_done = user_data.data[Exp1UserData.GAME_DONE]
 
     if selecting or game_done:
       return True, True, True, True, True, True, True
