@@ -16,21 +16,9 @@ from ai_coach_domain.box_push.defines import (idx_to_action_for_simulator,
                                               EventType,
                                               get_possible_latent_states)
 from web_experiment.define import EMode, EDomainType
-import web_experiment.experiment1.events_impl as event_impl
-from web_experiment.experiment1.page_base import CanvasPageBase
-import web_experiment.experiment1.define as td
+import web_experiment.exp_common.events_impl as event_impl
+from web_experiment.exp_common.page_base import CanvasPageBase
 from web_experiment.auth.page_replay import UserDataReplay
-
-
-def get_domain_type(session_name):
-  MOVERS_DOMAIN = [td.SESSION_A0, td.SESSION_A1, td.SESSION_A2]
-  CLEANUP_DOMAIN = [td.SESSION_B0, td.SESSION_B1, td.SESSION_B2]
-  if session_name in MOVERS_DOMAIN:
-    return EDomainType.Movers
-  elif session_name in CLEANUP_DOMAIN:
-    return EDomainType.Cleanup
-  else:
-    raise ValueError
 
 
 def load_session_trajectory(session_name, id):

@@ -3,14 +3,14 @@ from web_experiment import socketio
 from web_experiment.auth.util import update_canvas, update_latent_state
 from web_experiment.feedback.define import (FEEDBACK_NAMESPACES,
                                             FEEDBACK_CANVAS_PAGELIST)
-from web_experiment.define import GROUP_C, GROUP_D, EMode
+from web_experiment.define import EMode, GroupName
 
 
 def update_canvas_helper(domain_type, groupid, init_imgs=False):
   update_canvas(FEEDBACK_CANVAS_PAGELIST[domain_type][0], init_imgs)
-  if groupid == GROUP_C:
+  if groupid == GroupName.Group_C:
     update_latent_state(domain_type, EMode.Collected)
-  elif groupid == GROUP_D:
+  elif groupid == GroupName.Group_D:
     update_latent_state(domain_type, EMode.Predicted)
 
 

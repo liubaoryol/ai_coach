@@ -14,9 +14,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('exp1.static', filename='methods.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
 <script type="text/javascript" charset="utf-8"
-  src="{{ url_for('exp1.static', filename='exp1_game_logic_new.js') }}"></script>
+  src="{{ url_for('replay.static', filename='exp1_game_logic_new.js') }}"></script>
 <script type="text/javascript">
   initGlobalObject("{{ socket_name_space }}");
 </script>

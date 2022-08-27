@@ -3,8 +3,9 @@ Copyright (c) 2020. Sangwon Seo, Vaibhav Unhelkar.
 All rights reserved.
 '''
 from flask import Blueprint
+from web_experiment.define import BPName
 
-auth_bp = Blueprint('auth',
+auth_bp = Blueprint(BPName.Auth,
                     __name__,
                     template_folder='templates',
                     static_folder='static',
