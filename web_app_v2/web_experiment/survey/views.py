@@ -1,3 +1,4 @@
+from dataclasses import replace
 import os
 import time
 import logging
@@ -6,6 +7,7 @@ from flask import (flash, g, redirect, render_template, request, url_for,
 from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
+import csv
 from web_experiment.define import GROUP_A, GROUP_B, GROUP_C, GROUP_D
 import web_experiment.experiment1.define as td
 from web_experiment.survey.define import (SURVEY_TEMPLATE, SURVEY_PAGENAMES,
@@ -42,6 +44,8 @@ def preexperiment():
     gender = request.form['gender']
     frequency = request.form['frequency']
     comments = request.form['opencomment']
+    # getting rid of commas
+    # comments = comments.replace(',', ' ')
     error = None
 
     if not age:
@@ -60,14 +64,20 @@ def preexperiment():
       sec, msec = divmod(time.time() * 1000, 1000)
       time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
                                               time.gmtime(sec)), msec)
-      file_name = ('presurvey1_' + str(cur_user) + '_' + time_stamp + '.txt')
-      with open(os.path.join(survey_dir, file_name), 'w',
-                newline='') as txtfile:
-        txtfile.write('id: ' + cur_user + '\n')
-        txtfile.write('age: ' + age + '\n')
-        txtfile.write('gender: ' + gender + '\n')
-        txtfile.write('frequency: ' + frequency + '\n')
-        txtfile.write('comments: ' + comments + '\n')
+
+      file_name = ('presurvey_' + str(cur_user) + '_' + time_stamp + '.csv')
+      with open(os.path.join(survey_dir, file_name), 'w') as file:
+        writer = csv.writer(file)
+        header = ['id', 'age', 'gender', 'frequency', 'comments']
+        writer.writerow(header)
+        row = [cur_user, age, gender, frequency, comments]
+        writer.writerow(row)
+
+        # txtfile.write('id: ' + cur_user + '\n')
+        # txtfile.write('age: ' + age + '\n')
+        # txtfile.write('gender: ' + gender + '\n')
+        # txtfile.write('frequency: ' + frequency + '\n')
+        # txtfile.write('comments: ' + comments + '\n')
 
       qdata = PreExperiment.query.filter_by(subject_id=cur_user).first()
       if qdata is not None:
@@ -108,6 +118,8 @@ def inexperiment_impl(session_name, current_html_file, next_endpoint_name):
     robotperception = request.form['robotperception']
     cooperative = request.form['cooperative']
     comments = request.form['opencomment']
+    # get rid of comma for later entry into csv file
+    # comments = comments.replace(",", " ")
     error = None
 
     if (not maintained or not cooperative or not fluency or not mycarry
@@ -123,22 +135,51 @@ def inexperiment_impl(session_name, current_html_file, next_endpoint_name):
       sec, msec = divmod(time.time() * 1000, 1000)
       time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
                                               time.gmtime(sec)), msec)
-      file_name = f'insurvey_{session_name}_{cur_user}_{time_stamp}.txt'
-      with open(os.path.join(survey_dir, file_name), 'w',
-                newline='') as txtfile:
-        txtfile.write('id: ' + cur_user + '\n')
-        txtfile.write('maintained: ' + maintained + '\n')
-        txtfile.write('fluency: ' + fluency + '\n')
-        txtfile.write('mycarry: ' + mycarry + '\n')
-        txtfile.write('robotcarry: ' + robotcarry + '\n')
-        txtfile.write('robotperception: ' + robotperception + '\n')
-        txtfile.write('cooperative: ' + cooperative + '\n')
-        txtfile.write('comments: ' + comments + '\n')
+      # file_name = f'insurvey_{session_name}_{cur_user}_{time_stamp}.txt'
+      # with open(os.path.join(survey_dir, file_name), 'w',
+      #           newline='') as txtfile:
+      #   txtfile.write('id: ' + cur_user + '\n')
+      #   txtfile.write('maintained: ' + maintained + '\n')
+      #   txtfile.write('fluency: ' + fluency + '\n')
+      #   txtfile.write('mycarry: ' + mycarry + '\n')
+      #   txtfile.write('robotcarry: ' + robotcarry + '\n')
+      #   txtfile.write('robotperception: ' + robotperception + '\n')
+      #   txtfile.write('cooperative: ' + cooperative + '\n')
+      #   txtfile.write('comments: ' + comments + '\n')
       qdata = InExperiment.query.filter_by(subject_id=cur_user,
                                            session_name=session_name).first()
       if qdata is not None:
         db.session.delete(qdata)
         db.session.commit()
+      else:
+        file_name = f'insurvey_{cur_user}.csv'
+        file_path = os.path.join(survey_dir, file_name)
+        file_exist = (os.path.exists(file_path))
+
+        with open(file_path, 'a') as file:
+          writer = csv.writer(file)
+          # write header if file is just created
+          if not file_exist:
+            header = [
+                'id', 'sessionname', 'timestamp', 'maintained', 'fluency',
+                'mycarry', 'robotcarry', 'robotperception', 'cooperative',
+                'comments'
+            ]
+            writer.writerow(header)
+          row = [
+              cur_user, session_name, time_stamp, maintained, fluency, mycarry,
+              robotcarry, robotperception, cooperative, comments
+          ]
+          writer.writerow(row)
+
+        # txtfile.write('id: ' + cur_user + '\n')
+        # txtfile.write('maintained: ' + maintained + '\n')
+        # txtfile.write('fluency: ' + fluency + '\n')
+        # txtfile.write('mycarry: ' + mycarry + '\n')
+        # txtfile.write('robotcarry: ' + robotcarry + '\n')
+        # txtfile.write('robotperception: ' + robotperception + '\n')
+        # txtfile.write('cooperative: ' + cooperative + '\n')
+        # txtfile.write('comments: ' + comments + '\n')
 
       new_in_exp = InExperiment(session_name=session_name,
                                 subject_id=cur_user,
@@ -176,6 +217,7 @@ def inexperiment_impl(session_name, current_html_file, next_endpoint_name):
 for session_name in SURVEY_PAGENAMES:
 
   def make_inexp_survey_view(session_name):
+
     def inexp_survey_view():
       groupid = session["groupid"]
       next_endpoint = get_next_endpoint(session_name, groupid)
@@ -199,6 +241,7 @@ def completion():
   if request.method == 'POST':
     logging.info('User %s submitted post-experiment survey.' % (cur_user, ))
     comment = request.form['comment']
+    # comment = comment.replace(',', ' ')
     question = request.form['question']
     email = request.form['email']
 
@@ -210,12 +253,20 @@ def completion():
     sec, msec = divmod(time.time() * 1000, 1000)
     time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
                                             time.gmtime(sec)), msec)
-    file_name = ('postsurvey_' + str(cur_user) + '_' + time_stamp + '.txt')
-    with open(os.path.join(survey_dir, file_name), 'w', newline='') as txtfile:
-      txtfile.write('id: ' + cur_user + '\n')
-      txtfile.write('email: ' + email + '\n')
-      txtfile.write('comment: ' + comment + '\n')
-      txtfile.write('question: ' + question + '\n')
+    file_name = ('postsurvey_' + str(cur_user) + '_' + time_stamp + '.csv')
+    with open(os.path.join(survey_dir, file_name), 'w') as file:
+      writer = csv.writer(file)
+      header = ['id', 'email', 'comment', 'question']
+      writer.writerow(header)
+      row = [cur_user, email, comment, question]
+      writer.writerow(row)
+
+    # with open(os.path.join(survey_dir, file_name), 'w', newline='')
+    # as txtfile:
+    #   txtfile.write('id: ' + cur_user + '\n')
+    #   txtfile.write('email: ' + email + '\n')
+    #   txtfile.write('comment: ' + comment + '\n')
+    #   txtfile.write('question: ' + question + '\n')
     error = None
     user = User.query.filter_by(userid=cur_user).first()
 
