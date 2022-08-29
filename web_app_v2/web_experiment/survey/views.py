@@ -1,4 +1,3 @@
-from dataclasses import replace
 import os
 import time
 import logging
@@ -32,8 +31,9 @@ def preexperiment():
     gender = request.form['gender']
     frequency = request.form['frequency']
     comments = request.form['opencomment']
-    # getting rid of commas
-    # comments = comments.replace(',', ' ')
+    # getting rid of \n
+    comments = comments.replace('\n', ' ')
+
     error = None
 
     if not age:
@@ -111,8 +111,8 @@ def inexp_survey_view(session_name):
     robotperception = request.form['robotperception']
     cooperative = request.form['cooperative']
     comments = request.form['opencomment']
-    # get rid of comma for later entry into csv file
-    # comments = comments.replace(",", " ")
+    # get rid of \n for later entry into csv file
+    comments = comments.replace('\n', ' ')
     error = None
 
     if (not maintained or not cooperative or not fluency or not mycarry
@@ -203,29 +203,10 @@ def inexp_survey_view(session_name):
                    str(query_data.robotperception)] = 'checked'
     survey_answers['incomment'] = query_data.comment
 
-<<<<<<< HEAD
-  return render_template(current_html_file,
-                         answers=survey_answers,
-                         post_endpoint=url_for(SURVEY_ENDPOINT[session_name]),
-                         session_title=td.EXP1_SESSION_TITLE[session_name])
-
-
-for session_name in SURVEY_PAGENAMES:
-
-  def make_inexp_survey_view(session_name):
-
-    def inexp_survey_view():
-      groupid = session["groupid"]
-      next_endpoint = get_next_endpoint(session_name, groupid)
-
-      return inexperiment_impl(session_name, SURVEY_TEMPLATE[session_name],
-                               next_endpoint)
-=======
   if exp_type == ExpType.Data_collection:
     session_title = dcol.SESSION_TITLE[session_name]
   elif exp_type == ExpType.Intervention:
     session_title = intv.SESSION_TITLE[session_name]
->>>>>>> 6f66f7c4c46ec872cb50b9ae26d32019ba31c678
 
   return render_template(SURVEY_TEMPLATE[get_domain_type(session_name)],
                          answers=survey_answers,
@@ -237,7 +218,7 @@ def completion():
   if request.method == 'POST':
     logging.info('User %s submitted post-experiment survey.' % (cur_user, ))
     comment = request.form['comment']
-    # comment = comment.replace(',', ' ')
+    comment = comment.replace('\n', ' ')
     question = request.form['question']
     email = request.form['email']
 
