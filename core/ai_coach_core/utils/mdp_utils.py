@@ -1,6 +1,6 @@
 """Utilities for MDPs."""
 
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Sequence
 import numpy as np
 
 
@@ -8,18 +8,24 @@ class StateSpace:
   """Defines a state space."""
   def __init__(
       self,
-      statespace: Optional[Set] = None,
+      statespace: Optional[Sequence] = None,
       idx_to_state: Optional[Dict] = None,
       state_to_idx: Optional[Dict] = None,
   ):
     """Initializes a state space.
 
     Args:
-      statespace: Optional; a set of states. Defaults to a state space with
-        one state.
+      statespace: Optional; a sequence of states. Defaults to a state space with
+        one state. The input sequence should not contain any duplicated element
       idx_to_state: Optional; a mapping from state indices to states.
       state_to_idx: Optional; a mapping from states to state indices.
     """
+
+    set_tmp = set()
+    for elem in statespace:
+      if elem in set_tmp:
+        raise ValueError("Found duplicates in the statespace")
+      set_tmp.add(elem)
 
     # Defines the state space; default state space withe one element.
     self.statespace = statespace if statespace is not None else set([0])
@@ -66,18 +72,24 @@ class ActionSpace:
   """Defines an action space."""
   def __init__(
       self,
-      actionspace: Optional[Set] = None,
+      actionspace: Optional[Sequence] = None,
       idx_to_action: Optional[Dict] = None,
       action_to_idx: Optional[Dict] = None,
   ):
     """Initializes an action space.
 
     Args:
-      actionspace: Optional; a set of actions. Defaults to a action space with
-        one action.
+      actionspace: Optional; a sequence of actions. Defaults to a action space
+          with one action. The input should not contain any duplicated element
       idx_to_action: Optional; a mapping from action indices to actions.
       action_to_idx: Optional; a mapping from actions to action indices.
     """
+
+    set_tmp = set()
+    for elem in actionspace:
+      if elem in set_tmp:
+        raise ValueError("Found duplicates in the actionspace")
+      set_tmp.add(elem)
 
     # Defines the action space; default action space withe one element.
     self.actionspace = actionspace if actionspace is not None else set([0])

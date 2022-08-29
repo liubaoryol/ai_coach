@@ -1,5 +1,6 @@
 from typing import Tuple
 from enum import Enum
+from ai_coach_core.utils.mdp_utils import ActionSpace
 
 
 class EventType(Enum):
@@ -25,12 +26,7 @@ class BoxState(Enum):
   WithTeammate = WithAgent2
 
 
-def action_to_idx_for_simulator(agent_idx: int, action: EventType):
-  return action.value
-
-
-def idx_to_action_for_simulator(agent_idx: int, action_idx: int):
-  return EventType(action_idx)
+AGENT_ACTIONSPACE = ActionSpace([EventType(idx) for idx in range(6)])
 
 
 def get_possible_latent_states(num_boxes, num_drops, num_goals):

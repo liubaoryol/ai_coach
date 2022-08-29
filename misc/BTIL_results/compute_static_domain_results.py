@@ -75,16 +75,15 @@ def print_conf(conf):
 
 
 class StaticBoxPushTrajectories(Trajectories):
-  def __init__(self, num_latents: int, simulator: BoxPushSimulator) -> None:
+  def __init__(self, num_latents: int) -> None:
     super().__init__(num_state_factors=1,
                      num_action_factors=2,
                      num_latent_factors=2,
                      num_latents=num_latents)
-    self.simulator = simulator
 
   def load_from_files(self, file_names):
     for file_nm in file_names:
-      trj = self.simulator.read_file(file_nm)
+      trj = BoxPushSimulator.read_file(file_nm)
       if len(trj) == 0:
         continue
 

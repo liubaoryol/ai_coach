@@ -398,9 +398,21 @@ class Exp1PageGame(Exp1PageBase):
     a1_box, _ = get_holding_box_idx(game_env["box_states"], num_drops,
                                     num_goals)
     if a1_box >= 0:  # set drop action status
-      drop_ok = True
+      a1_pos = game_env["a1_pos"]
+      if a1_pos in game_env["goals"]:
+        drop_ok = True
+      elif a1_pos == game_env["boxes"][a1_box]:
+        drop_ok = True
     else:  # set pickup action status
-      pickup_ok = True
+      a1_pos = game_env["a1_pos"]
+      for idx, bidx in enumerate(game_env["box_states"]):
+        bstate = conv_box_idx_2_state(bidx, num_drops, num_goals)
+        if bstate[0] == BoxState.Original:
+          if game_env["boxes"][idx] == a1_pos:
+            pickup_ok = True
+        elif bstate[0] == BoxState.WithAgent2:
+          if game_env["a2_pos"] == a1_pos:
+            pickup_ok = True
 
     return False, False, False, False, False, not pickup_ok, not drop_ok
 

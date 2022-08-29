@@ -12,8 +12,7 @@ from ai_coach_domain.box_push.agent_model import (
     assumed_initial_mental_distribution)
 import ai_coach_domain.box_push.simulator as bp_sim
 import ai_coach_domain.box_push.mdp as bp_mdp
-from ai_coach_domain.box_push import (idx_to_action_for_simulator, EventType,
-                                      get_possible_latent_states)
+from ai_coach_domain.box_push import EventType, get_possible_latent_states
 from web_experiment.define import EMode, EDomainType
 import web_experiment.exp_common.events_impl as event_impl
 from web_experiment.exp_common.page_base import CanvasPageBase
@@ -90,11 +89,11 @@ def read_file(file_name):
       if a1act is None:
         a1_act = None
       else:
-        a1_act = idx_to_action_for_simulator(0, int(a1act)).value
+        a1_act = int(a1act)
       if a2act is None:
         a2_act = None
       else:
-        a2_act = idx_to_action_for_simulator(1, int(a2act)).value
+        a2_act = int(a2act)
       traj.append({
           "x_grid": x_grid,
           "y_grid": y_grid,

@@ -1,6 +1,5 @@
 import numpy as np
-from ai_coach_core.utils.mdp_utils import ActionSpace
-from ai_coach_domain.box_push import BoxState, EventType
+from ai_coach_domain.box_push import BoxState, EventType, AGENT_ACTIONSPACE
 from ai_coach_domain.box_push.transition import (transition_alone_and_together,
                                                  transition_always_together,
                                                  transition_always_alone)
@@ -10,9 +9,8 @@ from ai_coach_domain.box_push.mdp import BoxPushMDP
 class BoxPushTeamMDP(BoxPushMDP):
   def init_actionspace(self):
     self.dict_factored_actionspace = {}
-    action_states = [EventType(idx) for idx in range(6)]
-    self.a1_a_space = ActionSpace(actionspace=action_states)
-    self.a2_a_space = ActionSpace(actionspace=action_states)
+    self.a1_a_space = AGENT_ACTIONSPACE
+    self.a2_a_space = AGENT_ACTIONSPACE
     self.dict_factored_actionspace = {0: self.a1_a_space, 1: self.a2_a_space}
 
   def transition_model(self, state_idx: int, action_idx: int) -> np.ndarray:
