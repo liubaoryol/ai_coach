@@ -1,7 +1,7 @@
 from typing import Mapping, Any
-import web_experiment.experiment1.canvas_objects as co
-from web_experiment.experiment1.page_exp1_base import Exp1UserData
-from web_experiment.experiment1.page_exp1_game_base import Exp1PageGame
+import web_experiment.exp_common.canvas_objects as co
+from web_experiment.exp_common.page_exp1_base import Exp1UserData
+from web_experiment.exp_common.page_exp1_game_base import Exp1PageGame
 
 
 class UserDataReplay(Exp1UserData):
@@ -51,6 +51,9 @@ class CanvasPageReplayBoxPush(Exp1PageGame):
         24,
         text_score,
         text_align="right")
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return "Please review your actions and label your mental model at each step."
 
   def canvas_objects(self, dict_game, user_data):
     dict_objs = {}

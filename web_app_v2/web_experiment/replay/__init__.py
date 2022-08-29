@@ -3,8 +3,9 @@ Copyright (c) 2020. Sangwon Seo, Vaibhav Unhelkar.
 All rights reserved.
 '''
 from flask import Blueprint
+from web_experiment.define import BPName
 
-replay_bp = Blueprint('replay',
+replay_bp = Blueprint(BPName.Replay,
                       __name__,
                       template_folder='templates',
                       static_folder='static',

@@ -1,4 +1,7 @@
 from web_experiment import db
+from web_experiment.define import (DATACOL_TUTORIALS, DATACOL_TASKS,
+                                   INTERV_SESSIONS, PageKey,
+                                   get_record_session_key)
 
 
 class User(db.Model):
@@ -6,42 +9,33 @@ class User(db.Model):
                      unique=True,
                      nullable=False,
                      primary_key=True)
-  groupid = db.Column(db.String(80), unique=False, nullable=False, default='')
+  groupid = db.Column(db.String(80), unique=False, default='')
   email = db.Column(db.String(120), default='')
   admin = db.Column(db.Boolean, nullable=False, default=False)
-  tutorial1 = db.Column(db.Boolean, default=False)
-  session_a0 = db.Column(db.Boolean, default=False)
-  session_a1 = db.Column(db.Boolean, default=False)
-  session_a1_record = db.Column(db.Boolean, default=False)
-  session_a2 = db.Column(db.Boolean, default=False)
-
-  tutorial2 = db.Column(db.Boolean, default=False)
-  session_b0 = db.Column(db.Boolean, default=False)
-  session_b1 = db.Column(db.Boolean, default=False)
-  session_b1_record = db.Column(db.Boolean, default=False)
-  session_b2 = db.Column(db.Boolean, default=False)
+  completed = db.Column(db.Boolean, default=False)
 
   best_a = db.Column(db.Integer, default=999)
   best_b = db.Column(db.Integer, default=999)
-  completed = db.Column(db.Boolean, default=False)
-  pre_exp = db.Column(db.Boolean, default=False)
-  session_a0_survey = db.Column(db.Boolean, default=False)
-  session_a1_survey = db.Column(db.Boolean, default=False)
-  session_a2_survey = db.Column(db.Boolean, default=False)
 
-  session_b0_survey = db.Column(db.Boolean, default=False)
-  session_b1_survey = db.Column(db.Boolean, default=False)
-  session_b2_survey = db.Column(db.Boolean, default=False)
-
-  # pre_exp = db.relationship('PreExperiment',
-  #                           backref='user',
-  #                           lazy=True,
-  #                           uselist=False,
-  #                           passive_deletes=True)
-  # in_exp = db.relationship('InExperiment',
-  #                          backref='user',
-  #                          lazy=True,
-  #                          passive_deletes=True)
+  exp_datacollection = db.relationship('ExpDataCollection',
+                                       backref='user',
+                                       lazy=True,
+                                       uselist=False,
+                                       passive_deletes=True)
+  exp_intervention = db.relationship('ExpIntervention',
+                                     backref='user',
+                                     lazy=True,
+                                     uselist=False,
+                                     passive_deletes=True)
+  pre_exp = db.relationship('PreExperiment',
+                            backref='user',
+                            lazy=True,
+                            uselist=False,
+                            passive_deletes=True)
+  in_exp = db.relationship('InExperiment',
+                           backref='user',
+                           lazy=True,
+                           passive_deletes=True)
   post_exp = db.relationship('PostExperiment',
                              backref='user',
                              lazy=True,
@@ -50,6 +44,42 @@ class User(db.Model):
 
   def __repr__(self):
     return '<User %r>' % self.userid
+
+
+class ExpDataCollection(db.Model):
+  id = db.Column(db.Integer, primary_key=True)
+  subject_id = db.Column(db.String(80),
+                         db.ForeignKey('user.userid', ondelete='CASCADE'),
+                         nullable=False)
+
+  for session_name in DATACOL_TUTORIALS:
+    vars()[session_name] = db.Column(db.Boolean, default=False)
+
+  for session_name in DATACOL_TASKS:
+    vars()[session_name] = db.Column(db.Boolean, default=False)
+    vars()[get_record_session_key(session_name)] = db.Column(db.Boolean,
+                                                             default=False)
+
+  def __repr__(self):
+    return '<ExpDataCollection %r>' % self.subject_id
+
+
+class ExpIntervention(db.Model):
+  id = db.Column(db.Integer, primary_key=True)
+  subject_id = db.Column(db.String(80),
+                         db.ForeignKey('user.userid', ondelete='CASCADE'),
+                         nullable=False)
+
+  for session_name in INTERV_SESSIONS:
+    vars()[session_name] = db.Column(db.Boolean, default=False)
+
+  vars()[get_record_session_key(PageKey.Interv_A1)] = db.Column(db.Boolean,
+                                                                default=False)
+  vars()[get_record_session_key(PageKey.Interv_B1)] = db.Column(db.Boolean,
+                                                                default=False)
+
+  def __repr__(self):
+    return '<ExpIntervention %r>' % self.subject_id
 
 
 class PreExperiment(db.Model):
