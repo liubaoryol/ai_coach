@@ -18,7 +18,7 @@ from ai_coach_domain.box_push.defines import (idx_to_action_for_simulator,
 from web_experiment.define import EMode, EDomainType
 import web_experiment.exp_common.events_impl as event_impl
 from web_experiment.exp_common.page_base import CanvasPageBase
-from web_experiment.auth.page_replay import UserDataReplay
+from web_experiment.exp_common.page_replay import UserDataReplay
 
 
 def load_session_trajectory(session_name, id):

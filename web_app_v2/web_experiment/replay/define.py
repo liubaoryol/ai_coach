@@ -1,4 +1,4 @@
-from web_experiment.auth.page_replay import CanvasPageReplayBoxPush
+from web_experiment.exp_common.page_replay import CanvasPageReplayBoxPush
 from web_experiment.define import EDomainType
 
 RECORD_NAMESPACES = {

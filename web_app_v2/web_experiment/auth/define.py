@@ -1,5 +1,5 @@
 from web_experiment.define import EDomainType
-from web_experiment.auth.page_replay import CanvasPageReplayBoxPush
+from web_experiment.exp_common.page_replay import CanvasPageReplayBoxPush
 
 REPLAY_NAMESPACES = {
     EDomainType.Movers: "replay_movers",
