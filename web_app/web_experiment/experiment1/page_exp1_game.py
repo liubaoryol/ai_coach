@@ -3,8 +3,8 @@ import random
 from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
                                           BoxPushTeamMDP_AlwaysAlone,
                                           BoxPushAgentMDP_AlwaysAlone)
-from ai_coach_domain.box_push.mdppolicy import (BoxPushPolicyTeamExp1,
-                                                BoxPushPolicyIndvExp1)
+from ai_coach_domain.box_push.policy import (BoxPushPolicyTeamExp1,
+                                             BoxPushPolicyIndvExp1)
 from ai_coach_domain.box_push.agent import (BoxPushInteractiveAgent,
                                             BoxPushAIAgent_Indv2,
                                             BoxPushAIAgent_Team2,

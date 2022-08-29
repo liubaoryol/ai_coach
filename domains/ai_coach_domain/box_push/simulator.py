@@ -2,12 +2,11 @@ from typing import Hashable, Mapping, Tuple, Sequence, Callable, Any
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
-from ai_coach_domain.box_push.defines import (EventType,
-                                              transition_alone_and_together,
-                                              transition_always_together,
-                                              transition_always_alone,
-                                              action_to_idx_for_simulator,
-                                              idx_to_action_for_simulator)
+from ai_coach_domain.box_push import (EventType, action_to_idx_for_simulator,
+                                      idx_to_action_for_simulator)
+from ai_coach_domain.box_push.transition import (transition_alone_and_together,
+                                                 transition_always_together,
+                                                 transition_always_alone)
 from ai_coach_domain.box_push.agent import (BoxPushSimulatorAgent,
                                             BoxPushInteractiveAgent)
 
@@ -393,7 +392,7 @@ if __name__ == "__main__":
     from ai_coach_domain.box_push.maps import EXP1_MAP
     from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team1,
                                                 BoxPushAIAgent_Team2)
-    from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyTeamExp1
+    from ai_coach_domain.box_push.policy import BoxPushPolicyTeamExp1
     from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AlwaysTogether
 
     sim = BoxPushSimulator_AlwaysTogether(0)

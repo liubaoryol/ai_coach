@@ -4,8 +4,8 @@ import numpy as np
 from ai_coach_core.utils.mdp_utils import StateSpace
 from ai_coach_core.models.mdp import LatentMDP
 from ai_coach_domain.box_push import (BoxState, conv_box_state_2_idx,
-                                      conv_box_idx_2_state)
-from ai_coach_domain.box_push.defines import get_possible_latent_states
+                                      conv_box_idx_2_state,
+                                      get_possible_latent_states)
 
 
 class BoxPushMDP(LatentMDP):

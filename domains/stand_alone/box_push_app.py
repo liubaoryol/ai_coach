@@ -4,7 +4,7 @@ from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
 import ai_coach_domain.box_push.mdp as bp_mdp
-import ai_coach_domain.box_push.mdppolicy as bp_policy
+import ai_coach_domain.box_push.policy as bp_policy
 import ai_coach_domain.box_push.agent as bp_agent
 
 IS_TESTMAP = False

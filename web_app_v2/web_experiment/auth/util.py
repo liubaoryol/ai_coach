@@ -12,9 +12,8 @@ from ai_coach_domain.box_push.agent_model import (
     assumed_initial_mental_distribution)
 import ai_coach_domain.box_push.simulator as bp_sim
 import ai_coach_domain.box_push.mdp as bp_mdp
-from ai_coach_domain.box_push.defines import (idx_to_action_for_simulator,
-                                              EventType,
-                                              get_possible_latent_states)
+from ai_coach_domain.box_push import (idx_to_action_for_simulator, EventType,
+                                      get_possible_latent_states)
 from web_experiment.define import EMode, EDomainType
 import web_experiment.exp_common.events_impl as event_impl
 from web_experiment.exp_common.page_base import CanvasPageBase
