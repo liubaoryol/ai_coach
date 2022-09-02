@@ -1,4 +1,5 @@
-from typing import Hashable, Mapping, Tuple, Sequence, Callable
+from typing import Hashable, Mapping, Tuple, Sequence
+import abc
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
@@ -19,14 +20,12 @@ class BoxPushSimulator(Simulator):
   def __init__(
       self,
       id: Hashable,
-      cb_transition: Callable,
       tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
     #  input1: agent idx
     super().__init__(id)
     self.agent_1 = None
     self.agent_2 = None
-    self.transition_fn = cb_transition
     self.tuple_action_when_none = tuple_action_when_none
 
   def init_game(self,
@@ -136,10 +135,7 @@ class BoxPushSimulator(Simulator):
     self.changed_state.add("a2_latent")
 
   def _transition(self, a1_action, a2_action):
-    list_next_env = self.transition_fn(self.box_states, self.a1_pos,
-                                       self.a2_pos, a1_action, a2_action,
-                                       self.boxes, self.goals, self.walls,
-                                       self.drops, self.x_grid, self.y_grid)
+    list_next_env = self._get_transition_distribution(a1_action, a2_action)
 
     list_prop = []
     for item in list_next_env:
@@ -154,6 +150,10 @@ class BoxPushSimulator(Simulator):
     self.changed_state.add("a1_pos")
     self.changed_state.add("a2_pos")
     self.changed_state.add("box_states")
+
+  @abc.abstractmethod
+  def _get_transition_distribution(self, a1_action, a2_action):
+    pass
 
   def get_num_box_state(self):
     '''
@@ -324,9 +324,13 @@ class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
       id: Hashable,
       tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
-    super().__init__(id,
-                     transition_alone_and_together,
-                     tuple_action_when_none=tuple_action_when_none)
+    super().__init__(id, tuple_action_when_none=tuple_action_when_none)
+
+  def _get_transition_distribution(self, a1_action, a2_action):
+    return transition_alone_and_together(self.box_states, self.a1_pos,
+                                         self.a2_pos, a1_action, a2_action,
+                                         self.boxes, self.goals, self.walls,
+                                         self.drops, self.x_grid, self.y_grid)
 
 
 class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
@@ -335,9 +339,13 @@ class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
       id: Hashable,
       tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
-    super().__init__(id,
-                     transition_always_together,
-                     tuple_action_when_none=tuple_action_when_none)
+    super().__init__(id, tuple_action_when_none=tuple_action_when_none)
+
+  def _get_transition_distribution(self, a1_action, a2_action):
+    return transition_always_together(self.box_states, self.a1_pos, self.a2_pos,
+                                      a1_action, a2_action, self.boxes,
+                                      self.goals, self.walls, self.drops,
+                                      self.x_grid, self.y_grid)
 
 
 class BoxPushSimulator_AlwaysAlone(BoxPushSimulator):
@@ -346,9 +354,13 @@ class BoxPushSimulator_AlwaysAlone(BoxPushSimulator):
       id: Hashable,
       tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
-    super().__init__(id,
-                     transition_always_alone,
-                     tuple_action_when_none=tuple_action_when_none)
+    super().__init__(id, tuple_action_when_none=tuple_action_when_none)
+
+  def _get_transition_distribution(self, a1_action, a2_action):
+    return transition_always_alone(self.box_states, self.a1_pos, self.a2_pos,
+                                   a1_action, a2_action, self.boxes, self.goals,
+                                   self.walls, self.drops, self.x_grid,
+                                   self.y_grid)
 
 
 if __name__ == "__main__":

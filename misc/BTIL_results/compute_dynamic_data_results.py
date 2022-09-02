@@ -332,7 +332,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
 
-    train_data = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
+    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
     train_data.load_from_files(file_names)
     if num_run > 1:
       train_data.shuffle()
@@ -347,7 +347,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
 
-    test_data = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
+    test_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
     test_data.load_from_files(test_file_names)
     test_traj = test_data.get_as_column_lists(include_terminal=False)
     logging.info(len(test_traj))

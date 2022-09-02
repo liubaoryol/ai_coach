@@ -23,9 +23,8 @@ class BoxPushAgentMDP(BoxPushMDP):
     # assume a2 has the same possible actions as a1
     list_p_next_env = []
     for teammate_act in self.my_act_space.actionspace:
-      list_p_next_env = list_p_next_env + self.transition_fn(
-          box_states, my_pos, teammate_pos, my_act, teammate_act, self.boxes,
-          self.goals, self.walls, self.drops, self.x_grid, self.y_grid)
+      list_p_next_env = list_p_next_env + self._transition_impl(
+          box_states, my_pos, teammate_pos, my_act, teammate_act)
 
     list_next_p_state = []
     map_next_state = {}
@@ -111,9 +110,11 @@ class BoxPushAgentMDP(BoxPushMDP):
 
 
 class BoxPushAgentMDP_AloneOrTogether(BoxPushAgentMDP):
-  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
-    super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
-                     transition_alone_and_together)
+  def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
+    return transition_alone_and_together(box_states, a1_pos, a2_pos, a1_action,
+                                         a2_action, self.boxes, self.goals,
+                                         self.walls, self.drops, self.x_grid,
+                                         self.y_grid)
 
   def get_possible_box_states(self):
     box_states = [(BoxState(idx), None) for idx in range(4)]
@@ -128,9 +129,11 @@ class BoxPushAgentMDP_AloneOrTogether(BoxPushAgentMDP):
 
 
 class BoxPushAgentMDP_AlwaysAlone(BoxPushAgentMDP):
-  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
-    super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
-                     transition_always_alone)
+  def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
+    return transition_always_alone(box_states, a1_pos, a2_pos, a1_action,
+                                   a2_action, self.boxes, self.goals,
+                                   self.walls, self.drops, self.x_grid,
+                                   self.y_grid)
 
   def get_possible_box_states(self):
     box_states = [(BoxState(idx), None) for idx in range(3)]

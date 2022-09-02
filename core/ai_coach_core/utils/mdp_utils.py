@@ -21,15 +21,16 @@ class StateSpace:
       state_to_idx: Optional; a mapping from states to state indices.
     """
 
-    set_tmp = set()
-    for elem in statespace:
-      if elem in set_tmp:
-        raise ValueError("Found duplicates in the statespace")
-      set_tmp.add(elem)
-
     # Defines the state space; default state space withe one element.
     self.statespace = statespace if statespace is not None else set([0])
     self.num_states = len(self.statespace)
+
+    # check duplicates
+    set_tmp = set()
+    for elem in self.statespace:
+      if elem in set_tmp:
+        raise ValueError("Found duplicates in the statespace")
+      set_tmp.add(elem)
 
     # creates a mapping from state index to state, and vice-versa
     if idx_to_state is None:
@@ -85,15 +86,16 @@ class ActionSpace:
       action_to_idx: Optional; a mapping from actions to action indices.
     """
 
-    set_tmp = set()
-    for elem in actionspace:
-      if elem in set_tmp:
-        raise ValueError("Found duplicates in the actionspace")
-      set_tmp.add(elem)
-
     # Defines the action space; default action space withe one element.
     self.actionspace = actionspace if actionspace is not None else set([0])
     self.num_actions = len(self.actionspace)
+
+    # check duplicates
+    set_tmp = set()
+    for elem in self.actionspace:
+      if elem in set_tmp:
+        raise ValueError("Found duplicates in the actionspace")
+      set_tmp.add(elem)
 
     # creates a mapping from action index to action, and vice-versa
     if idx_to_action is None:
