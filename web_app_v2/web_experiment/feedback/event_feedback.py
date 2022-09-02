@@ -1,6 +1,6 @@
 from flask import session
 from web_experiment import socketio
-from web_experiment.auth.util import update_canvas, update_latent_state
+from web_experiment.review.util import update_canvas, update_latent_state
 from web_experiment.feedback.define import (FEEDBACK_NAMESPACES,
                                             FEEDBACK_CANVAS_PAGELIST)
 from web_experiment.define import EMode, GroupName
@@ -25,7 +25,7 @@ for domain_type in FEEDBACK_NAMESPACES:
 
   def make_next_index(domain_type):
     def next_index():
-      if session['index'] < (session['max_index'] - 1):
+      if session['index'] < session['max_index']:
         session['index'] += 1
       update_canvas_helper(domain_type, session["groupid"], False)
 

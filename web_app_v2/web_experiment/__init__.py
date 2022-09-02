@@ -59,7 +59,7 @@ def create_app(debug=False, test_config=None):
   from web_experiment.exp_intervention import exp_interv_bp
   from web_experiment.exp_datacollection import exp_dcollect_bp
   from web_experiment.instruction import inst_bp
-  from web_experiment.replay import replay_bp
+  from web_experiment.review import review_bp
   from web_experiment.feedback import feedback_bp
   app.register_blueprint(consent_bp)
   app.register_blueprint(auth_bp)
@@ -67,7 +67,7 @@ def create_app(debug=False, test_config=None):
   app.register_blueprint(exp_interv_bp)
   app.register_blueprint(exp_dcollect_bp)
   app.register_blueprint(inst_bp)
-  app.register_blueprint(replay_bp)
+  app.register_blueprint(review_bp)
   app.register_blueprint(feedback_bp)
 
   app.add_url_rule('/', 'index', consent, methods=("GET", "POST"))

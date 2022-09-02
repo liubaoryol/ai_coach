@@ -1,15 +1,15 @@
-from web_experiment import socketio
 from flask import session
-from web_experiment.auth.util import update_canvas
-from web_experiment.replay.define import (RECORD_NAMESPACES,
-                                          RECORD_CANVAS_PAGELIST)
+from web_experiment import socketio
+from web_experiment.define import PageKey
+from web_experiment.review.define import REPLAY_CANVAS_PAGELIST, get_socket_name
+from web_experiment.review.util import update_canvas
 
-for domain_type in RECORD_NAMESPACES:
-  name_space = '/' + RECORD_NAMESPACES[domain_type]
+for domain_type in REPLAY_CANVAS_PAGELIST:
+  name_space = '/' + get_socket_name(PageKey.Record, domain_type)
 
   def make_init_canvas(domain_type):
     def init_canvas():
-      update_canvas(RECORD_CANVAS_PAGELIST[domain_type][0], init_imgs=True)
+      update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], init_imgs=True)
 
     return init_canvas
 
@@ -17,7 +17,7 @@ for domain_type in RECORD_NAMESPACES:
     def next_index(msg):
       if session['index'] < (session['max_index']):
         session['index'] += 1
-        update_canvas(RECORD_CANVAS_PAGELIST[domain_type][0], init_imgs=False)
+        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], init_imgs=False)
 
     return next_index
 
@@ -25,7 +25,7 @@ for domain_type in RECORD_NAMESPACES:
     def prev_index():
       if session['index'] > 0:
         session['index'] -= 1
-        update_canvas(RECORD_CANVAS_PAGELIST[domain_type][0], init_imgs=False)
+        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], init_imgs=False)
 
     return prev_index
 
@@ -34,7 +34,7 @@ for domain_type in RECORD_NAMESPACES:
       idx = int(msg['index'])
       if (idx <= (session['max_index']) and idx >= 0):
         session['index'] = idx
-        update_canvas(RECORD_CANVAS_PAGELIST[domain_type][0], init_imgs=False)
+        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], init_imgs=False)
 
     return goto_index
 

@@ -250,7 +250,7 @@ class Exp1PageGame(Exp1PageBase):
      a2_box) = are_agent_states_changed(dict_prev_game, game.get_env_info())
 
     select_latent = False
-    if self._PROMPT_ON_CHANGE and (a1_hold_changed or a2_hold_changed):
+    if self._PROMPT_ON_CHANGE and a1_hold_changed:
       select_latent = True
 
     if self._AUTO_PROMPT:
@@ -395,24 +395,54 @@ class Exp1PageGame(Exp1PageBase):
     pickup_ok = False
     num_drops = len(game_env["drops"])
     num_goals = len(game_env["goals"])
+    a1_pos = game_env["a1_pos"]
     a1_box, _ = get_holding_box_idx(game_env["box_states"], num_drops,
                                     num_goals)
-    if a1_box >= 0:  # set drop action status
-      a1_pos = game_env["a1_pos"]
-      if a1_pos in game_env["goals"]:
-        drop_ok = True
-      elif a1_pos == game_env["boxes"][a1_box]:
-        drop_ok = True
-    else:  # set pickup action status
-      a1_pos = game_env["a1_pos"]
-      for idx, bidx in enumerate(game_env["box_states"]):
-        bstate = conv_box_idx_2_state(bidx, num_drops, num_goals)
-        if bstate[0] == BoxState.Original:
-          if game_env["boxes"][idx] == a1_pos:
-            pickup_ok = True
-        elif bstate[0] == BoxState.WithAgent2:
-          if game_env["a2_pos"] == a1_pos:
-            pickup_ok = True
+
+    if user_data.data[Exp1UserData.COLLECT_LATENT]:
+      a1_latent = game_env["a1_latent"]
+      if a1_latent is None:
+        return False, False, False, False, False, True, True
+
+      if a1_box >= 0:  # set drop action status
+        if a1_latent[0] == 'origin' and a1_pos == game_env["boxes"][a1_box]:
+          drop_ok = True
+        else:
+          for idx, coord in enumerate(game_env["goals"]):
+            if (a1_latent[0] == 'goal' and a1_latent[1] == idx
+                and a1_pos == coord):
+              drop_ok = True
+              break
+      else:  # set pickup action status
+        for idx, bidx in enumerate(game_env["box_states"]):
+          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
+          coord = None
+          if state[0] == BoxState.Original:
+            coord = game_env["boxes"][idx]
+          # elif state[0] == BoxState.WithAgent2:
+          #   coord = game_env["a2_pos"]
+
+          if coord is not None:
+            if (a1_latent[0] == 'pickup' and a1_latent[1] == idx
+                and a1_pos == coord):
+              pickup_ok = True
+              break
+
+    else:
+      if a1_box >= 0:  # set drop action status
+        if a1_pos in game_env["goals"]:
+          drop_ok = True
+        elif a1_pos == game_env["boxes"][a1_box]:
+          drop_ok = True
+      else:  # set pickup action status
+        for idx, bidx in enumerate(game_env["box_states"]):
+          bstate = conv_box_idx_2_state(bidx, num_drops, num_goals)
+          if bstate[0] == BoxState.Original:
+            if game_env["boxes"][idx] == a1_pos:
+              pickup_ok = True
+          elif bstate[0] == BoxState.WithAgent2:
+            if game_env["a2_pos"] == a1_pos:
+              pickup_ok = True
 
     return False, False, False, False, False, not pickup_ok, not drop_ok
 
@@ -520,12 +550,7 @@ class Exp1PageGame(Exp1PageBase):
       if a1_latent is not None:
         coord = None
         if a1_latent[0] == "pickup":
-          bidx = game_env["box_states"][a1_latent[1]]
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][a1_latent[1]]
-          elif state[0] == BoxState.WithAgent2:
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][a1_latent[1]]
         elif a1_latent[0] == "origin":
           if a1_box >= 0:
             coord = game_env["boxes"][a1_box]
@@ -578,22 +603,16 @@ class Exp1PageGame(Exp1PageBase):
           cnt += 1
       else:
         for idx, bidx in enumerate(game_env["box_states"]):
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          coord = None
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][idx]
-          elif state[0] == BoxState.WithAgent2:  # with a2
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][idx]
 
-          if coord is not None:
-            x_cen = coord[0] + 0.5
-            y_cen = coord[1] + 0.5
-            lat = ["pickup", idx]
-            obj = co.SelectingCircle(co.latent2selbtn(lat),
-                                     coord_2_canvas(x_cen, y_cen), radius,
-                                     font_size, str(cnt))
-            overlay_obs.append(obj)
-            cnt += 1
+          x_cen = coord[0] + 0.5
+          y_cen = coord[1] + 0.5
+          lat = ["pickup", idx]
+          obj = co.SelectingCircle(co.latent2selbtn(lat),
+                                   coord_2_canvas(x_cen, y_cen), radius,
+                                   font_size, str(cnt))
+          overlay_obs.append(obj)
+          cnt += 1
 
     return overlay_obs
 
@@ -608,17 +627,13 @@ class Exp1PageGame(Exp1PageBase):
     if user_data.data[Exp1UserData.PARTIAL_OBS]:
       overlay_names.append(co.PO_LAYER)
 
-    if not user_data.data[Exp1UserData.SELECT]:
+    if (user_data.data[Exp1UserData.SHOW_LATENT]
+        and not user_data.data[Exp1UserData.SELECT]):
       a1_latent = game_env["a1_latent"]
       if a1_latent is not None:
         coord = None
         if a1_latent[0] == "pickup":
-          bidx = game_env["box_states"][a1_latent[1]]
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][a1_latent[1]]
-          elif state[0] == BoxState.WithAgent2:
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][a1_latent[1]]
         elif a1_latent[0] == "origin":
           if a1_box >= 0:
             coord = game_env["boxes"][a1_box]
@@ -637,15 +652,9 @@ class Exp1PageGame(Exp1PageBase):
           overlay_names.append(co.latent2selbtn(["goal", idx]))
       else:
         for idx, bidx in enumerate(game_env["box_states"]):
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          coord = None
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][idx]
-          elif state[0] == BoxState.WithAgent2:  # with a2
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][idx]
 
-          if coord is not None:
-            overlay_names.append(co.latent2selbtn(["pickup", idx]))
+          overlay_names.append(co.latent2selbtn(["pickup", idx]))
 
     return overlay_names
 
@@ -661,10 +670,16 @@ class Exp1PageGame(Exp1PageBase):
   def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
     def is_visible(img_name):
       if user_data.data[Exp1UserData.PARTIAL_OBS]:
+        a1_pos = game_env["a1_pos"]
         if img_name == co.IMG_ROBOT or img_name == co.IMG_ROBOT_BAG:
-          a1_pos = game_env["a1_pos"]
           a2_pos = game_env["a2_pos"]
           diff = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
+          if diff > 1:
+            return False
+        elif img_name[:-1] == co.IMG_BOX or img_name[:-1] == co.IMG_TRASH_BAG:
+          bidx = int(img_name[-1])
+          box_pos = game_env["boxes"][bidx]
+          diff = max(abs(a1_pos[0] - box_pos[0]), abs(a1_pos[1] - box_pos[1]))
           if diff > 1:
             return False
 

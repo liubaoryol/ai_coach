@@ -10,9 +10,9 @@
   Unknown Domain
   {% endif %}
   {% endblock %}</h1>
-<h2>{% block subtitle %} Feedback Session {{session_title}}{% endblock %}</h2>
+<h2>{% block subtitle %} Review Latent States{% endblock %}</h2>
 <div class="explanation">
-  <p>Providing feedback to user with this page - Session: {{session_title}} - Total Steps: {{max_index}}</p>
+  <p>Review latent states - Session: {{session_title}} - Total Steps: {{max_index}}</p>
 </div>
 {% endblock %}
 
@@ -25,58 +25,31 @@
 <script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
 <script type="text/javascript" charset="utf-8"
-  src="{{ url_for('feedback.static', filename='feedback_buttons.js') }}"></script>
+  src="{{ url_for('review.static', filename='review_buttons.js') }}"></script>
 <script type="text/javascript">
   initSocketIO("{{ socket_name_space }}");
 </script>
-
-<div class='explanation'>
-  <div class="button-center">
-    <table class="center">
-      <tr>
-        <th>{% if groupid == 'C' %}
-          Human Latent State
-          {% elif groupid == 'D' %}
-          Human Latent State Predicted
-          {% else %}
-          Invalid Group
-          {% endif %}</th>
-        <th>Agent Latent State</th>
-      </tr>
-      <tr>
-        <td id="latent_human"></td>
-        <td id="latent_robot"></td>
-      </tr>
-    </table>
-  </div>
-</div>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 
+<div class="slidecontainer">
+  <p></p>
+  <label for="playback">Please scroll to review if you correctly selected your destination at each step. If the red
+    circle is not aligned with what you have actually thought of as the destination, please click "Fix Destination"
+    button to update it.
+  </label>
+  <input type="range" min="0" max="{{max_index}}" value="0" class="slider" id="playback">
+  <p>Time step: <span id="timestep"></span></p>
+</div>
+
 <div>
-  <div class="wrapper">
-    <button type="submit" value="next" id="next">Next Step</button>
-    <button type="submit" value="prev" id="prev">Previous Step</button>
-  </div>
-
-  <div class='form-control'>
-    <div>
-      <label class="index" for="index"> Enter Index</label>
-      <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_index}}">
-    </div>
-    <div class="button-center">
-      <button type="submit" value="index" id="index">Go to Index</button>
-    </div>
-  </div>
-
   <form method="POST">
     <input type="hidden" name="proceed" value="proceed">
     <div class="button-center">
-      <button type="submit" value="proceed" id="proceed">Proceed to Next Stage</button>
+      <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to Next Stage</button>
     </div>
   </form>
 </div>
-
 {% endblock %}

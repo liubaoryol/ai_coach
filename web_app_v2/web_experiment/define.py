@@ -11,8 +11,8 @@ class BPName:
   Exp_interv = "exp_interv"
   Feedback = "feedback"
   Instruction = "inst"
-  Replay = "replay"
   Survey = "survey"
+  Review = "review"
 
 
 class ExpType:
@@ -49,6 +49,8 @@ class PageKey:
   Collect = "collect"
   Feedback = "feedback"
   Record = "record"
+  Review = "review"
+  Replay = "replay"
 
   Overview = "overview"
   Movers_and_packers = "movers_and_packers"
@@ -161,11 +163,11 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
         endpoint(BPName.Exp_datacol, PageKey.DataCol_B2),
         endpoint(BPName.Exp_datacol, PageKey.DataCol_B3)
     ]:
-      return url_for(endpoint(BPName.Feedback, PageKey.Collect),
+      return url_for(endpoint(BPName.Review, PageKey.Review),
                      session_name=task_session_key)
 
     # review and label mental models
-    elif current_endpoint == endpoint(BPName.Feedback, PageKey.Collect):
+    elif current_endpoint == endpoint(BPName.Review, PageKey.Review):
       if task_session_key == PageKey.DataCol_A0:
         return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_A1))
       elif task_session_key == PageKey.DataCol_A1:

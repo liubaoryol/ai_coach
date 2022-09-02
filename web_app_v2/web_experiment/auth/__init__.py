@@ -13,4 +13,4 @@ auth_bp = Blueprint(BPName.Auth,
 
 ADMIN_ID = 'register1234'
 
-from . import event_replay, views, functions  # noqa: E402, F401, E501
+from . import views, functions  # noqa: E402, F401, E501

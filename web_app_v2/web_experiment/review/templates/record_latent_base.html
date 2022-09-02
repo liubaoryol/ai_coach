@@ -9,31 +9,33 @@
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
 <script type="text/javascript" charset="utf-8"
-  src="{{ url_for('replay.static', filename='exp1_game_logic_new.js') }}"></script>
+  src="{{ url_for('review.static', filename='record_latent_buttons.js') }}"></script>
 <script type="text/javascript">
-  initGlobalObject("{{ socket_name_space }}");
+  initSocketIO("{{ socket_name_space }}");
 </script>
 
 
 <div class='explanation'>
   <p>
-    Replay of User ID: {{user_id}} - Session: {{session_title}} - Total Steps: {{session_length}}
+    User ID: {{user_id}} - Session: {{session_name}} - Total Steps: {{max_index}}
   </p>
-  <div class="button-center">
-    <table class="center">
-      <tr>
-        <th>Human Latent State</th>
-        <th>Human Latent State Predicted</th>
-        <th>Agent Latent State</th>
-      </tr>
-      <tr>
-        <td id="latent_human"></td>
-        <td id="latent_human_predicted"></td>
-        <td id="latent_robot"></td>
-      </tr>
-    </table>
-  </div>
+</div>
+
+<div class="form-control">
+  <h2>Record Latent States</h2>
+  <form onsubmit="return false;">
+    <label for="latent_state">Select Latent State</label>
+    <select name="latent_states" id="latent_states">
+      {% for latent_state in latent_states %}
+      <option value={{latent_state}}>{{latent_state}}</option>
+      {% endfor %}
+    </select>
+    <div class="button-center">
+      <button type="submit" value="latent_button" id="latent_button">Submit</button>
+    </div>
+  </form>
 </div>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
@@ -53,7 +55,7 @@
     <form onsubmit="return false;">
       <div>
         <label class="index" for="index"> Enter Index</label>
-        <input type="number" name="index" value="0" id="indexValue" min="0" max="{{session_length - 1}}">
+        <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_index}}">
       </div>
       <div class="button-center">
         <button type="submit" value="index" id="index">Go to Index</button>

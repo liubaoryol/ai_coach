@@ -4,33 +4,27 @@ import glob
 from flask import current_app
 
 
-def store_latent_locally(user_id, session_name, game_type, map_info, lstates):
-  # if latent state has not been previously stored
-  if not check_latent_exist(user_id, session_name):
-    file_name = get_latent_file_name(user_id, session_name)
-    header = game_type + "-" + session_name + "\n"
-    header += "User ID: %s\n" % (str(user_id), )
-    header += str(map_info)
+def store_latent_locally(user_id, session_name, lstates):
+  # # if latent state has not been previously stored
+  # if not check_latent_exist(user_id, session_name):
+  file_name = get_latent_file_name(user_id, session_name)
+  header = session_name + "\n"
+  header += "User ID: %s\n" % (str(user_id), )
 
-    dir_path = os.path.dirname(file_name)
-    if dir_path != '' and not os.path.exists(dir_path):
-      os.makedirs(dir_path)
+  dir_path = os.path.dirname(file_name)
+  if dir_path != '' and not os.path.exists(dir_path):
+    os.makedirs(dir_path)
 
-    with open(file_name, 'w', newline='') as txtfile:
-      # sequence
-      txtfile.write(header)
+  with open(file_name, 'w', newline='') as txtfile:
+    # sequence
+    txtfile.write(header)
+    txtfile.write('\n')
+    txtfile.write('# cur_step, human_latent\n')
+
+    for idx, lstate in enumerate(lstates):
+      txtfile.write('%d; ' % (idx, ))
+      txtfile.write('%s; ' % (lstate, ))
       txtfile.write('\n')
-      txtfile.write('# cur_step, human_latent\n')
-
-      for idx, lstate in enumerate(lstates):
-        txtfile.write('%d; ' % (idx, ))
-        txtfile.write('%s; ' % (lstate, ))
-        txtfile.write('\n')
-
-    # user  = User.query.filter_by(userid = user_id).first()
-    # if user is not None:
-    #     user.session_a2_record = True
-    #     db.session.commit()
 
 
 def get_latent_file_name(user_id, session_name):
@@ -50,6 +44,7 @@ def get_latent_file_name(user_id, session_name):
 def load_latent(user_id, session_name):
   if check_latent_exist(user_id, session_name):
     files = get_latent_files(user_id, session_name)
+    files = sorted(files, reverse=True)
     result = read_latent_file(files[0])
     return result
 

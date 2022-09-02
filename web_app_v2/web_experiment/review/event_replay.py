@@ -1,15 +1,15 @@
 from flask import session
-from web_experiment.auth.util import update_canvas, update_latent_state
-from web_experiment.define import EMode
-import web_experiment.auth.define as dfn
 from web_experiment import socketio
+from web_experiment.define import EMode, PageKey
+from web_experiment.review.define import REPLAY_CANVAS_PAGELIST, get_socket_name
+from web_experiment.review.util import update_canvas, update_latent_state
 
-for domain_type in dfn.REPLAY_NAMESPACES:
-  name_space = '/' + dfn.REPLAY_NAMESPACES[domain_type]
+for domain_type in REPLAY_CANVAS_PAGELIST:
+  name_space = '/' + get_socket_name(PageKey.Replay, domain_type)
 
   def make_init_canvas(domain_type):
     def init_canvas():
-      update_canvas(dfn.REPLAY_CANVAS_PAGELIST[domain_type][0], init_imgs=True)
+      update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], init_imgs=True)
       update_latent_state(domain_type, mode=EMode.Replay)
 
     return init_canvas
@@ -18,7 +18,7 @@ for domain_type in dfn.REPLAY_NAMESPACES:
     def next_index():
       if session['index'] < (session['max_index']):
         session['index'] += 1
-        update_canvas(dfn.REPLAY_CANVAS_PAGELIST[domain_type][0], False)
+        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], False)
         update_latent_state(domain_type, mode=EMode.Replay)
 
     return next_index
@@ -27,7 +27,7 @@ for domain_type in dfn.REPLAY_NAMESPACES:
     def prev_index():
       if session['index'] > 0:
         session['index'] -= 1
-        update_canvas(dfn.REPLAY_CANVAS_PAGELIST[domain_type][0], False)
+        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], False)
         update_latent_state(domain_type, mode=EMode.Replay)
 
     return prev_index
@@ -37,7 +37,7 @@ for domain_type in dfn.REPLAY_NAMESPACES:
       idx = int(msg['index'])
       if (idx <= (session['max_index']) and idx >= 0):
         session['index'] = idx
-        update_canvas(dfn.REPLAY_CANVAS_PAGELIST[domain_type][0], False)
+        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], False)
         update_latent_state(domain_type, mode=EMode.Replay)
 
     return goto_index

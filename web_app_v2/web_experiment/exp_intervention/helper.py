@@ -1,6 +1,6 @@
 import json
 from flask_socketio import emit
-import web_experiment.auth.util as util
+import web_experiment.review.util as util
 from ai_coach_domain.box_push.simulator import (BoxPushSimulator)
 from web_experiment.define import EDomainType
 
@@ -79,21 +79,3 @@ def check_misalignment(box_states, a1_latent, a2_latent,
     return False
   else:
     raise NotImplementedError
-
-
-# # test cases for cleanup domain
-
-# # pick up two different bags
-# assert(check_misalignment([0, 0, 0], ["pickup", 0], ["pickup", 1], False) == False)
-
-# # pick up the same box, while there are more than 1 bag remaining, misalignment
-# assert(check_misalignment([4, 0, 0], ["pickup", 1], ["pickup", 1], False) == True)
-
-# # pick up same box, with only one bag remaining, should not be misalignment
-# assert(check_misalignment([4, 4, 0], ["pickup", 1], ["pickup", 2], False) == False)
-
-# # agent 1 tries to pick up what agent 2 is holding, with 1 bag on the floor, should be misalignment
-# assert(check_misalignment([4, 2, 0], ["pickup", 1], ["goal", 0], False) == True)
-
-# # agent 1 tries to pick up what agent 2 is holding, with 2 bag on the floor, should be misalignment
-# assert(check_misalignment([2, 0, 0], ["pickup", 0], ["goal", 0], False) == True)

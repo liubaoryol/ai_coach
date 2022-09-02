@@ -17,6 +17,7 @@ class Exp1UserData(UserData):
   SCORE = "score"
   SAVE_PATH = "save_path"
   SHOW_LATENT = "show_latent"
+  COLLECT_LATENT = "collect_latent"
 
   def __init__(self, user) -> None:
     super().__init__(user)
@@ -28,6 +29,7 @@ class Exp1UserData(UserData):
     self.data[Exp1UserData.SCORE] = 0
     self.data[Exp1UserData.SAVE_PATH] = ""
     self.data[Exp1UserData.SHOW_LATENT] = False
+    self.data[Exp1UserData.COLLECT_LATENT] = True
 
   def get_game_ref(self) -> BoxPushSimulator:
     return self.data[Exp1UserData.GAME]

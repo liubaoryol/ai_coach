@@ -5,12 +5,10 @@ from web_experiment.models import (db, User, PostExperiment, InExperiment,
                                    PreExperiment, ExpDataCollection,
                                    ExpIntervention)
 from web_experiment.auth.functions import admin_required
-from web_experiment.auth.util import load_session_trajectory
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
-from web_experiment.auth.define import EDomainType, REPLAY_NAMESPACES
-from web_experiment.define import (GroupName, get_domain_type, ExpType,
-                                   DATACOL_TASKS, INTERV_TASKS)
+from web_experiment.define import (GroupName, ExpType, DATACOL_TASKS,
+                                   INTERV_TASKS, BPName, PageKey)
 from . import auth_bp
 
 
@@ -41,7 +39,7 @@ def register():
         db.session.add(exp_intv)
         db.session.commit()
         logging.info('User %s added a new user %s.' % (g.user, userid))
-        return redirect(url_for('auth.register'))
+        return redirect(url_for(BPName.Auth + '.register'))
 
       flash(error)
     elif 'delid' in request.form:
@@ -74,7 +72,7 @@ def register():
       db.session.commit()
 
       logging.info('User %s deleted user %s.' % (g.user, delid))
-      return redirect(url_for('auth.register'))
+      return redirect(url_for(BPName.Auth + '.register'))
     elif ('replayid' in request.form) or ('recordid' in request.form):
       # id, game session name
       if 'replayid' in request.form:
@@ -93,23 +91,18 @@ def register():
       elif not user:
         error = f"User {id} not found"
       else:
-        error = load_session_trajectory(loaded_session_name, id)
-        if (not error):
-          if 'replayid' in request.form:
-            domain_type = get_domain_type(loaded_session_name)
-            if domain_type == EDomainType.Movers:
-              return redirect(
-                  url_for(auth_bp.name + '.' + REPLAY_NAMESPACES[domain_type]))
-            elif domain_type == EDomainType.Cleanup:
-              return redirect(
-                  url_for(auth_bp.name + '.' + REPLAY_NAMESPACES[domain_type]))
-          else:
-            if domain_type == EDomainType.Movers:
-              return redirect(
-                  url_for('replay.record', session_name=loaded_session_name))
-            elif domain_type == EDomainType.Cleanup:
-              return redirect(
-                  url_for('replay.record', session_name=loaded_session_name))
+        if 'replayid' in request.form:
+          next_endpoint = BPName.Review + '.' + PageKey.Replay
+          return redirect(
+              url_for(next_endpoint,
+                      session_name=loaded_session_name,
+                      user_id=id))
+        else:
+          next_endpoint = BPName.Review + '.' + PageKey.Record
+          return redirect(
+              url_for(next_endpoint,
+                      session_name=loaded_session_name,
+                      user_id=id))
 
       if (error):
         flash(error)
@@ -145,28 +138,3 @@ def register():
                          userlist=user_list,
                          session_titles=task_session_titles,
                          group_ids=group_ids)
-
-
-for domain_type in REPLAY_NAMESPACES:
-  namespace = REPLAY_NAMESPACES[domain_type]
-
-  def make_replay_view(namespace=namespace):
-    def replay_view():
-      exp_type = session["exp_type"]
-      if exp_type == ExpType.Data_collection:
-        session_titles = dcol.SESSION_TITLE
-      elif exp_type == ExpType.Intervention:
-        session_titles = intv.SESSION_TITLE
-
-      loaded_session_name = session['loaded_session_name']
-      loaded_session_title = session_titles[loaded_session_name]
-      return render_template("replay_base.html",
-                             user_id=session["replay_id"],
-                             session_title=loaded_session_title,
-                             session_length=session['max_index'],
-                             socket_name_space=namespace)
-
-    return replay_view
-
-  func = admin_required(make_replay_view())
-  auth_bp.add_url_rule('/' + namespace, namespace, func)

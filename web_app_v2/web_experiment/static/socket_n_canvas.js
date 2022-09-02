@@ -1,53 +1,32 @@
 ///////////////////////////////////////////////////////////////////////////////
-// global variables
+// Global Object
 ///////////////////////////////////////////////////////////////////////////////
-var global_object = {};
+var socket;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Initialization methods
 ///////////////////////////////////////////////////////////////////////////////
-function initGlobalObject(name_space) {
-  global_object.name_space = name_space;
+function initSocketIO(name_space) {
+  // Connect to the Socket.IO server.
+  socket = io(
+    "http://" + document.domain + ":" + location.port + "/" + name_space
+  );
+
+  return socket;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // run once DOM is ready
 ///////////////////////////////////////////////////////////////////////////////
 $(document).ready(function () {
-  // block default key event handler (block scroll bar movement by key)
-  window.addEventListener(
-    "keydown",
-    function (e) {
-      if (
-        ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(
-          e.code
-        ) > -1
-      ) {
-        e.preventDefault();
-      }
-    },
-    false
-  );
-
+  /////////////////////////////////////////////////////////////////////////////
+  // canvas control
+  /////////////////////////////////////////////////////////////////////////////
   // alias
   const cnvs = document.getElementById("myCanvas");
   const context = cnvs.getContext("2d");
 
-  // Connect to the Socket.IO server.
-  var socket = io(
-    "http://" +
-      document.domain +
-      ":" +
-      location.port +
-      "/" +
-      global_object.name_space
-  );
-
-  /////////////////////////////////////////////////////////////////////////////
-  // game control logics
-  /////////////////////////////////////////////////////////////////////////////
   let game_data = new GameData(cnvs.width, cnvs.height);
-
   let x_mouse = -1;
   let y_mouse = -1;
 
@@ -73,17 +52,6 @@ $(document).ready(function () {
     game_data.spinning_circle.off();
   });
 
-  // intervention
-  socket.on("intervention", function (json_msg) {
-    const env = JSON.parse(json_msg);
-    console.log("hello");
-    let msg = "Misaligned mental states.\n";
-    msg += "predicted human latent state: " + env.latent_human_predicted + "\n";
-    msg += "robot latent state: " + env.latent_robot + "\n";
-    msg += "P(x): " + env.prob + "\n";
-    alert(msg);
-  });
-
   // rendering
   let old_time_stamp = performance.now();
   const update_duration = 50;
@@ -106,16 +74,4 @@ $(document).ready(function () {
     requestAnimationFrame(update_scene);
   }
   requestAnimationFrame(update_scene);
-
-  /////////////////////////////////////////////////////////////////////
-  // button control
-  /////////////////////////////////////////////////////////////////////
-  // set task end behavior
-  socket.on("task_end", function () {
-    if (document.getElementById("submit") != null) {
-      if (document.getElementById("submit").disabled) {
-        document.getElementById("submit").disabled = false;
-      }
-    }
-  });
 });

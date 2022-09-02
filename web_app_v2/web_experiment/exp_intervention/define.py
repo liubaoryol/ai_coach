@@ -1,11 +1,13 @@
 from enum import Enum
 from typing import Mapping, Any, Sequence
 from web_experiment.exp_common.page_base import CanvasPageBase
-from ai_coach_domain.box_push.maps import EXP1_MAP, TUTORIAL_MAP
+from ai_coach_domain.box_push.maps import TUTORIAL_MAP
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
 import web_experiment.exp_common.page_exp1_common as pgc
-import web_experiment.exp_common.page_exp1_game as pge
+from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
+from web_experiment.exp_intervention.page_intervention import (
+    BoxPushV2Intervention)
 import web_experiment.exp_common.page_tutorial as pgt
-import web_experiment.exp_intervention.page_exp_intervention as pgi
 from web_experiment.define import GroupName, PageKey
 
 SESSION_TITLE = {
@@ -26,77 +28,78 @@ class SocketType(Enum):
   (i.e. if DataCollection experiment and Intervention experiment have a socket,
   whose name is the same, socketio cannot distinguish which event handler to use
   '''
-  Interv_movers_tell_aligned = 0
-  Interv_movers_user_random = 1
-  Interv_cleanup_tell_aligned = 2
-  Interv_cleanup_user_random = 3
+  Interv_movers_practice = 0
+  Interv_movers_normal = 1
+  Interv_cleanup_practice = 2
+  Interv_cleanup_normal = 3
   Interv_movers_tutorial = 4
   Interv_cleanup_tutorial = 5
   Interv_movers_intervention = 6
   Interv_cleanup_intervention = 7
 
 
-def get_socket_type(page_key, group_id):
+def get_socket_name(page_key, group_id):
+  socket_type = None
   if page_key == PageKey.Interv_A0:
-    return SocketType.Interv_movers_tell_aligned
+    socket_type = SocketType.Interv_movers_practice
   elif page_key == PageKey.Interv_A1:
-    return SocketType.Interv_movers_user_random
+    socket_type = SocketType.Interv_movers_normal
   elif page_key == PageKey.Interv_A2:
     if group_id == GroupName.Group_B:
-      return SocketType.Interv_movers_intervention
+      socket_type = SocketType.Interv_movers_intervention
     else:
-      return SocketType.Interv_movers_user_random
+      socket_type = SocketType.Interv_movers_normal
   elif page_key == PageKey.Interv_B0:
-    return SocketType.Interv_cleanup_tell_aligned
+    socket_type = SocketType.Interv_cleanup_practice
   elif page_key == PageKey.Interv_B1:
-    return SocketType.Interv_cleanup_user_random
+    socket_type = SocketType.Interv_cleanup_normal
   elif page_key == PageKey.Interv_B2:
     if group_id == GroupName.Group_B:
-      return SocketType.Interv_cleanup_intervention
+      socket_type = SocketType.Interv_cleanup_intervention
     else:
-      return SocketType.Interv_cleanup_user_random
+      socket_type = SocketType.Interv_cleanup_normal
   elif page_key == PageKey.Interv_T1:
-    return SocketType.Interv_movers_tutorial
+    socket_type = SocketType.Interv_movers_tutorial
   elif page_key == PageKey.Interv_T2:
-    return SocketType.Interv_cleanup_tutorial
-  else:
-    return None
+    socket_type = SocketType.Interv_cleanup_tutorial
+
+  return socket_type.name if socket_type is not None else None
 
 
-PAGELIST_MOVERS_TELL_ALIGNED = [
+PAGE_LIST_MOVERS_FULL_OBS = [
     pgc.CanvasPageStart(True),
     pgc.CanvasPageWarning(True),
-    pge.CanvasPageMoversTellAligned(EXP1_MAP),
+    BoxPushV2UserRandom(True, MAP_MOVERS, False),
     pgc.CanvasPageEnd(True)
 ]
-PAGELIST_MOVERS_USER_RANDOM = [
+PAGE_LIST_MOVERS = [
     pgc.CanvasPageStart(True),
     pgc.CanvasPageWarning(True),
-    pge.CanvasPageMoversUserRandom(EXP1_MAP),
+    BoxPushV2UserRandom(True, MAP_MOVERS, True),
     pgc.CanvasPageEnd(True)
 ]
-PAGELIST_MOVERS_USER_RAND_INTERV = [
+PAGE_LIST_MOVERS_INTERV = [
     pgc.CanvasPageStart(True),
     pgc.CanvasPageWarning(True),
-    pgi.CanvasPageMoversIntervention(EXP1_MAP),
+    BoxPushV2Intervention(True, MAP_MOVERS, True),
     pgc.CanvasPageEnd(True)
 ]
-PAGELIST_CLEANUP_TELL_ALIGNED = [
+PAGE_LIST_CLEANUP_FULL_OBS = [
     pgc.CanvasPageStart(False),
     pgc.CanvasPageWarning(False),
-    pge.CanvasPageCleanUpTellAligned(EXP1_MAP),
+    BoxPushV2UserRandom(False, MAP_CLEANUP, False),
     pgc.CanvasPageEnd(False)
 ]
-PAGELIST_CLEANUP_USER_RANDOM = [
+PAGE_LIST_CLEANUP = [
     pgc.CanvasPageStart(False),
     pgc.CanvasPageWarning(False),
-    pge.CanvasPageCleanUpUserRandom(EXP1_MAP),
+    BoxPushV2UserRandom(False, MAP_CLEANUP, True),
     pgc.CanvasPageEnd(False)
 ]
-PAGELIST_CLEANUP_USER_RAND_INTERV = [
+PAGE_LIST_CLEANUP_INTERV = [
     pgc.CanvasPageStart(False),
     pgc.CanvasPageWarning(False),
-    pgi.CanvasPageCleanUpIntervention(EXP1_MAP),
+    BoxPushV2Intervention(False, MAP_CLEANUP, True),
     pgc.CanvasPageEnd(False)
 ]
 
@@ -141,12 +144,12 @@ PAGELIST_CLEANUP_TUTORIAL = [
 ]
 
 GAMEPAGES = {
-    SocketType.Interv_movers_tell_aligned: PAGELIST_MOVERS_TELL_ALIGNED,
-    SocketType.Interv_movers_user_random: PAGELIST_MOVERS_USER_RANDOM,
-    SocketType.Interv_movers_intervention: PAGELIST_MOVERS_USER_RAND_INTERV,
-    SocketType.Interv_cleanup_tell_aligned: PAGELIST_CLEANUP_TELL_ALIGNED,
-    SocketType.Interv_cleanup_user_random: PAGELIST_CLEANUP_USER_RANDOM,
-    SocketType.Interv_cleanup_intervention: PAGELIST_CLEANUP_USER_RAND_INTERV,
+    SocketType.Interv_movers_practice: PAGE_LIST_MOVERS,
+    SocketType.Interv_movers_normal: PAGE_LIST_MOVERS,
+    SocketType.Interv_movers_intervention: PAGE_LIST_MOVERS_INTERV,
+    SocketType.Interv_cleanup_practice: PAGE_LIST_CLEANUP,
+    SocketType.Interv_cleanup_normal: PAGE_LIST_CLEANUP,
+    SocketType.Interv_cleanup_intervention: PAGE_LIST_CLEANUP_INTERV,
     SocketType.Interv_movers_tutorial: PAGELIST_MOVERS_TUTORIAL,
     SocketType.Interv_cleanup_tutorial: PAGELIST_CLEANUP_TUTORIAL,
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]

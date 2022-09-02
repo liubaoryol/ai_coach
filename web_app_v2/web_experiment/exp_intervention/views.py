@@ -5,7 +5,7 @@ from web_experiment.models import ExpIntervention
 from web_experiment.define import (PageKey, INTERV_SESSIONS, get_next_url,
                                    ExpType)
 from web_experiment.exp_intervention.define import (SESSION_TITLE,
-                                                    get_socket_type)
+                                                    get_socket_name)
 from . import exp_interv_bp
 
 EXP1_TEMPLATE = {
@@ -44,9 +44,9 @@ for session_name in INTERV_SESSIONS:
       # We assume the same user won't access multiple sessions simulataneously
       session['loaded_session_name'] = session_name
 
-      socket_type = get_socket_type(session_name, group_id)
+      socket_name = get_socket_name(session_name, group_id)
       return render_template(EXP1_TEMPLATE[session_name],
-                             socket_name_space=socket_type.name,
+                             socket_name_space=socket_name,
                              cur_user=cur_user,
                              is_disabled=disabled,
                              session_title=SESSION_TITLE[session_name])

@@ -3,9 +3,10 @@ from typing import Mapping, Any, Sequence
 from web_experiment.define import PageKey
 from web_experiment.exp_common.page_base import CanvasPageBase
 import web_experiment.exp_common.page_exp1_common as pgc
-import web_experiment.exp_common.page_exp1_game as pge
+from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 import web_experiment.exp_common.page_tutorial as pgt
-from ai_coach_domain.box_push.maps import EXP1_MAP, TUTORIAL_MAP
+from ai_coach_domain.box_push.maps import TUTORIAL_MAP
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
 
 SESSION_TITLE = {
     PageKey.DataCol_A0: 'A0',
@@ -27,53 +28,54 @@ class SocketType(Enum):
   (i.e. if DataCollection experiment and Intervention experiment have a socket,
   whose name is the same, socketio cannot distinguish the event handlers to use
   '''
-  DataCol_movers_tell_aligned = 0
-  DataCol_movers_user_random = 1
-  DataCol_cleanup_tell_aligned = 2
-  DataCol_cleanup_user_random = 3
+  DataCol_movers_practice = 0
+  DataCol_movers_test = 1
+  DataCol_cleanup_practice = 2
+  DataCol_cleanup_test = 3
   DataCol_movers_tutorial = 4
   DataCol_cleanup_tutorial = 5
 
 
-def get_socket_type(page_key):
+def get_socket_name(page_key):
+  socket_type = None
   if page_key == PageKey.DataCol_A0:
-    return SocketType.DataCol_movers_tell_aligned
+    socket_type = SocketType.DataCol_movers_practice
   elif page_key in [PageKey.DataCol_A1, PageKey.DataCol_A2, PageKey.DataCol_A3]:
-    return SocketType.DataCol_movers_user_random
+    socket_type = SocketType.DataCol_movers_test
   elif page_key == PageKey.DataCol_B0:
-    return SocketType.DataCol_cleanup_tell_aligned
+    socket_type = SocketType.DataCol_cleanup_practice
   elif page_key in [PageKey.DataCol_B1, PageKey.DataCol_B2, PageKey.DataCol_B3]:
-    return SocketType.DataCol_cleanup_user_random
+    socket_type = SocketType.DataCol_cleanup_test
   elif page_key == PageKey.DataCol_T1:
-    return SocketType.DataCol_movers_tutorial
+    socket_type = SocketType.DataCol_movers_tutorial
   elif page_key == PageKey.DataCol_T2:
-    return SocketType.DataCol_cleanup_tutorial
-  else:
-    return None
+    socket_type = SocketType.DataCol_cleanup_tutorial
+
+  return socket_type.name if socket_type is not None else None
 
 
-PAGE_LIST_MOVERS_TELL_ALIGNED = [
+PAGE_LIST_MOVERS_FULL_OBS = [
     pgc.CanvasPageStart(True),
     pgc.CanvasPageWarning(True),
-    pge.CanvasPageMoversTellAligned(EXP1_MAP),
+    BoxPushV2UserRandom(True, MAP_MOVERS, False),
     pgc.CanvasPageEnd(True)
 ]
-PAGE_LIST_MOVERS_USER_RANDOM = [
+PAGE_LIST_MOVERS = [
     pgc.CanvasPageStart(True),
     pgc.CanvasPageWarning(True),
-    pge.CanvasPageMoversUserRandom(EXP1_MAP),
+    BoxPushV2UserRandom(True, MAP_MOVERS, True),
     pgc.CanvasPageEnd(True)
 ]
-PAGE_LIST_CLEANUP_TELL_ALIGNED = [
+PAGE_LIST_CLEANUP_FULL_OBS = [
     pgc.CanvasPageStart(False),
     pgc.CanvasPageWarning(False),
-    pge.CanvasPageCleanUpTellAligned(EXP1_MAP),
+    BoxPushV2UserRandom(False, MAP_CLEANUP, False),
     pgc.CanvasPageEnd(False)
 ]
-PAGE_LIST_CLEANUP_USER_RANDOM = [
+PAGE_LIST_CLEANUP = [
     pgc.CanvasPageStart(False),
     pgc.CanvasPageWarning(False),
-    pge.CanvasPageCleanUpUserRandom(EXP1_MAP),
+    BoxPushV2UserRandom(False, MAP_CLEANUP, True),
     pgc.CanvasPageEnd(False)
 ]
 
@@ -118,10 +120,10 @@ PAGE_LIST_CLEANUP_TUTORIAL = [
 ]
 
 GAMEPAGES = {
-    SocketType.DataCol_movers_tell_aligned: PAGE_LIST_MOVERS_TELL_ALIGNED,
-    SocketType.DataCol_movers_user_random: PAGE_LIST_MOVERS_USER_RANDOM,
-    SocketType.DataCol_cleanup_tell_aligned: PAGE_LIST_CLEANUP_TELL_ALIGNED,
-    SocketType.DataCol_cleanup_user_random: PAGE_LIST_CLEANUP_USER_RANDOM,
+    SocketType.DataCol_movers_practice: PAGE_LIST_MOVERS_FULL_OBS,
+    SocketType.DataCol_movers_test: PAGE_LIST_MOVERS,
+    SocketType.DataCol_cleanup_practice: PAGE_LIST_CLEANUP_FULL_OBS,
+    SocketType.DataCol_cleanup_test: PAGE_LIST_CLEANUP,
     SocketType.DataCol_movers_tutorial: PAGE_LIST_MOVERS_TUTORIAL,
     SocketType.DataCol_cleanup_tutorial: PAGE_LIST_CLEANUP_TUTORIAL,
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]
