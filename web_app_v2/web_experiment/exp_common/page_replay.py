@@ -1,7 +1,7 @@
 from typing import Mapping, Any
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_exp1_base import Exp1UserData
-from web_experiment.exp_common.page_exp1_game_base import Exp1PageGame
+from web_experiment.exp_common.page_exp1_game_base import BoxPushPageBase
 
 
 class UserDataReplay(Exp1UserData):
@@ -14,7 +14,7 @@ class UserDataReplay(Exp1UserData):
     self.data[self.TRAJ_IDX] = 0
 
 
-class CanvasPageReplayBoxPush(Exp1PageGame):
+class CanvasPageReplayBoxPush(BoxPushPageBase):
   def __init__(self, is_movers, partial_obs) -> None:
     super().__init__(is_movers, False, None, False, False, 0)
     self._PARTIAL_OBS = partial_obs
@@ -95,7 +95,7 @@ class CanvasPageReplayBoxPush(Exp1PageGame):
     return super().button_clicked(user_data, clicked_btn)
 
 
-class CanvasPageReviewBoxPush(Exp1PageGame):
+class CanvasPageReviewBoxPush(BoxPushPageBase):
   def __init__(self, is_movers, partial_obs) -> None:
     super().__init__(is_movers, False, None, False, False, 0)
     self._PARTIAL_OBS = partial_obs

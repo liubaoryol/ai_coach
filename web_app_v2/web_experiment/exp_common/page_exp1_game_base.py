@@ -2,9 +2,7 @@ from typing import Mapping, Any, Sequence, List
 import copy
 import os
 import time
-from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
-                                                BoxPushSimulator_AlwaysAlone,
-                                                BoxPushSimulator)
+from ai_coach_domain.box_push.simulator import BoxPushSimulator
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
 from web_experiment.models import db, User
 import web_experiment.exp_common.canvas_objects as co
@@ -92,9 +90,7 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
 ###############################################################################
 # canvas page game
 ###############################################################################
-
-
-class Exp1PageGame(Exp1PageBase):
+class BoxPushPageBase(Exp1PageBase):
   def __init__(self,
                is_movers,
                manual_latent_selection,
@@ -116,19 +112,6 @@ class Exp1PageGame(Exp1PageBase):
   def init_user_data(self, user_game_data: Exp1UserData):
     user_game_data.data[Exp1UserData.GAME_DONE] = False
     user_game_data.data[Exp1UserData.SELECT] = False
-
-    game = user_game_data.get_game_ref()
-    if game is None:
-      if self._IS_MOVERS:
-        game = BoxPushSimulator_AlwaysTogether(None)
-      else:
-        game = BoxPushSimulator_AlwaysAlone(None)
-
-      user_game_data.set_game(game)
-
-    game.init_game(**self._GAME_MAP)
-
-    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
 
   def get_updated_drawing_info(self,
                                user_data: Exp1UserData,

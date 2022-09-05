@@ -153,7 +153,7 @@ class BoxPushAM_Together(BoxPushAM):
             if dist_min > dist_tmp:
               dist_min = dist_tmp
               min_idx = idx
-        if min_idx is not None and dist_min < 2 and latent[1] != min_idx:
+        if min_idx is not None and dist_min == 0 and latent[1] != min_idx:
           xidx = self.policy_model.conv_latent_to_idx(("pickup", min_idx))
           np_Tx[xidx] = p_change
           np_Tx[latstate_idx] = 1 - p_change

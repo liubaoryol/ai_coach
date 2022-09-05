@@ -5,7 +5,7 @@ from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
                                           BoxPushAgentMDP_AlwaysAlone)
 from ai_coach_domain.box_push.policy import (BoxPushPolicyTeamExp1,
                                              BoxPushPolicyIndvExp1)
-from ai_coach_domain.box_push.agent import (BoxPushInteractiveAgent,
+from ai_coach_domain.box_push.agent import (InteractiveAgent,
                                             BoxPushAIAgent_Indv2,
                                             BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Host)
@@ -24,7 +24,7 @@ class CanvasPageMoversTellAligned(pgg.CanvasPageGame):
   def _init_user_data(self, user_game_data: pgg.pg.UserGameData):
     super()._init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Host(self._TEAMMATE_POLICY)
     user_game_data.game.set_autonomous_agent(agent1, agent2)
 
@@ -85,7 +85,7 @@ class CanvasPageMoversUserRandom(pgg.CanvasPageGame):
   def _init_user_data(self, user_game_data: pgg.pg.UserGameData):
     super()._init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
     user_game_data.game.set_autonomous_agent(agent1, agent2)
 
@@ -105,7 +105,7 @@ class CanvasPageCleanUpTellAligned(pgg.CanvasPageGame):
   def _init_user_data(self, user_game_data: pgg.pg.UserGameData):
     super()._init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Host(self._TEAMMATE_POLICY)
     user_game_data.game.set_autonomous_agent(agent1, agent2)
 
@@ -250,7 +250,7 @@ class CanvasPageCleanUpTellRandom(pgg.CanvasPageGame):
   def _init_user_data(self, user_game_data: pgg.pg.UserGameData):
     super()._init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Host(self._TEAMMATE_POLICY)
     user_game_data.game.set_autonomous_agent(agent1, agent2)
 
@@ -421,7 +421,7 @@ class CanvasPageCleanUpUserRandom(pgg.CanvasPageGame):
   def _init_user_data(self, user_game_data: pgg.pg.UserGameData):
     super()._init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Indv2(self._TEAMMATE_POLICY)
     user_game_data.game.set_autonomous_agent(agent1, agent2)
 

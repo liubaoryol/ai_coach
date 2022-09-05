@@ -5,12 +5,12 @@ from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
 from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Indv2,
-                                            BoxPushInteractiveAgent)
+                                            InteractiveAgent)
 from web_experiment.exp_common.page_exp1_base import Exp1UserData
-from web_experiment.exp_common.page_exp1_game_base import Exp1PageGame
+from web_experiment.exp_common.page_exp1_game_base import BoxPushPageBase
 
 
-class BoxPushV2GamePage(Exp1PageGame):
+class BoxPushV2GamePage(BoxPushPageBase):
   def __init__(self,
                is_movers,
                manual_latent_selection,
@@ -58,7 +58,7 @@ class BoxPushV2UserRandom(BoxPushV2GamePage):
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     if self._IS_MOVERS:
       agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
     else:

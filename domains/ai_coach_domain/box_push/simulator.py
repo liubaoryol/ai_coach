@@ -3,12 +3,11 @@ import abc
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
+from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
 from ai_coach_domain.box_push import EventType, AGENT_ACTIONSPACE
 from ai_coach_domain.box_push.transition import (transition_alone_and_together,
                                                  transition_always_together,
                                                  transition_always_alone)
-from ai_coach_domain.box_push.agent import (BoxPushSimulatorAgent,
-                                            BoxPushInteractiveAgent)
 
 Coord = Tuple[int, int]
 
@@ -55,10 +54,9 @@ class BoxPushSimulator(Simulator):
     'Redefine this method at subclasses as needed'
     return [self.box_states, self.a1_pos, self.a2_pos]
 
-  def set_autonomous_agent(
-      self,
-      agent1: BoxPushSimulatorAgent = BoxPushInteractiveAgent(),
-      agent2: BoxPushSimulatorAgent = BoxPushInteractiveAgent()):
+  def set_autonomous_agent(self,
+                           agent1: SimulatorAgent = InteractiveAgent(),
+                           agent2: SimulatorAgent = InteractiveAgent()):
     self.agent_1 = agent1
     self.agent_2 = agent2
 

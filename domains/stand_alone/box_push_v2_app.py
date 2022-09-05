@@ -6,7 +6,7 @@ from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
 from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Indv2,
-                                            BoxPushInteractiveAgent)
+                                            InteractiveAgent)
 from stand_alone.box_push_app import BoxPushApp
 
 IS_MOVERS = True
@@ -41,7 +41,7 @@ class StaticBoxPushApp(BoxPushApp):
     mdp_agent = MDP_AGENT(**GAME_MAP)
     # policy1 = POLICY(mdp_task, mdp_agent, TEMPERATURE, agent_idx=0)
     policy2 = POLICY(mdp_task, mdp_agent, TEMPERATURE, agent_idx=1)
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = AGENT(policy2)
 
     self.game.init_game(**GAME_MAP)

@@ -1,21 +1,41 @@
 from typing import Mapping, Sequence, Any
 import random
+from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
+                                                BoxPushSimulator_AlwaysAlone)
 from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
                                           BoxPushTeamMDP_AlwaysAlone,
                                           BoxPushAgentMDP_AlwaysAlone)
 from ai_coach_domain.box_push.policy import (BoxPushPolicyTeamExp1,
                                              BoxPushPolicyIndvExp1)
-from ai_coach_domain.box_push.agent import (BoxPushInteractiveAgent,
+from ai_coach_domain.box_push.agent import (InteractiveAgent,
                                             BoxPushAIAgent_Indv2,
                                             BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Host)
 from ai_coach_domain.box_push import EventType
 from web_experiment.exp_common.page_exp1_game_base import (
-    Exp1UserData, Exp1PageGame, get_valid_box_to_pickup,
+    Exp1UserData, BoxPushPageBase, get_valid_box_to_pickup,
     are_agent_states_changed)
 
 
-class CanvasPageMoversTellAligned(Exp1PageGame):
+class Exp1GamePage(BoxPushPageBase):
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+
+    game = user_game_data.get_game_ref()
+    if game is None:
+      if self._IS_MOVERS:
+        game = BoxPushSimulator_AlwaysTogether(None)
+      else:
+        game = BoxPushSimulator_AlwaysAlone(None)
+
+      user_game_data.set_game(game)
+
+    game.init_game(**self._GAME_MAP)
+
+    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+
+
+class CanvasPageMoversTellAligned(Exp1GamePage):
   def __init__(self, game_map) -> None:
     super().__init__(True, False, game_map, False, False, 5)
 
@@ -27,7 +47,7 @@ class CanvasPageMoversTellAligned(Exp1PageGame):
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Host(self._TEAMMATE_POLICY)
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent(agent1, agent2)
@@ -72,7 +92,7 @@ class CanvasPageMoversTellAligned(Exp1PageGame):
                            ("pickup", box_idx))
 
 
-class CanvasPageMoversUserRandom(Exp1PageGame):
+class CanvasPageMoversUserRandom(Exp1GamePage):
   def __init__(self, game_map) -> None:
     super().__init__(True, False, game_map, False, False, 5)
 
@@ -85,14 +105,14 @@ class CanvasPageMoversUserRandom(Exp1PageGame):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
     game.set_autonomous_agent(agent1, agent2)
 
     user_game_data.data[Exp1UserData.SELECT] = False
 
 
-class CanvasPageCleanUpTellAligned(Exp1PageGame):
+class CanvasPageCleanUpTellAligned(Exp1GamePage):
   def __init__(self, game_map) -> None:
     super().__init__(False, False, game_map, False, False, 5)
 
@@ -106,7 +126,7 @@ class CanvasPageCleanUpTellAligned(Exp1PageGame):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Host(self._TEAMMATE_POLICY)
     game.set_autonomous_agent(agent1, agent2)
 
@@ -230,7 +250,7 @@ class CanvasPageCleanUpTellAligned(Exp1PageGame):
                          ("pickup", a1_latent_prev[1]))
 
 
-class CanvasPageCleanUpTellRandom(Exp1PageGame):
+class CanvasPageCleanUpTellRandom(Exp1GamePage):
   def __init__(self, game_map) -> None:
     super().__init__(False, False, game_map, False, False, 5)
 
@@ -244,7 +264,7 @@ class CanvasPageCleanUpTellRandom(Exp1PageGame):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Host(self._TEAMMATE_POLICY)
     game.set_autonomous_agent(agent1, agent2)
 
@@ -396,7 +416,7 @@ class CanvasPageCleanUpTellRandom(Exp1PageGame):
                            ("pickup", a1_latent_prev[1]))
 
 
-class CanvasPageCleanUpUserRandom(Exp1PageGame):
+class CanvasPageCleanUpUserRandom(Exp1GamePage):
   def __init__(self, game_map) -> None:
     super().__init__(False, False, game_map, False, False, 5)
 
@@ -410,7 +430,7 @@ class CanvasPageCleanUpUserRandom(Exp1PageGame):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Indv2(self._TEAMMATE_POLICY)
     game.set_autonomous_agent(agent1, agent2)
 

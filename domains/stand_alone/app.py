@@ -201,6 +201,14 @@ class AppInterface():
                                         y_pos_ed,
                                         fill=color)
 
+  def create_line(self, x_pos_st, y_pos_st, x_pos_ed, y_pos_ed, color, width=5):
+    return self.canvas.create_line(x_pos_st,
+                                   y_pos_st,
+                                   x_pos_ed,
+                                   y_pos_ed,
+                                   fill=color,
+                                   width=width)
+
   def create_oval(self, x_pos_st, y_pos_st, x_pos_ed, y_pos_ed, color):
     return self.canvas.create_oval(x_pos_st,
                                    y_pos_st,
