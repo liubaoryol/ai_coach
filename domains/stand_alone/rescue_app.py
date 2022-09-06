@@ -2,10 +2,15 @@ from typing import Hashable, Tuple, Mapping, Sequence
 from stand_alone.app import AppInterface
 import numpy as np
 from ai_coach_domain.rescue import (E_EventType, Work, Location, Place, Route,
-                                    E_Type)
-from ai_coach_domain.rescue.maps import MAP_RESCUE, RescueName
+                                    E_Type, T_Connections)
+from ai_coach_domain.rescue.maps import MAP_RESCUE
 from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.agent import InteractiveAgent
+from ai_coach_domain.rescue.agent import AIAgent_Rescue
+from ai_coach_domain.rescue.policy import Policy_Rescue
+from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+
+GAME_MAP = MAP_RESCUE
 
 
 class RescueApp(AppInterface):
@@ -15,8 +20,17 @@ class RescueApp(AppInterface):
   def _init_game(self):
     self.game = RescueSimulator()
     self.game.max_steps = 100
-    self.game.init_game(**MAP_RESCUE)
-    self.game.set_autonomous_agent()
+
+    AGENT_2 = RescueSimulator.AGENT2
+    TEMPERATURE = 0.3
+
+    task_mdp = MDP_Rescue_Task(**GAME_MAP)
+    agent_mdp = MDP_Rescue_Agent(**GAME_MAP)
+    policy2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, AGENT_2)
+    agent2 = AIAgent_Rescue(AGENT_2, policy2)
+
+    self.game.init_game(**GAME_MAP)
+    self.game.set_autonomous_agent(agent2=agent2)
 
   def _init_gui(self):
     self.main_window.title("Rescue")
@@ -75,18 +89,28 @@ class RescueApp(AppInterface):
     work_state = data["work_states"]  # type: Sequence[int]
     work_locations = data["work_locations"]  # type: Sequence[Location]
     work_info = data["work_info"]  # type: Sequence[Work]
-    places = data["places"]  # type: Mapping[str, Place]
+    places = data["places"]  # type: Sequence[Place]
+    connections = data["connections"]  # type: Mapping[int, T_Connections]
     routes = data["routes"]  # type: Sequence[Route]
     a1_pos = data["a1_pos"]  # type: Location
     a2_pos = data["a2_pos"]  # type: Location
 
     self.clear_canvas()
     for place in places:
-      x_s = (places[place].coord[0] - 0.05) * self.canvas_width
-      y_s = (places[place].coord[1] - 0.05) * self.canvas_height
-      x_e = (places[place].coord[0] + 0.05) * self.canvas_width
-      y_e = (places[place].coord[1] + 0.05) * self.canvas_height
+      x_s = (place.coord[0] - 0.05) * self.canvas_width
+      y_s = (place.coord[1] - 0.05) * self.canvas_height
+      x_e = (place.coord[0] + 0.05) * self.canvas_width
+      y_e = (place.coord[1] + 0.05) * self.canvas_height
       self.create_rectangle(x_s, y_s, x_e, y_e, "yellow")
+
+      offset = -0.02
+      for _ in range(place.helps):
+        x_s = (place.coord[0] + offset) * self.canvas_width
+        y_s = (place.coord[1] - 0.04) * self.canvas_height
+        x_e = (place.coord[0] + offset) * self.canvas_width
+        y_e = (place.coord[1] - 0.00) * self.canvas_height
+        offset += 0.02
+        self.create_line(x_s, y_s, x_e, y_e, "black", 1)
 
     for route in routes:
       place_s = np.array(places[route.start].coord)
@@ -132,25 +156,27 @@ class RescueApp(AppInterface):
       if done == 0:
         continue
 
-      offset = -0.02
-      for _ in range(work_info[widx].helps):
-        x_s = (work_coord[0] + offset) * self.canvas_width
-        y_s = (work_coord[1] - 0.04) * self.canvas_height
-        x_e = (work_coord[0] + offset) * self.canvas_width
-        y_e = (work_coord[1] - 0.00) * self.canvas_height
-        offset += 0.02
-        self.create_line(x_s, y_s, x_e, y_e, "black", 1)
+      x_s = work_coord[0] * self.canvas_width
+      y_s = work_coord[1] * self.canvas_height
+      wid = 0.03 * self.canvas_width
+      hei = 0.03 * self.canvas_height
+      self.create_triangle(x_s, y_s, wid, hei, "black")
 
     rad = 0.02 * self.canvas_width
     a1_coord = get_coord(a1_pos)
-    x_c = (a1_coord[0] - 0.03) * self.canvas_width
-    y_c = a1_coord[1] * self.canvas_height
-    self.create_circle(x_c, y_c, rad, "blue")
+    x_c1 = (a1_coord[0] - 0.03) * self.canvas_width
+    y_c1 = a1_coord[1] * self.canvas_height
+    self.create_circle(x_c1, y_c1, rad, "blue")
 
     a2_coord = get_coord(a2_pos)
-    x_c = (a2_coord[0] + 0.03) * self.canvas_width
-    y_c = a2_coord[1] * self.canvas_height
-    self.create_circle(x_c, y_c, rad, "red")
+    x_c2 = (a2_coord[0] + 0.03) * self.canvas_width
+    y_c2 = a2_coord[1] * self.canvas_height
+    self.create_circle(x_c2, y_c2, rad, "red")
+
+    self.create_text(x_c1, y_c1 + 10,
+                     str(self.game.agent_1.get_current_latent()))
+    self.create_text(x_c2, y_c2 + 10,
+                     str(self.game.agent_2.get_current_latent()))
 
   def _update_canvas_overlay(self):
     pass

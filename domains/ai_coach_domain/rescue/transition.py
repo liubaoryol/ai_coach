@@ -1,6 +1,6 @@
-from typing import Sequence, Mapping, Union
+from typing import Sequence, Mapping, Union, Tuple
 from ai_coach_domain.rescue import (Route, Location, E_Type, Work, E_EventType,
-                                    Place)
+                                    Place, T_Connections)
 
 
 def find_location_index(list_locations: Sequence[Location], location: Location):
@@ -19,8 +19,8 @@ def find_location_index(list_locations: Sequence[Location], location: Location):
 def transition(work_states: Sequence[int], a1_location: Location,
                a2_location: Location, a1_action: E_EventType,
                a2_action: E_EventType, routes: Sequence[Route],
-               places: Mapping[str, Place], work_locations: Sequence[Location],
-               work_info: Sequence[Work]):
+               connections: Mapping[int, T_Connections],
+               work_locations: Sequence[Location], work_info: Sequence[Work]):
   list_next_env = []
   i_work1 = find_location_index(work_locations, a1_location)
   i_work2 = find_location_index(work_locations, a2_location)
@@ -45,12 +45,12 @@ def transition(work_states: Sequence[int], a1_location: Location,
           new_work_states[i_work] -= 1
     else:  # action is not Stay --> move to a new location
       if agent_location.type == E_Type.Place:
-        place_name = agent_location.id
-        if action.value < len(places[place_name].connections):
-          new_place = places[place_name].connections[action.value]
+        place_id = agent_location.id
+        if action.value < len(connections[place_id]):
+          new_place = connections[place_id][action.value]
           if new_place[0] == E_Type.Route:
             route_id = new_place[1]
-            if routes[route_id].start == place_name:
+            if routes[route_id].start == place_id:
               new_agent_location = Location(E_Type.Route, route_id, 0)
             else:  # route[route_id].end == place_name
               new_agent_location = Location(E_Type.Route, route_id,
@@ -60,7 +60,6 @@ def transition(work_states: Sequence[int], a1_location: Location,
       else:
         if action.value < 2:
           route_id = agent_location.id
-          assert isinstance(route_id, int)
           if action == E_EventType.Option0:  # move toward the end
             new_idx = agent_location.index + 1
             if new_idx < routes[route_id].length:

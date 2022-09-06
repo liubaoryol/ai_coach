@@ -1,10 +1,10 @@
 from typing import Union, Sequence, Tuple
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from ai_coach_core.utils.mdp_utils import ActionSpace
 
 T_RouteId = int
-T_PlaceName = str
+T_PlaceId = int
 
 
 class E_EventType(Enum):
@@ -30,19 +30,27 @@ T_Connections = Sequence[Tuple[E_Type, int]]
 @dataclass
 class Location:
   type: E_Type
-  id: Union[T_PlaceName, T_RouteId]
+  id: Union[T_PlaceId, T_RouteId]
   index: int = 0
 
   def __repr__(self) -> str:
     return f"{self.type.name}, {self.id}, {self.index}"
 
+  def __eq__(self, other) -> bool:
+    if self.type == E_Type.Route:
+      return (self.type == other.type and self.id == other.id
+              and self.index == other.index)
+    else:
+      return (self.type == other.type and self.id == other.id)
+
+  def __hash__(self) -> int:
+    return hash(repr(self))
+
   @classmethod
   def from_str(cls, str_loc: str):
     list_loc = str_loc.split(", ")
     e_type = E_Type[list_loc[0]]
-    id_place = list_loc[1]
-    if e_type == E_Type.Route:
-      id_place = int(id_place)
+    id_place = int(list_loc[1])
     index = int(list_loc[2])
 
     return Location(e_type, id_place, index)
@@ -50,18 +58,31 @@ class Location:
 
 @dataclass
 class Route:
-  start: T_PlaceName
-  end: T_PlaceName
+  start: T_PlaceId
+  end: T_PlaceId
   length: int
 
 
 @dataclass
 class Work:
-  helps: int
   workload: int
+  coupled_works: Sequence = field(default_factory=list)
 
 
 @dataclass
 class Place:
+  name: str
   coord: Tuple[float, float]
-  connections: T_Connections
+  helps: int = 0
+
+
+def is_work_done(widx, work_states: Sequence[int], couples: Sequence):
+  state = work_states[widx]
+  if state == 0:
+    return True
+  else:
+    for couple in couples:
+      if work_states[couple] == 0:
+        return True
+
+  return False

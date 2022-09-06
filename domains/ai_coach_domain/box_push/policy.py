@@ -1,7 +1,9 @@
+from abc import abstractmethod
 from typing import Sequence
 import os
 import numpy as np
 from ai_coach_core.models.policy import CachedPolicyInterface, PolicyInterface
+from ai_coach_core.models.mdp import LatentMDP
 from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP, BoxPushAgentMDP,
                                           BoxPushTeamMDP_AlwaysTogether,
                                           get_agent_switched_boxstates)
@@ -26,30 +28,19 @@ class BoxPushPolicyTeamExp1(CachedPolicyInterface):
 class PolicyFromIdenticalAgentMDP(PolicyInterface):
   '''
   This class can be used when all agents are identical so we just need a
-  representative policy of them but need to convert states from the agent 
+  representative policy of them but need to convert states from the agent
   perspective to the task perspective.
   '''
-  def __init__(self, task_mdp: BoxPushTeamMDP, agent_idx: int) -> None:
+  def __init__(self, task_mdp: LatentMDP, agent_idx: int) -> None:
     super().__init__(task_mdp)
     self.agent_idx = agent_idx
 
     # agent policy should be defined at child class
     self.agent_policy = None  # type: PolicyInterface
 
+  @abstractmethod
   def _convert_task_state_2_agent_state(self, obstate_idx):
-    box_states, a1_pos, a2_pos = self.mdp.conv_mdp_sidx_to_sim_states(
-        obstate_idx)
-
-    pos_1 = a1_pos
-    pos_2 = a2_pos
-    bstate = box_states
-    if self.agent_idx == 1:
-      pos_1 = a2_pos
-      pos_2 = a1_pos
-      bstate = get_agent_switched_boxstates(box_states, len(self.mdp.drops),
-                                            len(self.mdp.goals))
-    return self.agent_policy.mdp.conv_sim_states_to_mdp_sidx(
-        [bstate, pos_1, pos_2])
+    raise NotImplementedError
 
   def policy(self, obstate_idx: int, latstate_idx: int) -> np.ndarray:
     agent_obstate = self._convert_task_state_2_agent_state(obstate_idx)
@@ -79,7 +70,24 @@ class PolicyFromIdenticalAgentMDP(PolicyInterface):
     return self.agent_policy.conv_latent_to_idx(latent_state)
 
 
-class BoxPushPolicyIndvExp1(PolicyFromIdenticalAgentMDP):
+class PolicyFromIdenticalAgentMDP_BoxPush(PolicyFromIdenticalAgentMDP):
+  def _convert_task_state_2_agent_state(self, obstate_idx):
+    box_states, a1_pos, a2_pos = self.mdp.conv_mdp_sidx_to_sim_states(
+        obstate_idx)
+
+    pos_1 = a1_pos
+    pos_2 = a2_pos
+    bstate = box_states
+    if self.agent_idx == 1:
+      pos_1 = a2_pos
+      pos_2 = a1_pos
+      bstate = get_agent_switched_boxstates(box_states, len(self.mdp.drops),
+                                            len(self.mdp.goals))
+    return self.agent_policy.mdp.conv_sim_states_to_mdp_sidx(
+        [bstate, pos_1, pos_2])
+
+
+class BoxPushPolicyIndvExp1(PolicyFromIdenticalAgentMDP_BoxPush):
   def __init__(self, task_mdp: BoxPushTeamMDP, agent_mdp: BoxPushAgentMDP,
                temperature: float, agent_idx: int) -> None:
     super().__init__(task_mdp, agent_idx)
@@ -99,7 +107,7 @@ class BoxPushPolicyTeamTest(CachedPolicyInterface):
     super().__init__(mdp, "", policy_test_team_list, temperature, (agent_idx, ))
 
 
-class BoxPushPolicyIndvTest_New(PolicyFromIdenticalAgentMDP):
+class BoxPushPolicyIndvTest_New(PolicyFromIdenticalAgentMDP_BoxPush):
   def __init__(self, task_mdp: BoxPushTeamMDP, agent_mdp: BoxPushAgentMDP,
                temperature: float, agent_idx: int) -> None:
     super().__init__(task_mdp, agent_idx)

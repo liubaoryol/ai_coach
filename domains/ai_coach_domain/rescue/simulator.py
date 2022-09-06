@@ -3,8 +3,8 @@ import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
-from ai_coach_domain.rescue import (E_EventType, Route, Location, Work,
-                                    T_Connections)
+from ai_coach_domain.rescue import (E_EventType, Route, Location, Work, Place,
+                                    T_Connections, is_work_done)
 from ai_coach_domain.rescue.transition import transition
 
 
@@ -17,13 +17,14 @@ class RescueSimulator(Simulator):
     self.agent_1 = None
     self.agent_2 = None
 
-  def init_game(self, routes: Sequence[Route], places: Mapping[str,
-                                                               T_Connections],
-                work_locations: Sequence[Location], work_info: Sequence[Work],
-                a1_init, a2_init, visible_places, **kwargs):
+  def init_game(self, places: Sequence[Place], routes: Sequence[Route],
+                connections: T_Connections, work_locations: Sequence[Location],
+                work_info: Sequence[Work], a1_init, a2_init, visible_places,
+                **kwargs):
 
     self.routes = routes
     self.places = places
+    self.connections = connections
     self.work_locations = work_locations
     self.work_info = work_info
     self.a1_init = a1_init
@@ -98,6 +99,9 @@ class RescueSimulator(Simulator):
     self.current_step += 1
     self.changed_state.add("current_step")
 
+    if self.is_finished():
+      return
+
     # update mental model
     tuple_actions = (a1_action, a2_action)
     self.agent_1.update_mental_state(a1_cur_state, tuple_actions,
@@ -126,8 +130,8 @@ class RescueSimulator(Simulator):
 
   def _get_transition_distribution(self, a1_action, a2_action):
     return transition(self.work_states, self.a1_pos, self.a2_pos, a1_action,
-                      a2_action, self.routes, self.places, self.work_locations,
-                      self.work_info)
+                      a2_action, self.routes, self.connections,
+                      self.work_locations, self.work_info)
 
   def get_num_agents(self):
     return 2
@@ -167,6 +171,7 @@ class RescueSimulator(Simulator):
         "work_locations": self.work_locations,
         "routes": self.routes,
         "places": self.places,
+        "connections": self.connections,
         "work_info": self.work_info,
         "visible_places": self.visible_places,
         "a1_latent": self.agent_1.get_current_latent(),
@@ -229,8 +234,9 @@ class RescueSimulator(Simulator):
     if super().is_finished():
       return True
 
-    for state in self.work_states:
-      if state != 0:
+    for idx in range(len(self.work_states)):
+      if not is_work_done(idx, self.work_states,
+                          self.work_info[idx].coupled_works):
         return False
 
     return True

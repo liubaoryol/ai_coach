@@ -1,52 +1,91 @@
 from ai_coach_domain.rescue import Route, Location, E_Type, Work, Place
 
-
-class RescueName:
-  FireStation = "Fire"
-  PoliceStation = "Police"
-  CityHall = "CityHall"
-  Bridge = "Bridge"
-  Campsite = "Camp"
-  Mall = "Mall"
-
-
 MAP_RESCUE = {
+    "places": [
+        Place("FireStation", (0.4, 0.4)),
+        Place("CityHall", (0.1, 0.1), helps=1),
+        Place("PoliceStation", (0.1, 0.9)),
+        Place("Bridge", (0.8, 0.8)),
+        Place("Campsite", (0.9, 0.1), helps=2),
+        Place("Mall", (0.9, 0.9), helps=4),
+    ],
     "routes": [
-        Route(RescueName.FireStation, RescueName.CityHall, 4),
-        Route(RescueName.FireStation, RescueName.PoliceStation, 2),
-        Route(RescueName.FireStation, RescueName.Bridge, 4),
-        Route(RescueName.FireStation, RescueName.Campsite, 5),
-        Route(RescueName.PoliceStation, RescueName.Bridge, 5),
-        Route(RescueName.PoliceStation, RescueName.CityHall, 6),
+        Route(start=0, end=1, length=4),
+        Route(start=0, end=2, length=2),
+        Route(start=0, end=3, length=4),
+        Route(start=0, end=4, length=5),
+        Route(start=2, end=3, length=5),
+        Route(start=2, end=1, length=6),
     ],
-    "places": {
-        RescueName.FireStation:
-        Place((0.4, 0.4), [(E_Type.Route, 0), (E_Type.Route, 1),
-                           (E_Type.Route, 2), (E_Type.Route, 3)]),
-        RescueName.CityHall:
-        Place((0.1, 0.1), [(E_Type.Route, 0), (E_Type.Route, 5)]),
-        RescueName.PoliceStation:
-        Place((0.1, 0.9), [(E_Type.Route, 5), (E_Type.Route, 1),
-                           (E_Type.Route, 4)]),
-        RescueName.Bridge:
-        Place((0.8, 0.8), [(E_Type.Route, 2), (E_Type.Route, 4)]),
-        RescueName.Campsite:
-        Place((0.9, 0.1), [(E_Type.Route, 3)]),
-        RescueName.Mall:
-        Place((0.9, 0.9), []),
+    "connections": {
+        0: [(E_Type.Route, 0), (E_Type.Route, 1), (E_Type.Route, 2),
+            (E_Type.Route, 3)],
+        1: [(E_Type.Route, 0), (E_Type.Route, 5)],
+        2: [(E_Type.Route, 5), (E_Type.Route, 1), (E_Type.Route, 4)],
+        3: [(E_Type.Route, 2), (E_Type.Route, 4)],
+        4: [(E_Type.Route, 3)],
+        5: [],
     },
-    "visible_places": [
-        RescueName.FireStation, RescueName.CityHall, RescueName.PoliceStation,
-        RescueName.Bridge, RescueName.Campsite
-    ],
+    "visible_places": [0, 1, 2, 3, 4, 5],
     "work_locations": [
-        Location(E_Type.Place, RescueName.CityHall),
-        Location(E_Type.Place, RescueName.Bridge),
-        Location(E_Type.Place, RescueName.Campsite)
+        Location(E_Type.Place, id=1),
+        Location(E_Type.Place, id=3),
+        Location(E_Type.Place, id=4)
     ],
-    "work_info": [Work(1, 1), Work(4, 2), Work(2, 1)],
+    "work_info": [
+        Work(workload=1, coupled_works=[]),
+        Work(workload=2, coupled_works=[]),
+        Work(workload=1, coupled_works=[])
+    ],
     "a1_init":
-    Location(E_Type.Place, RescueName.PoliceStation),
+    Location(E_Type.Place, 2),
     "a2_init":
-    Location(E_Type.Place, RescueName.FireStation),
+    Location(E_Type.Place, 0),
+}
+
+MAP_RESCUE_2 = {
+    "places": [
+        Place("FireStation", (0.4, 0.4)),
+        Place("CityHall", (0.1, 0.1), helps=1),
+        Place("PoliceStation", (0.1, 0.9)),
+        Place("Bridge1", (0.75, 0.85)),
+        Place("Campsite", (0.9, 0.1), helps=2),
+        Place("Mall", (0.9, 0.9), helps=4),
+        Place("Bridge2", (0.85, 0.75)),
+    ],
+    "routes": [
+        Route(start=0, end=1, length=4),
+        Route(start=0, end=2, length=2),
+        Route(start=0, end=6, length=4),
+        Route(start=0, end=4, length=5),
+        Route(start=2, end=3, length=5),
+        Route(start=2, end=1, length=6),
+    ],
+    "connections": {
+        0: [(E_Type.Route, 0), (E_Type.Route, 1), (E_Type.Route, 2),
+            (E_Type.Route, 3)],
+        1: [(E_Type.Route, 0), (E_Type.Route, 5)],
+        2: [(E_Type.Route, 5), (E_Type.Route, 1), (E_Type.Route, 4)],
+        3: [(E_Type.Route, 4)],
+        4: [(E_Type.Route, 3)],
+        5: [],
+        6: [(E_Type.Route, 2)],
+    },
+    "visible_places": [0, 1, 2, 3, 4, 5, 6],
+    "work_locations": [
+        Location(E_Type.Place, id=1),
+        Location(E_Type.Place, id=3),
+        Location(E_Type.Place, id=4),
+        Location(E_Type.Place, id=6),
+    ],
+    "work_info": [
+        Work(workload=1),
+        Work(workload=2, coupled_works=[3]),
+        Work(workload=1),
+        Work(workload=2, coupled_works=[1]),
+    ],
+    "a1_init":
+    Location(E_Type.Place, 2),
+    "a2_init":
+    Location(E_Type.Place, 0),
 }
