@@ -6,6 +6,12 @@ $(document).ready(function () {
   const latentBut = document.getElementById("latent_button");
   const dropDownList = document.getElementById("latent_states");
   const customLatentField = document.getElementById("new_latent_state");
+  const slider = document.getElementById("playback");
+  slider.value = 0;
+
+  slider.oninput = function () {
+    socket.emit("index", { index: this.value });
+  };
 
   socket.on("cur_latent", function (json_msg) {
     const num_options = dropDownList.options.length;
@@ -15,6 +21,12 @@ $(document).ready(function () {
         break;
       }
     }
+  });
+
+  socket.on("set_max", function (msg) {
+    document.getElementById("max_index").value = msg.max_index;
+    slider.max = msg.max_index;
+    document.getElementById("indexValue").max = msg.max_index;
   });
 
   latentBut.addEventListener("click", onLatClick, true);

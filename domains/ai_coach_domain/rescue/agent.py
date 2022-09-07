@@ -55,11 +55,9 @@ class RescueAM(AgentModel):
     my_aidx = tuple_action_idx[self.agent_idx]
     my_act = AGENT_ACTIONSPACE.idx_to_action[my_aidx]
 
-    if my_loc in mdp.work_locations:
-      widx = mdp.work_locations.index(my_loc)
-      wstate = work_states_cur[widx]
-      wstate_n = work_states_nxt[widx]
-      if wstate != wstate_n and my_act == E_EventType.Stay:
+    if work_states_cur != work_states_nxt:
+      if is_work_done(latstate_idx, work_states_nxt,
+                      mdp.work_info[latstate_idx].coupled_works):
         np_work_states_nxt = np.array(work_states_nxt)
         for idx, _ in enumerate(work_states_nxt):
           if is_work_done(idx, work_states_nxt,

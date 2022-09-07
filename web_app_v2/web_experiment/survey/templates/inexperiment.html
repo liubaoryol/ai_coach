@@ -1,7 +1,17 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<h1>{% block title %}{% endblock %}</h1>
+<h1>{% block title %}
+  {% if domain_type == 'Movers' %}
+  Movers and Packers (part 3/5)
+  {% elif domain_type == 'Cleanup' %}
+  Cleanup (part 4/5)
+  {% elif domain_type == 'Rescue' %}
+  Rescue (part -/5)
+  {% else %}
+  Unknown Domain
+  {% endif %}
+  {% endblock %}</h1>
 <h2>{% block subtitle %}In-Experiment Survey: {{ session_title }}{% endblock %}</h2>
 <div class="explanation">
   <p>Please complete the following survey based on your experience in the previous task.</p>

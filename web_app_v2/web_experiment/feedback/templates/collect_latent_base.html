@@ -12,7 +12,7 @@
   {% endblock %}</h1>
 <h2>{% block subtitle %} Collect Latent States{% endblock %}</h2>
 <div class="explanation">
-  <p>Collect user's latent states - Session: {{session_title}} - Total Steps: {{max_index}}</p>
+  <p>Collect user's latent states - Session: {{session_title}} - Total Steps: <span id="max_index"></span></p>
 </div>
 {% endblock %}
 
@@ -36,7 +36,7 @@
 
 <div class="slidecontainer">
   <label for="playback">Please scroll to review your annotations at each step.</label>
-  <input type="range" min="0" max="{{max_index}}" value="0" class="slider" id="playback">
+  <input type="range" min="0" max="1" value="0" class="slider" id="playback">
 </div>
 
 <div class="form-control">
@@ -63,7 +63,7 @@
     <div class='form-control'>
       <div>
         <label class="index" for="index"> Enter Index</label>
-        <input type="number" name="index" value="0" id="indexValue" min="0" max="{{max_index}}">
+        <input type="number" name="index" value="0" id="indexValue" min="0" max="1">
       </div>
       <div class="button-center">
         <button type="submit" value="index" id="index">Go to Index</button>

@@ -40,4 +40,9 @@ $(document).ready(function () {
       document.getElementById("latent_predicted").textContent = latent_pred;
     }
   });
+
+  socket.on("set_max", function (msg) {
+    document.getElementById("max_index").value = msg.max_index;
+    document.getElementById("indexValue").max = msg.max_index;
+  });
 });

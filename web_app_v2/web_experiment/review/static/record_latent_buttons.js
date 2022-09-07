@@ -21,16 +21,6 @@ $(document).ready(function () {
     socket.emit("next", { latent: value });
   }
 
-  socket.on("cur_latent", function (json_msg) {
-    const num_options = dropDownList.options.length;
-    for (let i = 0; i < num_options; i++) {
-      if (dropDownList.options[i].value == json_msg.latent) {
-        dropDownList.options[i].selected = true;
-        break;
-      }
-    }
-  });
-
   // next button click event listener
   prevBut.addEventListener("click", onPrevClick, true);
   function onPrevClick(event) {
@@ -43,4 +33,9 @@ $(document).ready(function () {
     const val = document.getElementById("indexValue").value;
     socket.emit("index", { index: val });
   }
+
+  socket.on("set_max", function (msg) {
+    document.getElementById("max_index").value = msg.max_index;
+    document.getElementById("indexValue").max = msg.max_index;
+  });
 });

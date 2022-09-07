@@ -4,7 +4,7 @@ from web_experiment import socketio
 from web_experiment.models import User, ExpDataCollection
 from web_experiment.define import ExpType
 import web_experiment.exp_common.events_impl as event_impl
-from web_experiment.exp_common.page_exp1_base import Exp1UserData
+from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_datacollection.define import GAMEPAGES, SocketType
 
 g_id_2_user_data = {}  # type: Mapping[str, Exp1UserData]

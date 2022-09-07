@@ -6,16 +6,11 @@ from flask import (flash, g, redirect, render_template, request, url_for,
 from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
-from web_experiment.define import (PageKey, get_next_url, ExpType, EDomainType,
+from web_experiment.define import (PageKey, get_next_url, ExpType,
                                    get_domain_type)
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
 from . import survey_bp
-
-SURVEY_TEMPLATE = {
-    EDomainType.Movers: 'inexperiment_session_a.html',
-    EDomainType.Cleanup: 'inexperiment_session_b.html',
-}
 
 
 def preexperiment():
@@ -167,7 +162,9 @@ def inexp_survey_view(session_name):
   elif exp_type == ExpType.Intervention:
     session_title = intv.SESSION_TITLE[session_name]
 
-  return render_template(SURVEY_TEMPLATE[get_domain_type(session_name)],
+  domain_type = get_domain_type(session_name)
+  return render_template("inexperiment.html",
+                         domain_type=domain_type.name,
                          answers=survey_answers,
                          session_title=session_title)
 

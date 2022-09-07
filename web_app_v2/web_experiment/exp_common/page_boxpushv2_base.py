@@ -6,23 +6,24 @@ from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
 from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Indv2,
                                             InteractiveAgent)
-from web_experiment.exp_common.page_exp1_base import Exp1UserData
-from web_experiment.exp_common.page_exp1_game_base import BoxPushPageBase
+from web_experiment.exp_common.page_base import Exp1UserData
+from web_experiment.exp_common.page_exp1_game_base import BoxPushGamePageBase
+from web_experiment.define import EDomainType
 
 
-class BoxPushV2GamePage(BoxPushPageBase):
+class BoxPushV2GamePage(BoxPushGamePageBase):
   def __init__(self,
-               is_movers,
+               domain_type,
                manual_latent_selection,
                game_map,
                auto_prompt: bool = True,
                prompt_on_change: bool = True,
                prompt_freq: int = 5) -> None:
-    super().__init__(is_movers, manual_latent_selection, game_map, auto_prompt,
-                     prompt_on_change, prompt_freq)
+    super().__init__(domain_type, manual_latent_selection, game_map,
+                     auto_prompt, prompt_on_change, prompt_freq)
 
     TEMPERATURE = 0.3
-    if self._IS_MOVERS:
+    if self._DOMAIN_TYPE == EDomainType.Movers:
       task_mdp = MDP_Movers_Task(**self._GAME_MAP)
       agent_mdp = MDP_Movers_Agent(**self._GAME_MAP)
       self._TEAMMATE_POLICY = Policy_Movers(task_mdp, agent_mdp, TEMPERATURE,
@@ -50,8 +51,8 @@ class BoxPushV2GamePage(BoxPushPageBase):
 
 
 class BoxPushV2UserRandom(BoxPushV2GamePage):
-  def __init__(self, is_movers, game_map, partial_obs) -> None:
-    super().__init__(is_movers, True, game_map, True, True, 5)
+  def __init__(self, domain_type, game_map, partial_obs) -> None:
+    super().__init__(domain_type, True, game_map, True, True, 5)
 
     self._PARTIAL_OBS = partial_obs
 
@@ -59,7 +60,7 @@ class BoxPushV2UserRandom(BoxPushV2GamePage):
     super().init_user_data(user_game_data)
 
     agent1 = InteractiveAgent()
-    if self._IS_MOVERS:
+    if self._DOMAIN_TYPE == EDomainType.Movers:
       agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
     else:
       agent2 = BoxPushAIAgent_Indv2(self._TEAMMATE_POLICY)

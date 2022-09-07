@@ -23,6 +23,7 @@ class ExpType:
 class EDomainType(Enum):
   Movers = 0
   Cleanup = 1
+  Rescue = 2
 
 
 class EMode(Enum):
@@ -55,6 +56,7 @@ class PageKey:
   Overview = "overview"
   Movers_and_packers = "movers_and_packers"
   Clean_up = "clean_up"
+  Rescue = "rescue"
 
   PreExperiment = "preexperiment"
   InExperiment = "inexperiment"
@@ -69,8 +71,13 @@ class PageKey:
   DataCol_B1 = "dcol_session_b1"
   DataCol_B2 = "dcol_session_b2"
   DataCol_B3 = "dcol_session_b3"
+  DataCol_C0 = "dcol_session_c0"
+  DataCol_C1 = "dcol_session_c1"
+  DataCol_C2 = "dcol_session_c2"
+  DataCol_C3 = "dcol_session_c3"
   DataCol_T1 = "dcol_tutorial1"
   DataCol_T2 = "dcol_tutorial2"
+  DataCol_T3 = "dcol_tutorial3"
 
   Interv_A0 = "ntrv_session_a0"
   Interv_A1 = "ntrv_session_a1"
@@ -78,8 +85,12 @@ class PageKey:
   Interv_B0 = "ntrv_session_b0"
   Interv_B1 = "ntrv_session_b1"
   Interv_B2 = "ntrv_session_b2"
+  Interv_C0 = "ntrv_session_c0"
+  Interv_C1 = "ntrv_session_c1"
+  Interv_C2 = "ntrv_session_c2"
   Interv_T1 = "ntrv_tutorial1"
   Interv_T2 = "ntrv_tutorial2"
+  Interv_T3 = "ntrv_tutorial3"
 
 
 def get_record_session_key(task_session_key):
@@ -90,37 +101,46 @@ def get_domain_type(session_name):
   MOVERS_DOMAIN = [
       PageKey.DataCol_A0, PageKey.DataCol_A1, PageKey.DataCol_A2,
       PageKey.DataCol_A3, PageKey.Interv_A0, PageKey.Interv_A1,
-      PageKey.Interv_A2
+      PageKey.Interv_A2, PageKey.DataCol_T1, PageKey.Interv_T1
   ]
   CLEANUP_DOMAIN = [
       PageKey.DataCol_B0, PageKey.DataCol_B1, PageKey.DataCol_B2,
       PageKey.DataCol_B3, PageKey.Interv_B0, PageKey.Interv_B1,
-      PageKey.Interv_B2
+      PageKey.Interv_B2, PageKey.DataCol_T2, PageKey.Interv_T2
+  ]
+  RESCUE_DOMAIN = [
+      PageKey.DataCol_C0, PageKey.DataCol_C1, PageKey.DataCol_C2,
+      PageKey.DataCol_C3, PageKey.Interv_C0, PageKey.Interv_C1,
+      PageKey.Interv_C2, PageKey.DataCol_T3, PageKey.Interv_T3
   ]
   if session_name in MOVERS_DOMAIN:
     return EDomainType.Movers
   elif session_name in CLEANUP_DOMAIN:
     return EDomainType.Cleanup
+  elif session_name in RESCUE_DOMAIN:
+    return EDomainType.Rescue
   else:
-    raise ValueError
+    raise ValueError(f"{session_name} is not valid domain")
 
 
 DATACOL_TASKS = [
     PageKey.DataCol_A0, PageKey.DataCol_A1, PageKey.DataCol_A2,
     PageKey.DataCol_A3, PageKey.DataCol_B0, PageKey.DataCol_B1,
-    PageKey.DataCol_B2, PageKey.DataCol_B3
+    PageKey.DataCol_B2, PageKey.DataCol_B3, PageKey.DataCol_C0,
+    PageKey.DataCol_C1, PageKey.DataCol_C2, PageKey.DataCol_C3
 ]
 
-DATACOL_TUTORIALS = [PageKey.DataCol_T1, PageKey.DataCol_T2]
+DATACOL_TUTORIALS = [PageKey.DataCol_T1, PageKey.DataCol_T2, PageKey.DataCol_T3]
 
 DATACOL_SESSIONS = DATACOL_TASKS + DATACOL_TUTORIALS
 
 INTERV_TASKS = [
     PageKey.Interv_A0, PageKey.Interv_A1, PageKey.Interv_A2, PageKey.Interv_B0,
-    PageKey.Interv_B1, PageKey.Interv_B2
+    PageKey.Interv_B1, PageKey.Interv_B2, PageKey.Interv_C0, PageKey.Interv_C1,
+    PageKey.Interv_C2
 ]
 
-INTERV_TUTORIALS = [PageKey.Interv_T1, PageKey.Interv_T2]
+INTERV_TUTORIALS = [PageKey.Interv_T1, PageKey.Interv_T2, PageKey.Interv_T3]
 
 INTERV_SESSIONS = INTERV_TASKS + INTERV_TUTORIALS
 
@@ -153,6 +173,12 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
     elif current_endpoint == endpoint(BPName.Exp_datacol, PageKey.DataCol_T2):
       return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_B0))
 
+    # Rescue instructions
+    elif current_endpoint == endpoint(BPName.Instruction, PageKey.Rescue):
+      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_T3))
+    elif current_endpoint == endpoint(BPName.Exp_datacol, PageKey.DataCol_T3):
+      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_C0))
+
     elif current_endpoint in [
         endpoint(BPName.Exp_datacol, PageKey.DataCol_A0),
         endpoint(BPName.Exp_datacol, PageKey.DataCol_A1),
@@ -161,7 +187,11 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
         endpoint(BPName.Exp_datacol, PageKey.DataCol_B0),
         endpoint(BPName.Exp_datacol, PageKey.DataCol_B1),
         endpoint(BPName.Exp_datacol, PageKey.DataCol_B2),
-        endpoint(BPName.Exp_datacol, PageKey.DataCol_B3)
+        endpoint(BPName.Exp_datacol, PageKey.DataCol_B3),
+        endpoint(BPName.Exp_datacol, PageKey.DataCol_C0),
+        endpoint(BPName.Exp_datacol, PageKey.DataCol_C1),
+        endpoint(BPName.Exp_datacol, PageKey.DataCol_C2),
+        endpoint(BPName.Exp_datacol, PageKey.DataCol_C3)
     ]:
       return url_for(endpoint(BPName.Review, PageKey.Review),
                      session_name=task_session_key)
@@ -184,6 +214,15 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
       elif task_session_key == PageKey.DataCol_B2:
         return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_B3))
       elif task_session_key == PageKey.DataCol_B3:
+        return url_for(endpoint(BPName.Instruction, PageKey.Rescue))
+
+      elif task_session_key == PageKey.DataCol_C0:
+        return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_C1))
+      elif task_session_key == PageKey.DataCol_C1:
+        return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_C2))
+      elif task_session_key == PageKey.DataCol_C2:
+        return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_C3))
+      elif task_session_key == PageKey.DataCol_C3:
         return url_for(endpoint(BPName.Survey, PageKey.Completion))
 
       else:

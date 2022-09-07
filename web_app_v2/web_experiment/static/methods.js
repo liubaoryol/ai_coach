@@ -42,7 +42,53 @@ class CircleSpotlight extends DrawingObject {
       this.outer_ltwh[2],
       this.outer_ltwh[3]
     );
+    context.moveTo(this.x_cen, this.y_cen);
     context.arc(this.x_cen, this.y_cen, this.radius, 0, Math.PI * 2, true);
+    context.clip();
+    context.globalAlpha = this.alpha;
+    context.fillStyle = this.fill_color;
+    context.fillRect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+    context.restore();
+  }
+}
+
+class MultiCircleSpotlight extends DrawingObject {
+  constructor(name, outer_ltwh, centers, radii) {
+    super(name);
+    this.outer_ltwh = outer_ltwh;
+    this.centers = centers;
+    this.radii = radii;
+    this.fill_color = "grey";
+    this.alpha = 0.3;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.save();
+    context.beginPath();
+    context.rect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+    for (let i = 0; i < this.centers.length; i++) {
+      context.moveTo(this.centers[i][0], this.centers[i][1]);
+      context.arc(
+        this.centers[i][0],
+        this.centers[i][1],
+        this.radii[i],
+        0,
+        Math.PI * 2,
+        true
+      );
+      context.closePath();
+    }
     context.clip();
     context.globalAlpha = this.alpha;
     context.fillStyle = this.fill_color;
@@ -831,6 +877,13 @@ class GameData {
           item.outer_ltwh,
           item.center,
           item.radius
+        );
+      } else if (item.obj_type == "MultiCircleSpotlight") {
+        tmp_obj = new MultiCircleSpotlight(
+          item.name,
+          item.outer_ltwh,
+          item.centers,
+          item.radii
         );
       } else if (item.obj_type == "RectSpotlight") {
         tmp_obj = new RectSpotlight(

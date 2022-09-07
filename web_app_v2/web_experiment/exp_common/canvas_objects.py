@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Tuple
 
 CANVAS_WIDTH = 900
 CANVAS_HEIGHT = 600
@@ -21,6 +21,12 @@ ACTION_BUTTONS = [
 
 JOYSTICK_BUTTONS = [BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_STAY]
 
+SEL_LAYER = "translucent layer"
+BOX_ORIGIN = "box origin"
+CUR_LATENT = "human latent"
+PO_LAYER = "po layer"
+
+# images for box push domain
 IMG_ROBOT = 'robot'
 IMG_WOMAN = 'woman'
 IMG_MAN = 'man'
@@ -32,37 +38,11 @@ IMG_BOTH_BOX = 'both_box'
 IMG_MAN_BAG = 'man_bag'
 IMG_ROBOT_BAG = 'robot_bag'
 
-SEL_LAYER = "translucent layer"
-BOX_ORIGIN = "box origin"
-CUR_LATENT = "human latent"
-PO_LAYER = "po layer"
-
-
-def latent2selbtn(latent):
-  if latent[0] == "pickup":
-    return "sel_box" + str(latent[1])
-  elif latent[0] == "goal":
-    return "sel_goa" + str(latent[1])
-  elif latent[0] == "origin":
-    return "sel_ori" + str(latent[1])
-
-  return None
-
-
-def selbtn2latent(sel_btn_name):
-  if sel_btn_name[:7] == "sel_box":
-    return ("pickup", int(sel_btn_name[7:]))
-  elif sel_btn_name[:7] == "sel_goa":
-    return ("goal", int(sel_btn_name[7:]))
-  elif sel_btn_name[:7] == "sel_ori":
-    return ("origin", 0)
-
-  return None
-
-
-def is_sel_latent_btn(sel_btn_name):
-  return sel_btn_name[:7] in ["sel_box", "sel_goa", "sel_ori"]
-
+# images for rescue domain
+IMG_WORK = "work"
+IMG_POLICE_CAR = "police_car"
+IMG_FIRE_ENGINE = "fire_engine"
+IMG_ROUTE = "route"
 
 ################################################################################
 # Classes here should always match with corresponding javascript classes
@@ -90,6 +70,23 @@ class CircleSpotlight(DrawingObject):
     self.outer_ltwh = outer_ltwh
     self.center = center
     self.radius = radius
+    self.fill_color = fill_color
+    self.alpha = alpha
+
+
+class MultiCircleSpotlight(DrawingObject):
+  def __init__(self,
+               name: str,
+               outer_ltwh: Sequence[int],
+               centers: Sequence[Tuple[int, int]],
+               radii: Sequence[int],
+               fill_color: str = "grey",
+               alpha: float = 0.3):
+    super().__init__(name)
+    self.obj_type = "MultiCircleSpotlight"
+    self.outer_ltwh = outer_ltwh
+    self.centers = centers
+    self.radii = radii
     self.fill_color = fill_color
     self.alpha = alpha
 

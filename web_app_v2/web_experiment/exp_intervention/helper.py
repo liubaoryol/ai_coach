@@ -2,6 +2,7 @@ import json
 from flask_socketio import emit
 import web_experiment.review.util as util
 from ai_coach_domain.box_push.simulator import (BoxPushSimulator)
+from ai_coach_domain.box_push import AGENT_ACTIONSPACE
 from web_experiment.define import EDomainType
 
 
@@ -16,14 +17,14 @@ def task_intervention(game_history, game: BoxPushSimulator,
         "a2_pos": a2pos,
         "a1_latent": a1lat,
         "a2_latent": a2lat,
-        "a1_action": game.cb_action_to_idx(game.AGENT1, a1act),
-        "a2_action": game.cb_action_to_idx(game.AGENT2, a2act)
+        "a1_action": AGENT_ACTIONSPACE.idx_to_action[a1act],
+        "a2_action": AGENT_ACTIONSPACE.idx_to_action[a2act]
     })
   latent, prob = util.predict_human_latent(traj, len(traj) - 1, domain_type)
   current_box_states = traj[-1]["box_states"]
 
-  latent_human_predicted_state = f"{latent[0]}, {latent[1]}"
-  latent_robot_state = f"{latent_robot[0]}, {latent_robot[1]}"
+  latent_human_predicted_state = str(latent)
+  latent_robot_state = str(latent_robot)
 
   print(f"latent human predicted: {latent_human_predicted_state}" +
         f"with probability {prob}")

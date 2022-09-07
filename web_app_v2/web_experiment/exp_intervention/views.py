@@ -15,8 +15,12 @@ EXP1_TEMPLATE = {
     PageKey.Interv_B0: 'exp1_session_b_practice.html',
     PageKey.Interv_B1: 'exp1_session_b_test.html',
     PageKey.Interv_B2: 'exp1_session_b_test.html',
+    PageKey.Interv_C0: 'exp1_session_c_practice.html',
+    PageKey.Interv_C1: 'exp1_session_c_test.html',
+    PageKey.Interv_C2: 'exp1_session_c_test.html',
     PageKey.Interv_T1: 'tutorial1.html',
     PageKey.Interv_T2: 'tutorial2.html',
+    PageKey.Interv_T3: 'tutorial3.html',
 }
 
 # practice session views

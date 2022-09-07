@@ -1,6 +1,7 @@
 from typing import Mapping, Sequence, Any
 import random
-from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
+from ai_coach_domain.box_push.simulator import (BoxPushSimulator,
+                                                BoxPushSimulator_AlwaysTogether,
                                                 BoxPushSimulator_AlwaysAlone)
 from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
                                           BoxPushTeamMDP_AlwaysAlone,
@@ -12,21 +13,24 @@ from ai_coach_domain.box_push.agent import (InteractiveAgent,
                                             BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Host)
 from ai_coach_domain.box_push import EventType
+from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_exp1_game_base import (
-    Exp1UserData, BoxPushPageBase, get_valid_box_to_pickup,
+    Exp1UserData, BoxPushGamePageBase, get_valid_box_to_pickup,
     are_agent_states_changed)
 
 
-class Exp1GamePage(BoxPushPageBase):
+class Exp1GamePage(BoxPushGamePageBase):
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
     if game is None:
-      if self._IS_MOVERS:
+      if self._DOMAIN_TYPE == EDomainType.Movers:
         game = BoxPushSimulator_AlwaysTogether(None)
-      else:
+      elif self._DOMAIN_TYPE == EDomainType.Cleanup:
         game = BoxPushSimulator_AlwaysAlone(None)
+      else:
+        raise ValueError("Invalid domain")
 
       user_game_data.set_game(game)
 
@@ -37,7 +41,7 @@ class Exp1GamePage(BoxPushPageBase):
 
 class CanvasPageMoversTellAligned(Exp1GamePage):
   def __init__(self, game_map) -> None:
-    super().__init__(True, False, game_map, False, False, 5)
+    super().__init__(EDomainType.Movers, False, game_map, False, False, 5)
 
     TEMPERATURE = 0.3
     mdp = BoxPushTeamMDP_AlwaysTogether(**game_map)
@@ -49,7 +53,7 @@ class CanvasPageMoversTellAligned(Exp1GamePage):
 
     agent1 = InteractiveAgent()
     agent2 = BoxPushAIAgent_Host(self._TEAMMATE_POLICY)
-    game = user_game_data.get_game_ref()
+    game = user_game_data.get_game_ref()  # type: BoxPushSimulator
     game.set_autonomous_agent(agent1, agent2)
 
     user_game_data.data[Exp1UserData.SELECT] = False
@@ -94,7 +98,7 @@ class CanvasPageMoversTellAligned(Exp1GamePage):
 
 class CanvasPageMoversUserRandom(Exp1GamePage):
   def __init__(self, game_map) -> None:
-    super().__init__(True, False, game_map, False, False, 5)
+    super().__init__(EDomainType.Movers, False, game_map, False, False, 5)
 
     TEMPERATURE = 0.3
     mdp = BoxPushTeamMDP_AlwaysTogether(**game_map)
@@ -114,7 +118,7 @@ class CanvasPageMoversUserRandom(Exp1GamePage):
 
 class CanvasPageCleanUpTellAligned(Exp1GamePage):
   def __init__(self, game_map) -> None:
-    super().__init__(False, False, game_map, False, False, 5)
+    super().__init__(EDomainType.Cleanup, False, game_map, False, False, 5)
 
     TEMPERATURE = 0.3
     mdp = BoxPushAgentMDP_AlwaysAlone(**game_map)
@@ -252,7 +256,7 @@ class CanvasPageCleanUpTellAligned(Exp1GamePage):
 
 class CanvasPageCleanUpTellRandom(Exp1GamePage):
   def __init__(self, game_map) -> None:
-    super().__init__(False, False, game_map, False, False, 5)
+    super().__init__(EDomainType.Cleanup, False, game_map, False, False, 5)
 
     TEMPERATURE = 0.3
     mdp = BoxPushAgentMDP_AlwaysAlone(**game_map)
@@ -418,7 +422,7 @@ class CanvasPageCleanUpTellRandom(Exp1GamePage):
 
 class CanvasPageCleanUpUserRandom(Exp1GamePage):
   def __init__(self, game_map) -> None:
-    super().__init__(False, False, game_map, False, False, 5)
+    super().__init__(EDomainType.Cleanup, False, game_map, False, False, 5)
 
     TEMPERATURE = 0.3
     mdp = BoxPushAgentMDP_AlwaysAlone(**game_map)

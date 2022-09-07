@@ -1,8 +1,10 @@
+from typing import Sequence, Optional
+from dataclasses import dataclass
 import numpy as np
 import json
 import os
 import glob
-from flask import (session, current_app)
+from flask import current_app
 from flask_socketio import emit
 from ai_coach_core.latent_inference.decoding import (forward_inference,
                                                      most_probable_sequence)
@@ -15,6 +17,9 @@ from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP
 from ai_coach_domain.box_push_v2.mdp import (MDP_BoxPushV2, MDP_Cleanup_Agent,
                                              MDP_Cleanup_Task, MDP_Movers_Agent,
                                              MDP_Movers_Task)
+from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+from ai_coach_domain.rescue.simulator import RescueSimulator
+from ai_coach_domain.rescue.maps import MAP_RESCUE
 
 from web_experiment.define import EMode, EDomainType, get_domain_type
 import web_experiment.exp_common.events_impl as event_impl
@@ -22,113 +27,66 @@ from web_experiment.exp_common.page_base import CanvasPageBase
 from web_experiment.exp_common.page_replay import UserDataReplay
 
 
-def load_session_trajectory(session_name, id):
-  error = None
+def load_trajectory(session_name, id):
   traj_path = current_app.config["TRAJECTORY_PATH"]
   path = f"{id}/{session_name}_{id}*.txt"
   fileExpr = os.path.join(traj_path, path)
   # find any matching files
   files = glob.glob(fileExpr)
   if len(files) == 0:
-    # does not find a match, error handling
-    error = f"No file found that matches {id}, {session_name}"
+    # # does not find a match, error handling
+    # error = f"No file found that matches {id}, {session_name}"
+    return None
   else:
     files.sort(reverse=True)
     file = files[0]
 
-    domain_type = get_domain_type(session_name)
-    traj = read_file(file, domain_type)
-    session["dict"] = traj
-    session['index'] = 0
-    session['max_index'] = len(traj) - 1
-    session['loaded_session_name'] = session_name
-    session['possible_latent_states'] = get_possible_latent_states(
-        len(traj[0]['boxes']), len(traj[0]['drops']), len(traj[0]['goals']))
-    # dummy latent human prediction
-    session['latent_human_predicted'] = [None] * len(traj)
-    recorded_latent = []
-    for scene in traj:
-      if scene["a1_latent"] is not None:
-        str_latent = f"{scene['a1_latent'][0]}, {scene['a1_latent'][1]}"
-        recorded_latent.append(str_latent)
-      else:
-        str_latent = "None"
-        recorded_latent.append(str_latent)
+    return read_file(file, get_domain_type(session_name))
 
-    session['latent_human_recorded'] = recorded_latent
 
-  return error
+def latent_state_from_traj(traj, domain_type: EDomainType):
+  list_latents = []
+
+  for scene in traj:
+    a1_latent = scene['a1_latent']
+    if a1_latent is not None:
+      str_latent = str(a1_latent)
+      list_latents.append(str_latent)
+    else:
+      str_latent = "None"
+      list_latents.append(str_latent)
+
+  return list_latents
+
+
+def possible_latent_states(domain_type: EDomainType):
+  list_latents = []
+  if domain_type == EDomainType.Movers:
+    num_drops = len(MAP_MOVERS["drops"])
+    num_goals = len(MAP_MOVERS["goals"])
+    num_boxes = len(MAP_MOVERS["boxes"])
+    list_latents = get_possible_latent_states(num_boxes, num_drops, num_goals)
+  elif domain_type == EDomainType.Cleanup:
+    num_drops = len(MAP_CLEANUP["drops"])
+    num_goals = len(MAP_CLEANUP["goals"])
+    num_boxes = len(MAP_CLEANUP["boxes"])
+    list_latents = get_possible_latent_states(num_boxes, num_drops, num_goals)
+  elif domain_type == EDomainType.Rescue:
+    num_works = len(MAP_RESCUE["work_locations"])
+    list_latents = list(range(num_works))
+
+  return [str(item) for item in list_latents]
 
 
 def read_file(file_name, domain_type: EDomainType):
-  traj = []
+  traj_of_dict = []
 
   if domain_type == EDomainType.Movers:
-    x_grid = MAP_MOVERS['x_grid']
-    y_grid = MAP_MOVERS['y_grid']
-    boxes = MAP_MOVERS['boxes']
-    goals = MAP_MOVERS['goals']
-    drops = MAP_MOVERS['drops']
-    walls = MAP_MOVERS['walls']
-    wall_dir = MAP_MOVERS['wall_dir']
-    box_types = MAP_MOVERS['box_types']
-  elif domain_type == EDomainType.Cleanup:
-    x_grid = MAP_CLEANUP['x_grid']
-    y_grid = MAP_CLEANUP['y_grid']
-    boxes = MAP_CLEANUP['boxes']
-    goals = MAP_CLEANUP['goals']
-    drops = MAP_CLEANUP['drops']
-    walls = MAP_CLEANUP['walls']
-    wall_dir = MAP_CLEANUP['wall_dir']
-    box_types = MAP_CLEANUP['box_types']
-  else:
-    raise NotImplementedError
-
-  with open(file_name, newline='') as txtfile:
-    lines = txtfile.readlines()
-    i_start = 0
-    for i_r, row in enumerate(lines):
-      if row == ('# cur_step, box_state, a1_pos, a2_pos, ' +
-                 'a1_act, a2_act, a1_latent, a2_latent\n'):
-        i_start = i_r
-        break
-
-    for i_r in range(i_start + 1, len(lines)):
-      line = lines[i_r]
-      states = line.rstrip()[:-1].split("; ")
-      if len(states) < 8:
-        for dummy in range(8 - len(states)):
-          states.append(None)
-      step, bstate, a1pos, a2pos, a1act, a2act, a1lat, a2lat = states
-      box_state = tuple([int(elem) for elem in bstate.split(", ")])
-      a1_pos = tuple([int(elem) for elem in a1pos.split(", ")])
-      a2_pos = tuple([int(elem) for elem in a2pos.split(", ")])
-      if a1lat is None:
-        a1_lat = None
-      else:
-        a1lat_tmp = a1lat.split(", ")
-        a1_lat = (a1lat_tmp[0], int(a1lat_tmp[1]))
-      if a2lat is None:
-        a2_lat = None
-      else:
-        a2lat_tmp = a2lat.split(", ")
-        a2_lat = (a2lat_tmp[0], int(a2lat_tmp[1]))
-      if a1act is None:
-        a1_act = None
-      else:
-        a1_act = int(a1act)
-      if a2act is None:
-        a2_act = None
-      else:
-        a2_act = int(a2act)
-      traj.append({
-          "x_grid": x_grid,
-          "y_grid": y_grid,
+    traj_of_list = BoxPushSimulatorV2.read_file(file_name)
+    for step, elem in enumerate(traj_of_list):
+      box_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat = elem
+      traj_of_dict.append({
           "box_states": box_state,
-          "boxes": boxes,
-          "goals": goals,
-          "drops": drops,
-          "walls": walls,
           "a1_pos": a1_pos,
           "a2_pos": a2_pos,
           "a1_latent": a1_lat,
@@ -136,22 +94,70 @@ def read_file(file_name, domain_type: EDomainType):
           "current_step": step,
           "a1_action": a1_act,
           "a2_action": a2_act,
-          "wall_dir": wall_dir,
-          "box_tyeps": box_types
       })
-  return traj
+
+  elif domain_type == EDomainType.Cleanup:
+    traj_of_list = BoxPushSimulatorV2.read_file(file_name)
+    for step, elem in enumerate(traj_of_list):
+      box_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat = elem
+      traj_of_dict.append({
+          "box_states": box_state,
+          "a1_pos": a1_pos,
+          "a2_pos": a2_pos,
+          "a1_latent": a1_lat,
+          "a2_latent": a2_lat,
+          "current_step": step,
+          "a1_action": a1_act,
+          "a2_action": a2_act,
+      })
+  elif domain_type == EDomainType.Rescue:
+    traj_of_list = RescueSimulator.read_file(file_name)
+    for step, elem in enumerate(traj_of_list):
+      work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat = elem
+      traj_of_dict.append({
+          "work_states": work_state,
+          "a1_pos": a1_pos,
+          "a2_pos": a2_pos,
+          "a1_latent": a1_lat,
+          "a2_latent": a2_lat,
+          "current_step": step,
+          "a1_action": a1_act,
+          "a2_action": a2_act,
+      })
+  else:
+    raise NotImplementedError
+
+  return traj_of_dict
 
 
-def update_canvas(page: CanvasPageBase, init_imgs=False):
+@dataclass
+class SessionData:
+  '''
+    socketio session data whose life cycle is intended to be
+    from "connect" to "disconnect" of socketio
+  '''
+  user_id: str
+  session_name: str
+  trajectory: Sequence
+  index: int = 0
+  groupid: Optional[str] = None
+  latent_collected: Optional[Sequence] = None
+  latent_predicted: Optional[Sequence] = None
+
+
+def update_canvas(page: CanvasPageBase,
+                  session_data: SessionData,
+                  init_imgs=False,
+                  domain_type: EDomainType = None):
   imgs = None
   if init_imgs:
-    imgs = event_impl.get_imgs()
+    imgs = event_impl.get_imgs(domain_type)
 
   drawing_info = None
-  if 'dict' in session and 'index' in session:
+  if session_data is not None:
     user_data = UserDataReplay(None)
-    user_data.data[UserDataReplay.TRAJECTORY] = session["dict"]
-    user_data.data[UserDataReplay.TRAJ_IDX] = session['index']
+    user_data.data[UserDataReplay.TRAJECTORY] = session_data.trajectory
+    user_data.data[UserDataReplay.TRAJ_IDX] = session_data.index
     page.init_user_data(user_data)
     drawing_info = page.get_updated_drawing_info(user_data)
 
@@ -168,13 +174,14 @@ def update_canvas(page: CanvasPageBase, init_imgs=False):
                              animations=animations)
 
 
-def canvas_button_clicked(button, page: CanvasPageBase):
-  if not ('dict' in session and 'index' in session):
+def canvas_button_clicked(button, page: CanvasPageBase,
+                          session_data: SessionData):
+  if session_data is None:
     return
 
   user_data = UserDataReplay(None)
-  user_data.data[UserDataReplay.TRAJECTORY] = session["dict"]
-  user_data.data[UserDataReplay.TRAJ_IDX] = session['index']
+  user_data.data[UserDataReplay.TRAJECTORY] = session_data.trajectory
+  user_data.data[UserDataReplay.TRAJ_IDX] = session_data.index
 
   page.init_user_data(user_data)
 
@@ -190,9 +197,10 @@ def canvas_button_clicked(button, page: CanvasPageBase):
                              animations=animations)
 
 
-def update_latent_state(domain_type: EDomainType, mode: EMode):
+def update_latent_state(domain_type: EDomainType, mode: EMode,
+                        session_data: SessionData):
   latent_human, latent_human_predicted, latent_robot = get_latent_states(
-      domain_type, mode=mode)
+      domain_type, mode=mode, session_data=session_data)
   objs = {}
   objs['latent_human'] = latent_human
   objs['latent_robot'] = latent_robot
@@ -209,24 +217,27 @@ def update_latent_state(domain_type: EDomainType, mode: EMode):
   emit(str_emit, objs_json)
 
 
-def get_latent_states(domain_type: EDomainType, mode: EMode):
-  dict = session['dict'][session['index']]
+def get_latent_states(domain_type: EDomainType, mode: EMode,
+                      session_data: SessionData):
+  dict = session_data.trajectory[session_data.index]
   latent_human = "None"
   latent_robot = "None"
   latent_human_predicted = "None"
   if mode == EMode.Replay:
     if dict['a1_latent']:
-      latent_human = f"{dict['a1_latent'][0]}, {dict['a1_latent'][1]}"
-    latent, prob = predict_human_latent(session['dict'], session['index'],
-                                        domain_type)
-    latent_human_predicted = f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
+      latent_human = str(dict["a1_latent"])
+    latent, prob = predict_human_latent(session_data.trajectory,
+                                        session_data.index, domain_type)
+    latent_human_predicted = str(latent) + f", P(x) = {prob:.2f}"
   elif mode == EMode.Collected:
-    latent_human = session['latent_human_recorded'][session['index']]
+    if session_data.latent_collected is not None:
+      latent_human = session_data.latent_collected[session_data.index]
   elif mode == EMode.Predicted:
-    latent_human_predicted = session['latent_human_predicted'][session['index']]
+    if session_data.latent_predicted is not None:
+      latent_human_predicted = session_data.latent_predicted[session_data.index]
 
   if dict['a2_latent']:
-    latent_robot = f"{dict['a2_latent'][0]}, {dict['a2_latent'][1]}"
+    latent_robot = str(dict['a2_latent'])
   return latent_human, latent_human_predicted, latent_robot
 
 
@@ -323,7 +334,6 @@ def predict_human_latent(traj, index, domain_type: EDomainType):
   prob = dist_x[0][latent_idx]
   latent = mdp_agent.latent_space.idx_to_state[inferred_x[0]]
   return latent, prob
-  # return f"{latent[0]}, {latent[1]}, P(x) = {prob:.2f}"
 
 
 def predict_human_latent_full(traj, domain_type: EDomainType):
@@ -351,5 +361,5 @@ def predict_human_latent_full(traj, domain_type: EDomainType):
                                                init_latent_nxs)
   inferred_x_seq = list_inferred_x_seq[0]
   latents = [mdp_agent.latent_space.idx_to_state[x] for x in inferred_x_seq]
-  latents = [f"{latent[0]}, {latent[1]}" for latent in latents]
+  latents = [str(latent) for latent in latents]
   return latents

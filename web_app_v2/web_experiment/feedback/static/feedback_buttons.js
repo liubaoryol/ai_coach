@@ -41,4 +41,9 @@ $(document).ready(function () {
   socket.on("complete", function () {
     document.getElementById("proceed").disabled = false;
   });
+
+  socket.on("set_max", function (msg) {
+    document.getElementById("max_index").value = msg.max_index;
+    document.getElementById("indexValue").max = msg.max_index;
+  });
 });

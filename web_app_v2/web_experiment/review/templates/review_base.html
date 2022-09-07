@@ -6,13 +6,15 @@
   Movers and Packers (part 3/5)
   {% elif domain_type == 'Cleanup' %}
   Cleanup (part 4/5)
+  {% elif domain_type == 'Rescue' %}
+  Rescue (part -/5)
   {% else %}
   Unknown Domain
   {% endif %}
   {% endblock %}</h1>
 <h2>{% block subtitle %} Review Latent States{% endblock %}</h2>
 <div class="explanation">
-  <p>Review latent states - Session: {{session_title}} - Total Steps: {{max_index}}</p>
+  <p>Review latent states - Session: {{session_title}} - Total Steps: <span id="max_index"></span></p>
 </div>
 {% endblock %}
 
@@ -40,7 +42,7 @@
     circle is not aligned with what you have actually thought of as the destination, please click "Fix Destination"
     button to update it.
   </label>
-  <input type="range" min="0" max="{{max_index}}" value="0" class="slider" id="playback">
+  <input type="range" min="0" max="1" value="0" class="slider" id="playback">
   <p>Time step: <span id="timestep"></span></p>
 </div>
 

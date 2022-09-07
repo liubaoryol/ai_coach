@@ -1,0 +1,589 @@
+from typing import Mapping, Any, Sequence, List
+import copy
+from ai_coach_domain.rescue.simulator import RescueSimulator
+from ai_coach_domain.rescue import E_EventType, Location, E_Type, Place
+from ai_coach_domain.agent import InteractiveAgent
+from ai_coach_domain.rescue.agent import AIAgent_Rescue
+from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+from ai_coach_domain.rescue.policy import Policy_Rescue
+import web_experiment.exp_common.canvas_objects as co
+from web_experiment.define import EDomainType
+from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
+from web_experiment.exp_common.helper import (get_file_name, location_2_coord,
+                                              rescue_game_scene,
+                                              rescue_game_scene_names)
+
+
+def human_clear_problem(
+    dict_prev_game: Mapping[str, Any],
+    dict_cur_game: Mapping[str, Any],
+    human_action: E_EventType,
+):
+  work_states_prev = dict_prev_game["work_states"]
+  work_states_cur = dict_cur_game["work_states"]
+  work_locations = dict_cur_game["work_locations"]
+  a1_pos = dict_prev_game["a1_pos"]
+
+  if a1_pos in work_locations:
+    widx = work_locations.index(a1_pos)
+    wstate_p = work_states_prev[widx]
+    wstate_c = work_states_cur[widx]
+
+    if wstate_p != wstate_c and human_action == E_EventType.Stay:
+      return True
+
+  return False
+
+
+class RescueGamePageBase(ExperimentPageBase):
+  OPTION_0 = E_EventType.Option0.name
+  OPTION_1 = E_EventType.Option1.name
+  OPTION_2 = E_EventType.Option2.name
+  OPTION_3 = E_EventType.Option3.name
+  STAY = E_EventType.Stay.name
+
+  ACTION_BUTTONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, STAY]
+
+  def __init__(self,
+               manual_latent_selection,
+               game_map,
+               auto_prompt: bool = True,
+               prompt_on_change: bool = True,
+               prompt_freq: int = 5) -> None:
+    super().__init__(True, True, True, EDomainType.Rescue)
+    self._MANUAL_SELECTION = manual_latent_selection
+    self._GAME_MAP = game_map
+
+    self._PROMPT_ON_CHANGE = prompt_on_change
+    self._PROMPT_FREQ = prompt_freq
+    self._AUTO_PROMPT = auto_prompt
+
+    self._AGENT1 = RescueSimulator.AGENT1
+    self._AGENT2 = RescueSimulator.AGENT2
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    user_game_data.data[Exp1UserData.GAME_DONE] = False
+    user_game_data.data[Exp1UserData.SELECT] = False
+
+    game = user_game_data.get_game_ref()
+    if game is None:
+      game = RescueSimulator()
+
+      user_game_data.set_game(game)
+
+    game.init_game(**self._GAME_MAP)
+    game.set_autonomous_agent()
+
+    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+
+  def get_updated_drawing_info(self,
+                               user_data: Exp1UserData,
+                               clicked_button: str = None,
+                               dict_prev_scene_data: Mapping[str, Any] = None):
+    if dict_prev_scene_data is None:
+      drawing_objs = self._get_init_drawing_objects(user_data)
+      commands = self._get_init_commands(user_data)
+      animations = None
+    else:
+      drawing_objs = self._get_updated_drawing_objects(user_data,
+                                                       dict_prev_scene_data)
+      commands = self._get_button_commands(clicked_button, user_data)
+      game = user_data.get_game_ref()
+      animations = None
+      if clicked_button in self.ACTION_BUTTONS:
+        animations = self._get_animations(dict_prev_scene_data,
+                                          game.get_env_info())
+    drawing_order = self._get_drawing_order(user_data)
+
+    return commands, drawing_objs, drawing_order, animations
+
+  def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
+    '''
+    user_game_data: NOTE - values will be updated
+    return: commands, drawing_objs, drawing_order, animations
+      drawing info
+    '''
+
+    if clicked_btn in self.ACTION_BUTTONS:
+      game = user_game_data.get_game_ref()
+      dict_prev_game = copy.deepcopy(game.get_env_info())
+      a1_act, a2_act, done = self.action_event(user_game_data, clicked_btn)
+      if done:
+        self._on_game_finished(user_game_data)
+      else:
+        self._on_action_taken(user_game_data, dict_prev_game, (a1_act, a2_act))
+      return
+
+    elif clicked_btn == co.BTN_SELECT:
+      user_game_data.data[Exp1UserData.SELECT] = True
+      return
+
+    elif self.is_sel_latent_btn(clicked_btn):
+      latent = self.selbtn2latent(clicked_btn)
+      if latent is not None:
+        game = user_game_data.get_game_ref()
+        game.event_input(self._AGENT1, E_EventType.Set_Latent, latent)
+        user_game_data.data[Exp1UserData.SELECT] = False
+        user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+        return
+
+    return super().button_clicked(user_game_data, clicked_btn)
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    if user_game_data.data[Exp1UserData.SELECT]:
+      return (
+          "Please select your current destination among the circled options. " +
+          "It can be the same destination as you had previously selected.")
+    else:
+      return (
+          "Please choose your next action. If your destination has changed, " +
+          "please update it using the select destination button.")
+
+  def _get_drawing_order(self, user_game_data: Exp1UserData):
+    dict_game = user_game_data.get_game_ref().get_env_info()
+    drawing_order = []
+    drawing_order.append(self.GAME_BORDER)
+
+    drawing_order = (drawing_order +
+                     self._game_scene_names(dict_game, user_game_data))
+    drawing_order = (drawing_order +
+                     self._game_overlay_names(dict_game, user_game_data))
+    drawing_order = drawing_order + self.ACTION_BUTTONS
+    drawing_order.append(co.BTN_SELECT)
+
+    drawing_order.append(self.TEXT_SCORE)
+
+    drawing_order.append(self.RECT_INSTRUCTION)
+    drawing_order.append(self.TEXT_INSTRUCTION)
+
+    return drawing_order
+
+  def _get_init_drawing_objects(
+      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
+    dict_objs = super()._get_init_drawing_objects(user_game_data)
+
+    dict_game = user_game_data.get_game_ref().get_env_info()
+
+    game_objs = self._game_scene(dict_game,
+                                 user_game_data,
+                                 include_background=True)
+    for obj in game_objs:
+      dict_objs[obj.name] = obj
+
+    overlay_objs = self._game_overlay(dict_game, user_game_data)
+    for obj in overlay_objs:
+      dict_objs[obj.name] = obj
+
+    objs = self._get_btn_actions(user_game_data)
+    for obj in objs:
+      dict_objs[obj.name] = obj
+
+    obj = self._get_btn_select(user_game_data)
+    dict_objs[obj.name] = obj
+
+    return dict_objs
+
+  def _get_btn_actions(
+      self, user_game_data: Exp1UserData) -> Sequence[co.DrawingObject]:
+    game = user_game_data.get_game_ref()  # type: RescueSimulator
+    a1pos = game.a1_pos  # type: Location
+
+    buttonsize = (int(self.GAME_WIDTH / 2.5), int(self.GAME_WIDTH / 20))
+    font_size = 18
+
+    disable = user_game_data.data[Exp1UserData.SELECT]
+
+    list_buttons = []
+    x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
+    y_ctrl_st = int(co.CANVAS_HEIGHT * 0.54)
+
+    offset = buttonsize[1] + 3
+
+    if a1pos.type == E_Type.Place:
+      for idx, connection in enumerate(game.connections[a1pos.id]):
+        if connection[0] == E_Type.Place:
+          txt = "Move to " + game.places[connection[1]].name
+        else:
+          if game.routes[connection[1]].start == a1pos.id:
+            dest = game.routes[connection[1]].end
+          elif game.routes[connection[1]].end == a1pos.id:
+            dest = game.routes[connection[1]].start
+          else:
+            raise ValueError("Invalid map")
+
+          txt = "Move to " + game.places[dest].name
+
+        btn_obj = co.ButtonRect(self.ACTION_BUTTONS[idx],
+                                (x_ctrl_cen, y_ctrl_st + offset * idx),
+                                buttonsize,
+                                font_size,
+                                txt,
+                                disable=disable)
+        list_buttons.append(btn_obj)
+    else:
+      place_id = game.routes[a1pos.id].end
+      txt = "Move to " + game.places[place_id].name
+      btn_obj = co.ButtonRect(self.OPTION_0, (x_ctrl_cen, y_ctrl_st),
+                              buttonsize,
+                              font_size,
+                              txt,
+                              disable=disable)
+      list_buttons.append(btn_obj)
+
+      place_id = game.routes[a1pos.id].start
+      txt = "Move to " + game.places[place_id].name
+      btn_obj = co.ButtonRect(self.OPTION_1, (x_ctrl_cen, y_ctrl_st + offset),
+                              buttonsize,
+                              font_size,
+                              txt,
+                              disable=disable)
+      list_buttons.append(btn_obj)
+
+    txt = "Stay"
+    if a1pos in game.work_locations:
+      widx = game.work_locations.index(a1pos)
+      if game.work_states[widx] != 0:
+        txt = "Clear the problem"
+
+    idx = len(list_buttons)
+    btn_obj = co.ButtonRect(self.STAY, (x_ctrl_cen, y_ctrl_st + offset * idx),
+                            buttonsize,
+                            font_size,
+                            txt,
+                            disable=disable)
+    list_buttons.append(btn_obj)
+
+    return list_buttons
+
+  def _get_btn_select(self, user_game_data: Exp1UserData):
+    x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
+    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.83)
+
+    buttonsize = (int(self.GAME_WIDTH / 3), int(self.GAME_WIDTH / 15))
+    font_size = 18
+
+    selecting = user_game_data.data[Exp1UserData.SELECT]
+    select_disable = not self._MANUAL_SELECTION or selecting
+    btn_select = co.ButtonRect(co.BTN_SELECT, (x_ctrl_cen, y_ctrl_cen),
+                               buttonsize,
+                               font_size,
+                               "Select Destination",
+                               disable=select_disable)
+    return btn_select
+
+  def _on_action_taken(self, user_game_data: Exp1UserData,
+                       dict_prev_game: Mapping[str, Any],
+                       tuple_actions: Sequence[Any]):
+    '''
+    user_cur_game_data: NOTE - values will be updated
+    '''
+
+    game = user_game_data.get_game_ref()
+    # set selection prompt status
+    # TODO: check work state changed
+    work_state_changed = human_clear_problem(dict_prev_game,
+                                             game.get_env_info(),
+                                             tuple_actions[0])
+
+    select_latent = False
+    if self._PROMPT_ON_CHANGE and work_state_changed:
+      select_latent = True
+
+    if self._AUTO_PROMPT:
+      user_game_data.data[Exp1UserData.ACTION_COUNT] += 1
+      if user_game_data.data[Exp1UserData.ACTION_COUNT] >= self._PROMPT_FREQ:
+        select_latent = True
+
+    user_game_data.data[Exp1UserData.SELECT] = select_latent
+    user_game_data.data[Exp1UserData.SCORE] = (
+        user_game_data.get_game_ref().current_step)
+
+    # mental state update
+    # possibly change the page to draw
+
+  def _on_game_finished(self, user_game_data: Exp1UserData):
+    '''
+    user_game_data: NOTE - values will be updated
+    '''
+
+    user_game_data.data[Exp1UserData.GAME_DONE] = True
+
+    game = user_game_data.get_game_ref()
+    user = user_game_data.data[Exp1UserData.USER]
+    user_id = user.userid
+
+    # save trajectory
+    save_path = user_game_data.data[Exp1UserData.SAVE_PATH]
+    session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
+    file_name = get_file_name(save_path, user_id, session_name)
+    header = game.__class__.__name__ + "-" + session_name + "\n"
+    header += "User ID: %s\n" % (str(user_id), )
+    header += str(self._GAME_MAP)
+    game.save_history(file_name, header)
+
+    # update score
+    user_game_data.data[Exp1UserData.SCORE] = game.current_step
+
+    # move to next page
+    user_game_data.go_to_next_page()
+
+  def _get_updated_drawing_objects(
+      self,
+      user_data: Exp1UserData,
+      dict_prev_game: Mapping[str,
+                              Any] = None) -> Mapping[str, co.DrawingObject]:
+    dict_game = user_data.get_game_ref().get_env_info()
+    dict_objs = {}
+    game_updated = (dict_prev_game["current_step"] != dict_game["current_step"])
+    if game_updated:
+      for obj in self._game_scene(dict_game, user_data, False):
+        dict_objs[obj.name] = obj
+
+      obj = self._get_score_obj(user_data)
+      dict_objs[obj.name] = obj
+
+    for obj in self._game_overlay(dict_game, user_data):
+      dict_objs[obj.name] = obj
+
+    obj = self._get_instruction_objs(user_data)[0]
+    dict_objs[obj.name] = obj
+
+    objs = self._get_btn_actions(user_data)
+    for obj in objs:
+      dict_objs[obj.name] = obj
+
+    obj = self._get_btn_select(user_data)
+    dict_objs[obj.name] = obj
+
+    return dict_objs
+
+  def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
+    return {"delete": self.ACTION_BUTTONS}
+
+  def _get_animations(self, dict_prev_game: Mapping[str, Any],
+                      dict_cur_game: Mapping[str, Any]):
+
+    list_animations = []
+    a1_pos_p = dict_prev_game["a1_pos"]
+    a1_pos_c = dict_cur_game["a1_pos"]
+
+    a2_pos_p = dict_prev_game["a2_pos"]
+    a2_pos_c = dict_cur_game["a2_pos"]
+
+    if a1_pos_p == a1_pos_c:
+      obj_name = co.IMG_POLICE_CAR
+      amp = int(self.GAME_WIDTH * 0.01)
+      obj = {'type': 'vibrate', 'obj_name': obj_name, 'amplitude': amp}
+      if obj not in list_animations:
+        list_animations.append(obj)
+
+    if a2_pos_p == a2_pos_c:
+      obj_name = co.IMG_FIRE_ENGINE
+      amp = int(self.GAME_WIDTH * 0.01)
+      obj = {'type': 'vibrate', 'obj_name': obj_name, 'amplitude': amp}
+      if obj not in list_animations:
+        list_animations.append(obj)
+
+    return list_animations
+
+  def action_event(self, user_game_data: Exp1UserData, clicked_btn: str):
+    '''
+    user_game_data: NOTE - values will be updated
+    '''
+    action = None
+    if clicked_btn == self.OPTION_0:
+      action = E_EventType.Option0
+    elif clicked_btn == self.OPTION_1:
+      action = E_EventType.Option1
+    elif clicked_btn == self.OPTION_2:
+      action = E_EventType.Option2
+    elif clicked_btn == self.OPTION_3:
+      action = E_EventType.Option3
+    elif clicked_btn == self.STAY:
+      action = E_EventType.Stay
+
+    game = user_game_data.get_game_ref()
+    # should not happen
+    assert action is not None
+    assert not game.is_finished()
+
+    game.event_input(self._AGENT1, action, None)
+
+    # take actions
+    map_agent2action = game.get_joint_action()
+    game.take_a_step(map_agent2action)
+
+    return (map_agent2action[self._AGENT1], map_agent2action[self._AGENT2],
+            game.is_finished())
+
+  def _game_overlay(self, game_env,
+                    user_data: Exp1UserData) -> List[co.DrawingObject]:
+    def coord_2_canvas(coord_x, coord_y):
+      x = int(self.GAME_LEFT + coord_x * self.GAME_WIDTH)
+      y = int(self.GAME_TOP + coord_y * self.GAME_HEIGHT)
+      return (x, y)
+
+    def size_2_canvas(width, height):
+      w = int(width * self.GAME_WIDTH)
+      h = int(height * self.GAME_HEIGHT)
+      return (w, h)
+
+    overlay_obs = []
+
+    places = game_env["places"]  # type: Sequence[Place]
+    routes = game_env["routes"]  # type: Sequence[Place]
+    work_locations = game_env["work_locations"]
+
+    if user_data.data[Exp1UserData.PARTIAL_OBS]:
+      po_outer_ltwh = [
+          self.GAME_LEFT, self.GAME_TOP, self.GAME_WIDTH, self.GAME_HEIGHT
+      ]
+
+      coords = []
+      for place in places:
+        if place.visible:
+          place_coord = coord_2_canvas(*place.coord)
+          if place_coord not in coords:
+            coords.append(place_coord)
+
+      a1_pos = game_env["a1_pos"]
+      a1_coord = coord_2_canvas(*location_2_coord(a1_pos, places, routes))
+      if a1_coord not in coords:
+        coords.append(a1_coord)
+
+      radii = [size_2_canvas(0.05, 0)[0]] * len(coords)
+      obj = co.MultiCircleSpotlight(co.PO_LAYER, po_outer_ltwh, coords, radii)
+      overlay_obs.append(obj)
+
+    if (user_data.data[Exp1UserData.SHOW_LATENT]
+        and not user_data.data[Exp1UserData.SELECT]):
+      a1_latent = game_env["a1_latent"]
+      if a1_latent is not None:
+        coord = location_2_coord(work_locations[a1_latent], places, routes)
+        if coord is not None:
+          radius = size_2_canvas(0.05, 0)[0]
+          x_cen = coord[0]
+          y_cen = coord[1]
+          obj = co.Circle(co.CUR_LATENT,
+                          coord_2_canvas(x_cen, y_cen),
+                          radius,
+                          line_color="red",
+                          fill=False,
+                          border=True)
+          overlay_obs.append(obj)
+
+    if user_data.data[Exp1UserData.SELECT]:
+      obj = co.Rectangle(co.SEL_LAYER, (self.GAME_LEFT, self.GAME_TOP),
+                         (self.GAME_WIDTH, self.GAME_HEIGHT),
+                         fill_color="white",
+                         alpha=0.8)
+      overlay_obs.append(obj)
+
+      radius = size_2_canvas(0.05, 0)[0]
+      font_size = 20
+
+      for idx, loc in enumerate(work_locations):
+        coord = location_2_coord(loc, places, routes)
+        obj = co.SelectingCircle(self.latent2selbtn(idx),
+                                 coord_2_canvas(*coord), radius, font_size,
+                                 str(idx))
+        overlay_obs.append(obj)
+
+    return overlay_obs
+
+  def _game_overlay_names(self, game_env, user_data: Exp1UserData) -> List:
+
+    overlay_names = []
+    work_locations = game_env["work_locations"]
+    if user_data.data[Exp1UserData.PARTIAL_OBS]:
+      overlay_names.append(co.PO_LAYER)
+
+    if (user_data.data[Exp1UserData.SHOW_LATENT]
+        and not user_data.data[Exp1UserData.SELECT]):
+      a1_latent = game_env["a1_latent"]
+      if a1_latent is not None:
+        overlay_names.append(co.CUR_LATENT)
+
+    if user_data.data[Exp1UserData.SELECT]:
+      overlay_names.append(co.SEL_LAYER)
+
+      for idx, loc in enumerate(work_locations):
+        overlay_names.append(self.latent2selbtn(idx))
+
+    return overlay_names
+
+  def _game_scene(self,
+                  game_env,
+                  user_data: Exp1UserData,
+                  include_background: bool = True) -> List[co.DrawingObject]:
+
+    game_ltwh = (self.GAME_LEFT, self.GAME_TOP, self.GAME_WIDTH,
+                 self.GAME_HEIGHT)
+    return rescue_game_scene(game_env, game_ltwh, include_background)
+
+  def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
+    def is_visible(img_name):
+      if user_data.data[Exp1UserData.PARTIAL_OBS]:
+        if img_name == co.IMG_FIRE_ENGINE:
+          a1_pos = game_env["a1_pos"]
+          a2_pos = game_env["a2_pos"]
+          if a1_pos == a2_pos:
+            return True
+
+          places = game_env["places"]  # type: Sequence[Place]
+          for idx, place in enumerate(places):
+            if place.visible and a2_pos == Location(E_Type.Place, idx):
+              return True
+
+          return False
+
+      return True
+
+    return rescue_game_scene_names(game_env, is_visible)
+
+  def latent2selbtn(self, latent):
+    return "latent" + str(latent)
+
+  def selbtn2latent(self, sel_btn_name):
+    if sel_btn_name[:6] == "latent":
+      return int(sel_btn_name[6:])
+
+    return None
+
+  def is_sel_latent_btn(self, sel_btn_name):
+    return sel_btn_name[:6] == "latent"
+
+
+class RescueGamePage(RescueGamePageBase):
+  def __init__(self,
+               manual_latent_selection,
+               game_map,
+               auto_prompt: bool = True,
+               prompt_on_change: bool = True,
+               prompt_freq: int = 5) -> None:
+    super().__init__(manual_latent_selection, game_map, auto_prompt,
+                     prompt_on_change, prompt_freq)
+
+    task_mdp = MDP_Rescue_Task(**self._GAME_MAP)
+    agent_mdp = MDP_Rescue_Agent(**self._GAME_MAP)
+    TEMPERATURE = 0.3
+    self._TEAMMATE_POLICY = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE,
+                                          self._AGENT2)
+
+
+class RescueGameUserRandom(RescueGamePage):
+  def __init__(self, game_map, partial_obs) -> None:
+    super().__init__(True, game_map, True, True, 5)
+    self._PARTIAL_OBS = partial_obs
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+
+    agent1 = InteractiveAgent()
+    agent2 = AIAgent_Rescue(self._AGENT2, self._TEAMMATE_POLICY)
+
+    game = user_game_data.get_game_ref()
+    game.set_autonomous_agent(agent1, agent2)
+    user_game_data.data[Exp1UserData.SELECT] = True
+    user_game_data.data[Exp1UserData.SHOW_LATENT] = True
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS

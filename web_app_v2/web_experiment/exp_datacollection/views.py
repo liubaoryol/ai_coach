@@ -17,8 +17,13 @@ EXP1_TEMPLATE = {
     PageKey.DataCol_B1: 'exp1_session_b_test.html',
     PageKey.DataCol_B2: 'exp1_session_b_test.html',
     PageKey.DataCol_B3: 'exp1_session_b_test.html',
+    PageKey.DataCol_C0: 'exp1_session_c_practice.html',
+    PageKey.DataCol_C1: 'exp1_session_c_test.html',
+    PageKey.DataCol_C2: 'exp1_session_c_test.html',
+    PageKey.DataCol_C3: 'exp1_session_c_test.html',
     PageKey.DataCol_T1: 'tutorial1.html',
     PageKey.DataCol_T2: 'tutorial2.html',
+    PageKey.DataCol_T3: 'tutorial3.html',
 }
 
 for session_name in DATACOL_SESSIONS:

@@ -74,6 +74,7 @@ class Place:
   name: str
   coord: Tuple[float, float]
   helps: int = 0
+  visible: bool = True
 
 
 def is_work_done(widx, work_states: Sequence[int], couples: Sequence):

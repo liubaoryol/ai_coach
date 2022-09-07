@@ -18,9 +18,9 @@ class RescueSimulator(Simulator):
     self.agent_2 = None
 
   def init_game(self, places: Sequence[Place], routes: Sequence[Route],
-                connections: T_Connections, work_locations: Sequence[Location],
-                work_info: Sequence[Work], a1_init, a2_init, visible_places,
-                **kwargs):
+                connections: Mapping[int, T_Connections],
+                work_locations: Sequence[Location], work_info: Sequence[Work],
+                a1_init, a2_init, **kwargs):
 
     self.routes = routes
     self.places = places
@@ -29,7 +29,6 @@ class RescueSimulator(Simulator):
     self.work_info = work_info
     self.a1_init = a1_init
     self.a2_init = a2_init
-    self.visible_places = visible_places
 
     self.reset_game()
 
@@ -173,7 +172,6 @@ class RescueSimulator(Simulator):
         "places": self.places,
         "connections": self.connections,
         "work_info": self.work_info,
-        "visible_places": self.visible_places,
         "a1_latent": self.agent_1.get_current_latent(),
         "a2_latent": self.agent_2.get_current_latent(),
         "current_step": self.current_step
@@ -274,11 +272,11 @@ class RescueSimulator(Simulator):
         if a1lat is None:
           a1_lat = None
         else:
-          a1_lat = a1lat
+          a1_lat = int(a1lat)
         if a2lat is None:
           a2_lat = None
         else:
-          a2_lat = a2lat
+          a2_lat = int(a2lat)
         traj.append(
             [work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat])
 
