@@ -161,8 +161,15 @@ class BoxPushAIAgent_Indv2(BoxPushAIAgent_Abstract):
 
 
 class BoxPushSimpleAgent(SimulatorAgent):
-  def __init__(self, agent_id, x_grid, y_grid, boxes, goals, walls,
-               drops) -> None:
+  def __init__(self,
+               agent_id,
+               x_grid,
+               y_grid,
+               boxes,
+               goals,
+               walls,
+               drops,
+               v2=False) -> None:
     super().__init__(has_mind=False, has_policy=True)
     self.agent_id = agent_id
     self.x_grid = x_grid
@@ -171,6 +178,7 @@ class BoxPushSimpleAgent(SimulatorAgent):
     self.goals = goals
     self.walls = walls
     self.drops = drops
+    self.v2 = v2
 
   def get_current_latent(self):
     return None
@@ -235,6 +243,10 @@ class BoxPushSimpleAgent(SimulatorAgent):
         else:
           return EventType.STAY
     else:
+      if self.v2:
+        for coord in self.goals:
+          np_gridworld[coord] = 1
+
       valid_boxes = []
       for idx, bidx in enumerate(box_states):
         bstate = conv_box_idx_2_state(bidx, len(self.drops), len(self.goals))

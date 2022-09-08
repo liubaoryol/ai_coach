@@ -561,8 +561,8 @@ class TextObject extends DrawingObject {
     let array_sentence = this.text.split("\n");
     for (const sent of array_sentence) {
       let idx = 0;
-      const new_sent = sent.replace(/-/g, "- ");
-      let array_text = new_sent.split(" ");
+      // const new_sent = sent.replace(/-/g, "- ");
+      let array_text = sent.split(" ");
       const num_word = array_text.length;
       while (idx < num_word) {
         let str_draw = "";

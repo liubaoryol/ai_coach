@@ -13,10 +13,11 @@ class E_EventType(Enum):
   Option2 = 2
   Option3 = 3
   Stay = 4
+  Rescue = 5
   Set_Latent = 100
 
 
-AGENT_ACTIONSPACE = ActionSpace([E_EventType(idx) for idx in range(5)])
+AGENT_ACTIONSPACE = ActionSpace([E_EventType(idx) for idx in range(6)])
 
 
 class E_Type(Enum):

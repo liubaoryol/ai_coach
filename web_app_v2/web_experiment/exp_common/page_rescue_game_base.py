@@ -29,7 +29,7 @@ def human_clear_problem(
     wstate_p = work_states_prev[widx]
     wstate_c = work_states_cur[widx]
 
-    if wstate_p != wstate_c and human_action == E_EventType.Stay:
+    if wstate_p != wstate_c and human_action == E_EventType.Rescue:
       return True
 
   return False
@@ -41,8 +41,9 @@ class RescueGamePageBase(ExperimentPageBase):
   OPTION_2 = E_EventType.Option2.name
   OPTION_3 = E_EventType.Option3.name
   STAY = E_EventType.Stay.name
+  RESCUE = E_EventType.Rescue.name
 
-  ACTION_BUTTONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, STAY]
+  ACTION_BUTTONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, STAY, RESCUE]
 
   def __init__(self,
                manual_latent_selection,
@@ -174,7 +175,9 @@ class RescueGamePageBase(ExperimentPageBase):
     for obj in overlay_objs:
       dict_objs[obj.name] = obj
 
-    objs = self._get_btn_actions(user_game_data)
+    disable_status = self._get_action_btn_disable_state(user_game_data,
+                                                        dict_game)
+    objs = self._get_btn_actions(dict_game, *disable_status)
     for obj in objs:
       dict_objs[obj.name] = obj
 
@@ -183,74 +186,108 @@ class RescueGamePageBase(ExperimentPageBase):
 
     return dict_objs
 
+  def _get_action_btn_disable_state(self, user_data: Exp1UserData,
+                                    game_env: Mapping[Any, Any]):
+    selecting = user_data.data[Exp1UserData.SELECT]
+    game_done = user_data.data[Exp1UserData.GAME_DONE]
+
+    if selecting or game_done:
+      return True, True, True
+
+    rescue_ok = False
+
+    a1pos = game_env["a1_pos"]  # type: Location
+    a1_latent = game_env["a1_latent"]
+    work_locations = game_env["work_locations"]
+    work_states = game_env["work_states"]
+
+    if user_data.data[Exp1UserData.COLLECT_LATENT]:
+      if a1pos in work_locations:
+        widx = work_locations.index(a1pos)
+        if a1_latent == widx and work_states[widx] != 0:
+          rescue_ok = True
+    else:
+      if a1pos in work_locations:
+        widx = work_locations.index(a1pos)
+        if work_states[widx] != 0:
+          rescue_ok = True
+
+    return False, False, not rescue_ok
+
   def _get_btn_actions(
-      self, user_game_data: Exp1UserData) -> Sequence[co.DrawingObject]:
-    game = user_game_data.get_game_ref()  # type: RescueSimulator
-    a1pos = game.a1_pos  # type: Location
+      self,
+      game_env: Mapping[Any, Any],
+      disable_move: bool = False,
+      disable_stay: bool = False,
+      disable_rescue: bool = False) -> Sequence[co.DrawingObject]:
+    a1pos = game_env["a1_pos"]  # type: Location
 
     buttonsize = (int(self.GAME_WIDTH / 2.5), int(self.GAME_WIDTH / 20))
     font_size = 18
-
-    disable = user_game_data.data[Exp1UserData.SELECT]
 
     list_buttons = []
     x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
     y_ctrl_st = int(co.CANVAS_HEIGHT * 0.54)
 
     offset = buttonsize[1] + 3
+    connections = game_env["connections"]
+    places = game_env["places"]
+    routes = game_env["routes"]
 
     if a1pos.type == E_Type.Place:
-      for idx, connection in enumerate(game.connections[a1pos.id]):
+      for idx, connection in enumerate(connections[a1pos.id]):
         if connection[0] == E_Type.Place:
-          txt = "Move to " + game.places[connection[1]].name
+          txt = "Move to " + places[connection[1]].name
         else:
-          if game.routes[connection[1]].start == a1pos.id:
-            dest = game.routes[connection[1]].end
-          elif game.routes[connection[1]].end == a1pos.id:
-            dest = game.routes[connection[1]].start
+          if routes[connection[1]].start == a1pos.id:
+            dest = routes[connection[1]].end
+          elif routes[connection[1]].end == a1pos.id:
+            dest = routes[connection[1]].start
           else:
             raise ValueError("Invalid map")
 
-          txt = "Move to " + game.places[dest].name
+          txt = "Move to " + places[dest].name
 
         btn_obj = co.ButtonRect(self.ACTION_BUTTONS[idx],
                                 (x_ctrl_cen, y_ctrl_st + offset * idx),
                                 buttonsize,
                                 font_size,
                                 txt,
-                                disable=disable)
+                                disable=disable_move)
         list_buttons.append(btn_obj)
     else:
-      place_id = game.routes[a1pos.id].end
-      txt = "Move to " + game.places[place_id].name
+      place_id = routes[a1pos.id].end
+      txt = "Move to " + places[place_id].name
       btn_obj = co.ButtonRect(self.OPTION_0, (x_ctrl_cen, y_ctrl_st),
                               buttonsize,
                               font_size,
                               txt,
-                              disable=disable)
+                              disable=disable_move)
       list_buttons.append(btn_obj)
 
-      place_id = game.routes[a1pos.id].start
-      txt = "Move to " + game.places[place_id].name
+      place_id = routes[a1pos.id].start
+      txt = "Move to " + places[place_id].name
       btn_obj = co.ButtonRect(self.OPTION_1, (x_ctrl_cen, y_ctrl_st + offset),
                               buttonsize,
                               font_size,
                               txt,
-                              disable=disable)
+                              disable=disable_move)
       list_buttons.append(btn_obj)
-
-    txt = "Stay"
-    if a1pos in game.work_locations:
-      widx = game.work_locations.index(a1pos)
-      if game.work_states[widx] != 0:
-        txt = "Clear the problem"
 
     idx = len(list_buttons)
     btn_obj = co.ButtonRect(self.STAY, (x_ctrl_cen, y_ctrl_st + offset * idx),
                             buttonsize,
                             font_size,
-                            txt,
-                            disable=disable)
+                            "Stay",
+                            disable=disable_stay)
+    list_buttons.append(btn_obj)
+
+    idx = len(list_buttons)
+    btn_obj = co.ButtonRect(self.RESCUE, (x_ctrl_cen, y_ctrl_st + offset * idx),
+                            buttonsize,
+                            font_size,
+                            "Resolve the Situation",
+                            disable=disable_rescue)
     list_buttons.append(btn_obj)
 
     return list_buttons
@@ -348,7 +385,8 @@ class RescueGamePageBase(ExperimentPageBase):
     obj = self._get_instruction_objs(user_data)[0]
     dict_objs[obj.name] = obj
 
-    objs = self._get_btn_actions(user_data)
+    disable_status = self._get_action_btn_disable_state(user_data, dict_game)
+    objs = self._get_btn_actions(dict_game, *disable_status)
     for obj in objs:
       dict_objs[obj.name] = obj
 
@@ -401,6 +439,8 @@ class RescueGamePageBase(ExperimentPageBase):
       action = E_EventType.Option3
     elif clicked_btn == self.STAY:
       action = E_EventType.Stay
+    elif clicked_btn == self.RESCUE:
+      action = E_EventType.Rescue
 
     game = user_game_data.get_game_ref()
     # should not happen

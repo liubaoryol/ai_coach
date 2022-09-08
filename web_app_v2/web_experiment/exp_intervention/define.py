@@ -1,14 +1,16 @@
 from enum import Enum
 from typing import Mapping, Any, Sequence
 from web_experiment.exp_common.page_base import CanvasPageBase
-from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
 import web_experiment.exp_common.page_exp1_common as pgc
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 from web_experiment.exp_intervention.page_intervention import (
     BoxPushV2Intervention)
 import web_experiment.exp_common.page_tutorial as pgt
+import web_experiment.exp_common.page_tutorial_rescue as pgr
+from web_experiment.exp_common.page_rescue_game_base import RescueGameUserRandom
 from web_experiment.define import GroupName, PageKey, EDomainType
+from ai_coach_domain.rescue.maps import MAP_RESCUE_2
 
 SESSION_TITLE = {
     PageKey.Interv_A0: 'A0',
@@ -129,44 +131,75 @@ PAGELIST_MOVERS_TUTORIAL = [
     pgt.CanvasPageTutorialStart(EDomainType.Movers),
     pgt.CanvasPageInstruction(EDomainType.Movers),
     pgt.CanvasPageTutorialGameStart(EDomainType.Movers),
-    pgt.CanvasPageJoystick(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageInvalidAction(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageOnlyHuman(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageGoToTarget(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPagePickUpTarget(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageGoToGoal(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageScore(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageTrapped(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageTargetHint(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageTargetNoHint(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageLatent(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageSelResult(EDomainType.Movers, TUTORIAL_MAP, False),
-    pgt.CanvasPageSelPrompt(EDomainType.Movers, TUTORIAL_MAP),
-    pgt.CanvasPageSelResult(EDomainType.Movers, TUTORIAL_MAP, True),
-    pgt.CanvasPageMiniGame(EDomainType.Movers, TUTORIAL_MAP)
+    pgt.CanvasPageJoystick(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageInvalidAction(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageOnlyHuman(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageGoToTarget(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPagePickUpTargetAttempt(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPagePickUpTarget(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageGoToGoal(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageRespawn(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageScore(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPagePartialObs(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageTarget(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageLatent(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageSelResult(EDomainType.Movers, MAP_MOVERS, False),
+    pgt.CanvasPageSelPrompt(EDomainType.Movers, MAP_MOVERS),
+    pgt.CanvasPageSelResult(EDomainType.Movers, MAP_MOVERS, True),
+    pgt.CanvasPageMiniGame(EDomainType.Movers, MAP_MOVERS)
 ]
 PAGELIST_CLEANUP_TUTORIAL = [
     pgt.CanvasPageTutorialStart(EDomainType.Cleanup),
     pgt.CanvasPageInstruction(EDomainType.Cleanup),
     pgt.CanvasPageTutorialGameStart(EDomainType.Cleanup),
-    pgt.CanvasPageJoystickShort(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageOnlyHuman(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageGoToTarget(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPagePickUpTarget(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageGoToGoal(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageScore(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageTrapped(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageTargetHint(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageTargetNoHint(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageLatent(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageSelResult(EDomainType.Cleanup, TUTORIAL_MAP, False),
-    pgt.CanvasPageSelPrompt(EDomainType.Cleanup, TUTORIAL_MAP),
-    pgt.CanvasPageSelResult(EDomainType.Cleanup, TUTORIAL_MAP, True),
-    pgt.CanvasPageMiniGame(EDomainType.Cleanup, TUTORIAL_MAP)
+    pgt.CanvasPageJoystickShort(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageOnlyHuman(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageGoToTarget(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPagePickUpTargetAttempt(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageGoToGoal(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageRespawn(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageScore(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPagePartialObs(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageTarget(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageLatent(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageSelResult(EDomainType.Cleanup, MAP_CLEANUP, False),
+    pgt.CanvasPageSelPrompt(EDomainType.Cleanup, MAP_CLEANUP),
+    pgt.CanvasPageSelResult(EDomainType.Cleanup, MAP_CLEANUP, True),
+    pgt.CanvasPageMiniGame(EDomainType.Cleanup, MAP_CLEANUP)
 ]
 
-# NOTE: placeholder
-PAGE_LIST_RESCUE = PAGE_LIST_MOVERS
+PAGE_LIST_RESCUE_FULL_OBS = [
+    pgc.CanvasPageStart(EDomainType.Rescue),
+    pgc.CanvasPageWarning(EDomainType.Rescue),
+    RescueGameUserRandom(MAP_RESCUE_2, False),
+    pgc.CanvasPageEnd(EDomainType.Rescue)
+]
+
+PAGE_LIST_RESCUE = [
+    pgc.CanvasPageStart(EDomainType.Rescue),
+    pgc.CanvasPageWarning(EDomainType.Rescue),
+    RescueGameUserRandom(MAP_RESCUE_2, True),
+    pgc.CanvasPageEnd(EDomainType.Rescue)
+]
+PAGE_LIST_RESCUE_TUTORIAL = [
+    pgt.CanvasPageTutorialStart(EDomainType.Rescue),
+    pgt.CanvasPageInstruction(EDomainType.Rescue),
+    pgt.CanvasPageTutorialGameStart(EDomainType.Rescue),
+    pgr.RescueTutorialActions(MAP_RESCUE_2),
+    pgr.RescueTutorialOverallGoal(MAP_RESCUE_2),
+    pgr.RescueTutorialOnlyHuman(MAP_RESCUE_2),
+    pgr.RescueTutorialSimpleTarget(MAP_RESCUE_2),
+    pgr.RescueTutorialResolvedAlone(MAP_RESCUE_2),
+    pgr.RescueTutorialComplexTarget(MAP_RESCUE_2),
+    pgr.RescueTutorialComplexTargetTogether(MAP_RESCUE_2),
+    pgr.RescueTutorialResolvedTogether(MAP_RESCUE_2),
+    pgr.RescueTutorialScore(MAP_RESCUE_2),
+    pgr.RescueTutorialPartialObs(MAP_RESCUE_2),
+    pgr.RescueTutorialDestination(MAP_RESCUE_2),
+    pgr.RescueTutorialLatent(MAP_RESCUE_2),
+    pgr.RescueTutorialSelResult(MAP_RESCUE_2),
+    pgr.RescueTutorialMiniGame(MAP_RESCUE_2)
+]
 
 GAMEPAGES = {
     SocketType.Interv_movers_practice: PAGE_LIST_MOVERS,
@@ -179,6 +212,6 @@ GAMEPAGES = {
     SocketType.Interv_cleanup_tutorial: PAGELIST_CLEANUP_TUTORIAL,
     SocketType.Interv_rescue_practice: PAGE_LIST_RESCUE,
     SocketType.Interv_rescue_normal: PAGE_LIST_RESCUE,
-    SocketType.Interv_rescue_tutorial: PAGE_LIST_RESCUE,
+    SocketType.Interv_rescue_tutorial: PAGE_LIST_RESCUE_TUTORIAL,
     SocketType.Interv_rescue_intervention: PAGE_LIST_RESCUE,
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]

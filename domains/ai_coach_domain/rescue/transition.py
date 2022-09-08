@@ -28,7 +28,7 @@ def transition(work_states: Sequence[int], a1_location: Location,
   # both are at the same place where a work exists.
   if a1_location == a2_location:
     if i_work1 is not None and work_states[i_work1] != 0:  # work not done
-      if a1_action == E_EventType.Stay and a2_action == E_EventType.Stay:
+      if a1_action == E_EventType.Rescue and a2_action == E_EventType.Rescue:
         if work_info[i_work1].workload <= 2:
           new_work_states = list(work_states)
           new_work_states[i_work1] -= 1  # work done
@@ -39,7 +39,7 @@ def transition(work_states: Sequence[int], a1_location: Location,
                         action: E_EventType, i_work: Union[int, None]):
     new_work_states = list(work_states)
     new_agent_location = agent_location
-    if action == E_EventType.Stay:
+    if action == E_EventType.Rescue:
       if i_work is not None and work_states[i_work] != 0:  # work not done
         if work_info[i_work].workload <= 1:
           new_work_states[i_work] -= 1

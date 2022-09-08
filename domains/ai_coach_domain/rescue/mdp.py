@@ -151,17 +151,21 @@ class MDP_Rescue_Agent(MDP_Rescue):
           self.conv_sim_actions_to_mdp_aidx((E_EventType(idx), ))
           for idx in range(2)
       ]
-      return move_actions + [
-          self.conv_sim_actions_to_mdp_aidx((E_EventType.Stay, ))
+      stay_actions = [
+          self.conv_sim_actions_to_mdp_aidx((E_EventType.Stay, )),
+          self.conv_sim_actions_to_mdp_aidx((E_EventType.Rescue, )),
       ]
+      return move_actions + stay_actions
     else:
       move_actions = [
           self.conv_sim_actions_to_mdp_aidx((E_EventType(idx), ))
           for idx in range(len(self.connections[pos1.id]))
       ]
-      return move_actions + [
-          self.conv_sim_actions_to_mdp_aidx((E_EventType.Stay, ))
+      stay_actions = [
+          self.conv_sim_actions_to_mdp_aidx((E_EventType.Stay, )),
+          self.conv_sim_actions_to_mdp_aidx((E_EventType.Rescue, )),
       ]
+      return move_actions + stay_actions
 
   def init_latentspace(self):
     num_works = len(self.work_locations)
@@ -206,7 +210,7 @@ class MDP_Rescue_Agent(MDP_Rescue):
     panelty = -1
 
     work_loc = self.work_locations[latent]
-    if my_pos == work_loc and my_act == E_EventType.Stay:
+    if my_pos == work_loc and my_act == E_EventType.Rescue:
       return 1
 
     return panelty
@@ -250,20 +254,24 @@ class MDP_Rescue_Task(MDP_Rescue):
     if pos1.type == E_Type.Route:
       a1_actions = [E_EventType(idx) for idx in range(2)]
       a1_actions.append(E_EventType.Stay)
+      a1_actions.append(E_EventType.Rescue)
     else:
       a1_actions = [
           E_EventType(idx) for idx in range(len(self.connections[pos1.id]))
       ]
       a1_actions.append(E_EventType.Stay)
+      a1_actions.append(E_EventType.Rescue)
 
     if pos2.type == E_Type.Route:
       a2_actions = [E_EventType(idx) for idx in range(2)]
       a2_actions.append(E_EventType.Stay)
+      a1_actions.append(E_EventType.Rescue)
     else:
       a2_actions = [
           E_EventType(idx) for idx in range(len(self.connections[pos2.id]))
       ]
       a2_actions.append(E_EventType.Stay)
+      a1_actions.append(E_EventType.Rescue)
 
     list_actions = []
     for tuple_actions in itertools.product(a1_actions, a2_actions):

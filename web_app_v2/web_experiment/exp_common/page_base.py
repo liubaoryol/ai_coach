@@ -268,8 +268,13 @@ class ExperimentPageBase(CanvasPageBase):
     return text_instr, rect_instr
 
   def _get_score_obj(self, user_data: Exp1UserData):
+    game = user_data.get_game_ref()
+    if game is None:
+      score = 0
+    else:
+      score = user_data.get_game_ref().current_step
     if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
-      score = user_data.data[Exp1UserData.SCORE]
+
       if self._DOMAIN_TYPE == EDomainType.Movers:
         best_score = user_data.data[Exp1UserData.USER].best_a
       else:
@@ -289,11 +294,6 @@ class ExperimentPageBase(CanvasPageBase):
           text_score,
           text_align="right")
     elif self._DOMAIN_TYPE == EDomainType.Rescue:
-      score = user_data.data[Exp1UserData.SCORE]
-      # if self._IS_MOVERS:
-      #   best_score = user_data.data[RescueUserData.USER].best_a
-      # else:
-      #   best_score = user_data.data[RescueUserData.USER].best_b
       best_score = 999
 
       margin = 10

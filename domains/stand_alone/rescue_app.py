@@ -3,14 +3,14 @@ from stand_alone.app import AppInterface
 import numpy as np
 from ai_coach_domain.rescue import (E_EventType, Work, Location, Place, Route,
                                     E_Type, T_Connections)
-from ai_coach_domain.rescue.maps import MAP_RESCUE
+from ai_coach_domain.rescue.maps import MAP_RESCUE, MAP_RESCUE_2
 from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.rescue.agent import AIAgent_Rescue
 from ai_coach_domain.rescue.policy import Policy_Rescue
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 
-GAME_MAP = MAP_RESCUE
+GAME_MAP = MAP_RESCUE_2
 
 
 class RescueApp(AppInterface):
@@ -60,6 +60,9 @@ class RescueApp(AppInterface):
     elif key_sym == "bracketleft":
       agent_id = RescueSimulator.AGENT1
       action = E_EventType.Stay
+    elif key_sym == "bracketright":
+      agent_id = RescueSimulator.AGENT1
+      action = E_EventType.Rescue
     # agent 2 move
     if key_sym == "q":
       agent_id = RescueSimulator.AGENT2
@@ -76,6 +79,9 @@ class RescueApp(AppInterface):
     elif key_sym == "t":
       agent_id = RescueSimulator.AGENT2
       action = E_EventType.Stay
+    elif key_sym == "y":
+      agent_id = RescueSimulator.AGENT2
+      action = E_EventType.Rescue
 
     return (agent_id, action, value)
 
