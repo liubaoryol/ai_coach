@@ -102,6 +102,23 @@ class RescueApp(AppInterface):
     a2_pos = data["a2_pos"]  # type: Location
 
     self.clear_canvas()
+
+    for route in routes:
+      x_s, y_s = places[route.start].coord
+      x_s = x_s * self.canvas_width
+      y_s = y_s * self.canvas_height
+      for coord in route.coords:
+        x_e, y_e = coord
+        x_e = x_e * self.canvas_width
+        y_e = y_e * self.canvas_height
+        self.create_line(x_s, y_s, x_e, y_e, "green", 10)
+        x_s, y_s = x_e, y_e
+
+      x_e, y_e = places[route.end].coord
+      x_e = x_e * self.canvas_width
+      y_e = y_e * self.canvas_height
+      self.create_line(x_s, y_s, x_e, y_e, "green", 10)
+
     for place in places:
       x_s = (place.coord[0] - 0.05) * self.canvas_width
       y_s = (place.coord[1] - 0.05) * self.canvas_height
@@ -118,44 +135,14 @@ class RescueApp(AppInterface):
         offset += 0.02
         self.create_line(x_s, y_s, x_e, y_e, "black", 1)
 
-    for route in routes:
-      place_s = np.array(places[route.start].coord)
-      place_e = np.array(places[route.end].coord)
-
-      vec = (place_e - place_s) / np.linalg.norm(place_e - place_s)
-
-      line_s = place_s + vec * 0.05
-      line_e = place_e - vec * 0.05
-      x_s = line_s[0] * self.canvas_width
-      y_s = line_s[1] * self.canvas_height
-
-      x_e = line_e[0] * self.canvas_width
-      y_e = line_e[1] * self.canvas_height
-
-      self.create_line(x_s, y_s, x_e, y_e, "green", 10)
-
     def get_coord(loc: Location):
-      place_size_half = 0.05
       if loc.type == E_Type.Place:
         return places[loc.id].coord
       else:
         route_id = loc.id  # type: int
-        route = routes[route_id]
+        route = routes[route_id]  # type: Route
         idx = loc.index
-
-        place_s = np.array(places[route.start].coord)
-        place_e = np.array(places[route.end].coord)
-
-        vec = (place_e - place_s) / np.linalg.norm(place_e - place_s)
-
-        line_s = place_s + vec * place_size_half
-        line_e = place_e - vec * place_size_half
-
-        line_len = np.linalg.norm(line_e - line_s)
-        step_len = line_len / route.length
-
-        pos = line_s + (idx + 0.5) * step_len * vec
-        return pos
+        return route.coords[idx]
 
     for widx, done in enumerate(work_state):
       work_coord = get_coord(work_locations[widx])

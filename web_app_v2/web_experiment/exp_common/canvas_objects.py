@@ -121,6 +121,7 @@ class LineSegment(DrawingObject):
                name: str,
                start: Sequence[int],
                end: Sequence[int],
+               width: int = 1,
                line_color: str = "black",
                alpha: float = 1.0):
     super().__init__(name)
@@ -129,6 +130,22 @@ class LineSegment(DrawingObject):
     self.end = end
     self.line_color = line_color
     self.alpha = alpha
+    self.width = width
+
+
+class Curve(DrawingObject):
+  def __init__(self,
+               name: str,
+               coords: Sequence[Tuple[int, int]],
+               width: int = 1,
+               line_color: str = "black",
+               alpha: float = 1.0):
+    super().__init__(name)
+    self.obj_type = "Curve"
+    self.coords = coords
+    self.line_color = line_color
+    self.alpha = alpha
+    self.width = width
 
 
 class Primitive(DrawingObject):

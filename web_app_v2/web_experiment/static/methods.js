@@ -14,6 +14,7 @@ class DrawingObject {
 
   draw(context) {
     context.globalAlpha = 1.0;
+    context.lineWidth = 1;
   }
 
   isPointInObject(context, x, y) {
@@ -153,7 +154,7 @@ class RectSpotlight extends DrawingObject {
 }
 
 class LineSegment extends DrawingObject {
-  constructor(name, start, end) {
+  constructor(name, start, end, width) {
     super(name);
     this.x_start = start[0];
     this.y_start = start[1];
@@ -161,15 +162,52 @@ class LineSegment extends DrawingObject {
     this.y_end = end[1];
     this.line_color = "black";
     this.alpha = 1.0;
+    this.width = width;
   }
 
   draw(context) {
     super.draw(context);
     context.strokeStyle = this.line_color;
     context.globalAlpha = this.alpha;
+    context.lineWidth = this.width;
     context.beginPath();
     context.moveTo(this.x_start, this.y_start);
     context.lineTo(this.x_end, this.y_end);
+    context.stroke();
+  }
+}
+
+class Curve extends DrawingObject {
+  constructor(name, coords, width) {
+    super(name);
+    this.coords = coords;
+    this.line_color = "black";
+    this.alpha = 1.0;
+    this.width = width;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.strokeStyle = this.line_color;
+    context.globalAlpha = this.alpha;
+    context.lineWidth = this.width;
+
+    context.beginPath();
+
+    context.moveTo(this.coords[0][0], this.coords[0][1]);
+    for (let i = 0; i < this.coords.length - 1; i++) {
+      const x_mid = (this.coords[i][0] + this.coords[i + 1][0]) / 2;
+      const y_mid = (this.coords[i][1] + this.coords[i + 1][1]) / 2;
+      const cp_x1 = (x_mid + this.coords[i][0]) / 2;
+      const cp_x2 = (x_mid + this.coords[i + 1][0]) / 2;
+      context.quadraticCurveTo(cp_x1, this.coords[i][1], x_mid, y_mid);
+      context.quadraticCurveTo(
+        cp_x2,
+        this.coords[i + 1][1],
+        this.coords[i + 1][0],
+        this.coords[i + 1][1]
+      );
+    }
     context.stroke();
   }
 }
@@ -870,7 +908,9 @@ class GameData {
       } else if (item.obj_type == "Circle") {
         tmp_obj = new Circle(item.name, item.pos, item.radius);
       } else if (item.obj_type == "LineSegment") {
-        tmp_obj = new LineSegment(item.name, item.start, item.end);
+        tmp_obj = new LineSegment(item.name, item.start, item.end, item.width);
+      } else if (item.obj_type == "Curve") {
+        tmp_obj = new Curve(item.name, item.coords, item.width);
       } else if (item.obj_type == "CircleSpotlight") {
         tmp_obj = new CircleSpotlight(
           item.name,

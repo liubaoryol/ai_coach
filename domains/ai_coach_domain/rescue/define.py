@@ -72,6 +72,7 @@ class Route:
   start: T_PlaceId
   end: T_PlaceId
   length: int
+  coords: Sequence[Tuple[float, float]] = field(default_factory=list)
 
 
 @dataclass
