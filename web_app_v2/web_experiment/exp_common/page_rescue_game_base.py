@@ -1,7 +1,9 @@
 from typing import Mapping, Any, Sequence, List
 import copy
+import numpy as np
 from ai_coach_domain.rescue.simulator import RescueSimulator
-from ai_coach_domain.rescue import E_EventType, Location, E_Type, Place
+from ai_coach_domain.rescue import (E_EventType, Location, E_Type, Place,
+                                    T_Connections, Route)
 from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.rescue.agent import AIAgent_Rescue
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
@@ -42,6 +44,7 @@ class RescueGamePageBase(ExperimentPageBase):
   OPTION_3 = E_EventType.Option3.name
   STAY = E_EventType.Stay.name
   RESCUE = E_EventType.Rescue.name
+  ORIGIN = "Ctrl Origin"
 
   ACTION_BUTTONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, STAY, RESCUE]
 
@@ -150,6 +153,7 @@ class RescueGamePageBase(ExperimentPageBase):
     drawing_order = (drawing_order +
                      self._game_overlay_names(dict_game, user_game_data))
     drawing_order = drawing_order + self.ACTION_BUTTONS
+    drawing_order.append(self.ORIGIN)
     drawing_order.append(co.BTN_SELECT)
 
     drawing_order.append(self.TEXT_SCORE)
@@ -222,22 +226,34 @@ class RescueGamePageBase(ExperimentPageBase):
       disable_rescue: bool = False) -> Sequence[co.DrawingObject]:
     a1pos = game_env["a1_pos"]  # type: Location
 
-    buttonsize = (int(self.GAME_WIDTH / 2.5), int(self.GAME_WIDTH / 20))
+    x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
+    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.65)
+    x_joy_cen = int(x_ctrl_cen - 75)
+    ctrl_origin = np.array([x_joy_cen, y_ctrl_cen])
+
+    arrow_width = 30
+    # buttonsize = (int(self.GAME_WIDTH / 2.5), int(self.GAME_WIDTH / 20))
     font_size = 18
 
     list_buttons = []
-    x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
-    y_ctrl_st = int(co.CANVAS_HEIGHT * 0.54)
+    # x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
+    # y_ctrl_st = int(co.CANVAS_HEIGHT * 0.54)
 
-    offset = buttonsize[1] + 3
-    connections = game_env["connections"]
-    places = game_env["places"]
-    routes = game_env["routes"]
+    # offset = buttonsize[1] + 3
+    connections = game_env["connections"]  # type: Mapping[int, T_Connections]
+    places = game_env["places"]  # type: Sequence[Place]
+    routes = game_env["routes"]  # type: Sequence[Route]
 
+    offset = 30
+    obj = co.Circle(self.ORIGIN, (x_joy_cen, y_ctrl_cen), int(0.7 * offset),
+                    "grey")
+    list_buttons.append(obj)
+
+    coord_c = np.array(location_2_coord(a1pos, places, routes))
     if a1pos.type == E_Type.Place:
       for idx, connection in enumerate(connections[a1pos.id]):
         if connection[0] == E_Type.Place:
-          txt = "Move to " + places[connection[1]].name
+          coord_n = np.array(places[connection[1]].coord)
         else:
           if routes[connection[1]].start == a1pos.id:
             dest = routes[connection[1]].end
@@ -245,50 +261,79 @@ class RescueGamePageBase(ExperimentPageBase):
             dest = routes[connection[1]].start
           else:
             raise ValueError("Invalid map")
+          coord_n = np.array(places[dest].coord)
 
-          txt = "Move to " + places[dest].name
+        direction = coord_n - coord_c
+        direction = direction / np.linalg.norm(direction)
+        origin = ctrl_origin + direction * offset
+        origin = (int(origin[0]), int(origin[1]))
+        direction = (direction[0], direction[1])
 
-        btn_obj = co.ButtonRect(self.ACTION_BUTTONS[idx],
-                                (x_ctrl_cen, y_ctrl_st + offset * idx),
-                                buttonsize,
-                                font_size,
-                                txt,
+        btn_obj = co.ThickArrow(self.ACTION_BUTTONS[idx],
+                                origin,
+                                direction,
+                                arrow_width,
                                 disable=disable_move)
         list_buttons.append(btn_obj)
     else:
-      place_id = routes[a1pos.id].end
-      txt = "Move to " + places[place_id].name
-      btn_obj = co.ButtonRect(self.OPTION_0, (x_ctrl_cen, y_ctrl_st),
-                              buttonsize,
-                              font_size,
-                              txt,
+      route = routes[a1pos.id]
+      index = a1pos.index
+
+      # moving forward
+      if index + 1 == route.length:
+        coord_n = places[route.end].coord
+      else:
+        coord_n = route.coords[index + 1]
+
+      direction = coord_n - coord_c
+      direction = direction / np.linalg.norm(direction)
+      origin = ctrl_origin + direction * offset
+      origin = (int(origin[0]), int(origin[1]))
+      direction = (direction[0], direction[1])
+
+      btn_obj = co.ThickArrow(self.OPTION_0,
+                              origin,
+                              direction,
+                              arrow_width,
                               disable=disable_move)
       list_buttons.append(btn_obj)
 
-      place_id = routes[a1pos.id].start
-      txt = "Move to " + places[place_id].name
-      btn_obj = co.ButtonRect(self.OPTION_1, (x_ctrl_cen, y_ctrl_st + offset),
-                              buttonsize,
-                              font_size,
-                              txt,
+      # moving backward
+      if index - 1 < 0:
+        coord_n = places[route.start].coord
+      else:
+        coord_n = route.coords[index - 1]
+
+      direction = coord_n - coord_c
+      direction = direction / np.linalg.norm(direction)
+      origin = ctrl_origin + direction * offset
+      origin = (int(origin[0]), int(origin[1]))
+      direction = (direction[0], direction[1])
+
+      btn_obj = co.ThickArrow(self.OPTION_1,
+                              origin,
+                              direction,
+                              arrow_width,
                               disable=disable_move)
       list_buttons.append(btn_obj)
 
-    idx = len(list_buttons)
-    btn_obj = co.ButtonRect(self.STAY, (x_ctrl_cen, y_ctrl_st + offset * idx),
-                            buttonsize,
-                            font_size,
-                            "Stay",
-                            disable=disable_stay)
-    list_buttons.append(btn_obj)
+    ctrl_btn_w = int(self.GAME_WIDTH / 12)
+    btn_stay = co.ButtonRect(self.STAY, (x_ctrl_cen + int(ctrl_btn_w * 1.5),
+                                         y_ctrl_cen - int(ctrl_btn_w * 0.6)),
+                             (ctrl_btn_w * 2, ctrl_btn_w),
+                             font_size,
+                             "Stay",
+                             disable=disable_stay)
+    list_buttons.append(btn_stay)
 
-    idx = len(list_buttons)
-    btn_obj = co.ButtonRect(self.RESCUE, (x_ctrl_cen, y_ctrl_st + offset * idx),
-                            buttonsize,
-                            font_size,
-                            "Resolve the Situation",
-                            disable=disable_rescue)
-    list_buttons.append(btn_obj)
+    btn_rescue = co.ButtonRect(self.RESCUE,
+                               (x_ctrl_cen + int(ctrl_btn_w * 1.5),
+                                y_ctrl_cen + int(ctrl_btn_w * 0.6)),
+                               (ctrl_btn_w * 2, ctrl_btn_w),
+                               font_size,
+                               "Resolve the Situation",
+                               disable=disable_rescue)
+    list_buttons.append(btn_rescue)
 
     return list_buttons
 

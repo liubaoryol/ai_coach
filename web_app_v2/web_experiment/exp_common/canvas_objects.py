@@ -313,6 +313,27 @@ class ButtonCircle(ButtonObject):
     self.obj_type = "ButtonCircle"
 
 
+class ThickArrow(ButtonObject):
+  def __init__(self,
+               name: str,
+               pos: Sequence[int],
+               dir_vec: Tuple[float, float],
+               width: float,
+               disable: bool = False,
+               fill_color: str = "black"):
+    super().__init__(name,
+                     pos=pos,
+                     font_size=20,
+                     text="",
+                     disable=disable,
+                     fill_color=fill_color,
+                     fill=True,
+                     border=False)
+    self.obj_type = "ThickArrow"
+    self.width = width
+    self.dir_vec = dir_vec
+
+
 class JoystickObject(ButtonObject):
   def __init__(self,
                name: str,

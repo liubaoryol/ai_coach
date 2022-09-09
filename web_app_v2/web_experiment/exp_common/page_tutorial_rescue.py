@@ -57,6 +57,7 @@ class RescueTutorialBase(RescueGamePage):
     drawing_order = (drawing_order +
                      self._game_overlay_names(dict_game, user_game_data))
     drawing_order = drawing_order + self.ACTION_BUTTONS
+    drawing_order.append(self.ORIGIN)
     drawing_order.append(co.BTN_SELECT)
 
     drawing_order.append(self.TEXT_SCORE)
@@ -100,9 +101,9 @@ class RescueTutorialActions(RescueTutorialBase):
 
     dict_objs[co.BTN_NEXT].disable = True
 
-    obj = dict_objs[self.OPTION_0]  # type: co.ButtonRect
-    pos = (obj.pos[0], obj.pos[1] + obj.size[1] * 1.7)
-    obj = self._get_spotlight(*pos, int(obj.size[1] * 3))
+    obj = dict_objs[self.ORIGIN]  # type: co.Circle
+    pos = (obj.pos[0], obj.pos[1])
+    obj = self._get_spotlight(*pos, int(obj.radius * 3))
     dict_objs[obj.name] = obj
 
     return dict_objs

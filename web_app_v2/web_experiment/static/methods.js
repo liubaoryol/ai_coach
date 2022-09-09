@@ -460,6 +460,47 @@ class ButtonCircle extends ButtonObject {
   }
 }
 
+class ThickArrow extends ButtonObject {
+  constructor(name, pos, dir_vec, width) {
+    super(name, pos, 20);
+    this.fill = true;
+    this.text = "";
+    this.width = width;
+    this.dir_vec = dir_vec;
+  }
+
+  _set_path() {
+    const height = this.width;
+    const width = this.width;
+    const half_width = width / 2;
+    const half_height = height / 2;
+    const v_cos = this.dir_vec[0];
+    const v_sin = this.dir_vec[1];
+
+    let base_path = [
+      [0, half_height],
+      [half_width, half_height],
+      [width, 0],
+      [half_width, -half_height],
+      [0, -half_height],
+    ];
+    let rotated_path = [];
+    for (let i = 0; i < base_path.length; i++) {
+      const x_old = base_path[i][0];
+      const y_old = base_path[i][1];
+      const x_new = x_old * v_cos - y_old * v_sin;
+      const y_new = x_old * v_sin + y_old * v_cos;
+      rotated_path.push([this.x_origin + x_new, this.y_origin + y_new]);
+    }
+
+    this.path.moveTo(rotated_path[0][0], rotated_path[0][1]);
+    for (let i = 1; i < rotated_path.length; i++) {
+      this.path.lineTo(rotated_path[i][0], rotated_path[i][1]);
+    }
+    this.path.closePath();
+  }
+}
+
 class JoystickObject extends ButtonObject {
   constructor(name, pos, width) {
     super(name, pos, 20);
@@ -883,6 +924,8 @@ class GameData {
           item.font_size,
           item.text
         );
+      } else if (item.obj_type == "ThickArrow") {
+        tmp_obj = new ThickArrow(item.name, item.pos, item.dir_vec, item.width);
       } else if (item.obj_type == "JoystickUp") {
         tmp_obj = new JoystickUp(item.name, item.pos, item.width);
       } else if (item.obj_type == "JoystickDown") {
