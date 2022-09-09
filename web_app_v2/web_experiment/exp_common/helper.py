@@ -3,8 +3,19 @@ import os
 import time
 import numpy as np
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
-from ai_coach_domain.rescue import Place, Route, Location, E_Type
+from ai_coach_domain.rescue import (Place, Route, Location, E_Type, PlaceName,
+                                    Work)
 import web_experiment.exp_common.canvas_objects as co
+
+RESCUE_NAME_PLACE2IMG = {
+    PlaceName.Fire_stateion: co.IMG_FIRE_STATION,
+    PlaceName.Police_station: co.IMG_POLICE_STATION,
+    PlaceName.Campsite: co.IMG_CAMPSITE,
+    PlaceName.City_hall: co.IMG_CITY_HALL,
+    PlaceName.Mall: co.IMG_MALL,
+    PlaceName.Bridge_1: co.IMG_BRIDGE,
+    PlaceName.Bridge_2: co.IMG_BRIDGE,
+}
 
 
 def get_file_name(save_path, user_id, session_name):
@@ -107,7 +118,7 @@ def boxpush_game_scene(
         game_objs.append(obj)
 
     for idx, coord in enumerate(game_env["walls"]):
-      wid = 1.4
+      wid = 1
       hei = 1
       left = coord[0] + 0.5 - 0.5 * wid
       top = coord[1] + 0.5 - 0.5 * hei
@@ -316,80 +327,97 @@ def rescue_game_scene(
     h = int(height * game_height)
     return (w, h)
 
+  place_w = 0.12
+  place_h = 0.12
+
   places = game_env["places"]  # type: Sequence[Place]
   routes = game_env["routes"]  # type: Sequence[Route]
   game_objs = []
   font_size = 15
   if include_background:
-    for idx, place in enumerate(places):
-      wid = 0.08
-      hei = 0.08
-      game_pos = coord_2_canvas(place.coord[0] - wid / 2,
-                                place.coord[1] - hei / 2)
+    obj = co.GameObject(co.IMG_BACKGROUND, (game_left, game_top),
+                        (game_width, game_height), 0, co.IMG_BACKGROUND)
+    if cb_is_visible is None or cb_is_visible(obj):
+      game_objs.append(obj)
+
+    def add_place(name, pos, scale_x, scale_y, text_offset):
+      wid = place_w * scale_x
+      hei = place_h * scale_y
       size = size_2_canvas(wid, hei)
-      text_width = size[0] * 3
+      game_pos = coord_2_canvas(pos[0] - wid / 2, pos[1] - hei / 2)
+      text_width = size[0] * 2
       text_pos = (int(game_pos[0] + 0.5 * size[0] - 0.5 * text_width),
-                  game_pos[1] + size[1])
-      obj = co.Rectangle(place.name,
-                         game_pos,
-                         size,
-                         fill_color="yellow",
-                         line_color="black",
-                         fill=True,
-                         border=True)
+                  int(game_pos[1] - font_size +
+                      size_2_canvas(text_offset, 0)[0]))
+      obj = co.GameObject(name, game_pos, size, 0, RESCUE_NAME_PLACE2IMG[name])
       if cb_is_visible is None or cb_is_visible(obj):
         game_objs.append(obj)
-      obj = co.TextObject("text" + place.name, text_pos, text_width, font_size,
-                          place.name, "center")
+      obj = co.TextObject("text" + name, text_pos, text_width, font_size, name,
+                          "center")
       if cb_is_visible is None or cb_is_visible(obj):
         game_objs.append(obj)
 
-    for idx, route in enumerate(routes):
-      pos_s = location_2_coord(Location(E_Type.Route, idx, 0), places, routes)
-      pos_e = location_2_coord(Location(E_Type.Route, idx, route.length - 1),
-                               places, routes)
-      obj = co.LineSegment(co.IMG_ROUTE + str(idx), coord_2_canvas(*pos_s),
-                           coord_2_canvas(*pos_e))
-      if cb_is_visible is None or cb_is_visible(obj):
-        game_objs.append(obj)
+    add_place(PlaceName.City_hall, (0.11, 0.1), 1, 0.8, 0)
+    add_place(PlaceName.Fire_stateion, (0.44, 0.35), 1, 1, 0)
+    add_place(PlaceName.Police_station, (0.13, 0.54), 1, 1, 0)
+    add_place(PlaceName.Mall, (0.9, 0.92), 1.2, 1.2, -0.01)
+    add_place(PlaceName.Campsite, (0.85, 0.10), 1.3, 1.0, 0)
 
   work_locations = game_env["work_locations"]
   work_states = game_env["work_states"]
+  work_info = game_env["work_info"]  # type: Sequence[Work]
 
   for idx, wstate in enumerate(work_states):
     if wstate != 0:
       loc = work_locations[idx]
       pos = location_2_coord(loc, places, routes)
-      radius = size_2_canvas(0.01, 0)[0]
-      obj = co.Circle(co.IMG_WORK + str(idx),
-                      coord_2_canvas(*pos),
-                      radius,
-                      "green",
-                      border=True)
+
+      wid = place_w * 0.5
+      hei = place_h * 0.5
+      offset_x = 0
+      offset_y = place_w * 0.5
+      game_pos = coord_2_canvas(pos[0] + offset_x - wid / 2,
+                                pos[1] + offset_y - hei / 2)
+      size = size_2_canvas(wid, hei)
+      obj = co.GameObject(co.IMG_WORK + str(idx), game_pos, size, 0,
+                          co.IMG_WORK)
       if cb_is_visible is None or cb_is_visible(obj):
         game_objs.append(obj)
+    else:
+      if work_info[idx].workload == 2:
+        loc = work_locations[idx]
+        pos = location_2_coord(loc, places, routes)
+        wid = place_w
+        hei = place_h
+        game_pos = coord_2_canvas(pos[0] + wid / 2, pos[1] + hei / 2)
+        size = size_2_canvas(wid, hei)
 
-  a1_pos = game_env["a1_pos"]
-  radius = size_2_canvas(0.01, 0)[0]
+        obj = co.GameObject(co.IMG_BRIDGE + str(idx), game_pos, size, 0,
+                            co.IMG_BRIDGE)
+        if cb_is_visible is None or cb_is_visible(obj):
+          game_objs.append(obj)
 
-  pos_a1 = location_2_coord(a1_pos, places, routes)
-  pos_a1 = (pos_a1[0] - 0.02, pos_a1[1])
-  obj = co.Circle(co.IMG_POLICE_CAR,
-                  coord_2_canvas(*pos_a1),
-                  radius,
-                  "blue",
-                  border=True)
+  pos_a1 = location_2_coord(game_env["a1_pos"], places, routes)
+  wid = place_w * 0.8
+  hei = place_h * 0.8
+  offset_x = -place_w * 0.2
+  offset_y = place_h * 0.2
+  game_pos = coord_2_canvas(pos_a1[0] + offset_x - wid / 2,
+                            pos_a1[1] + offset_y - hei / 2)
+  size = size_2_canvas(wid, hei)
+  obj = co.GameObject(co.IMG_POLICE_CAR, game_pos, size, 0, co.IMG_POLICE_CAR)
   if cb_is_visible is None or cb_is_visible(obj):
     game_objs.append(obj)
 
-  a2_pos = game_env["a2_pos"]
-  pos_a2 = location_2_coord(a2_pos, places, routes)
-  pos_a2 = (pos_a2[0] + 0.02, pos_a2[1])
-  obj = co.Circle(co.IMG_FIRE_ENGINE,
-                  coord_2_canvas(*pos_a2),
-                  radius,
-                  "red",
-                  border=True)
+  pos_a2 = location_2_coord(game_env["a2_pos"], places, routes)
+  wid = place_w * 0.8
+  hei = place_h * 0.8
+  offset_x = place_w * 0.2
+  offset_y = place_h * 0.2
+  game_pos = coord_2_canvas(pos_a2[0] + offset_x - wid / 2,
+                            pos_a2[1] + offset_y - hei / 2)
+  size = size_2_canvas(wid, hei)
+  obj = co.GameObject(co.IMG_FIRE_ENGINE, game_pos, size, 0, co.IMG_FIRE_ENGINE)
   if cb_is_visible is None or cb_is_visible(obj):
     game_objs.append(obj)
 
@@ -402,34 +430,41 @@ def rescue_game_scene_names(
 
   drawing_names = []
 
+  obj_name = co.IMG_BACKGROUND
+  if cb_is_visible is None or cb_is_visible(obj_name):
+    drawing_names.append(obj_name)
+
   places = game_env["places"]  # type: Sequence[Place]
-  routes = game_env["routes"]  # type: Sequence[Route]
   for idx, place in enumerate(places):
-    img_name = place.name
-    if cb_is_visible is None or cb_is_visible(img_name):
-      drawing_names.append(img_name)
+    if place.name in [PlaceName.Bridge_1, PlaceName.Bridge_2]:
+      continue
+
+    obj_name = place.name
+    if cb_is_visible is None or cb_is_visible(obj_name):
+      drawing_names.append(obj_name)
     obj_name = "text" + place.name
     if cb_is_visible is None or cb_is_visible(obj_name):
       drawing_names.append(obj_name)
 
-  for idx, route in enumerate(routes):
-    img_name = co.IMG_ROUTE + str(idx)
-    if cb_is_visible is None or cb_is_visible(img_name):
-      drawing_names.append(img_name)
-
   work_states = game_env["work_states"]
+  work_info = game_env["work_info"]
   for idx, wstate in enumerate(work_states):
     if wstate != 0:
-      img_name = co.IMG_WORK + str(idx)
-      if cb_is_visible is None or cb_is_visible(img_name):
-        drawing_names.append(img_name)
+      obj_name = co.IMG_WORK + str(idx)
+      if cb_is_visible is None or cb_is_visible(obj_name):
+        drawing_names.append(obj_name)
+    else:
+      if work_info[idx].workload == 2:
+        obj_name = co.IMG_BRIDGE + str(idx)
+        if cb_is_visible is None or cb_is_visible(obj_name):
+          drawing_names.append(obj_name)
 
-  img_name_a1 = co.IMG_POLICE_CAR
-  if cb_is_visible is None or cb_is_visible(img_name_a1):
-    drawing_names.append(img_name_a1)
+  obj_name_a1 = co.IMG_POLICE_CAR
+  if cb_is_visible is None or cb_is_visible(obj_name_a1):
+    drawing_names.append(obj_name_a1)
 
-  img_name_a2 = co.IMG_FIRE_ENGINE
-  if cb_is_visible is None or cb_is_visible(img_name_a2):
-    drawing_names.append(img_name_a2)
+  obj_name_a2 = co.IMG_FIRE_ENGINE
+  if cb_is_visible is None or cb_is_visible(obj_name_a2):
+    drawing_names.append(obj_name_a2)
 
   return drawing_names

@@ -1,4 +1,5 @@
 from typing import Sequence, Tuple
+from ai_coach_domain.rescue import PlaceName
 
 CANVAS_WIDTH = 900
 CANVAS_HEIGHT = 600
@@ -43,6 +44,13 @@ IMG_WORK = "work"
 IMG_POLICE_CAR = "police_car"
 IMG_FIRE_ENGINE = "fire_engine"
 IMG_ROUTE = "route"
+IMG_BACKGROUND = "background"
+IMG_POLICE_STATION = "police_station"
+IMG_FIRE_STATION = "fire_station"
+IMG_CITY_HALL = "city_hall"
+IMG_CAMPSITE = "campsite"
+IMG_MALL = "mall"
+IMG_BRIDGE = "bridge"
 
 ################################################################################
 # Classes here should always match with corresponding javascript classes

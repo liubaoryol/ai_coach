@@ -7,6 +7,16 @@ T_RouteId = int
 T_PlaceId = int
 
 
+class PlaceName:
+  Fire_stateion = "Fire Station"
+  City_hall = "City Hall"
+  Police_station = "Police Station"
+  Bridge_1 = "Bridge 1"
+  Campsite = "Campsite"
+  Mall = "Mall"
+  Bridge_2 = "Bridge 2"
+
+
 class E_EventType(Enum):
   Option0 = 0
   Option1 = 1

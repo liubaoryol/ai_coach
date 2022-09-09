@@ -27,7 +27,20 @@ def get_imgs(domain_type: EDomainType):
     ]
     # yapf: enable
   elif domain_type == EDomainType.Rescue:
-    imgs = []
+    # yapf: disable
+    imgs = [
+        {'name': co.IMG_WORK, 'src': url_for('static', filename='rescue_images/warning.svg')},  # noqa: E501
+        {'name': co.IMG_POLICE_CAR, 'src': url_for('static', filename='rescue_images/police_car.svg')},  # noqa: E501
+        {'name': co.IMG_FIRE_ENGINE, 'src': url_for('static', filename='rescue_images/fire_truck.svg')},  # noqa: E501
+        {'name': co.IMG_POLICE_STATION, 'src': url_for('static', filename='rescue_images/police_station.svg')},  # noqa: E501
+        {'name': co.IMG_FIRE_STATION, 'src': url_for('static', filename='rescue_images/fire_station.svg')},  # noqa: E501
+        {'name': co.IMG_CITY_HALL, 'src': url_for('static', filename='rescue_images/city_hall.svg')},  # noqa: E501
+        {'name': co.IMG_CAMPSITE, 'src': url_for('static', filename='rescue_images/camping.svg')},  # noqa: E501
+        {'name': co.IMG_BRIDGE, 'src': url_for('static', filename='rescue_images/bridge.svg')},  # noqa: E501
+        {'name': co.IMG_MALL, 'src': url_for('static', filename='rescue_images/mall.svg')},  # noqa: E501
+        {'name': co.IMG_BACKGROUND, 'src': url_for('static', filename='rescue_images/background.webp')},  # noqa: E501
+    ]
+    # yapf: enable
   else:
     raise ValueError("invalid domain")
 
