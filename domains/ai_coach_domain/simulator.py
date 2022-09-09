@@ -59,7 +59,8 @@ class Simulator():
       self.save_history(file_name, *args, **kwargs)
       self.reset_game()
 
-  def read_file(self, file_name):
+  @classmethod
+  def read_file(cls, file_name):
     pass
 
   @abc.abstractmethod

@@ -44,6 +44,19 @@ def clean_up():
   return render_template('clean_up.html')
 
 
+def rescue():
+  cur_user = g.user
+  group_id = session["groupid"]
+  exp_type = session["exp_type"]
+  cur_endpoint = inst_bp.name + "." + PageKey.Rescue
+  if request.method == "POST":
+    return redirect(get_next_url(cur_endpoint, None, group_id, exp_type))
+
+  logging.info('User %s accesses to rescue.' % (cur_user, ))
+
+  return render_template('rescue.html')
+
+
 inst_bp.add_url_rule("/" + PageKey.Overview,
                      PageKey.Overview,
                      login_required(overview),
@@ -55,4 +68,8 @@ inst_bp.add_url_rule("/" + PageKey.Movers_and_packers,
 inst_bp.add_url_rule("/" + PageKey.Clean_up,
                      PageKey.Clean_up,
                      login_required(clean_up),
+                     methods=("GET", "POST"))
+inst_bp.add_url_rule("/" + PageKey.Rescue,
+                     PageKey.Rescue,
+                     login_required(rescue),
                      methods=("GET", "POST"))

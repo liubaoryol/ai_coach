@@ -7,23 +7,41 @@ from web_experiment import socketio
 from web_experiment.exp_common.page_base import (CanvasPageBase, UserData,
                                                  get_objs_as_dictionary)
 import web_experiment.exp_common.canvas_objects as co
+from web_experiment.define import EDomainType, get_domain_type
 
 
-def get_imgs():
-  # yapf: disable
-  imgs = [
-      {'name': co.IMG_ROBOT, 'src': url_for('static', filename='boxpush_images/robot.svg')},  # noqa: E501
-      {'name': co.IMG_WOMAN, 'src': url_for('static', filename='boxpush_images/woman.svg')},  # noqa: E501
-      {'name': co.IMG_MAN, 'src': url_for('static', filename='boxpush_images/man.svg')},  # noqa: E501
-      {'name': co.IMG_BOX, 'src': url_for('static', filename='boxpush_images/box.svg')},  # noqa: E501
-      {'name': co.IMG_TRASH_BAG, 'src': url_for('static', filename='boxpush_images/trash_bag.svg')},  # noqa: E501
-      {'name': co.IMG_WALL, 'src': url_for('static', filename='boxpush_images/wall.svg')},  # noqa: E501
-      {'name': co.IMG_GOAL, 'src': url_for('static', filename='boxpush_images/goal.svg')},  # noqa: E501
-      {'name': co.IMG_BOTH_BOX, 'src': url_for('static', filename='boxpush_images/both_box.svg')},  # noqa: E501
-      {'name': co.IMG_MAN_BAG, 'src': url_for('static', filename='boxpush_images/man_bag.svg')},  # noqa: E501
-      {'name': co.IMG_ROBOT_BAG, 'src': url_for('static', filename='boxpush_images/robot_bag.svg')},  # noqa: E501
-  ]
-  # yapf: enable
+def get_imgs(domain_type: EDomainType):
+  if domain_type in [EDomainType.Movers, EDomainType.Cleanup]:
+    # yapf: disable
+    imgs = [
+        {'name': co.IMG_ROBOT, 'src': url_for('static', filename='boxpush_images/robot.svg')},  # noqa: E501
+        {'name': co.IMG_WOMAN, 'src': url_for('static', filename='boxpush_images/woman.svg')},  # noqa: E501
+        {'name': co.IMG_MAN, 'src': url_for('static', filename='boxpush_images/man.svg')},  # noqa: E501
+        {'name': co.IMG_BOX, 'src': url_for('static', filename='boxpush_images/box.svg')},  # noqa: E501
+        {'name': co.IMG_TRASH_BAG, 'src': url_for('static', filename='boxpush_images/trash_bag.svg')},  # noqa: E501
+        {'name': co.IMG_WALL, 'src': url_for('static', filename='boxpush_images/wall.svg')},  # noqa: E501
+        {'name': co.IMG_GOAL, 'src': url_for('static', filename='boxpush_images/goal.svg')},  # noqa: E501
+        {'name': co.IMG_BOTH_BOX, 'src': url_for('static', filename='boxpush_images/both_box.svg')},  # noqa: E501
+        {'name': co.IMG_MAN_BAG, 'src': url_for('static', filename='boxpush_images/man_bag.svg')},  # noqa: E501
+        {'name': co.IMG_ROBOT_BAG, 'src': url_for('static', filename='boxpush_images/robot_bag.svg')},  # noqa: E501
+    ]
+    # yapf: enable
+  elif domain_type == EDomainType.Rescue:
+    # yapf: disable
+    imgs = [
+        {'name': co.IMG_WORK, 'src': url_for('static', filename='rescue_images/warning.svg')},  # noqa: E501
+        {'name': co.IMG_POLICE_CAR, 'src': url_for('static', filename='rescue_images/police_car.svg')},  # noqa: E501
+        {'name': co.IMG_FIRE_ENGINE, 'src': url_for('static', filename='rescue_images/fire_truck.svg')},  # noqa: E501
+        {'name': co.IMG_POLICE_STATION, 'src': url_for('static', filename='rescue_images/police_station.svg')},  # noqa: E501
+        {'name': co.IMG_FIRE_STATION, 'src': url_for('static', filename='rescue_images/fire_station.svg')},  # noqa: E501
+        {'name': co.IMG_CITY_HALL, 'src': url_for('static', filename='rescue_images/city_hall.svg')},  # noqa: E501
+        {'name': co.IMG_CAMPSITE, 'src': url_for('static', filename='rescue_images/camping.svg')},  # noqa: E501
+        {'name': co.IMG_BRIDGE, 'src': url_for('static', filename='rescue_images/bridge.svg')},  # noqa: E501
+        {'name': co.IMG_MALL, 'src': url_for('static', filename='rescue_images/mall.svg')},  # noqa: E501
+    ]
+    # yapf: enable
+  else:
+    raise ValueError("invalid domain")
 
   return imgs
 
@@ -47,7 +65,7 @@ def initial_canvas(session_name: str, user_game_data: UserData,
   page_drawing_info = cur_page.get_updated_drawing_info(user_game_data)
   commands, drawing_objs, drawing_order, animations = page_drawing_info
 
-  imgs = get_imgs()
+  imgs = get_imgs(get_domain_type(session_name))
 
   update_gamedata(commands=commands,
                   imgs=imgs,

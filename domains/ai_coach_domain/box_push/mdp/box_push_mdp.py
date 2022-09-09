@@ -4,21 +4,23 @@ import numpy as np
 from ai_coach_core.utils.mdp_utils import StateSpace
 from ai_coach_core.models.mdp import LatentMDP
 from ai_coach_domain.box_push import (BoxState, conv_box_state_2_idx,
-                                      conv_box_idx_2_state)
-from ai_coach_domain.box_push.defines import get_possible_latent_states
+                                      conv_box_idx_2_state,
+                                      get_possible_latent_states)
 
 
 class BoxPushMDP(LatentMDP):
-  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, cb_transition,
-               **kwargs):
+  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
     self.x_grid = x_grid
     self.y_grid = y_grid
     self.boxes = boxes
     self.goals = goals
     self.walls = walls
     self.drops = drops
-    self.transition_fn = cb_transition
     super().__init__(use_sparse=True)
+
+  @abc.abstractmethod
+  def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
+    raise NotImplementedError
 
   def map_to_str(self):
     BASE36 = 36

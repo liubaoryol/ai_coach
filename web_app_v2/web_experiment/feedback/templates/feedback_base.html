@@ -1,10 +1,19 @@
 {% extends 'base.html' %}
 
 {% block header %}
-<h1>{% block title %}{% endblock %}</h1>
+<h1>{% block title %}
+  {% if domain_type == 'Movers' %}
+  Movers and Packers (part 3/5)
+  {% elif domain_type == 'Cleanup' %}
+  Cleanup (part 4/5)
+  {% else %}
+  Unknown Domain
+  {% endif %}
+  {% endblock %}</h1>
 <h2>{% block subtitle %} Feedback Session {{session_title}}{% endblock %}</h2>
 <div class="explanation">
-  <p>Providing feedback to user with this page - Session: {{session_title}} - Total Steps: {{session_length}}</p>
+  <p>Providing feedback to user with this page - Session: {{session_title}} - Total Steps: <span id="max_index"></span>
+  </p>
 </div>
 {% endblock %}
 
@@ -15,13 +24,33 @@
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
 <script type="text/javascript" charset="utf-8"
-  src="{{ url_for('replay.static', filename='exp1_game_logic_new.js') }}"></script>
+  src="{{ url_for('feedback.static', filename='feedback_buttons.js') }}"></script>
 <script type="text/javascript">
-  initGlobalObject("{{ socket_name_space }}");
+  initSocketIO("{{ socket_name_space }}");
 </script>
 
-{% block latent_table %}{% endblock %}
+<div class='explanation'>
+  <div class="button-center">
+    <table class="center">
+      <tr>
+        <th>{% if groupid == 'C' %}
+          Human Latent State
+          {% elif groupid == 'D' %}
+          Human Latent State Predicted
+          {% else %}
+          Invalid Group
+          {% endif %}</th>
+        <th>Agent Latent State</th>
+      </tr>
+      <tr>
+        <td id="latent_human"></td>
+        <td id="latent_robot"></td>
+      </tr>
+    </table>
+  </div>
+</div>
 
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
   Your browser does not support the HTML5 canvas tag.
@@ -36,7 +65,7 @@
   <div class='form-control'>
     <div>
       <label class="index" for="index"> Enter Index</label>
-      <input type="number" name="index" value="0" id="indexValue" min="0" max="{{session_length - 1}}">
+      <input type="number" name="index" value="0" id="indexValue" min="0" max="1">
     </div>
     <div class="button-center">
       <button type="submit" value="index" id="index">Go to Index</button>
@@ -44,9 +73,9 @@
   </div>
 
   <form method="POST">
-    <input type="hidden" name="back" value="back">
+    <input type="hidden" name="proceed" value="proceed">
     <div class="button-center">
-      <button type="submit" value="back" id="back">Proceed to Next Stage</button>
+      <button type="submit" value="proceed" id="proceed">Proceed to Next Stage</button>
     </div>
   </form>
 </div>

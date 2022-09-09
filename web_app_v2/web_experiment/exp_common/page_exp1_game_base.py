@@ -1,30 +1,14 @@
 from typing import Mapping, Any, Sequence, List
 import copy
-import os
-import time
-from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
-                                                BoxPushSimulator_AlwaysAlone,
-                                                BoxPushSimulator)
+from ai_coach_domain.box_push.simulator import BoxPushSimulator
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
 from web_experiment.models import db, User
+from web_experiment.define import EDomainType
 import web_experiment.exp_common.canvas_objects as co
-from web_experiment.exp_common.page_exp1_base import (Exp1UserData,
-                                                      Exp1PageBase)
-from web_experiment.exp_common.page_game_scene import (game_scene,
-                                                       game_scene_names)
-
-
-def get_file_name(save_path, user_id, session_name):
-  traj_dir = os.path.join(save_path, user_id)
-  # save somewhere
-  if not os.path.exists(traj_dir):
-    os.makedirs(traj_dir)
-
-  sec, msec = divmod(time.time() * 1000, 1000)
-  time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
-                                          time.gmtime(sec)), msec)
-  file_name = session_name + '_' + str(user_id) + '_' + time_stamp + '.txt'
-  return os.path.join(traj_dir, file_name)
+from web_experiment.exp_common.page_base import Exp1UserData, ExperimentPageBase
+from web_experiment.exp_common.helper import (get_file_name, boxpush_game_scene,
+                                              boxpush_game_scene_names,
+                                              get_btn_boxpush_actions)
 
 
 def get_holding_box_idx(box_states, num_drops, num_goals):
@@ -92,17 +76,15 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
 ###############################################################################
 # canvas page game
 ###############################################################################
-
-
-class Exp1PageGame(Exp1PageBase):
+class BoxPushGamePageBase(ExperimentPageBase):
   def __init__(self,
-               is_movers,
+               domain_type: EDomainType,
                manual_latent_selection,
                game_map,
                auto_prompt: bool = True,
                prompt_on_change: bool = True,
                prompt_freq: int = 5) -> None:
-    super().__init__(True, True, True, is_movers)
+    super().__init__(True, True, True, domain_type)
     self._MANUAL_SELECTION = manual_latent_selection
     self._GAME_MAP = game_map
 
@@ -113,22 +95,12 @@ class Exp1PageGame(Exp1PageBase):
     self._AGENT1 = BoxPushSimulator.AGENT1
     self._AGENT2 = BoxPushSimulator.AGENT2
 
+    assert domain_type in [EDomainType.Movers, EDomainType.Cleanup]
+
   def init_user_data(self, user_game_data: Exp1UserData):
     user_game_data.data[Exp1UserData.GAME_DONE] = False
     user_game_data.data[Exp1UserData.SELECT] = False
-
-    game = user_game_data.get_game_ref()
-    if game is None:
-      if self._IS_MOVERS:
-        game = BoxPushSimulator_AlwaysTogether(None)
-      else:
-        game = BoxPushSimulator_AlwaysAlone(None)
-
-      user_game_data.set_game(game)
-
-    game.init_game(**self._GAME_MAP)
-
-    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+    # NOTE: game should be defined at the child class
 
   def get_updated_drawing_info(self,
                                user_data: Exp1UserData,
@@ -172,8 +144,8 @@ class Exp1PageGame(Exp1PageBase):
       user_game_data.data[Exp1UserData.SELECT] = True
       return
 
-    elif co.is_sel_latent_btn(clicked_btn):
-      latent = co.selbtn2latent(clicked_btn)
+    elif self.is_sel_latent_btn(clicked_btn):
+      latent = self.selbtn2latent(clicked_btn)
       if latent is not None:
         game = user_game_data.get_game_ref()
         game.event_input(self._AGENT1, EventType.SET_LATENT, latent)
@@ -237,6 +209,20 @@ class Exp1PageGame(Exp1PageBase):
 
     return dict_objs
 
+  def _get_btn_actions(self,
+                       up_disable=False,
+                       down_disable=False,
+                       left_disable=False,
+                       right_disable=False,
+                       stay_disable=False,
+                       pickup_disable=False,
+                       drop_disable=False,
+                       select_disable=True):
+    return get_btn_boxpush_actions(self.GAME_WIDTH, self.GAME_RIGHT, up_disable,
+                                   down_disable, left_disable, right_disable,
+                                   stay_disable, pickup_disable, drop_disable,
+                                   select_disable)
+
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
@@ -250,7 +236,7 @@ class Exp1PageGame(Exp1PageBase):
      a2_box) = are_agent_states_changed(dict_prev_game, game.get_env_info())
 
     select_latent = False
-    if self._PROMPT_ON_CHANGE and (a1_hold_changed or a2_hold_changed):
+    if self._PROMPT_ON_CHANGE and a1_hold_changed:
       select_latent = True
 
     if self._AUTO_PROMPT:
@@ -287,17 +273,23 @@ class Exp1PageGame(Exp1PageBase):
 
     # update score
     user_game_data.data[Exp1UserData.SCORE] = game.current_step
-    if self._IS_MOVERS:
+    if self._DOMAIN_TYPE == EDomainType.Movers:
       best_score = user.best_a
-    else:
+    elif self._DOMAIN_TYPE == EDomainType.Cleanup:
       best_score = user.best_b
+    else:
+      raise ValueError("Domain should be either Movers or Cleanup." +
+                       f"{self._DOMAIN_TYPE} cannot not be handled")
 
     if best_score > game.current_step:
       user = User.query.filter_by(userid=user_id).first()
-      if self._IS_MOVERS:
+      if self._DOMAIN_TYPE == EDomainType.Movers:
         user.best_a = game.current_step
-      else:
+      elif self._DOMAIN_TYPE == EDomainType.Cleanup:
         user.best_b = game.current_step
+      else:
+        raise ValueError("Domain should be either Movers or Cleanup." +
+                         f"{self._DOMAIN_TYPE} cannot not be handled")
 
       db.session.commit()
       user_game_data.data[Exp1UserData.USER] = user
@@ -356,7 +348,8 @@ class Exp1PageGame(Exp1PageBase):
       obj_name = ""
       if agent_idx == 0:
         if a1_box < 0:
-          obj_name = co.IMG_WOMAN if self._IS_MOVERS else co.IMG_MAN
+          obj_name = (co.IMG_WOMAN if self._DOMAIN_TYPE == EDomainType.Movers
+                      else co.IMG_MAN)
         elif a1_box == a2_box:
           obj_name = co.IMG_BOTH_BOX
         else:
@@ -395,12 +388,54 @@ class Exp1PageGame(Exp1PageBase):
     pickup_ok = False
     num_drops = len(game_env["drops"])
     num_goals = len(game_env["goals"])
+    a1_pos = game_env["a1_pos"]
     a1_box, _ = get_holding_box_idx(game_env["box_states"], num_drops,
                                     num_goals)
-    if a1_box >= 0:  # set drop action status
-      drop_ok = True
-    else:  # set pickup action status
-      pickup_ok = True
+
+    if user_data.data[Exp1UserData.COLLECT_LATENT]:
+      a1_latent = game_env["a1_latent"]
+      if a1_latent is None:
+        return False, False, False, False, False, True, True
+
+      if a1_box >= 0:  # set drop action status
+        if a1_latent[0] == 'origin' and a1_pos == game_env["boxes"][a1_box]:
+          drop_ok = True
+        else:
+          for idx, coord in enumerate(game_env["goals"]):
+            if (a1_latent[0] == 'goal' and a1_latent[1] == idx
+                and a1_pos == coord):
+              drop_ok = True
+              break
+      else:  # set pickup action status
+        for idx, bidx in enumerate(game_env["box_states"]):
+          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
+          coord = None
+          if state[0] == BoxState.Original:
+            coord = game_env["boxes"][idx]
+          # elif state[0] == BoxState.WithAgent2:
+          #   coord = game_env["a2_pos"]
+
+          if coord is not None:
+            if (a1_latent[0] == 'pickup' and a1_latent[1] == idx
+                and a1_pos == coord):
+              pickup_ok = True
+              break
+
+    else:
+      if a1_box >= 0:  # set drop action status
+        if a1_pos in game_env["goals"]:
+          drop_ok = True
+        elif a1_pos == game_env["boxes"][a1_box]:
+          drop_ok = True
+      else:  # set pickup action status
+        for idx, bidx in enumerate(game_env["box_states"]):
+          bstate = conv_box_idx_2_state(bidx, num_drops, num_goals)
+          if bstate[0] == BoxState.Original:
+            if game_env["boxes"][idx] == a1_pos:
+              pickup_ok = True
+          elif bstate[0] == BoxState.WithAgent2:
+            if game_env["a2_pos"] == a1_pos:
+              pickup_ok = True
 
     return False, False, False, False, False, not pickup_ok, not drop_ok
 
@@ -508,12 +543,7 @@ class Exp1PageGame(Exp1PageBase):
       if a1_latent is not None:
         coord = None
         if a1_latent[0] == "pickup":
-          bidx = game_env["box_states"][a1_latent[1]]
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][a1_latent[1]]
-          elif state[0] == BoxState.WithAgent2:
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][a1_latent[1]]
         elif a1_latent[0] == "origin":
           if a1_box >= 0:
             coord = game_env["boxes"][a1_box]
@@ -533,9 +563,8 @@ class Exp1PageGame(Exp1PageBase):
           overlay_obs.append(obj)
 
     if user_data.data[Exp1UserData.SELECT]:
-      obj = co.Rectangle(co.SEL_LAYER,
-                         coord_2_canvas(self.GAME_LEFT, self.GAME_TOP),
-                         coord_2_canvas(self.GAME_WIDTH, self.GAME_HEIGHT),
+      obj = co.Rectangle(co.SEL_LAYER, (self.GAME_LEFT, self.GAME_TOP),
+                         (self.GAME_WIDTH, self.GAME_HEIGHT),
                          fill_color="white",
                          alpha=0.8)
       overlay_obs.append(obj)
@@ -549,7 +578,7 @@ class Exp1PageGame(Exp1PageBase):
         x_cen = coord[0] + 0.5
         y_cen = coord[1] + 0.5
         lat = ["origin", 0]
-        obj = co.SelectingCircle(co.latent2selbtn(lat),
+        obj = co.SelectingCircle(self.latent2selbtn(lat),
                                  coord_2_canvas(x_cen, y_cen), radius,
                                  font_size, str(cnt))
         overlay_obs.append(obj)
@@ -559,29 +588,23 @@ class Exp1PageGame(Exp1PageBase):
           x_cen = coord[0] + 0.5
           y_cen = coord[1] + 0.5
           lat = ["goal", idx]
-          obj = co.SelectingCircle(co.latent2selbtn(lat),
+          obj = co.SelectingCircle(self.latent2selbtn(lat),
                                    coord_2_canvas(x_cen, y_cen), radius,
                                    font_size, str(cnt))
           overlay_obs.append(obj)
           cnt += 1
       else:
         for idx, bidx in enumerate(game_env["box_states"]):
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          coord = None
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][idx]
-          elif state[0] == BoxState.WithAgent2:  # with a2
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][idx]
 
-          if coord is not None:
-            x_cen = coord[0] + 0.5
-            y_cen = coord[1] + 0.5
-            lat = ["pickup", idx]
-            obj = co.SelectingCircle(co.latent2selbtn(lat),
-                                     coord_2_canvas(x_cen, y_cen), radius,
-                                     font_size, str(cnt))
-            overlay_obs.append(obj)
-            cnt += 1
+          x_cen = coord[0] + 0.5
+          y_cen = coord[1] + 0.5
+          lat = ["pickup", idx]
+          obj = co.SelectingCircle(self.latent2selbtn(lat),
+                                   coord_2_canvas(x_cen, y_cen), radius,
+                                   font_size, str(cnt))
+          overlay_obs.append(obj)
+          cnt += 1
 
     return overlay_obs
 
@@ -596,17 +619,13 @@ class Exp1PageGame(Exp1PageBase):
     if user_data.data[Exp1UserData.PARTIAL_OBS]:
       overlay_names.append(co.PO_LAYER)
 
-    if not user_data.data[Exp1UserData.SELECT]:
+    if (user_data.data[Exp1UserData.SHOW_LATENT]
+        and not user_data.data[Exp1UserData.SELECT]):
       a1_latent = game_env["a1_latent"]
       if a1_latent is not None:
         coord = None
         if a1_latent[0] == "pickup":
-          bidx = game_env["box_states"][a1_latent[1]]
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][a1_latent[1]]
-          elif state[0] == BoxState.WithAgent2:
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][a1_latent[1]]
         elif a1_latent[0] == "origin":
           if a1_box >= 0:
             coord = game_env["boxes"][a1_box]
@@ -619,21 +638,15 @@ class Exp1PageGame(Exp1PageBase):
     if user_data.data[Exp1UserData.SELECT]:
       overlay_names.append(co.SEL_LAYER)
       if a1_box >= 0:
-        overlay_names.append(co.latent2selbtn(["origin", 0]))
+        overlay_names.append(self.latent2selbtn(["origin", 0]))
 
         for idx, coord in enumerate(game_env["goals"]):
-          overlay_names.append(co.latent2selbtn(["goal", idx]))
+          overlay_names.append(self.latent2selbtn(["goal", idx]))
       else:
         for idx, bidx in enumerate(game_env["box_states"]):
-          state = conv_box_idx_2_state(bidx, num_drops, num_goals)
-          coord = None
-          if state[0] == BoxState.Original:
-            coord = game_env["boxes"][idx]
-          elif state[0] == BoxState.WithAgent2:  # with a2
-            coord = game_env["a2_pos"]
+          coord = game_env["boxes"][idx]
 
-          if coord is not None:
-            overlay_names.append(co.latent2selbtn(["pickup", idx]))
+          overlay_names.append(self.latent2selbtn(["pickup", idx]))
 
     return overlay_names
 
@@ -644,18 +657,50 @@ class Exp1PageGame(Exp1PageBase):
 
     game_ltwh = (self.GAME_LEFT, self.GAME_TOP, self.GAME_WIDTH,
                  self.GAME_HEIGHT)
-    return game_scene(game_env, game_ltwh, self._IS_MOVERS, include_background)
+    is_movers = self._DOMAIN_TYPE == EDomainType.Movers
+    return boxpush_game_scene(game_env, game_ltwh, is_movers,
+                              include_background)
 
   def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
     def is_visible(img_name):
       if user_data.data[Exp1UserData.PARTIAL_OBS]:
+        a1_pos = game_env["a1_pos"]
         if img_name == co.IMG_ROBOT or img_name == co.IMG_ROBOT_BAG:
-          a1_pos = game_env["a1_pos"]
           a2_pos = game_env["a2_pos"]
           diff = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
+          if diff > 1:
+            return False
+        elif img_name[:-1] == co.IMG_BOX or img_name[:-1] == co.IMG_TRASH_BAG:
+          bidx = int(img_name[-1])
+          box_pos = game_env["boxes"][bidx]
+          diff = max(abs(a1_pos[0] - box_pos[0]), abs(a1_pos[1] - box_pos[1]))
           if diff > 1:
             return False
 
       return True
 
-    return game_scene_names(game_env, self._IS_MOVERS, is_visible)
+    is_movers = self._DOMAIN_TYPE == EDomainType.Movers
+    return boxpush_game_scene_names(game_env, is_movers, is_visible)
+
+  def latent2selbtn(self, latent):
+    if latent[0] == "pickup":
+      return "sel_box" + str(latent[1])
+    elif latent[0] == "goal":
+      return "sel_goa" + str(latent[1])
+    elif latent[0] == "origin":
+      return "sel_ori" + str(latent[1])
+
+    return None
+
+  def selbtn2latent(self, sel_btn_name):
+    if sel_btn_name[:7] == "sel_box":
+      return ("pickup", int(sel_btn_name[7:]))
+    elif sel_btn_name[:7] == "sel_goa":
+      return ("goal", int(sel_btn_name[7:]))
+    elif sel_btn_name[:7] == "sel_ori":
+      return ("origin", 0)
+
+    return None
+
+  def is_sel_latent_btn(self, sel_btn_name):
+    return sel_btn_name[:7] in ["sel_box", "sel_goa", "sel_ori"]

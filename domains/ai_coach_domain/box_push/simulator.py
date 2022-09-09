@@ -1,15 +1,13 @@
-from typing import Hashable, Mapping, Tuple, Sequence, Callable, Any
+from typing import Hashable, Mapping, Tuple, Sequence
+import abc
 import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
-from ai_coach_domain.box_push.defines import (EventType,
-                                              transition_alone_and_together,
-                                              transition_always_together,
-                                              transition_always_alone,
-                                              action_to_idx_for_simulator,
-                                              idx_to_action_for_simulator)
-from ai_coach_domain.box_push.agent import (BoxPushSimulatorAgent,
-                                            BoxPushInteractiveAgent)
+from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
+from ai_coach_domain.box_push import EventType, AGENT_ACTIONSPACE
+from ai_coach_domain.box_push.transition import (transition_alone_and_together,
+                                                 transition_always_together,
+                                                 transition_always_alone)
 
 Coord = Tuple[int, int]
 
@@ -21,23 +19,13 @@ class BoxPushSimulator(Simulator):
   def __init__(
       self,
       id: Hashable,
-      cb_transition: Callable,
-      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
-      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
-      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
-    '''
-    cb_action_to_idx: (agent_idx, action) --> action_idx
-    cb_idx_to_action: (agent_idx, action_idx) --> action
-    '''
     #  input1: agent idx
     super().__init__(id)
     self.agent_1 = None
     self.agent_2 = None
-    self.transition_fn = cb_transition
     self.tuple_action_when_none = tuple_action_when_none
-    self.cb_action_to_idx = cb_action_to_idx
-    self.cb_idx_to_action = cb_idx_to_action
 
   def init_game(self,
                 x_grid: int,
@@ -66,10 +54,9 @@ class BoxPushSimulator(Simulator):
     'Redefine this method at subclasses as needed'
     return [self.box_states, self.a1_pos, self.a2_pos]
 
-  def set_autonomous_agent(
-      self,
-      agent1: BoxPushSimulatorAgent = BoxPushInteractiveAgent(),
-      agent2: BoxPushSimulatorAgent = BoxPushInteractiveAgent()):
+  def set_autonomous_agent(self,
+                           agent1: SimulatorAgent = InteractiveAgent(),
+                           agent2: SimulatorAgent = InteractiveAgent()):
     self.agent_1 = agent1
     self.agent_2 = agent2
 
@@ -146,10 +133,7 @@ class BoxPushSimulator(Simulator):
     self.changed_state.add("a2_latent")
 
   def _transition(self, a1_action, a2_action):
-    list_next_env = self.transition_fn(self.box_states, self.a1_pos,
-                                       self.a2_pos, a1_action, a2_action,
-                                       self.boxes, self.goals, self.walls,
-                                       self.drops, self.x_grid, self.y_grid)
+    list_next_env = self._get_transition_distribution(a1_action, a2_action)
 
     list_prop = []
     for item in list_next_env:
@@ -164,6 +148,10 @@ class BoxPushSimulator(Simulator):
     self.changed_state.add("a1_pos")
     self.changed_state.add("a2_pos")
     self.changed_state.add("box_states")
+
+  @abc.abstractmethod
+  def _get_transition_distribution(self, a1_action, a2_action):
+    pass
 
   def get_num_box_state(self):
     '''
@@ -255,8 +243,8 @@ class BoxPushSimulator(Simulator):
         txtfile.write('%d, %d; ' % a1pos)
         txtfile.write('%d, %d; ' % a2pos)
 
-        txtfile.write('%d; %d; ' % (self.cb_action_to_idx(
-            self.AGENT1, a1act), self.cb_action_to_idx(self.AGENT2, a2act)))
+        txtfile.write('%d; %d; ' % (AGENT_ACTIONSPACE.action_to_idx[a1act],
+                                    AGENT_ACTIONSPACE.action_to_idx[a2act]))
 
         txtfile.write('%s, %d; ' % a1lat)
         txtfile.write('%s, %d; ' % a2lat)
@@ -283,7 +271,8 @@ class BoxPushSimulator(Simulator):
 
     return True
 
-  def read_file(self, file_name):
+  @classmethod
+  def read_file(cls, file_name):
     traj = []
     with open(file_name, newline='') as txtfile:
       lines = txtfile.readlines()
@@ -307,11 +296,11 @@ class BoxPushSimulator(Simulator):
         if a1act is None:
           a1_act = None
         else:
-          a1_act = self.cb_idx_to_action(self.AGENT1, int(a1act))
+          a1_act = int(a1act)
         if a2act is None:
           a2_act = None
         else:
-          a2_act = self.cb_idx_to_action(self.AGENT2, int(a2act))
+          a2_act = int(a2act)
         if a1lat is None:
           a1_lat = None
         else:
@@ -331,45 +320,45 @@ class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
   def __init__(
       self,
       id: Hashable,
-      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
-      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
-      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
-    super().__init__(id,
-                     transition_alone_and_together,
-                     tuple_action_when_none=tuple_action_when_none,
-                     cb_action_to_idx=cb_action_to_idx,
-                     cb_idx_to_action=cb_idx_to_action)
+    super().__init__(id, tuple_action_when_none=tuple_action_when_none)
+
+  def _get_transition_distribution(self, a1_action, a2_action):
+    return transition_alone_and_together(self.box_states, self.a1_pos,
+                                         self.a2_pos, a1_action, a2_action,
+                                         self.boxes, self.goals, self.walls,
+                                         self.drops, self.x_grid, self.y_grid)
 
 
 class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
   def __init__(
       self,
       id: Hashable,
-      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
-      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
-      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
-    super().__init__(id,
-                     transition_always_together,
-                     tuple_action_when_none=tuple_action_when_none,
-                     cb_action_to_idx=cb_action_to_idx,
-                     cb_idx_to_action=cb_idx_to_action)
+    super().__init__(id, tuple_action_when_none=tuple_action_when_none)
+
+  def _get_transition_distribution(self, a1_action, a2_action):
+    return transition_always_together(self.box_states, self.a1_pos, self.a2_pos,
+                                      a1_action, a2_action, self.boxes,
+                                      self.goals, self.walls, self.drops,
+                                      self.x_grid, self.y_grid)
 
 
 class BoxPushSimulator_AlwaysAlone(BoxPushSimulator):
   def __init__(
       self,
       id: Hashable,
-      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY),
-      cb_action_to_idx: Callable[[int, Any], int] = action_to_idx_for_simulator,
-      cb_idx_to_action: Callable[[int, int], Any] = idx_to_action_for_simulator
+      tuple_action_when_none: Tuple = (EventType.STAY, EventType.STAY)
   ) -> None:
-    super().__init__(id,
-                     transition_always_alone,
-                     tuple_action_when_none=tuple_action_when_none,
-                     cb_action_to_idx=cb_action_to_idx,
-                     cb_idx_to_action=cb_idx_to_action)
+    super().__init__(id, tuple_action_when_none=tuple_action_when_none)
+
+  def _get_transition_distribution(self, a1_action, a2_action):
+    return transition_always_alone(self.box_states, self.a1_pos, self.a2_pos,
+                                   a1_action, a2_action, self.boxes, self.goals,
+                                   self.walls, self.drops, self.x_grid,
+                                   self.y_grid)
 
 
 if __name__ == "__main__":
@@ -393,7 +382,7 @@ if __name__ == "__main__":
     from ai_coach_domain.box_push.maps import EXP1_MAP
     from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team1,
                                                 BoxPushAIAgent_Team2)
-    from ai_coach_domain.box_push.mdppolicy import BoxPushPolicyTeamExp1
+    from ai_coach_domain.box_push.policy import BoxPushPolicyTeamExp1
     from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AlwaysTogether
 
     sim = BoxPushSimulator_AlwaysTogether(0)

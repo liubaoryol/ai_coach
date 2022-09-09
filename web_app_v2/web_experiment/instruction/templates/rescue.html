@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Task C: Rescue (part 4/5){% endblock %}</h1>
+<div class="explanation">
+  <p>Great! You have completed the first three parts of the experiment.</p>
+  <p>Great! You have completed the first three parts of the experiment.</p>
+  <p>Let’s begin!</p>
+
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="image-center">
+  <img src="{{url_for('inst.static', filename='clean_up.png')}}" width="50%">
+</div>
+<div class="button-center">
+  <form method="POST">
+    <button type="submit" value="submit">Proceed to Tutorial</button>
+  </form>
+</div>
+{% endblock %}

@@ -61,20 +61,20 @@ class ToyMDP(MDP):
     self.dummy_states = StateSpace(statespace=[TERMINAL_STATE])
 
   def init_actionspace(self):
-    set_actions = set()
-    set_actions.add((-1, 0))
-    set_actions.add((1, 0))
-    set_actions.add((0, -1))
-    set_actions.add((0, 1))
-    set_actions.add((0, 0))
-    set_actions.add((-1, -1))
-    set_actions.add((-1, 1))
-    set_actions.add((1, -1))
-    set_actions.add((1, 1))
-    set_actions.add(PICK)
+    actions = []
+    actions.append((-1, 0))
+    actions.append((1, 0))
+    actions.append((0, -1))
+    actions.append((0, 1))
+    actions.append((0, 0))
+    actions.append((-1, -1))
+    actions.append((-1, 1))
+    actions.append((1, -1))
+    actions.append((1, 1))
+    actions.append(PICK)
 
     self.dict_factored_actionspace = {}
-    self.a_space = ActionSpace(actionspace=set_actions)
+    self.a_space = ActionSpace(actionspace=actions)
     self.dict_factored_actionspace = {0: self.a_space}
 
   def legal_actions(self, state_idx):

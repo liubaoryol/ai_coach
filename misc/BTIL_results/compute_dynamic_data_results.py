@@ -17,7 +17,7 @@ from ai_coach_core.utils.result_utils import (norm_hamming_distance,
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
 import ai_coach_domain.box_push.mdp as bp_mdp
-import ai_coach_domain.box_push.mdppolicy as bp_policy
+import ai_coach_domain.box_push.policy as bp_policy
 import ai_coach_domain.box_push.agent as bp_agent
 from ai_coach_domain.box_push.utils import (TrueModelConverter,
                                             BoxPushTrajectories)
@@ -332,7 +332,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
 
-    train_data = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
+    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
     train_data.load_from_files(file_names)
     if num_run > 1:
       train_data.shuffle()
@@ -347,7 +347,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     ##################################################
     test_file_names = glob.glob(os.path.join(TEST_DIR, test_prefix + '*.txt'))
 
-    test_data = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
+    test_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
     test_data.load_from_files(test_file_names)
     test_traj = test_data.get_as_column_lists(include_terminal=False)
     logging.info(len(test_traj))

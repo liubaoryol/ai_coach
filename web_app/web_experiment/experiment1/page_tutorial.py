@@ -6,7 +6,7 @@ import web_experiment.experiment1.canvas_objects as co
 from web_experiment.models import db, User
 
 from ai_coach_domain.box_push.agent import (BoxPushSimpleAgent,
-                                            BoxPushInteractiveAgent)
+                                            InteractiveAgent)
 from ai_coach_domain.box_push import conv_box_state_2_idx
 
 
@@ -143,8 +143,8 @@ class CanvasPageTutorialBase(pgg.CanvasPageGame):
   def _init_user_data(self, user_game_data: pg.UserGameData):
     super()._init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
-    agent2 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
+    agent2 = InteractiveAgent()
     user_game_data.game.set_autonomous_agent(agent1, agent2)
     user_game_data.game.event_input(self._AGENT1, pgg.EventType.SET_LATENT,
                                     ("pickup", 2))
@@ -335,7 +335,7 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
   def _init_user_data(self, user_game_data: pg.UserGameData):
     super()._init_user_data(user_game_data)
 
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     if self._IS_MOVERS:
       agent2 = BoxPushSimpleAgent(self._AGENT2, self._GAME_MAP["x_grid"],
                                   self._GAME_MAP["y_grid"],
@@ -344,7 +344,7 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
                                   self._GAME_MAP["walls"],
                                   self._GAME_MAP["drops"])
     else:
-      agent2 = BoxPushInteractiveAgent()
+      agent2 = InteractiveAgent()
 
     user_game_data.game.set_autonomous_agent(agent1, agent2)
 
@@ -439,7 +439,7 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
     super()._init_user_data(user_game_data)
 
     game = user_game_data.game
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     if self._IS_MOVERS:
       agent2 = BoxPushSimpleAgent(self._AGENT2, self._GAME_MAP["x_grid"],
                                   self._GAME_MAP["y_grid"],
@@ -448,7 +448,7 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
                                   self._GAME_MAP["walls"],
                                   self._GAME_MAP["drops"])
     else:
-      agent2 = BoxPushInteractiveAgent()
+      agent2 = InteractiveAgent()
 
     game.set_autonomous_agent(agent1, agent2)
     game.current_step = user_game_data.score
@@ -546,8 +546,8 @@ class CanvasPageTrapped(CanvasPageTutorialBase):
 
     game = user_game_data.game
 
-    agent1 = BoxPushInteractiveAgent()
-    agent2 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
+    agent2 = InteractiveAgent()
     game.set_autonomous_agent(agent1, agent2)
     # make scenario
     TRAP_BOX = 1
@@ -730,7 +730,7 @@ class CanvasPageMiniGame(CanvasPageTutorialBase):
     super()._init_user_data(user_game_data)
 
     game = user_game_data.game
-    agent1 = BoxPushInteractiveAgent()
+    agent1 = InteractiveAgent()
     agent2 = BoxPushSimpleAgent(self._AGENT2, self._GAME_MAP["x_grid"],
                                 self._GAME_MAP["y_grid"],
                                 self._GAME_MAP["boxes"],

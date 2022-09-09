@@ -5,7 +5,7 @@ from web_experiment.models import ExpIntervention
 from web_experiment.define import (PageKey, INTERV_SESSIONS, get_next_url,
                                    ExpType)
 from web_experiment.exp_intervention.define import (SESSION_TITLE,
-                                                    get_socket_type)
+                                                    get_socket_name)
 from . import exp_interv_bp
 
 EXP1_TEMPLATE = {
@@ -15,8 +15,12 @@ EXP1_TEMPLATE = {
     PageKey.Interv_B0: 'exp1_session_b_practice.html',
     PageKey.Interv_B1: 'exp1_session_b_test.html',
     PageKey.Interv_B2: 'exp1_session_b_test.html',
+    PageKey.Interv_C0: 'exp1_session_c_practice.html',
+    PageKey.Interv_C1: 'exp1_session_c_test.html',
+    PageKey.Interv_C2: 'exp1_session_c_test.html',
     PageKey.Interv_T1: 'tutorial1.html',
     PageKey.Interv_T2: 'tutorial2.html',
+    PageKey.Interv_T3: 'tutorial3.html',
 }
 
 # practice session views
@@ -44,9 +48,9 @@ for session_name in INTERV_SESSIONS:
       # We assume the same user won't access multiple sessions simulataneously
       session['loaded_session_name'] = session_name
 
-      socket_type = get_socket_type(session_name, group_id)
+      socket_name = get_socket_name(session_name, group_id)
       return render_template(EXP1_TEMPLATE[session_name],
-                             socket_name_space=socket_type.name,
+                             socket_name_space=socket_name,
                              cur_user=cur_user,
                              is_disabled=disabled,
                              session_title=SESSION_TITLE[session_name])

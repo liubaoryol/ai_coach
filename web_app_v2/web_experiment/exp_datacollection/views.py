@@ -5,7 +5,7 @@ from web_experiment.models import ExpDataCollection
 from web_experiment.define import (PageKey, DATACOL_SESSIONS, get_next_url,
                                    ExpType)
 from web_experiment.exp_datacollection.define import (SESSION_TITLE,
-                                                      get_socket_type)
+                                                      get_socket_name)
 from . import exp_dcollect_bp
 
 EXP1_TEMPLATE = {
@@ -17,8 +17,13 @@ EXP1_TEMPLATE = {
     PageKey.DataCol_B1: 'exp1_session_b_test.html',
     PageKey.DataCol_B2: 'exp1_session_b_test.html',
     PageKey.DataCol_B3: 'exp1_session_b_test.html',
+    PageKey.DataCol_C0: 'exp1_session_c_practice.html',
+    PageKey.DataCol_C1: 'exp1_session_c_test.html',
+    PageKey.DataCol_C2: 'exp1_session_c_test.html',
+    PageKey.DataCol_C3: 'exp1_session_c_test.html',
     PageKey.DataCol_T1: 'tutorial1.html',
     PageKey.DataCol_T2: 'tutorial2.html',
+    PageKey.DataCol_T3: 'tutorial3.html',
 }
 
 for session_name in DATACOL_SESSIONS:
@@ -47,9 +52,9 @@ for session_name in DATACOL_SESSIONS:
       # We assume the same user won't access multiple sessions simulataneously
       session['loaded_session_name'] = session_name
 
-      socket_type = get_socket_type(session_name)
+      socket_name = get_socket_name(session_name)
       return render_template(EXP1_TEMPLATE[session_name],
-                             socket_name_space=socket_type.name,
+                             socket_name_space=socket_name,
                              cur_user=cur_user,
                              is_disabled=disabled,
                              session_title=SESSION_TITLE[session_name])

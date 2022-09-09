@@ -14,6 +14,7 @@ class DrawingObject {
 
   draw(context) {
     context.globalAlpha = 1.0;
+    context.lineWidth = 1;
   }
 
   isPointInObject(context, x, y) {
@@ -42,7 +43,53 @@ class CircleSpotlight extends DrawingObject {
       this.outer_ltwh[2],
       this.outer_ltwh[3]
     );
+    context.moveTo(this.x_cen, this.y_cen);
     context.arc(this.x_cen, this.y_cen, this.radius, 0, Math.PI * 2, true);
+    context.clip();
+    context.globalAlpha = this.alpha;
+    context.fillStyle = this.fill_color;
+    context.fillRect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+    context.restore();
+  }
+}
+
+class MultiCircleSpotlight extends DrawingObject {
+  constructor(name, outer_ltwh, centers, radii) {
+    super(name);
+    this.outer_ltwh = outer_ltwh;
+    this.centers = centers;
+    this.radii = radii;
+    this.fill_color = "grey";
+    this.alpha = 0.3;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.save();
+    context.beginPath();
+    context.rect(
+      this.outer_ltwh[0],
+      this.outer_ltwh[1],
+      this.outer_ltwh[2],
+      this.outer_ltwh[3]
+    );
+    for (let i = 0; i < this.centers.length; i++) {
+      context.moveTo(this.centers[i][0], this.centers[i][1]);
+      context.arc(
+        this.centers[i][0],
+        this.centers[i][1],
+        this.radii[i],
+        0,
+        Math.PI * 2,
+        true
+      );
+      context.closePath();
+    }
     context.clip();
     context.globalAlpha = this.alpha;
     context.fillStyle = this.fill_color;
@@ -107,7 +154,7 @@ class RectSpotlight extends DrawingObject {
 }
 
 class LineSegment extends DrawingObject {
-  constructor(name, start, end) {
+  constructor(name, start, end, width) {
     super(name);
     this.x_start = start[0];
     this.y_start = start[1];
@@ -115,15 +162,52 @@ class LineSegment extends DrawingObject {
     this.y_end = end[1];
     this.line_color = "black";
     this.alpha = 1.0;
+    this.width = width;
   }
 
   draw(context) {
     super.draw(context);
     context.strokeStyle = this.line_color;
     context.globalAlpha = this.alpha;
+    context.lineWidth = this.width;
     context.beginPath();
     context.moveTo(this.x_start, this.y_start);
     context.lineTo(this.x_end, this.y_end);
+    context.stroke();
+  }
+}
+
+class Curve extends DrawingObject {
+  constructor(name, coords, width) {
+    super(name);
+    this.coords = coords;
+    this.line_color = "black";
+    this.alpha = 1.0;
+    this.width = width;
+  }
+
+  draw(context) {
+    super.draw(context);
+    context.strokeStyle = this.line_color;
+    context.globalAlpha = this.alpha;
+    context.lineWidth = this.width;
+
+    context.beginPath();
+
+    context.moveTo(this.coords[0][0], this.coords[0][1]);
+    for (let i = 0; i < this.coords.length - 1; i++) {
+      const x_mid = (this.coords[i][0] + this.coords[i + 1][0]) / 2;
+      const y_mid = (this.coords[i][1] + this.coords[i + 1][1]) / 2;
+      const cp_x1 = (x_mid + this.coords[i][0]) / 2;
+      const cp_x2 = (x_mid + this.coords[i + 1][0]) / 2;
+      context.quadraticCurveTo(cp_x1, this.coords[i][1], x_mid, y_mid);
+      context.quadraticCurveTo(
+        cp_x2,
+        this.coords[i + 1][1],
+        this.coords[i + 1][0],
+        this.coords[i + 1][1]
+      );
+    }
     context.stroke();
   }
 }
@@ -272,11 +356,24 @@ class ButtonObject extends Primitive {
       context.textAlign = this.text_align;
       context.textBaseline = this.text_baseline;
       context.font = "bold " + this.font_size + "px arial";
-      context.fillText(
-        this.text,
-        this.x_origin + this.x_text_offset,
-        this.y_origin + this.y_text_offset
-      );
+
+      let array_text = this.text.split("\n");
+      if (array_text.length == 1) {
+        context.fillText(
+          this.text,
+          this.x_origin + this.x_text_offset,
+          this.y_origin + this.y_text_offset
+        );
+      } else {
+        const hei =
+          (array_text.length - 1) * (this.font_size * 1.1) + this.font_size;
+        let y_pos =
+          this.y_origin + this.y_text_offset - hei / 2 + this.font_size / 2;
+        for (const txt of array_text) {
+          context.fillText(txt, this.x_origin + this.x_text_offset, y_pos);
+          y_pos = y_pos + this.font_size * 1.1;
+        }
+      }
     }
   }
 
@@ -373,6 +470,47 @@ class ButtonCircle extends ButtonObject {
 
   _set_path() {
     this.path.arc(this.x_origin, this.y_origin, this.radius, 0, 2 * Math.PI);
+  }
+}
+
+class ThickArrow extends ButtonObject {
+  constructor(name, pos, dir_vec, width) {
+    super(name, pos, 20);
+    this.fill = true;
+    this.text = "";
+    this.width = width;
+    this.dir_vec = dir_vec;
+  }
+
+  _set_path() {
+    const height = this.width;
+    const width = this.width;
+    const half_width = width / 2;
+    const half_height = height / 2;
+    const v_cos = this.dir_vec[0];
+    const v_sin = this.dir_vec[1];
+
+    let base_path = [
+      [0, half_height],
+      [half_width, half_height],
+      [width, 0],
+      [half_width, -half_height],
+      [0, -half_height],
+    ];
+    let rotated_path = [];
+    for (let i = 0; i < base_path.length; i++) {
+      const x_old = base_path[i][0];
+      const y_old = base_path[i][1];
+      const x_new = x_old * v_cos - y_old * v_sin;
+      const y_new = x_old * v_sin + y_old * v_cos;
+      rotated_path.push([this.x_origin + x_new, this.y_origin + y_new]);
+    }
+
+    this.path.moveTo(rotated_path[0][0], rotated_path[0][1]);
+    for (let i = 1; i < rotated_path.length; i++) {
+      this.path.lineTo(rotated_path[i][0], rotated_path[i][1]);
+    }
+    this.path.closePath();
   }
 }
 
@@ -515,8 +653,7 @@ class TextObject extends DrawingObject {
     let array_sentence = this.text.split("\n");
     for (const sent of array_sentence) {
       let idx = 0;
-      const new_sent = sent.replace(/-/g, "- ");
-      let array_text = new_sent.split(" ");
+      let array_text = sent.split(" ");
       const num_word = array_text.length;
       while (idx < num_word) {
         let str_draw = "";
@@ -799,6 +936,8 @@ class GameData {
           item.font_size,
           item.text
         );
+      } else if (item.obj_type == "ThickArrow") {
+        tmp_obj = new ThickArrow(item.name, item.pos, item.dir_vec, item.width);
       } else if (item.obj_type == "JoystickUp") {
         tmp_obj = new JoystickUp(item.name, item.pos, item.width);
       } else if (item.obj_type == "JoystickDown") {
@@ -824,13 +963,22 @@ class GameData {
       } else if (item.obj_type == "Circle") {
         tmp_obj = new Circle(item.name, item.pos, item.radius);
       } else if (item.obj_type == "LineSegment") {
-        tmp_obj = new LineSegment(item.name, item.start, item.end);
+        tmp_obj = new LineSegment(item.name, item.start, item.end, item.width);
+      } else if (item.obj_type == "Curve") {
+        tmp_obj = new Curve(item.name, item.coords, item.width);
       } else if (item.obj_type == "CircleSpotlight") {
         tmp_obj = new CircleSpotlight(
           item.name,
           item.outer_ltwh,
           item.center,
           item.radius
+        );
+      } else if (item.obj_type == "MultiCircleSpotlight") {
+        tmp_obj = new MultiCircleSpotlight(
+          item.name,
+          item.outer_ltwh,
+          item.centers,
+          item.radii
         );
       } else if (item.obj_type == "RectSpotlight") {
         tmp_obj = new RectSpotlight(

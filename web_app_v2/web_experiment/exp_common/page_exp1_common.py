@@ -1,14 +1,14 @@
 from typing import Mapping
-from web_experiment.define import ExpType
+from web_experiment.define import ExpType, EDomainType
 import web_experiment.exp_common.canvas_objects as co
-from web_experiment.exp_common.page_exp1_base import (Exp1PageBase,
-                                                      Exp1UserData)
+from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
+from web_experiment.exp_common.helper import get_btn_boxpush_actions
 from web_experiment.models import db, ExpIntervention, ExpDataCollection
 
 
-class CanvasPageStart(Exp1PageBase):
-  def __init__(self, is_movers) -> None:
-    super().__init__(True, True, True, is_movers)
+class CanvasPageStart(ExperimentPageBase):
+  def __init__(self, domain_type: EDomainType) -> None:
+    super().__init__(True, True, True, domain_type)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     return super().init_user_data(user_game_data)
@@ -33,8 +33,7 @@ class CanvasPageStart(Exp1PageBase):
 
     drawing_order.append(co.BTN_START)
 
-    drawing_order = drawing_order + co.ACTION_BUTTONS
-    drawing_order.append(co.BTN_SELECT)
+    drawing_order = drawing_order + self._get_control_button_names()
 
     drawing_order.append(self.TEXT_SCORE)
     drawing_order.append(self.RECT_INSTRUCTION)
@@ -45,7 +44,7 @@ class CanvasPageStart(Exp1PageBase):
   def _get_init_drawing_objects(
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
-    objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
+    objs = self._get_control_buttons()
     for obj in objs:
       dict_objs[obj.name] = obj
 
@@ -54,13 +53,26 @@ class CanvasPageStart(Exp1PageBase):
 
     return dict_objs
 
+  def _get_control_buttons(self):
+    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
+      return get_btn_boxpush_actions(self.GAME_WIDTH, self.GAME_RIGHT, True,
+                                     True, True, True, True, True, True, True)
+    else:
+      return []
 
-class CanvasPageWarning(Exp1PageBase):
+  def _get_control_button_names(self) -> list:
+    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
+      return co.ACTION_BUTTONS + [co.BTN_SELECT]
+    else:
+      return []
+
+
+class CanvasPageWarning(ExperimentPageBase):
   TEXT_WARNING = "text_warning"
   BTN_REAL_START = "btn_real_start"
 
-  def __init__(self, is_movers) -> None:
-    super().__init__(True, False, True, is_movers)
+  def __init__(self, domain_type: EDomainType) -> None:
+    super().__init__(True, True, True, domain_type)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     return super().init_user_data(user_game_data)
@@ -79,8 +91,7 @@ class CanvasPageWarning(Exp1PageBase):
     drawing_order.append(self.BTN_REAL_START)
     drawing_order.append(self.TEXT_WARNING)
 
-    drawing_order = drawing_order + co.ACTION_BUTTONS
-    drawing_order.append(co.BTN_SELECT)
+    drawing_order = drawing_order + self._get_control_button_names()
 
     drawing_order.append(self.TEXT_SCORE)
 
@@ -90,7 +101,7 @@ class CanvasPageWarning(Exp1PageBase):
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
 
-    objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
+    objs = self._get_control_buttons()
     for obj in objs:
       dict_objs[obj.name] = obj
 
@@ -115,12 +126,25 @@ class CanvasPageWarning(Exp1PageBase):
 
     return dict_objs
 
+  def _get_control_buttons(self):
+    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
+      return get_btn_boxpush_actions(self.GAME_WIDTH, self.GAME_RIGHT, True,
+                                     True, True, True, True, True, True, True)
+    else:
+      return []
 
-class CanvasPageEnd(Exp1PageBase):
+  def _get_control_button_names(self) -> list:
+    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
+      return co.ACTION_BUTTONS + [co.BTN_SELECT]
+    else:
+      return []
+
+
+class CanvasPageEnd(ExperimentPageBase):
   TEXT_END = "text_end"
 
-  def __init__(self, is_movers) -> None:
-    super().__init__(False, False, True, is_movers)
+  def __init__(self, domain_type) -> None:
+    super().__init__(False, False, True, domain_type)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     user = user_game_data.data[Exp1UserData.USER]

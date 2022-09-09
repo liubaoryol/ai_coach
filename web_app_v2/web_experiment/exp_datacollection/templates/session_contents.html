@@ -7,10 +7,33 @@
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
   crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8"
-  src="{{ url_for('exp_dcollect.static', filename='exp1_game_logic.js') }}"></script>
+<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
 <script type="text/javascript">
-  initGlobalObject("{{ socket_name_space }}");
+  initSocketIO("{{ socket_name_space }}");
+
+  // set task end behavior
+  socket.on("task_end", function () {
+    if (document.getElementById("submit") != null) {
+      if (document.getElementById("submit").disabled) {
+        document.getElementById("submit").disabled = false;
+      }
+    }
+  });
+
+  // block default key event handler (block scroll bar movement by key)
+  window.addEventListener(
+    "keydown",
+    function (e) {
+      if (
+        ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(
+          e.code
+        ) > -1
+      ) {
+        e.preventDefault();
+      }
+    },
+    false
+  );
 </script>
 
 <canvas id="myCanvas" width="900" height="600" style="border: 5px solid #000000" tabindex="1">

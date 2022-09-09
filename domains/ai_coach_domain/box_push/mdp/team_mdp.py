@@ -1,18 +1,16 @@
 import numpy as np
-from ai_coach_core.utils.mdp_utils import ActionSpace
-from ai_coach_domain.box_push import BoxState, EventType
-from ai_coach_domain.box_push.defines import (transition_alone_and_together,
-                                              transition_always_together,
-                                              transition_always_alone)
+from ai_coach_domain.box_push import BoxState, EventType, AGENT_ACTIONSPACE
+from ai_coach_domain.box_push.transition import (transition_alone_and_together,
+                                                 transition_always_together,
+                                                 transition_always_alone)
 from ai_coach_domain.box_push.mdp import BoxPushMDP
 
 
 class BoxPushTeamMDP(BoxPushMDP):
   def init_actionspace(self):
     self.dict_factored_actionspace = {}
-    action_states = [EventType(idx) for idx in range(6)]
-    self.a1_a_space = ActionSpace(actionspace=action_states)
-    self.a2_a_space = ActionSpace(actionspace=action_states)
+    self.a1_a_space = AGENT_ACTIONSPACE
+    self.a2_a_space = AGENT_ACTIONSPACE
     self.dict_factored_actionspace = {0: self.a1_a_space, 1: self.a2_a_space}
 
   def transition_model(self, state_idx: int, action_idx: int) -> np.ndarray:
@@ -23,9 +21,8 @@ class BoxPushTeamMDP(BoxPushMDP):
 
     act1, act2 = self.conv_mdp_aidx_to_sim_actions(action_idx)
 
-    list_p_next_env = self.transition_fn(box_states, a1_pos, a2_pos, act1, act2,
-                                         self.boxes, self.goals, self.walls,
-                                         self.drops, self.x_grid, self.y_grid)
+    list_p_next_env = self._transition_impl(box_states, a1_pos, a2_pos, act1,
+                                            act2)
     list_next_p_state = []
     map_next_state = {}
     for p, box_states_list, a1_pos_n, a2_pos_n in list_p_next_env:
@@ -41,9 +38,11 @@ class BoxPushTeamMDP(BoxPushMDP):
 
 
 class BoxPushTeamMDP_AloneOrTogether(BoxPushTeamMDP):
-  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
-    super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
-                     transition_alone_and_together)
+  def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
+    return transition_alone_and_together(box_states, a1_pos, a2_pos, a1_action,
+                                         a2_action, self.boxes, self.goals,
+                                         self.walls, self.drops, self.x_grid,
+                                         self.y_grid)
 
   def get_possible_box_states(self):
     box_states = [(BoxState(idx), None) for idx in range(4)]
@@ -103,9 +102,11 @@ class BoxPushTeamMDP_AloneOrTogether(BoxPushTeamMDP):
 
 
 class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
-  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
-    super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
-                     transition_always_together)
+  def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
+    return transition_always_together(box_states, a1_pos, a2_pos, a1_action,
+                                      a2_action, self.boxes, self.goals,
+                                      self.walls, self.drops, self.x_grid,
+                                      self.y_grid)
 
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithBoth, None)]
@@ -186,9 +187,11 @@ class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
 
 
 class BoxPushTeamMDP_AlwaysAlone(BoxPushTeamMDP):
-  def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, **kwargs):
-    super().__init__(x_grid, y_grid, boxes, goals, walls, drops,
-                     transition_always_alone)
+  def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
+    return transition_always_alone(box_states, a1_pos, a2_pos, a1_action,
+                                   a2_action, self.boxes, self.goals,
+                                   self.walls, self.drops, self.x_grid,
+                                   self.y_grid)
 
   def get_possible_box_states(self):
     box_states = [(BoxState(idx), None) for idx in range(3)]
