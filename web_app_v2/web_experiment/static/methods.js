@@ -356,11 +356,24 @@ class ButtonObject extends Primitive {
       context.textAlign = this.text_align;
       context.textBaseline = this.text_baseline;
       context.font = "bold " + this.font_size + "px arial";
-      context.fillText(
-        this.text,
-        this.x_origin + this.x_text_offset,
-        this.y_origin + this.y_text_offset
-      );
+
+      let array_text = this.text.split("\n");
+      if (array_text.length == 1) {
+        context.fillText(
+          this.text,
+          this.x_origin + this.x_text_offset,
+          this.y_origin + this.y_text_offset
+        );
+      } else {
+        const hei =
+          (array_text.length - 1) * (this.font_size * 1.1) + this.font_size;
+        let y_pos =
+          this.y_origin + this.y_text_offset - hei / 2 + this.font_size / 2;
+        for (const txt of array_text) {
+          context.fillText(txt, this.x_origin + this.x_text_offset, y_pos);
+          y_pos = y_pos + this.font_size * 1.1;
+        }
+      }
     }
   }
 
@@ -640,7 +653,6 @@ class TextObject extends DrawingObject {
     let array_sentence = this.text.split("\n");
     for (const sent of array_sentence) {
       let idx = 0;
-      // const new_sent = sent.replace(/-/g, "- ");
       let array_text = sent.split(" ");
       const num_word = array_text.length;
       while (idx < num_word) {
