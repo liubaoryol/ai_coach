@@ -326,6 +326,16 @@ def rescue_game_scene(
 
   font_size = 15
   if include_background:
+    river_coords = [
+        coord_2_canvas(0.68, 1),
+        coord_2_canvas(0.75, 0.9),
+        coord_2_canvas(0.77, 0.83),
+        coord_2_canvas(0.85, 0.77),
+        coord_2_canvas(1, 0.7)
+    ]
+    obj = co.Curve(co.IMG_BACKGROUND, river_coords, 30, "blue")
+    add_obj(obj)
+
     for idx, route in enumerate(routes):
       list_coord = []
       list_coord.append(coord_2_canvas(*places[route.start].coord))
@@ -333,42 +343,65 @@ def rescue_game_scene(
         list_coord.append(coord_2_canvas(*coord))
       list_coord.append(coord_2_canvas(*places[route.end].coord))
 
-      obj = co.Curve(co.IMG_ROUTE + str(idx), list_coord, 5, "grey")
+      obj = co.Curve(co.IMG_ROUTE + str(idx), list_coord, 10, "grey")
       add_obj(obj)
 
-    def add_place(name, pos, scale_x, scale_y, text_offset):
+    def add_place(place: Place, offset, scale_x, scale_y, text_offset):
+      name = place.name
+      building_pos = np.array(place.coord) + np.array(offset)
+      canvas_pt = coord_2_canvas(*place.coord)
+
       wid = place_w * scale_x
       hei = place_h * scale_y
       size = size_2_canvas(wid, hei)
-      game_pos = coord_2_canvas(pos[0] - wid / 2, pos[1] - hei / 2)
+      game_pos = coord_2_canvas(building_pos[0] - wid / 2,
+                                building_pos[1] - hei / 2)
       text_width = size[0] * 2
       text_pos = (int(game_pos[0] + 0.5 * size[0] - 0.5 * text_width),
                   int(game_pos[1] - font_size +
                       size_2_canvas(text_offset, 0)[0]))
+      obj = co.Circle("ground" + name, canvas_pt,
+                      size_2_canvas(0.03, 0)[0], "grey")
+      add_obj(obj)
       obj = co.GameObject(name, game_pos, size, 0, RESCUE_NAME_PLACE2IMG[name])
       add_obj(obj)
       obj = co.TextObject("text" + name, text_pos, text_width, font_size, name,
                           "center")
       add_obj(obj)
 
-    add_place(places[0].name,
-              np.array(places[0].coord) + np.array([0, -0.05]), 1, 1, 0)
-    add_place(places[1].name,
-              np.array(places[1].coord) + np.array([0, -0.05]), 1, 0.8, 0)
-    add_place(places[2].name,
-              np.array(places[2].coord) + np.array([-0.05, 0]), 1, 1, 0)
-    add_place(places[5].name, np.array(places[5].coord), 1.2, 1.2, -0.01)
-    add_place(places[4].name,
-              np.array(places[4].coord) + np.array([0, -0.05]), 1.3, 1.0, 0)
+    # Fire_stateion
+    add_place(places[0], (0.05, -0.1), 1, 1, 0)
+    # City_hall
+    add_place(places[1], (-0.03, -0.05), 1, 0.8, 0)
+    # Police_station
+    add_place(places[2], (-0.09, 0), 1, 1, 0)
+    # Campsite
+    add_place(places[4], (0, -0.07), 1.3, 1.0, 0)
+    # Mall
+    add_place(places[5], (0, -0.05), 1.2, 1.2, 0)
 
   work_locations = game_env["work_locations"]  # type: Sequence[Location]
   work_states = game_env["work_states"]
   work_info = game_env["work_info"]  # type: Sequence[Work]
 
+  pos_a1 = location_2_coord(game_env["a1_pos"], places, routes)
+  pos_a2 = location_2_coord(game_env["a2_pos"], places, routes)
+  wid_a = place_w * 0.7
+  hei_a = place_h * 0.7
+  offset_x_a1 = 0
+  offset_y_a1 = 0
+  offset_x_a2 = 0
+  offset_y_a2 = 0
   for idx, wstate in enumerate(work_states):
     if wstate != 0:
       loc = work_locations[idx]
       pos = location_2_coord(loc, places, routes)
+      if pos == pos_a1:
+        offset_x_a1 = -wid_a * 0.7 / 2
+        offset_y_a1 = hei_a * 0.5 / 2
+      if pos == pos_a2:
+        offset_x_a2 = wid_a * 0.7 / 2
+        offset_y_a2 = -hei_a * 0.5 / 2
 
       wid = place_w * 0.5
       hei = place_h * 0.5
@@ -388,32 +421,32 @@ def rescue_game_scene(
           pos = location_2_coord(loc, places, routes)
           wid = place_w
           hei = place_h
-          game_pos = coord_2_canvas(pos[0] + wid, pos[1] + hei)
-          size = size_2_canvas(wid, hei)
-          obj = co.GameObject(place.name, game_pos, size, -0.25 * np.pi,
+          game_pos = coord_2_canvas(pos[0] + wid * 0 / 2,
+                                    pos[1] + hei * 0.01 / 2)
+          size = size_2_canvas(wid, hei * 0.25)
+          obj = co.GameObject(place.name, game_pos, size, 0.15 * np.pi,
                               co.IMG_BRIDGE)
           add_obj(obj)
 
-  pos_a1 = location_2_coord(game_env["a1_pos"], places, routes)
-  wid = place_w * 0.8
-  hei = place_h * 0.8
-  offset_x = -place_w * 0.2
-  offset_y = place_h * 0
-  game_pos = coord_2_canvas(pos_a1[0] + offset_x - wid / 2,
-                            pos_a1[1] + offset_y - hei / 2)
-  size = size_2_canvas(wid, hei)
-  obj = co.GameObject(co.IMG_POLICE_CAR, game_pos, size, 0, co.IMG_POLICE_CAR)
-  add_obj(obj)
+  if pos_a1 == pos_a2 and offset_x_a1 == 0:
+    offset_x_a1 = -wid_a * 0.7 / 2
+    offset_y_a1 = hei_a * 0.5 / 2
+    offset_x_a2 = wid_a * 0.7 / 2
+    offset_y_a2 = -hei_a * 0.5 / 2
 
-  pos_a2 = location_2_coord(game_env["a2_pos"], places, routes)
-  wid = place_w * 0.8
-  hei = place_h * 0.8
-  offset_x = place_w * 0.2
-  offset_y = place_h * 0
-  game_pos = coord_2_canvas(pos_a2[0] + offset_x - wid / 2,
-                            pos_a2[1] + offset_y - hei / 2)
-  size = size_2_canvas(wid, hei)
-  obj = co.GameObject(co.IMG_FIRE_ENGINE, game_pos, size, 0, co.IMG_FIRE_ENGINE)
+  game_pos_a1 = coord_2_canvas(pos_a1[0] + offset_x_a1 - wid_a / 2,
+                               pos_a1[1] + offset_y_a1 - hei_a / 2)
+  size_a1 = size_2_canvas(wid_a, hei_a)
+
+  game_pos_a2 = coord_2_canvas(pos_a2[0] + offset_x_a2 - wid_a / 2,
+                               pos_a2[1] + offset_y_a2 - hei_a / 2)
+  size_a2 = size_2_canvas(wid_a, hei_a)
+
+  obj = co.GameObject(co.IMG_POLICE_CAR, game_pos_a1, size_a1, 0,
+                      co.IMG_POLICE_CAR)
+  add_obj(obj)
+  obj = co.GameObject(co.IMG_FIRE_ENGINE, game_pos_a2, size_a2, 0,
+                      co.IMG_FIRE_ENGINE)
   add_obj(obj)
 
   return game_objs
@@ -429,25 +462,30 @@ def rescue_game_scene_names(
     if cb_is_visible is None or cb_is_visible(obj_name):
       drawing_names.append(obj_name)
 
+  add_obj_name(co.IMG_BACKGROUND)
+
   routes = game_env["routes"]  # type: Sequence[Route]
   for idx, _ in enumerate(routes):
     add_obj_name(co.IMG_ROUTE + str(idx))
 
-  places = game_env["places"]  # type: Sequence[Place]
-  for idx in [0, 1, 2, 4, 5]:
-    add_obj_name(places[idx].name)
-    add_obj_name("text" + places[idx].name)
-
   work_locations = game_env["work_locations"]  # type: Sequence[Location]
   work_states = game_env["work_states"]
+  places = game_env["places"]  # type: Sequence[Place]
   for idx, wstate in enumerate(work_states):
-    if wstate != 0:
-      add_obj_name(co.IMG_WORK + str(idx))
-    else:
+    if wstate == 0:
       if work_locations[idx].type == E_Type.Place:
         place = places[work_locations[idx].id]
         if place.name in [PlaceName.Bridge_1, PlaceName.Bridge_2]:
           add_obj_name(place.name)
+
+  for idx in [0, 1, 2, 4, 5]:
+    add_obj_name("ground" + places[idx].name)
+    add_obj_name(places[idx].name)
+    add_obj_name("text" + places[idx].name)
+
+  for idx, wstate in enumerate(work_states):
+    if wstate != 0:
+      add_obj_name(co.IMG_WORK + str(idx))
 
   add_obj_name(co.IMG_POLICE_CAR)
   add_obj_name(co.IMG_FIRE_ENGINE)
