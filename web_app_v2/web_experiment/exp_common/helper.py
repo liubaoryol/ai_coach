@@ -4,7 +4,7 @@ import time
 import numpy as np
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
 from ai_coach_domain.rescue import (Place, Route, Location, E_Type, PlaceName,
-                                    Work)
+                                    Work, is_work_done)
 import web_experiment.exp_common.canvas_objects as co
 
 RESCUE_NAME_PLACE2IMG = {
@@ -369,6 +369,20 @@ def rescue_game_scene(
                           "center")
       add_obj(obj)
 
+      p_wid = place_w * 0.2
+      p_hei = p_wid * 2.5
+      p_size = size_2_canvas(p_wid, p_hei)
+      for pidx in range(place.helps):
+        if pidx < 2:
+          p_x = game_pos[0] - p_size[0] * (pidx + 1)
+          p_y = game_pos[1] + size[1] - p_size[1]
+        else:
+          p_x = game_pos[0] - p_size[0] * (pidx - 1)
+          p_y = game_pos[1] + size[1] - 2 * p_size[1]
+        obj = co.GameObject("human" + name + str(pidx), (p_x, p_y), p_size, 0,
+                            co.IMG_HUMAN)
+        add_obj(obj)
+
     # Fire_stateion
     add_place(places[0], (0.05, -0.1), 1, 1, 0)
     # City_hall
@@ -486,6 +500,14 @@ def rescue_game_scene_names(
   for idx, wstate in enumerate(work_states):
     if wstate != 0:
       add_obj_name(co.IMG_WORK + str(idx))
+
+  work_info = game_env["work_info"]  # type: Sequence[Work]
+  for idx, _ in enumerate(work_states):
+    if not is_work_done(idx, work_states, work_info[idx].coupled_works):
+      place = places[work_info[idx].rescue_place]
+      num_help = place.helps
+      for pidx in range(num_help):
+        add_obj_name("human" + place.name + str(pidx))
 
   add_obj_name(co.IMG_POLICE_CAR)
   add_obj_name(co.IMG_FIRE_ENGINE)

@@ -51,6 +51,7 @@ IMG_CITY_HALL = "city_hall"
 IMG_CAMPSITE = "campsite"
 IMG_MALL = "mall"
 IMG_BRIDGE = "bridge"
+IMG_HUMAN = "human"
 
 ################################################################################
 # Classes here should always match with corresponding javascript classes

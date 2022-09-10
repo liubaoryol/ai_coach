@@ -248,12 +248,11 @@ class RescueGamePageBase(ExperimentPageBase):
           coord_n = np.array(places[connection[1]].coord)
         else:
           if routes[connection[1]].start == a1pos.id:
-            dest = routes[connection[1]].end
+            coord_n = np.array(routes[connection[1]].coords[0])
           elif routes[connection[1]].end == a1pos.id:
-            dest = routes[connection[1]].start
+            coord_n = np.array(routes[connection[1]].coords[-1])
           else:
             raise ValueError("Invalid map")
-          coord_n = np.array(places[dest].coord)
 
         direction = coord_n - coord_c
         direction = direction / np.linalg.norm(direction)
@@ -317,20 +316,10 @@ class RescueGamePageBase(ExperimentPageBase):
                           fill=True,
                           border=False)
     list_buttons.append(obj)
-
-    # ctrl_btn_w = int(self.GAME_WIDTH / 12)
-    # btn_stay = co.ButtonRect(self.STAY, (x_ctrl_cen + int(ctrl_btn_w * 1.5),
-    #                                      y_ctrl_cen - int(ctrl_btn_w * 0.6)),
-    #                          (ctrl_btn_w * 2, ctrl_btn_w),
-    #                          font_size,
-    #                          "Stay",
-    #                          disable=disable_stay)
-    # list_buttons.append(btn_stay)
-
-    btn_rescue = co.ButtonRect(self.RESCUE, (x_ctrl_cen + 60, y_ctrl_cen - 20),
-                               (120, 100),
+    btn_rescue = co.ButtonRect(self.RESCUE, (x_ctrl_cen + 75, y_ctrl_cen),
+                               (120, 50),
                                font_size,
-                               "Resolve \nthe Situation",
+                               "Rescue",
                                disable=disable_rescue)
     list_buttons.append(btn_rescue)
 

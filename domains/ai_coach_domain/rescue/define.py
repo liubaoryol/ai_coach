@@ -78,6 +78,7 @@ class Route:
 @dataclass
 class Work:
   workload: int
+  rescue_place: T_PlaceId
   coupled_works: Sequence = field(default_factory=list)
 
 

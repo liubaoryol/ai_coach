@@ -38,6 +38,7 @@ def get_imgs(domain_type: EDomainType):
         {'name': co.IMG_CAMPSITE, 'src': url_for('static', filename='rescue_images/camping.svg')},  # noqa: E501
         {'name': co.IMG_BRIDGE, 'src': url_for('static', filename='rescue_images/bridge.svg')},  # noqa: E501
         {'name': co.IMG_MALL, 'src': url_for('static', filename='rescue_images/mall.svg')},  # noqa: E501
+        {'name': co.IMG_HUMAN, 'src': url_for('static', filename='rescue_images/person.svg')},  # noqa: E501
     ]
     # yapf: enable
   else:

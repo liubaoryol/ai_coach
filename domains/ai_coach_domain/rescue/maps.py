@@ -33,9 +33,9 @@ MAP_RESCUE = {
         Location(E_Type.Place, id=4)
     ],
     "work_info": [
-        Work(workload=1, coupled_works=[]),
-        Work(workload=2, coupled_works=[]),
-        Work(workload=1, coupled_works=[])
+        Work(workload=1, rescue_place=1, coupled_works=[]),
+        Work(workload=2, rescue_place=3, coupled_works=[]),
+        Work(workload=1, rescue_place=4, coupled_works=[])
     ],
     "a1_init":
     Location(E_Type.Place, 2),
@@ -96,10 +96,10 @@ MAP_RESCUE_2 = {
         Location(E_Type.Place, id=6),
     ],
     "work_info": [
-        Work(workload=1),
-        Work(workload=2, coupled_works=[3]),
-        Work(workload=1),
-        Work(workload=2, coupled_works=[1]),
+        Work(workload=1, rescue_place=1),
+        Work(workload=2, rescue_place=5, coupled_works=[3]),
+        Work(workload=1, rescue_place=4),
+        Work(workload=2, rescue_place=5, coupled_works=[1]),
     ],
     "a1_init":
     Location(E_Type.Place, 2),
