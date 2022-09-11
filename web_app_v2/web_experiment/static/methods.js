@@ -936,10 +936,8 @@ class GameData {
           item.end,
           item.linewidth
         );
-        console.log(tmp_obj);
       } else if (item.obj_type == "Curve") {
         tmp_obj = new Curve(item.name, item.coords, item.linewidth);
-        console.log(tmp_obj);
       } else if (item.obj_type == "ClippedRectangle") {
         tmp_obj = new ClippedRectangle(
           item.name,

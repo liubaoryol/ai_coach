@@ -175,13 +175,13 @@ PAGE_LIST_RESCUE_TUTORIAL = [
 ]
 
 GAMEPAGES = {
-    SocketType.DataCol_movers_practice: PAGE_LIST_MOVERS,
+    SocketType.DataCol_movers_practice: PAGE_LIST_MOVERS_FULL_OBS,
     SocketType.DataCol_movers_test: PAGE_LIST_MOVERS,
-    SocketType.DataCol_cleanup_practice: PAGE_LIST_CLEANUP,
+    SocketType.DataCol_cleanup_practice: PAGE_LIST_CLEANUP_FULL_OBS,
     SocketType.DataCol_cleanup_test: PAGE_LIST_CLEANUP,
     SocketType.DataCol_movers_tutorial: PAGE_LIST_MOVERS_TUTORIAL,
     SocketType.DataCol_cleanup_tutorial: PAGE_LIST_CLEANUP_TUTORIAL,
-    SocketType.DataCol_rescue_practice: PAGE_LIST_RESCUE,
+    SocketType.DataCol_rescue_practice: PAGE_LIST_RESCUE_FULL_OBS,
     SocketType.DataCol_rescue_test: PAGE_LIST_RESCUE,
     SocketType.DataCol_rescue_tutorial: PAGE_LIST_RESCUE_TUTORIAL,
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]

@@ -8,8 +8,9 @@ from web_experiment.models import db, ExpDataCollection, ExpIntervention
 from web_experiment.define import ExpType, EDomainType
 from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.box_push import conv_box_state_2_idx, EventType, BoxState
-from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team2,
-                                            BoxPushAIAgent_Indv2)
+from ai_coach_domain.box_push.agent import (BoxPushAIAgent_PO_Indv,
+                                            BoxPushAIAgent_Team2,
+                                            BoxPushAIAgent_PO_Team)
 
 
 class CanvasPageTutorialStart(ExperimentPageBase):
@@ -430,8 +431,12 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
 
     agent1 = InteractiveAgent()
 
+    init_states = ([0] * len(self._GAME_MAP["boxes"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
+      agent2 = BoxPushAIAgent_PO_Team(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
     else:
       agent2 = InteractiveAgent()
 
@@ -482,6 +487,7 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
 
     game = user_game_data.get_game_ref()
     agent1 = InteractiveAgent()
+
     if self._DOMAIN_TYPE == EDomainType.Movers:
       agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
     else:
@@ -524,8 +530,8 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
 
     return ("After picking up the " + object_type +
-            ", you need to drop it at the flag. " + "Please carry the " +
-            object_type + " to the flag and drop it there.")
+            ", you need to drop it at the truck. " + "Please carry the " +
+            object_type + " to the truck and drop it there.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -766,10 +772,16 @@ class CanvasPageMiniGame(CanvasPageTutorialBase):
 
     game = user_game_data.get_game_ref()
     agent1 = InteractiveAgent()
+    init_states = ([0] * len(self._GAME_MAP["boxes"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
+      agent2 = BoxPushAIAgent_PO_Team(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
     else:
-      agent2 = BoxPushAIAgent_Indv2(self._TEAMMATE_POLICY)
+      agent2 = BoxPushAIAgent_PO_Indv(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
 
     game.set_autonomous_agent(agent1, agent2)
     game.event_input(self._AGENT1, EventType.SET_LATENT, ("pickup", 0))

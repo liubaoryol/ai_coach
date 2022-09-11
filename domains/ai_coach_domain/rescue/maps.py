@@ -57,7 +57,7 @@ MAP_RESCUE_2 = {
         Route(start=0,
               end=1,
               length=4,
-              coords=[(0.35, 0.35), (0.33, 0.25), (0.32, 0.17), (0.26, 0.11)]),
+              coords=[(0.35, 0.35), (0.33, 0.25), (0.32, 0.17), (0.28, 0.11)]),
         Route(start=0, end=2, length=2, coords=[(0.36, 0.53), (0.3, 0.59)]),
         Route(start=0,
               end=6,

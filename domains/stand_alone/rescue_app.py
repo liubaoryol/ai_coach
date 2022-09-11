@@ -6,7 +6,8 @@ from ai_coach_domain.rescue import (E_EventType, Work, Location, Place, Route,
 from ai_coach_domain.rescue.maps import MAP_RESCUE, MAP_RESCUE_2
 from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue.agent import AIAgent_Rescue
+from ai_coach_domain.rescue.agent import (AIAgent_Rescue,
+                                          AIAgent_Rescue_PartialObs)
 from ai_coach_domain.rescue.policy import Policy_Rescue
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 
@@ -21,15 +22,18 @@ class RescueApp(AppInterface):
     self.game = RescueSimulator()
     self.game.max_steps = 100
 
-    AGENT_2 = RescueSimulator.AGENT2
-    TEMPERATURE = 0.3
+    self.game.init_game(**GAME_MAP)
 
+    TEMPERATURE = 0.3
+    AGENT_2 = RescueSimulator.AGENT2
     task_mdp = MDP_Rescue_Task(**GAME_MAP)
     agent_mdp = MDP_Rescue_Agent(**GAME_MAP)
     policy2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, AGENT_2)
-    agent2 = AIAgent_Rescue(AGENT_2, policy2)
+    # agent2 = AIAgent_Rescue(AGENT_2, policy2)
+    init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
+                   GAME_MAP["a2_init"])
+    agent2 = AIAgent_Rescue_PartialObs(init_states, AGENT_2, policy2)
 
-    self.game.init_game(**GAME_MAP)
     self.game.set_autonomous_agent(agent2=agent2)
 
   def _init_gui(self):

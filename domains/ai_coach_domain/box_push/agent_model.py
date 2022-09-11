@@ -193,6 +193,95 @@ class BoxPushAM_Together(BoxPushAM):
                                       box_states_nxt, valid_boxes, 0.1)
 
 
+class BoxPushAM_Together_V2(BoxPushAM):
+  def get_np_Tx_team_impl(self,
+                          latstate_idx,
+                          my_box_cur,
+                          mate_box_cur,
+                          my_box_nxt,
+                          mate_box_nxt,
+                          my_pos,
+                          mate_pos,
+                          box_states_nxt,
+                          valid_boxes_nxt: list,
+                          p_change=0.1):
+    mdp = self.get_reference_mdp()  # type: BoxPushMDP
+
+    num_drops = len(mdp.drops)
+    num_goals = len(mdp.goals)
+
+    my_pickup = my_box_cur < 0 and my_box_nxt >= 0
+    my_drop = my_box_cur >= 0 and my_box_nxt < 0
+
+    num_valid_box = len(valid_boxes_nxt)
+    np_Tx = np.zeros(self.policy_model.get_num_latent_states())
+    if my_pickup:
+      xidx = self.policy_model.conv_latent_to_idx(("goal", 0))
+      np_Tx[xidx] = 1
+      return np_Tx
+    elif my_drop:
+      if num_valid_box > 0:
+        for idx in valid_boxes_nxt:
+          xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
+          np_Tx[xidx] = 1 / num_valid_box
+        return np_Tx
+    elif my_box_nxt < 0:
+      latent = self.policy_model.conv_idx_to_latent(latstate_idx)
+      # change latent
+      if latent[0] == "pickup":
+        box_pos = mdp.boxes[latent[1]]
+
+        agent_dist = max(abs(my_pos[0] - mate_pos[0]),
+                         abs(my_pos[1] - mate_pos[1]))
+        if my_pos == box_pos and agent_dist > 1:
+          if latent[1] in valid_boxes_nxt:
+            valid_boxes_nxt.remove(latent[1])
+
+          num_possible_box = len(valid_boxes_nxt)
+          if num_possible_box > 0:
+            np_Tx[latstate_idx] = 1 - p_change
+            for idx in valid_boxes_nxt:
+              xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
+              np_Tx[xidx] = p_change / num_possible_box
+          else:
+            np_Tx[latstate_idx] = 1
+
+          return np_Tx
+
+    np_Tx[latstate_idx] = 1
+    return np_Tx
+
+  def transition_mental_state(self, latstate_idx: int, obstate_idx: int,
+                              tuple_action_idx: Sequence[int],
+                              obstate_next_idx: int) -> np.ndarray:
+    '''
+    obstate_idx: absolute (task-perspective) state representation.
+          Here, we assume agent1 state space and task state space is the same
+    '''
+    mdp = self.get_reference_mdp()  # type: BoxPushMDP
+
+    num_drops = len(mdp.drops)
+    num_goals = len(mdp.goals)
+
+    box_states_cur, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
+    box_states_nxt, a1_pos, a2_pos = mdp.conv_mdp_sidx_to_sim_states(
+        obstate_next_idx)
+
+    a1_box_cur, a2_box_cur, _ = get_holding_box_and_floor_boxes(
+        box_states_cur, num_drops, num_goals)
+    a1_box_nxt, a2_box_nxt, valid_boxes = get_holding_box_and_floor_boxes(
+        box_states_nxt, num_drops, num_goals)
+
+    if self.agent_idx == 0:
+      return self.get_np_Tx_team_impl(latstate_idx, a1_box_cur, a2_box_cur,
+                                      a1_box_nxt, a2_box_nxt, a1_pos, a2_pos,
+                                      box_states_nxt, valid_boxes, 0.1)
+    else:
+      return self.get_np_Tx_team_impl(latstate_idx, a2_box_cur, a1_box_cur,
+                                      a2_box_nxt, a1_box_nxt, a2_pos, a1_pos,
+                                      box_states_nxt, valid_boxes, 0.1)
+
+
 class BoxPushAM_WebExp_Both(BoxPushAM_Together):
   def __init__(self, policy_model: Optional[PolicyInterface] = None) -> None:
     super().__init__(1, policy_model=policy_model)
@@ -289,3 +378,62 @@ class BoxPushAM_Alone(BoxPushAM):
       return get_np_Tx_indv_impl(a1_box_cur, a2_box_cur, a1_box_nxt, a2_box_nxt)
     else:
       return get_np_Tx_indv_impl(a2_box_cur, a1_box_cur, a2_box_nxt, a1_box_nxt)
+
+
+class BoxPushAM_Alone_V2(BoxPushAM):
+  def transition_mental_state(self, latstate_idx: int, obstate_idx: int,
+                              tuple_action_idx: Sequence[int],
+                              obstate_next_idx: int) -> np.ndarray:
+    '''
+    obstate_idx: absolute (task-perspective) state representation.
+          Here, we assume agent1 state space and task state space is the same
+    '''
+    mdp = self.get_reference_mdp()  # type: BoxPushMDP
+
+    num_drops = len(mdp.drops)
+    num_goals = len(mdp.goals)
+
+    box_states_cur, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_idx)
+    box_states_nxt, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_next_idx)
+
+    a1_box_cur, a2_box_cur, _ = get_holding_box_and_floor_boxes(
+        box_states_cur, num_drops, num_goals)
+    a1_box_nxt, a2_box_nxt, valid_boxes = get_holding_box_and_floor_boxes(
+        box_states_nxt, num_drops, num_goals)
+
+    def get_np_Tx_indv_impl(my_box_cur, my_box_nxt):
+      my_pickup = my_box_cur < 0 and my_box_nxt >= 0
+      my_drop = my_box_cur >= 0 and my_box_nxt < 0
+
+      num_valid_box = len(valid_boxes)
+      np_Tx = np.zeros(self.policy_model.get_num_latent_states())
+      if my_pickup:
+        xidx = self.policy_model.conv_latent_to_idx(("goal", 0))
+        np_Tx[xidx] = 1
+        return np_Tx
+      elif my_drop:
+        if num_valid_box > 0:
+          for idx in valid_boxes:
+            xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
+            np_Tx[xidx] = 1 / num_valid_box
+          return np_Tx
+
+      latent = self.policy_model.conv_idx_to_latent(latstate_idx)
+      # change latent
+      if latent[0] == "pickup":
+        bidx = box_states_nxt[latent[1]]
+        bstate = conv_box_idx_2_state(bidx, num_drops, num_goals)
+        if bstate[0] != BoxState.Original:
+          if num_valid_box > 0:
+            for idx in valid_boxes:
+              xidx = self.policy_model.conv_latent_to_idx(("pickup", idx))
+              np_Tx[xidx] = 1 / num_valid_box
+            return np_Tx
+
+      np_Tx[latstate_idx] = 1
+      return np_Tx
+
+    if self.agent_idx == 0:
+      return get_np_Tx_indv_impl(a1_box_cur, a1_box_nxt)
+    else:
+      return get_np_Tx_indv_impl(a2_box_cur, a2_box_nxt)

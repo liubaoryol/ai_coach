@@ -6,7 +6,7 @@ from web_experiment.define import ExpType
 from web_experiment.models import ExpDataCollection, ExpIntervention, db
 from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.rescue import E_EventType
-from ai_coach_domain.rescue.agent import AIAgent_Rescue
+from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
 
 MAX_STEP = str(30)
 
@@ -288,7 +288,10 @@ class RescueTutorialComplexTargetTogether(RescueTutorialBase):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
-    agent2 = AIAgent_Rescue(self._AGENT2, self._TEAMMATE_POLICY)
+    init_states = ([1] * len(self._GAME_MAP["work_locations"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
+    agent2 = AIAgent_Rescue_PartialObs(init_states, self._AGENT2,
+                                       self._TEAMMATE_POLICY)
     game.set_autonomous_agent(agent2=agent2)
 
     TARGET_BOTH = 1
@@ -359,7 +362,10 @@ class RescueTutorialPartialObs(RescueTutorialBase):
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
-    agent2 = AIAgent_Rescue(self._AGENT2, self._TEAMMATE_POLICY)
+    init_states = ([1] * len(self._GAME_MAP["work_locations"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
+    agent2 = AIAgent_Rescue_PartialObs(init_states, self._AGENT2,
+                                       self._TEAMMATE_POLICY)
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent(agent2=agent2)
     game.event_input(self._AGENT1, E_EventType.Set_Latent, None)
@@ -494,7 +500,10 @@ class RescueTutorialMiniGame(RescueTutorialBase):
     TARGET = 0
     game = user_game_data.get_game_ref()
     agent1 = InteractiveAgent()
-    agent2 = AIAgent_Rescue(self._AGENT2, self._TEAMMATE_POLICY)
+    init_states = ([1] * len(self._GAME_MAP["work_locations"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
+    agent2 = AIAgent_Rescue_PartialObs(init_states, self._AGENT2,
+                                       self._TEAMMATE_POLICY)
     game.set_autonomous_agent(agent1, agent2)
     game.event_input(self._AGENT1, E_EventType.Set_Latent, TARGET)
 

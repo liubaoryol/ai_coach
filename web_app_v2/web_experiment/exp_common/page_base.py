@@ -267,47 +267,19 @@ class ExperimentPageBase(CanvasPageBase):
 
     return text_instr
 
+  def _get_score_text(self, user_data: Exp1UserData):
+    return "Time Taken: 0"
+
   def _get_score_obj(self, user_data: Exp1UserData):
-    game = user_data.get_game_ref()
-    if game is None:
-      score = 0
-    else:
-      score = user_data.get_game_ref().current_step
-    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
-
-      if self._DOMAIN_TYPE == EDomainType.Movers:
-        best_score = user_data.data[Exp1UserData.USER].best_a
-      else:
-        best_score = user_data.data[Exp1UserData.USER].best_b
-
-      margin = 10
-      text_score = "Time Taken: " + str(score) + "\n"
-      if best_score == 999:
-        text_score += "(Your Best: - )"
-      else:
-        text_score += "(Your Best: " + str(best_score) + ")"
-      return co.TextObject(
-          self.TEXT_SCORE,
-          (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-          co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-          24,
-          text_score,
-          text_align="right")
-    elif self._DOMAIN_TYPE == EDomainType.Rescue:
-      best_score = 999
-
-      margin = 10
-      text_score = "Score: " + str(score) + "\n"
-      if best_score == 999:
-        text_score += "(Your Best: - )"
-      else:
-        text_score += "(Your Best: " + str(best_score) + ")"
-      return co.TextObject(
-          self.TEXT_SCORE,
-          (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-          co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-          24,
-          text_score,
-          text_align="right")
-    else:
-      raise ValueError(f"{self._DOMAIN_TYPE} is not implemented")
+    margin = 10
+    text_score = self._get_score_text(user_data)
+    num_line = len(text_score.split('\n'))
+    font_size = 20
+    return co.TextObject(
+        self.TEXT_SCORE,
+        (self.GAME_RIGHT + margin,
+         int(co.CANVAS_HEIGHT - num_line * font_size * 1.1 - margin)),
+        co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
+        font_size,
+        text_score,
+        text_align="right")

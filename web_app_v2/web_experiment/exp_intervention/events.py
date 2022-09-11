@@ -2,7 +2,7 @@ from typing import Mapping
 from flask import request, session, current_app
 from web_experiment import socketio
 from web_experiment.models import User, ExpIntervention
-from web_experiment.define import ExpType
+from web_experiment.define import ExpType, get_domain_type
 import web_experiment.exp_common.events_impl as event_impl
 from web_experiment.exp_intervention.define import GAMEPAGES, SocketType
 from web_experiment.exp_common.page_base import Exp1UserData
@@ -29,7 +29,8 @@ for socket_type in SocketType:
       expinfo = ExpIntervention.query.filter_by(subject_id=cur_user).first()
       user_data.data[Exp1UserData.SESSION_DONE] = getattr(expinfo, session_name)
 
-      event_impl.initial_canvas(session_name, user_data, GAMEPAGES[socket_type])
+      event_impl.initial_canvas(session_name, user_data, GAMEPAGES[socket_type],
+                                get_domain_type(session_name))
 
     return initial_canvas
 

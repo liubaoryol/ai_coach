@@ -5,16 +5,19 @@ from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.rescue import (E_EventType, Location, E_Type, Place,
                                     T_Connections, Route)
 from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue.agent import AIAgent_Rescue
+from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 from ai_coach_domain.rescue.policy import Policy_Rescue
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import EDomainType
+from web_experiment.models import db, User
 from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
 from web_experiment.exp_common.helper import (get_file_name, location_2_coord,
                                               rescue_game_scene,
                                               rescue_game_scene_names,
                                               RESCUE_PLACE_DRAW_INFO)
+
+RESCUE_MAX_STEP = 30
 
 
 def human_clear_problem(
@@ -72,6 +75,7 @@ class RescueGamePageBase(ExperimentPageBase):
     game = user_game_data.get_game_ref()
     if game is None:
       game = RescueSimulator()
+      game.max_steps = RESCUE_MAX_STEP
 
       user_game_data.set_game(game)
 
@@ -327,7 +331,7 @@ class RescueGamePageBase(ExperimentPageBase):
 
   def _get_btn_select(self, user_game_data: Exp1UserData):
     x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
-    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.83)
+    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.8)
 
     buttonsize = (int(self.GAME_WIDTH / 3), int(self.GAME_WIDTH / 15))
     font_size = 18
@@ -375,27 +379,11 @@ class RescueGamePageBase(ExperimentPageBase):
     '''
     user_game_data: NOTE - values will be updated
     '''
-
     user_game_data.data[Exp1UserData.GAME_DONE] = True
 
-    game = user_game_data.get_game_ref()
-    user = user_game_data.data[Exp1UserData.USER]
-    user_id = user.userid
-
-    # save trajectory
-    save_path = user_game_data.data[Exp1UserData.SAVE_PATH]
-    session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
-    file_name = get_file_name(save_path, user_id, session_name)
-    header = game.__class__.__name__ + "-" + session_name + "\n"
-    header += "User ID: %s\n" % (str(user_id), )
-    header += str(self._GAME_MAP)
-    game.save_history(file_name, header)
-
     # update score
+    game = user_game_data.get_game_ref()
     user_game_data.data[Exp1UserData.SCORE] = game.current_step
-
-    # move to next page
-    user_game_data.go_to_next_page()
 
   def _get_updated_drawing_objects(
       self,
@@ -645,6 +633,55 @@ class RescueGamePage(RescueGamePageBase):
     self._TEAMMATE_POLICY = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE,
                                           self._AGENT2)
 
+  def _on_game_finished(self, user_game_data: Exp1UserData):
+    '''
+    user_game_data: NOTE - values will be updated
+    '''
+    super()._on_game_finished(user_game_data)
+
+    game = user_game_data.get_game_ref()  # type: RescueSimulator
+    user = user_game_data.data[Exp1UserData.USER]
+    user_id = user.userid
+
+    # save trajectory
+    save_path = user_game_data.data[Exp1UserData.SAVE_PATH]
+    session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
+    file_name = get_file_name(save_path, user_id, session_name)
+    header = game.__class__.__name__ + "-" + session_name + "\n"
+    header += "User ID: %s\n" % (str(user_id), )
+    header += str(self._GAME_MAP)
+    game.save_history(file_name, header)
+
+    # update score
+    best_score = user.best_c
+
+    if best_score < game.score:
+      user = User.query.filter_by(userid=user_id).first()
+      user.best_c = game.score
+      db.session.commit()
+      user_game_data.data[Exp1UserData.USER] = user
+
+    # move to next page
+    user_game_data.go_to_next_page()
+    self.init_user_data(user_game_data)
+
+  def _get_score_text(self, user_data):
+    game = user_data.get_game_ref()
+    if game is None:
+      score = 0
+      time_taken = 0
+    else:
+      score = user_data.get_game_ref().score
+      time_taken = user_data.get_game_ref().current_step
+
+    best_score = user_data.data[Exp1UserData.USER].best_c
+
+    text_score = "Time Taken: " + str(time_taken) + "\n"
+    text_score += "Score: " + str(score) + "\n"
+    text_score += "(Your Best: " + str(best_score) + ")"
+
+    return text_score
+
 
 class RescueGameUserRandom(RescueGamePage):
   def __init__(self, game_map, partial_obs) -> None:
@@ -655,7 +692,10 @@ class RescueGameUserRandom(RescueGamePage):
     super().init_user_data(user_game_data)
 
     agent1 = InteractiveAgent()
-    agent2 = AIAgent_Rescue(self._AGENT2, self._TEAMMATE_POLICY)
+    init_states = ([1] * len(self._GAME_MAP["work_locations"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
+    agent2 = AIAgent_Rescue_PartialObs(init_states, self._AGENT2,
+                                       self._TEAMMATE_POLICY)
 
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent(agent1, agent2)

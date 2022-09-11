@@ -113,8 +113,9 @@ def read_file(file_name, domain_type: EDomainType):
   elif domain_type == EDomainType.Rescue:
     traj_of_list = RescueSimulator.read_file(file_name)
     for step, elem in enumerate(traj_of_list):
-      work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat = elem
+      score, work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat = elem
       traj_of_dict.append({
+          "score": score,
           "work_states": work_state,
           "a1_pos": a1_pos,
           "a2_pos": a2_pos,

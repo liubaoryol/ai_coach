@@ -3,7 +3,8 @@ import numpy as np
 from ai_coach_core.models.agent_model import AgentModel
 from ai_coach_core.models.policy import PolicyInterface, CachedPolicyInterface
 from ai_coach_domain.agent import SimulatorAgent
-from ai_coach_domain.rescue import AGENT_ACTIONSPACE, E_EventType, is_work_done
+from ai_coach_domain.rescue import (AGENT_ACTIONSPACE, E_EventType,
+                                    is_work_done, Location, E_Type)
 from ai_coach_domain.rescue.mdp import MDP_Rescue
 
 
@@ -130,7 +131,10 @@ class AIAgent_Rescue(SimulatorAgent):
 
     list_aidx = []
     for idx, act in enumerate(tup_actions):
-      list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
+      if act is None:
+        list_aidx.append(None)
+      else:
+        list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
 
     self.agent_model.update_mental_state_idx(sidx_cur, tuple(list_aidx),
                                              sidx_nxt)
@@ -141,3 +145,66 @@ class AIAgent_Rescue(SimulatorAgent):
 
   def set_action(self, action):
     self.manual_action = action
+
+
+class AIAgent_Rescue_PartialObs(AIAgent_Rescue):
+  def __init__(self,
+               init_tup_states,
+               agent_idx,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True) -> None:
+    super().__init__(agent_idx, policy_model, has_mind)
+    self.init_tup_states = init_tup_states
+    self.assumed_tup_states = init_tup_states
+
+  def observed_states(self, tup_states):
+    work_states, a1_pos, a2_pos = tup_states
+
+    mdp = self.agent_model.get_reference_mdp()  # type: MDP_Rescue
+
+    prev_work_states, prev_a1_pos, prev_a2_pos = self.assumed_tup_states
+    asm_work_states = list(prev_work_states)
+    asm_a1_pos = prev_a1_pos
+    asm_a2_pos = prev_a2_pos
+
+    asm_work_states = work_states
+
+    visible_plaec_locs = []
+    for idx, place in enumerate(mdp.places):
+      if place.visible:
+        visible_plaec_locs.append(Location(E_Type.Place, idx))
+
+    if self.agent_idx == 0:
+      asm_a1_pos = a1_pos
+
+      if a1_pos == a2_pos:
+        asm_a2_pos = a2_pos
+      elif a2_pos in visible_plaec_locs:
+        asm_a2_pos = a2_pos
+    else:
+      asm_a2_pos = a2_pos
+
+      if a1_pos == a2_pos:
+        asm_a1_pos = a1_pos
+      elif a1_pos in visible_plaec_locs:
+        asm_a1_pos = a1_pos
+
+    return asm_work_states, asm_a1_pos, asm_a2_pos
+
+  def init_latent(self, tup_state):
+    self.assumed_tup_states = self.init_tup_states
+    return super().init_latent(self.assumed_tup_states)
+
+  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
+    prev_tuple_states = self.assumed_tup_states
+    self.assumed_tup_states = self.observed_states(tup_nxt_state)
+
+    observed_actions = [None, None]
+    if self.agent_idx == 0:
+      observed_actions[0] = tup_actions[0]
+    else:
+      observed_actions[1] = tup_actions[1]
+
+    return super().update_mental_state(prev_tuple_states,
+                                       tuple(observed_actions),
+                                       self.assumed_tup_states)

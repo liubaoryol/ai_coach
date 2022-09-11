@@ -161,8 +161,8 @@ def boxpush_game_scene(
         game_objs.append(obj)
 
     for idx, coord in enumerate(game_env["goals"]):
-      hei = 0.8
-      wid = 0.724
+      hei = 1
+      wid = 1
       left = coord[0] + 0.5 - 0.5 * wid
       top = coord[1] + 0.5 - 0.5 * hei
       obj = co.GameObject(co.IMG_GOAL + str(idx), coord_2_canvas(left, top),

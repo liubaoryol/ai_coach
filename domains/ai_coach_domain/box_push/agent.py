@@ -4,19 +4,21 @@ from ai_coach_core.utils.feature_utils import (get_gridworld_astar_distance,
                                                manhattan_distance)
 from ai_coach_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent  # noqa: F401
-from ai_coach_domain.box_push.agent_model import (BoxPushAM, BoxPushAM_Alone,
-                                                  BoxPushAM_Together,
-                                                  BoxPushAM_EmptyMind,
-                                                  BoxPushAM_WebExp_Both)
+from ai_coach_domain.box_push.agent_model import (
+    BoxPushAM, BoxPushAM_Alone, BoxPushAM_Together, BoxPushAM_Together_V2,
+    BoxPushAM_Alone_V2, BoxPushAM_EmptyMind, BoxPushAM_WebExp_Both)
 from ai_coach_domain.box_push.mdp import BoxPushMDP
-from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
+from ai_coach_domain.box_push import (conv_box_idx_2_state, BoxState, EventType,
+                                      conv_box_state_2_idx)
 
 
 class BoxPushAIAgent_Abstract(SimulatorAgent):
   def __init__(self,
                policy_model: CachedPolicyInterface,
-               has_mind: bool = True) -> None:
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
     super().__init__(has_mind=has_mind, has_policy=True)
+    self.agent_idx = agent_idx
     self.agent_model = self._create_agent_model(policy_model)
     self.manual_action = None
 
@@ -56,7 +58,10 @@ class BoxPushAIAgent_Abstract(SimulatorAgent):
     mdp = self.agent_model.get_reference_mdp()
     list_aidx = []
     for idx, act in enumerate(tup_actions):
-      list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
+      if act is None:
+        list_aidx.append(None)
+      else:
+        list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
 
     self.agent_model.update_mental_state_idx(sidx_cur, tuple(list_aidx),
                                              sidx_nxt)
@@ -127,17 +132,27 @@ class BoxPushAIAgent_Host(BoxPushAIAgent_Abstract):
 
 
 class BoxPushAIAgent_Team1(BoxPushAIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True) -> None:
+    super().__init__(policy_model, has_mind, agent_idx=0)
+
   def _create_agent_model(self,
                           policy_model: CachedPolicyInterface) -> BoxPushAM:
-    AGENT1_IDX = 0
-    return BoxPushAM_Together(agent_idx=AGENT1_IDX, policy_model=policy_model)
+    return BoxPushAM_Together(agent_idx=self.agent_idx,
+                              policy_model=policy_model)
 
 
 class BoxPushAIAgent_Team2(BoxPushAIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True) -> None:
+    super().__init__(policy_model, has_mind, agent_idx=1)
+
   def _create_agent_model(self,
                           policy_model: CachedPolicyInterface) -> BoxPushAM:
-    AGENT2_IDX = 1
-    return BoxPushAM_Together(agent_idx=AGENT2_IDX, policy_model=policy_model)
+    return BoxPushAM_Together(agent_idx=self.agent_idx,
+                              policy_model=policy_model)
 
 
 class BoxPushAIAgent_WebExp_Both_A2(BoxPushAIAgent_Abstract):
@@ -147,17 +162,187 @@ class BoxPushAIAgent_WebExp_Both_A2(BoxPushAIAgent_Abstract):
 
 
 class BoxPushAIAgent_Indv1(BoxPushAIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True) -> None:
+    super().__init__(policy_model, has_mind, agent_idx=0)
+
   def _create_agent_model(self,
                           policy_model: CachedPolicyInterface) -> BoxPushAM:
-    AGENT1_IDX = 0
-    return BoxPushAM_Alone(AGENT1_IDX, policy_model)
+    return BoxPushAM_Alone(self.agent_idx, policy_model)
 
 
 class BoxPushAIAgent_Indv2(BoxPushAIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True) -> None:
+    super().__init__(policy_model, has_mind, agent_idx=1)
+
   def _create_agent_model(self,
                           policy_model: CachedPolicyInterface) -> BoxPushAM:
-    AGENT2_IDX = 1
-    return BoxPushAM_Alone(AGENT2_IDX, policy_model)
+    return BoxPushAM_Alone(self.agent_idx, policy_model)
+
+
+class BoxPushAIAgent_PartialObs(BoxPushAIAgent_Abstract):
+  def __init__(self,
+               init_tup_states,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
+    super().__init__(policy_model, has_mind, agent_idx)
+    box_states, a1_pos, a2_pos = init_tup_states
+    self.init_tup_states = (tuple(box_states), tuple(a1_pos), tuple(a2_pos))
+    self.assumed_tup_states = init_tup_states
+
+  def observed_states(self, tup_states):
+    box_states, a1_pos, a2_pos = tup_states
+
+    mdp = self.agent_model.get_reference_mdp()  # type: BoxPushMDP
+    num_drops = len(mdp.drops)
+    num_goals = len(mdp.goals)
+    assert num_goals == 1
+    prev_box_states, prev_a1_pos, prev_a2_pos = self.assumed_tup_states
+    assumed_box_states, assumed_a1_pos, assumed_a2_pos = self.assumed_tup_states
+
+    assumed_box_states = list(assumed_box_states)
+    agent_dist = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
+    if self.agent_idx == 0:
+      assumed_a1_pos = a1_pos
+
+      if agent_dist <= 1:
+        assumed_a2_pos = a2_pos
+
+      for idx, coord in enumerate(mdp.boxes):
+        if max(abs(a1_pos[0] - coord[0]), abs(a1_pos[1] - coord[1])) <= 1:
+          bstate = conv_box_idx_2_state(box_states[idx], num_drops, num_goals)
+          if bstate[0] != BoxState.Original:
+            assumed_box_states[idx] = conv_box_state_2_idx(
+                (BoxState.OnGoalLoc, 0), num_drops)
+
+      for idx, bidx in enumerate(box_states):
+        bpos = None
+        bstate = conv_box_idx_2_state(bidx, num_drops, num_goals)
+        if bstate[0] == BoxState.Original:
+          bpos = mdp.boxes[idx]
+        elif bstate[0] == BoxState.WithAgent1:
+          bpos = a1_pos
+        elif bstate[0] == BoxState.WithAgent2:
+          bpos = a2_pos
+        elif bstate[0] == BoxState.WithBoth:
+          bpos = a1_pos
+        elif bstate[0] == BoxState.OnDropLoc:
+          bpos = mdp.drops[bstate[1]]
+
+        prev_bstate = conv_box_idx_2_state(prev_box_states[idx], num_drops,
+                                           num_goals)
+        if (prev_bstate[0] in [BoxState.WithAgent1, BoxState.WithBoth]
+            and bpos is None):
+          assumed_box_states[idx] = conv_box_state_2_idx(
+              (BoxState.OnGoalLoc, 0), num_drops)
+        elif (agent_dist <= 1 and prev_a2_pos == mdp.goals[0]
+              and prev_bstate[0] == BoxState.WithAgent2 and bpos is None):
+          assumed_box_states[idx] = conv_box_state_2_idx(
+              (BoxState.OnGoalLoc, 0), num_drops)
+        elif bpos is not None:
+          if max(abs(a1_pos[0] - bpos[0]), abs(a1_pos[1] - bpos[1])) <= 1:
+            assumed_box_states[idx] = bidx
+    else:
+      assumed_a2_pos = a2_pos
+
+      if agent_dist <= 1:
+        assumed_a1_pos = a1_pos
+
+      for idx, coord in enumerate(mdp.boxes):
+        if max(abs(a2_pos[0] - coord[0]), abs(a2_pos[1] - coord[1])) <= 1:
+          bstate = conv_box_idx_2_state(box_states[idx], num_drops, num_goals)
+          if bstate[0] != BoxState.Original:
+            assumed_box_states[idx] = conv_box_state_2_idx(
+                (BoxState.OnGoalLoc, 0), num_drops)
+
+      for idx, bidx in enumerate(box_states):
+        bpos = None
+        bstate = conv_box_idx_2_state(bidx, num_drops, num_goals)
+        if bstate[0] == BoxState.Original:
+          bpos = mdp.boxes[idx]
+        elif bstate[0] == BoxState.WithAgent1:
+          bpos = a1_pos
+        elif bstate[0] == BoxState.WithAgent2:
+          bpos = a2_pos
+        elif bstate[0] == BoxState.WithBoth:
+          bpos = a2_pos
+        elif bstate[0] == BoxState.OnDropLoc:
+          bpos = mdp.drops[bstate[1]]
+
+        prev_bstate = conv_box_idx_2_state(prev_box_states[idx], num_drops,
+                                           num_goals)
+        if (prev_bstate[0] in [BoxState.WithAgent2, BoxState.WithBoth]
+            and bpos is None):
+          assumed_box_states[idx] = conv_box_state_2_idx(
+              (BoxState.OnGoalLoc, 0), num_drops)
+        elif (agent_dist <= 1 and prev_a1_pos == mdp.goals[0]
+              and prev_bstate[0] == BoxState.WithAgent1 and bpos is None):
+          assumed_box_states[idx] = conv_box_state_2_idx(
+              (BoxState.OnGoalLoc, 0), num_drops)
+        elif bpos is not None:
+          if max(abs(a2_pos[0] - bpos[0]), abs(a2_pos[1] - bpos[1])) <= 1:
+            assumed_box_states[idx] = bidx
+
+    return tuple(assumed_box_states), assumed_a1_pos, assumed_a2_pos
+
+  def init_latent(self, tup_state):
+    self.assumed_tup_states = self.init_tup_states
+    return super().init_latent(self.assumed_tup_states)
+
+  def get_action(self, tup_state):
+    return super().get_action(self.assumed_tup_states)
+
+  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
+    prev_tuple_states = self.assumed_tup_states
+    self.assumed_tup_states = self.observed_states(tup_nxt_state)
+
+    bstate_nxt, a1_pos_nxt, a2_pos_nxt = tup_nxt_state
+    observed_actions = [None, None]
+    if self.agent_idx == 0:
+      observed_actions[0] = tup_actions[0]
+      if max(abs(a1_pos_nxt[0] - a2_pos_nxt[0]),
+             abs(a1_pos_nxt[1] - a2_pos_nxt[1])) <= 1:
+        observed_actions[1] = tup_actions[1]
+    else:
+      observed_actions[1] = tup_actions[1]
+      if max(abs(a1_pos_nxt[0] - a2_pos_nxt[0]),
+             abs(a1_pos_nxt[1] - a2_pos_nxt[1])) <= 1:
+        observed_actions[0] = tup_actions[0]
+
+    return super().update_mental_state(prev_tuple_states,
+                                       tuple(observed_actions),
+                                       self.assumed_tup_states)
+
+
+class BoxPushAIAgent_PO_Team(BoxPushAIAgent_PartialObs):
+  def __init__(self,
+               init_tup_states,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
+    super().__init__(init_tup_states, policy_model, has_mind, agent_idx)
+
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
+    return BoxPushAM_Together_V2(agent_idx=self.agent_idx,
+                                 policy_model=policy_model)
+
+
+class BoxPushAIAgent_PO_Indv(BoxPushAIAgent_PartialObs):
+  def __init__(self,
+               init_tup_states,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
+    super().__init__(init_tup_states, policy_model, has_mind, agent_idx)
+
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> BoxPushAM:
+    return BoxPushAM_Alone_V2(self.agent_idx, policy_model)
 
 
 class BoxPushSimpleAgent(SimulatorAgent):

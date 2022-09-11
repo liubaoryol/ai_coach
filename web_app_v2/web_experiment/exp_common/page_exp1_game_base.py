@@ -2,11 +2,10 @@ from typing import Mapping, Any, Sequence, List
 import copy
 from ai_coach_domain.box_push.simulator import BoxPushSimulator
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
-from web_experiment.models import db, User
 from web_experiment.define import EDomainType
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_base import Exp1UserData, ExperimentPageBase
-from web_experiment.exp_common.helper import (get_file_name, boxpush_game_scene,
+from web_experiment.exp_common.helper import (boxpush_game_scene,
                                               boxpush_game_scene_names,
                                               get_btn_boxpush_actions)
 
@@ -256,45 +255,10 @@ class BoxPushGamePageBase(ExperimentPageBase):
     '''
 
     user_game_data.data[Exp1UserData.GAME_DONE] = True
-
     game = user_game_data.get_game_ref()
-    user = user_game_data.data[Exp1UserData.USER]
-    user_id = user.userid
-
-    # save trajectory
-    save_path = user_game_data.data[Exp1UserData.SAVE_PATH]
-    session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
-    file_name = get_file_name(save_path, user_id, session_name)
-    header = game.__class__.__name__ + "-" + session_name + "\n"
-    header += "User ID: %s\n" % (str(user_id), )
-    header += str(self._GAME_MAP)
-    game.save_history(file_name, header)
 
     # update score
     user_game_data.data[Exp1UserData.SCORE] = game.current_step
-    if self._DOMAIN_TYPE == EDomainType.Movers:
-      best_score = user.best_a
-    elif self._DOMAIN_TYPE == EDomainType.Cleanup:
-      best_score = user.best_b
-    else:
-      raise ValueError("Domain should be either Movers or Cleanup." +
-                       f"{self._DOMAIN_TYPE} cannot not be handled")
-
-    if best_score > game.current_step:
-      user = User.query.filter_by(userid=user_id).first()
-      if self._DOMAIN_TYPE == EDomainType.Movers:
-        user.best_a = game.current_step
-      elif self._DOMAIN_TYPE == EDomainType.Cleanup:
-        user.best_b = game.current_step
-      else:
-        raise ValueError("Domain should be either Movers or Cleanup." +
-                         f"{self._DOMAIN_TYPE} cannot not be handled")
-
-      db.session.commit()
-      user_game_data.data[Exp1UserData.USER] = user
-
-    # move to next page
-    user_game_data.go_to_next_page()
 
   def _get_updated_drawing_objects(
       self,
