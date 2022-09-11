@@ -3,8 +3,7 @@ Currently, gunicorn (version 20.1.0) is not compatible with newer version of eve
 ## Generate Zip File for the Deployment of AI Coach Web Experiment
 ```bash create_web_experiment_deployment.sh```
 Copy the created zip file to the server:
-```scp aws_web_app.zip ACCOUNT@ADDRESS:aws_web_app.zip
-```
+```scp aws_web_app.zip ACCOUNT@ADDRESS:aws_web_app.zip```
 
 ## On Server PC (AWS EC2)
 Ref: https://medium.com/techfront/step-by-step-visual-guide-on-deploying-a-flask-application-on-aws-ec2-8e3e8b82c4f7
