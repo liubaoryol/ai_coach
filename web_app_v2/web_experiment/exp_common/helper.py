@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Mapping, Any, List, Tuple, Callable, Sequence
 import os
 import time
@@ -7,14 +8,45 @@ from ai_coach_domain.rescue import (Place, Route, Location, E_Type, PlaceName,
                                     Work, is_work_done)
 import web_experiment.exp_common.canvas_objects as co
 
-RESCUE_NAME_PLACE2IMG = {
-    PlaceName.Fire_stateion: co.IMG_FIRE_STATION,
-    PlaceName.Police_station: co.IMG_POLICE_STATION,
-    PlaceName.Campsite: co.IMG_CAMPSITE,
-    PlaceName.City_hall: co.IMG_CITY_HALL,
-    PlaceName.Mall: co.IMG_MALL,
-    PlaceName.Bridge_1: co.IMG_BRIDGE,
-    PlaceName.Bridge_2: co.IMG_BRIDGE,
+
+@dataclass
+class DrawInfo:
+  img_name: str
+  offset: Tuple[float, float]
+  size: Tuple[float, float]
+  angle: float
+  circles: Sequence[Tuple[float, float, float]]
+
+
+RESCUE_PLACE_DRAW_INFO = {
+    PlaceName.Fire_stateion:
+    DrawInfo(co.IMG_FIRE_STATION, (0.05, -0.1), (0.12, 0.12),
+             0,
+             circles=[(0.06, -0.12, 0.1), (0, 0, 0.06)]),
+    PlaceName.Police_station:
+    DrawInfo(co.IMG_POLICE_STATION, (-0.09, 0), (0.12, 0.12),
+             0,
+             circles=[(-0.15, 0.03, 0.16), (0, 0, 0.06)]),
+    PlaceName.Campsite:
+    DrawInfo(co.IMG_CAMPSITE, (0, -0.07), (0.155, 0.12),
+             0,
+             circles=[(0.01, -0.17, 0.2)]),
+    PlaceName.City_hall:
+    DrawInfo(co.IMG_CITY_HALL, (-0.03, -0.05), (0.12, 0.1),
+             0,
+             circles=[(-0.09, -0.1, 0.15), (0, 0, 0.06)]),
+    PlaceName.Mall:
+    DrawInfo(co.IMG_MALL, (0, -0.05), (0.145, 0.145),
+             0,
+             circles=[(0.02, 0, 0.33)]),
+    PlaceName.Bridge_1:
+    DrawInfo(co.IMG_BRIDGE, (0.06, 0.02), (0.12, 0.03),
+             0.15 * np.pi,
+             circles=[(0, 0, 0.04)]),
+    PlaceName.Bridge_2:
+    DrawInfo(co.IMG_BRIDGE, (0.06, 0.02), (0.12, 0.03),
+             0.15 * np.pi,
+             circles=[(0, 0, 0.04)]),
 }
 
 
@@ -313,8 +345,8 @@ def rescue_game_scene(
     h = int(height * game_height)
     return (w, h)
 
-  place_w = 0.12
-  place_h = 0.12
+  # place_w = 0.12
+  # place_h = 0.12
 
   places = game_env["places"]  # type: Sequence[Place]
   routes = game_env["routes"]  # type: Sequence[Route]
@@ -346,53 +378,48 @@ def rescue_game_scene(
       obj = co.Curve(co.IMG_ROUTE + str(idx), list_coord, 10, "grey")
       add_obj(obj)
 
-    def add_place(place: Place, offset, scale_x, scale_y, text_offset):
+    def add_place(place: Place, offset, size, img_name):
       name = place.name
       building_pos = np.array(place.coord) + np.array(offset)
       canvas_pt = coord_2_canvas(*place.coord)
 
-      wid = place_w * scale_x
-      hei = place_h * scale_y
-      size = size_2_canvas(wid, hei)
+      wid = size[0]
+      hei = size[1]
+      size_cnvs = size_2_canvas(wid, hei)
       game_pos = coord_2_canvas(building_pos[0] - wid / 2,
                                 building_pos[1] - hei / 2)
-      text_width = size[0] * 2
-      text_pos = (int(game_pos[0] + 0.5 * size[0] - 0.5 * text_width),
-                  int(game_pos[1] - font_size +
-                      size_2_canvas(text_offset, 0)[0]))
+      text_width = size_cnvs[0] * 2
+      text_pos = (int(game_pos[0] + 0.5 * size_cnvs[0] - 0.5 * text_width),
+                  int(game_pos[1] - font_size))
       obj = co.Circle("ground" + name, canvas_pt,
                       size_2_canvas(0.03, 0)[0], "grey")
       add_obj(obj)
-      obj = co.GameObject(name, game_pos, size, 0, RESCUE_NAME_PLACE2IMG[name])
+      obj = co.GameObject(name, game_pos, size_cnvs, 0, img_name)
       add_obj(obj)
       obj = co.TextObject("text" + name, text_pos, text_width, font_size, name,
                           "center")
       add_obj(obj)
 
-      p_wid = place_w * 0.2
+      p_wid = 0.025
       p_hei = p_wid * 2.5
-      p_size = size_2_canvas(p_wid, p_hei)
+      p_size_cnvs = size_2_canvas(p_wid, p_hei)
       for pidx in range(place.helps):
         if pidx < 2:
-          p_x = game_pos[0] - p_size[0] * (pidx + 1)
-          p_y = game_pos[1] + size[1] - p_size[1]
+          p_x = game_pos[0] - p_size_cnvs[0] * (pidx + 1)
+          p_y = game_pos[1] + size_cnvs[1] - p_size_cnvs[1]
         else:
-          p_x = game_pos[0] - p_size[0] * (pidx - 1)
-          p_y = game_pos[1] + size[1] - 2 * p_size[1]
-        obj = co.GameObject("human" + name + str(pidx), (p_x, p_y), p_size, 0,
-                            co.IMG_HUMAN)
+          p_x = game_pos[0] - p_size_cnvs[0] * (pidx - 1)
+          p_y = game_pos[1] + size_cnvs[1] - 2 * p_size_cnvs[1]
+        obj = co.GameObject("human" + name + str(pidx), (p_x, p_y), p_size_cnvs,
+                            0, co.IMG_HUMAN)
         add_obj(obj)
 
-    # Fire_stateion
-    add_place(places[0], (0.05, -0.1), 1, 1, 0)
-    # City_hall
-    add_place(places[1], (-0.03, -0.05), 1, 0.8, 0)
-    # Police_station
-    add_place(places[2], (-0.09, 0), 1, 1, 0)
-    # Campsite
-    add_place(places[4], (0, -0.07), 1.3, 1.0, 0)
-    # Mall
-    add_place(places[5], (0, -0.05), 1.2, 1.2, 0)
+    for idx in [0, 1, 2, 4, 5]:
+      place_name = places[idx].name
+      offset = RESCUE_PLACE_DRAW_INFO[place_name].offset
+      size = RESCUE_PLACE_DRAW_INFO[place_name].size
+      img_name = RESCUE_PLACE_DRAW_INFO[place_name].img_name
+      add_place(places[idx], offset, size, img_name)
 
   work_locations = game_env["work_locations"]  # type: Sequence[Location]
   work_states = game_env["work_states"]
@@ -400,8 +427,8 @@ def rescue_game_scene(
 
   pos_a1 = location_2_coord(game_env["a1_pos"], places, routes)
   pos_a2 = location_2_coord(game_env["a2_pos"], places, routes)
-  wid_a = place_w * 0.7
-  hei_a = place_h * 0.7
+  wid_a = 0.085
+  hei_a = 0.085
   offset_x_a1 = 0
   offset_y_a1 = 0
   offset_x_a2 = 0
@@ -417,29 +444,30 @@ def rescue_game_scene(
         offset_x_a2 = wid_a * 0.7 / 2
         offset_y_a2 = -hei_a * 0.5 / 2
 
-      wid = place_w * 0.5
-      hei = place_h * 0.5
+      wid = 0.06
+      hei = 0.06
       offset_x = 0
       offset_y = 0
       game_pos = coord_2_canvas(pos[0] + offset_x - wid / 2,
                                 pos[1] + offset_y - hei / 2)
-      size = size_2_canvas(wid, hei)
-      obj = co.GameObject(co.IMG_WORK + str(idx), game_pos, size, 0,
+      size_cnvs = size_2_canvas(wid, hei)
+      obj = co.GameObject(co.IMG_WORK + str(idx), game_pos, size_cnvs, 0,
                           co.IMG_WORK)
       add_obj(obj)
     else:
       if work_locations[idx].type == E_Type.Place:
         place = places[work_locations[idx].id]
         if place.name in [PlaceName.Bridge_1, PlaceName.Bridge_2]:
-          loc = work_locations[idx]
-          pos = location_2_coord(loc, places, routes)
-          wid = place_w
-          hei = place_h
-          game_pos = coord_2_canvas(pos[0] + wid * 0 / 2,
-                                    pos[1] + hei * 0.01 / 2)
-          size = size_2_canvas(wid, hei * 0.25)
-          obj = co.GameObject(place.name, game_pos, size, 0.15 * np.pi,
-                              co.IMG_BRIDGE)
+          offset = RESCUE_PLACE_DRAW_INFO[place.name].offset
+          size = RESCUE_PLACE_DRAW_INFO[place.name].size
+          angle = RESCUE_PLACE_DRAW_INFO[place.name].angle
+          img_name = RESCUE_PLACE_DRAW_INFO[place.name].img_name
+          building_pos = np.array(place.coord) + np.array(offset)
+          wid, hei = size
+          size_cnvs = size_2_canvas(wid, hei)
+          game_pos = coord_2_canvas(building_pos[0] - wid / 2,
+                                    building_pos[1] - hei / 2)
+          obj = co.GameObject(place.name, game_pos, size_cnvs, angle, img_name)
           add_obj(obj)
 
   if pos_a1 == pos_a2 and offset_x_a1 == 0:

@@ -6,6 +6,7 @@ class DrawingObject {
     this.mouse_over = false;
     this.name = name;
     this.interactive = false;
+    // this.mask = false;
   }
 
   set_mouse_over(mouse_over) {
@@ -21,14 +22,13 @@ class DrawingObject {
     return false;
   }
 }
-
-class CircleSpotlight extends DrawingObject {
-  constructor(name, outer_ltwh, center, radius) {
+class ClippedRectangle extends DrawingObject {
+  constructor(name, outer_ltwh, list_circle, list_rect, list_rect_radii) {
     super(name);
     this.outer_ltwh = outer_ltwh;
-    this.x_cen = center[0];
-    this.y_cen = center[1];
-    this.radius = radius;
+    this.list_circle = list_circle; // array of tuple (x_center, y_center, radius)
+    this.list_rect = list_rect; // array of tuple (left, top, width, height)
+    this.list_rect_radii = list_rect_radii; // array of tuple of radii for list_rect in ccw order from left top corner
     this.fill_color = "grey";
     this.alpha = 0.3;
   }
@@ -43,104 +43,41 @@ class CircleSpotlight extends DrawingObject {
       this.outer_ltwh[2],
       this.outer_ltwh[3]
     );
-    context.moveTo(this.x_cen, this.y_cen);
-    context.arc(this.x_cen, this.y_cen, this.radius, 0, Math.PI * 2, true);
-    context.clip();
-    context.globalAlpha = this.alpha;
-    context.fillStyle = this.fill_color;
-    context.fillRect(
-      this.outer_ltwh[0],
-      this.outer_ltwh[1],
-      this.outer_ltwh[2],
-      this.outer_ltwh[3]
-    );
-    context.restore();
-  }
-}
 
-class MultiCircleSpotlight extends DrawingObject {
-  constructor(name, outer_ltwh, centers, radii) {
-    super(name);
-    this.outer_ltwh = outer_ltwh;
-    this.centers = centers;
-    this.radii = radii;
-    this.fill_color = "grey";
-    this.alpha = 0.3;
-  }
+    if (this.list_rect != null) {
+      for (let i = 0; i < this.list_rect.length; i++) {
+        const rect = this.list_rect[i];
+        let radii = [0, 0, 0, 0];
+        if (this.list_rect_radii != null) {
+          radii = this.list_rect_radii[i];
+        }
 
-  draw(context) {
-    super.draw(context);
-    context.save();
-    context.beginPath();
-    context.rect(
-      this.outer_ltwh[0],
-      this.outer_ltwh[1],
-      this.outer_ltwh[2],
-      this.outer_ltwh[3]
-    );
-    for (let i = 0; i < this.centers.length; i++) {
-      context.moveTo(this.centers[i][0], this.centers[i][1]);
-      context.arc(
-        this.centers[i][0],
-        this.centers[i][1],
-        this.radii[i],
-        0,
-        Math.PI * 2,
-        true
-      );
-      context.closePath();
+        const left = rect[0];
+        const top = rect[1];
+        const right = rect[0] + rect[2];
+        const bottom = rect[1] + rect[3];
+
+        context.moveTo(left, top + radii[0]);
+        context.lineTo(left, bottom - radii[1]);
+        context.quadraticCurveTo(left, bottom, left + radii[1], bottom);
+        context.lineTo(right - radii[2], bottom);
+        context.quadraticCurveTo(right, bottom, right, bottom - radii[2]);
+        context.lineTo(right, top + radii[3]);
+        context.quadraticCurveTo(right, top, right - radii[3], top);
+        context.lineTo(left + radii[0], top);
+        context.quadraticCurveTo(left, top, left, top + radii[0]);
+        context.closePath();
+        context.clip();
+      }
     }
-    context.clip();
-    context.globalAlpha = this.alpha;
-    context.fillStyle = this.fill_color;
-    context.fillRect(
-      this.outer_ltwh[0],
-      this.outer_ltwh[1],
-      this.outer_ltwh[2],
-      this.outer_ltwh[3]
-    );
-    context.restore();
-  }
-}
 
-class RectSpotlight extends DrawingObject {
-  constructor(name, outer_ltwh, inner_ltwh, radii) {
-    super(name);
-    this.outer_ltwh = outer_ltwh;
-    this.inner_ltwh = inner_ltwh;
-    this.radii = radii; // from left top corner, ccw order.
-    this.fill_color = "grey";
-    this.alpha = 1.0;
-  }
-
-  draw(context) {
-    super.draw(context);
-    context.save();
-    context.beginPath();
-    context.rect(
-      this.outer_ltwh[0],
-      this.outer_ltwh[1],
-      this.outer_ltwh[2],
-      this.outer_ltwh[3]
-    );
-
-    const left = this.inner_ltwh[0];
-    const top = this.inner_ltwh[1];
-    const right = this.inner_ltwh[0] + this.inner_ltwh[2];
-    const bottom = this.inner_ltwh[1] + this.inner_ltwh[3];
-
-    context.moveTo(left, top + this.radii[0]);
-    context.lineTo(left, bottom - this.radii[1]);
-    context.quadraticCurveTo(left, bottom, left + this.radii[1], bottom);
-    context.lineTo(right - this.radii[2], bottom);
-    context.quadraticCurveTo(right, bottom, right, bottom - this.radii[2]);
-    context.lineTo(right, top + this.radii[3]);
-    context.quadraticCurveTo(right, top, right - this.radii[3], top);
-    context.lineTo(left + this.radii[0], top);
-    context.quadraticCurveTo(left, top, left, top + this.radii[0]);
-    context.closePath();
-
-    context.clip();
+    if (this.list_circle != null) {
+      for (const item of this.list_circle) {
+        context.moveTo(item[0] + item[2], item[1]);
+        context.arc(item[0], item[1], item[2], 0, Math.PI * 2, true);
+        context.clip();
+      }
+    }
     context.globalAlpha = this.alpha;
     context.fillStyle = this.fill_color;
     context.fillRect(
@@ -154,7 +91,7 @@ class RectSpotlight extends DrawingObject {
 }
 
 class LineSegment extends DrawingObject {
-  constructor(name, start, end, width) {
+  constructor(name, start, end, linewidth) {
     super(name);
     this.x_start = start[0];
     this.y_start = start[1];
@@ -162,14 +99,14 @@ class LineSegment extends DrawingObject {
     this.y_end = end[1];
     this.line_color = "black";
     this.alpha = 1.0;
-    this.width = width;
+    this.linewidth = linewidth;
   }
 
   draw(context) {
     super.draw(context);
     context.strokeStyle = this.line_color;
     context.globalAlpha = this.alpha;
-    context.lineWidth = this.width;
+    context.lineWidth = this.linewidth;
     context.beginPath();
     context.moveTo(this.x_start, this.y_start);
     context.lineTo(this.x_end, this.y_end);
@@ -178,19 +115,19 @@ class LineSegment extends DrawingObject {
 }
 
 class Curve extends DrawingObject {
-  constructor(name, coords, width) {
+  constructor(name, coords, linewidth) {
     super(name);
     this.coords = coords;
     this.line_color = "black";
     this.alpha = 1.0;
-    this.width = width;
+    this.linewidth = linewidth;
   }
 
   draw(context) {
     super.draw(context);
     context.strokeStyle = this.line_color;
     context.globalAlpha = this.alpha;
-    context.lineWidth = this.width;
+    context.lineWidth = this.linewidth;
 
     context.beginPath();
 
@@ -220,6 +157,7 @@ class Primitive extends DrawingObject {
     this.alpha = 1.0;
     this.fill = true;
     this.border = true;
+    this.linewidth = 1;
   }
 
   draw(context) {
@@ -227,6 +165,7 @@ class Primitive extends DrawingObject {
     context.globalAlpha = this.alpha;
     context.fillStyle = this.fill_color;
     context.strokeStyle = this.line_color;
+    context.lineWidth = this.linewidth;
   }
 }
 
@@ -302,6 +241,28 @@ class Circle extends Primitive {
     }
     if (this.border) {
       context.stroke();
+    }
+  }
+}
+
+// ref: https://stackoverflow.com/a/37716281
+class BlinkCircle extends Circle {
+  constructor(name, pos, radius) {
+    super(name, pos, radius);
+    this.interval = 500;
+    this.time = 0;
+    this.toggle = true;
+  }
+
+  draw(context) {
+    if (this.toggle) {
+      super.draw(context);
+    }
+
+    const time = performance.now();
+    if (time - this.time >= this.interval) {
+      this.time = time;
+      this.toggle = !this.toggle;
     }
   }
 }
@@ -915,6 +876,10 @@ class GameData {
     if (json_item.hasOwnProperty("text_baseline")) {
       drawing_obj.text_baseline = json_item.text_baseline;
     }
+
+    if (json_item.hasOwnProperty("linewidth")) {
+      drawing_obj.linewidth = json_item.linewidth;
+    }
   }
 
   update_drawing_objects(obj_json) {
@@ -962,30 +927,26 @@ class GameData {
         tmp_obj = new Rectangle(item.name, item.pos, item.size);
       } else if (item.obj_type == "Circle") {
         tmp_obj = new Circle(item.name, item.pos, item.radius);
+      } else if (item.obj_type == "BlinkCircle") {
+        tmp_obj = new BlinkCircle(item.name, item.pos, item.radius);
       } else if (item.obj_type == "LineSegment") {
-        tmp_obj = new LineSegment(item.name, item.start, item.end, item.width);
+        tmp_obj = new LineSegment(
+          item.name,
+          item.start,
+          item.end,
+          item.linewidth
+        );
+        console.log(tmp_obj);
       } else if (item.obj_type == "Curve") {
-        tmp_obj = new Curve(item.name, item.coords, item.width);
-      } else if (item.obj_type == "CircleSpotlight") {
-        tmp_obj = new CircleSpotlight(
+        tmp_obj = new Curve(item.name, item.coords, item.linewidth);
+        console.log(tmp_obj);
+      } else if (item.obj_type == "ClippedRectangle") {
+        tmp_obj = new ClippedRectangle(
           item.name,
           item.outer_ltwh,
-          item.center,
-          item.radius
-        );
-      } else if (item.obj_type == "MultiCircleSpotlight") {
-        tmp_obj = new MultiCircleSpotlight(
-          item.name,
-          item.outer_ltwh,
-          item.centers,
-          item.radii
-        );
-      } else if (item.obj_type == "RectSpotlight") {
-        tmp_obj = new RectSpotlight(
-          item.name,
-          item.outer_ltwh,
-          item.inner_ltwh,
-          item.radii
+          item.list_circle,
+          item.list_rect,
+          item.list_rect_radii
         );
       } else {
         tmp_obj = new GameObject(
@@ -1020,6 +981,7 @@ class GameData {
 
   draw_game(context, x_mouse, y_mouse) {
     context.clearRect(0, 0, this.canvas_width, this.canvas_height);
+
     for (const item of this.drawing_order) {
       if (this.dict_drawing_objs.hasOwnProperty(item)) {
         const obj = this.dict_drawing_objs[item];

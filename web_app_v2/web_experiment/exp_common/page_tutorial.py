@@ -75,7 +75,6 @@ class CanvasPageInstruction(CanvasPageStart):
 
     drawing_order.append(self.SPOTLIGHT)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_PREV)
     drawing_order.append(co.BTN_NEXT)
@@ -108,7 +107,6 @@ class CanvasPageTutorialGameStart(CanvasPageStart):
     drawing_order.append(co.BTN_SELECT)
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_PREV)
     drawing_order.append(co.BTN_NEXT)
@@ -173,7 +171,6 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
     drawing_order.append(self.TEXT_SCORE)
 
     drawing_order.append(self.SPOTLIGHT)
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_PREV)
     drawing_order.append(co.BTN_NEXT)
@@ -623,11 +620,11 @@ class CanvasPageTarget(CanvasPageTutorialBase):
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_game_data)
 
-    obj = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
-    x_cen = int(obj.pos[0] + 0.5 * obj.width)
-    y_cen = int(self.GAME_HEIGHT / 5)
-    radius = int(y_cen * 0.1)
-    dict_objs[self.SPOTLIGHT] = self._get_spotlight(x_cen, y_cen, radius)
+    # obj = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
+    # x_cen = int(obj.pos[0] + 0.5 * obj.width)
+    # y_cen = int(self.GAME_HEIGHT / 5)
+    # radius = int(y_cen * 0.1)
+    # dict_objs[self.SPOTLIGHT] = self._get_spotlight(x_cen, y_cen, radius)
 
     objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
     for obj in objs:

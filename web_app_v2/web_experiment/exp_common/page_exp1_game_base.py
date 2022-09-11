@@ -179,7 +179,6 @@ class BoxPushGamePageBase(ExperimentPageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
 
     return drawing_order
@@ -315,7 +314,7 @@ class BoxPushGamePageBase(ExperimentPageBase):
     for obj in self._game_overlay(dict_game, user_data):
       dict_objs[obj.name] = obj
 
-    obj = self._get_instruction_objs(user_data)[0]
+    obj = self._get_instruction_objs(user_data)
     dict_objs[obj.name] = obj
 
     selecting = user_data.data[Exp1UserData.SELECT]
@@ -530,11 +529,10 @@ class BoxPushGamePageBase(ExperimentPageBase):
         radii[2] = 0
 
       po_inner_ltwh = [pos[0], pos[1], size[0], size[1]]
-      obj = co.RectSpotlight(co.PO_LAYER,
-                             po_outer_ltwh,
-                             po_inner_ltwh,
-                             radii=radii,
-                             alpha=0.3)
+      obj = co.ClippedRectangle(co.PO_LAYER,
+                                po_outer_ltwh,
+                                list_rect=[po_inner_ltwh],
+                                list_rect_radii=[radii])
       overlay_obs.append(obj)
 
     if (user_data.data[Exp1UserData.SHOW_LATENT]
@@ -554,12 +552,13 @@ class BoxPushGamePageBase(ExperimentPageBase):
           radius = size_2_canvas(0.44, 0)[0]
           x_cen = coord[0] + 0.5
           y_cen = coord[1] + 0.5
-          obj = co.Circle(co.CUR_LATENT,
-                          coord_2_canvas(x_cen, y_cen),
-                          radius,
-                          line_color="red",
-                          fill=False,
-                          border=True)
+          obj = co.BlinkCircle(co.CUR_LATENT,
+                               coord_2_canvas(x_cen, y_cen),
+                               radius,
+                               line_color="red",
+                               fill=False,
+                               border=True,
+                               linewidth=3)
           overlay_obs.append(obj)
 
     if user_data.data[Exp1UserData.SELECT]:

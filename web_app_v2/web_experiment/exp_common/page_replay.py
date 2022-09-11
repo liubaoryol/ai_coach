@@ -77,8 +77,8 @@ class BoxPushReplayPage(BoxPushGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -102,7 +102,6 @@ class BoxPushReplayPage(BoxPushGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     return drawing_order
 
@@ -183,8 +182,8 @@ class BoxPushReviewPage(BoxPushGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -213,7 +212,6 @@ class BoxPushReviewPage(BoxPushGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_SELECT)
     return drawing_order
@@ -292,8 +290,8 @@ class RescueReplayPage(RescueGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -317,7 +315,6 @@ class RescueReplayPage(RescueGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     return drawing_order
 
@@ -395,8 +392,8 @@ class RescueReviewPage(RescueGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -425,7 +422,6 @@ class RescueReviewPage(RescueGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_SELECT)
     return drawing_order

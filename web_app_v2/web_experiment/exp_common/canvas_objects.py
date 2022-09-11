@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Optional
 from ai_coach_domain.rescue import PlaceName
 
 CANVAS_WIDTH = 900
@@ -66,55 +66,24 @@ class DrawingObject:
     return self.__dict__
 
 
-class CircleSpotlight(DrawingObject):
+class ClippedRectangle(DrawingObject):
   def __init__(self,
                name: str,
                outer_ltwh: Sequence[int],
-               center: Sequence[int],
-               radius: int,
+               list_circle: Optional[Sequence[Tuple[int, int, int]]] = None,
+               list_rect: Optional[Sequence[Tuple[int, int, int, int]]] = None,
+               list_rect_radii: Optional[Sequence[Tuple[int, int, int,
+                                                        int]]] = None,
                fill_color: str = "grey",
                alpha: float = 0.3):
     super().__init__(name)
-    self.obj_type = "CircleSpotlight"
+    self.obj_type = "ClippedRectangle"
     self.outer_ltwh = outer_ltwh
-    self.center = center
-    self.radius = radius
+    self.list_rect = list_rect
+    self.list_rect_radii = list_rect_radii
+    self.list_circle = list_circle
     self.fill_color = fill_color
     self.alpha = alpha
-
-
-class MultiCircleSpotlight(DrawingObject):
-  def __init__(self,
-               name: str,
-               outer_ltwh: Sequence[int],
-               centers: Sequence[Tuple[int, int]],
-               radii: Sequence[int],
-               fill_color: str = "grey",
-               alpha: float = 0.3):
-    super().__init__(name)
-    self.obj_type = "MultiCircleSpotlight"
-    self.outer_ltwh = outer_ltwh
-    self.centers = centers
-    self.radii = radii
-    self.fill_color = fill_color
-    self.alpha = alpha
-
-
-class RectSpotlight(DrawingObject):
-  def __init__(self,
-               name: str,
-               outer_ltwh: Sequence[int],
-               inner_ltwh: Sequence[int],
-               radii: Sequence[int],
-               fill_color: str = "grey",
-               alpha: float = 1.0):
-    super().__init__(name)
-    self.obj_type = "RectSpotlight"
-    self.outer_ltwh = outer_ltwh
-    self.inner_ltwh = inner_ltwh
-    self.fill_color = fill_color
-    self.alpha = alpha
-    self.radii = radii
 
 
 class LineSegment(DrawingObject):
@@ -122,7 +91,7 @@ class LineSegment(DrawingObject):
                name: str,
                start: Sequence[int],
                end: Sequence[int],
-               width: int = 1,
+               linewidth: int = 1,
                line_color: str = "black",
                alpha: float = 1.0):
     super().__init__(name)
@@ -131,14 +100,14 @@ class LineSegment(DrawingObject):
     self.end = end
     self.line_color = line_color
     self.alpha = alpha
-    self.width = width
+    self.linewidth = linewidth
 
 
 class Curve(DrawingObject):
   def __init__(self,
                name: str,
                coords: Sequence[Tuple[int, int]],
-               width: int = 1,
+               linewidth: int = 1,
                line_color: str = "black",
                alpha: float = 1.0):
     super().__init__(name)
@@ -146,7 +115,7 @@ class Curve(DrawingObject):
     self.coords = coords
     self.line_color = line_color
     self.alpha = alpha
-    self.width = width
+    self.linewidth = linewidth
 
 
 class Primitive(DrawingObject):
@@ -156,13 +125,15 @@ class Primitive(DrawingObject):
                line_color: str = "black",
                alpha: float = 1.0,
                fill: bool = True,
-               border: bool = True):
+               border: bool = True,
+               linewidth: int = 1):
     super().__init__(name)
     self.fill_color = fill_color
     self.line_color = line_color
     self.alpha = alpha
     self.fill = fill
     self.border = border
+    self.linewidth = linewidth
 
 
 class Rectangle(Primitive):
@@ -174,13 +145,15 @@ class Rectangle(Primitive):
                line_color: str = "black",
                alpha: float = 1.0,
                fill: bool = True,
-               border: bool = False):
+               border: bool = False,
+               linewidth: int = 1):
     super().__init__(name,
                      fill_color=fill_color,
                      line_color=line_color,
                      alpha=alpha,
                      fill=fill,
-                     border=border)
+                     border=border,
+                     linewidth=linewidth)
     self.obj_type = "Rectangle"
     self.pos = pos
     self.size = size
@@ -195,13 +168,15 @@ class Ellipse(Primitive):
                line_color: str = "black",
                alpha: float = 1.0,
                fill: bool = True,
-               border: bool = False):
+               border: bool = False,
+               linewidth: int = 1):
     super().__init__(name,
                      fill_color=fill_color,
                      line_color=line_color,
                      alpha=alpha,
                      fill=fill,
-                     border=border)
+                     border=border,
+                     linewidth=linewidth)
     self.obj_type = "Ellipse"
     self.pos = pos
     self.size = size
@@ -216,16 +191,41 @@ class Circle(Primitive):
                line_color: str = "black",
                alpha: float = 1.0,
                fill: bool = True,
-               border: bool = False):
+               border: bool = False,
+               linewidth: int = 1):
     super().__init__(name,
                      fill_color=fill_color,
                      line_color=line_color,
                      alpha=alpha,
                      fill=fill,
-                     border=border)
+                     border=border,
+                     linewidth=linewidth)
     self.obj_type = "Circle"
     self.pos = pos
     self.radius = radius
+
+
+class BlinkCircle(Circle):
+  def __init__(self,
+               name: str,
+               pos: Sequence[int],
+               radius: int,
+               fill_color: str = "black",
+               line_color: str = "black",
+               alpha: float = 1.0,
+               fill: bool = True,
+               border: bool = False,
+               linewidth: int = 1):
+    super().__init__(name,
+                     pos=pos,
+                     radius=radius,
+                     fill_color=fill_color,
+                     line_color=line_color,
+                     alpha=alpha,
+                     fill=fill,
+                     border=border,
+                     linewidth=linewidth)
+    self.obj_type = "BlinkCircle"
 
 
 class ButtonObject(Primitive):
@@ -242,13 +242,15 @@ class ButtonObject(Primitive):
                line_color: str = "black",
                alpha: float = 1.0,
                fill: bool = False,
-               border: bool = True):
+               border: bool = True,
+               linewidth: int = 1):
     super().__init__(name,
                      fill_color=fill_color,
                      line_color=line_color,
                      alpha=alpha,
                      fill=fill,
-                     border=border)
+                     border=border,
+                     linewidth=linewidth)
     self.pos = pos
     self.font_size = font_size
     self.text = text
@@ -273,7 +275,8 @@ class ButtonRect(ButtonObject):
                line_color: str = "black",
                alpha: float = 1.0,
                fill: bool = False,
-               border: bool = True):
+               border: bool = True,
+               linewidth: int = 1):
     super().__init__(name,
                      pos=pos,
                      font_size=font_size,
@@ -286,7 +289,8 @@ class ButtonRect(ButtonObject):
                      line_color=line_color,
                      alpha=alpha,
                      fill=fill,
-                     border=border)
+                     border=border,
+                     linewidth=linewidth)
     self.size = size
     self.obj_type = "ButtonRect"
 
@@ -306,10 +310,22 @@ class ButtonCircle(ButtonObject):
                line_color: str = "black",
                alpha: float = 1,
                fill: bool = False,
-               border: bool = True):
-    super().__init__(name, pos, font_size, text, disable, text_align,
-                     text_baseline, text_color, fill_color, line_color, alpha,
-                     fill, border)
+               border: bool = True,
+               linewidth: int = 1):
+    super().__init__(name,
+                     pos,
+                     font_size,
+                     text,
+                     disable,
+                     text_align,
+                     text_baseline,
+                     text_color,
+                     fill_color,
+                     line_color,
+                     alpha,
+                     fill,
+                     border,
+                     linewidth=linewidth)
     self.radius = radius
     self.obj_type = "ButtonCircle"
 

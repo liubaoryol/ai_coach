@@ -62,7 +62,6 @@ class RescueTutorialBase(RescueGamePage):
     drawing_order.append(self.TEXT_SCORE)
 
     drawing_order.append(self.SPOTLIGHT)
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_PREV)
     drawing_order.append(co.BTN_NEXT)

@@ -36,7 +36,6 @@ class CanvasPageStart(ExperimentPageBase):
     drawing_order = drawing_order + self._get_control_button_names()
 
     drawing_order.append(self.TEXT_SCORE)
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
 
     return drawing_order

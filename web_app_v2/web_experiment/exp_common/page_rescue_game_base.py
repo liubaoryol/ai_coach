@@ -13,7 +13,8 @@ from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
 from web_experiment.exp_common.helper import (get_file_name, location_2_coord,
                                               rescue_game_scene,
-                                              rescue_game_scene_names)
+                                              rescue_game_scene_names,
+                                              RESCUE_PLACE_DRAW_INFO)
 
 
 def human_clear_problem(
@@ -156,7 +157,6 @@ class RescueGamePageBase(ExperimentPageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
 
     return drawing_order
@@ -415,7 +415,7 @@ class RescueGamePageBase(ExperimentPageBase):
     for obj in self._game_overlay(dict_game, user_data):
       dict_objs[obj.name] = obj
 
-    obj = self._get_instruction_objs(user_data)[0]
+    obj = self._get_instruction_objs(user_data)
     dict_objs[obj.name] = obj
 
     disable_status = self._get_action_btn_disable_state(user_data, dict_game)
@@ -512,20 +512,21 @@ class RescueGamePageBase(ExperimentPageBase):
           self.GAME_LEFT, self.GAME_TOP, self.GAME_WIDTH, self.GAME_HEIGHT
       ]
 
-      coords = []
+      circles = []
       for place in places:
         if place.visible:
-          place_coord = coord_2_canvas(*place.coord)
-          if place_coord not in coords:
-            coords.append(place_coord)
+          for circle in RESCUE_PLACE_DRAW_INFO[place.name].circles:
+            cen_cnvs = coord_2_canvas(place.coord[0] + circle[0],
+                                      place.coord[1] + circle[1])
+            rad_cnvs = size_2_canvas(circle[2], 0)[0]
+            circles.append((*cen_cnvs, rad_cnvs))
 
       a1_pos = game_env["a1_pos"]
       a1_coord = coord_2_canvas(*location_2_coord(a1_pos, places, routes))
-      if a1_coord not in coords:
-        coords.append(a1_coord)
+      radius = size_2_canvas(0.06, 0)[0]
+      circles.append((*a1_coord, radius))
 
-      radii = [size_2_canvas(0.05, 0)[0]] * len(coords)
-      obj = co.MultiCircleSpotlight(co.PO_LAYER, po_outer_ltwh, coords, radii)
+      obj = co.ClippedRectangle(co.PO_LAYER, po_outer_ltwh, list_circle=circles)
       overlay_obs.append(obj)
 
     if (user_data.data[Exp1UserData.SHOW_LATENT]
@@ -537,12 +538,13 @@ class RescueGamePageBase(ExperimentPageBase):
           radius = size_2_canvas(0.05, 0)[0]
           x_cen = coord[0]
           y_cen = coord[1]
-          obj = co.Circle(co.CUR_LATENT,
-                          coord_2_canvas(x_cen, y_cen),
-                          radius,
-                          line_color="red",
-                          fill=False,
-                          border=True)
+          obj = co.BlinkCircle(co.CUR_LATENT,
+                               coord_2_canvas(x_cen, y_cen),
+                               radius,
+                               line_color="red",
+                               fill=False,
+                               border=True,
+                               linewidth=3)
           overlay_obs.append(obj)
 
     if user_data.data[Exp1UserData.SELECT]:
