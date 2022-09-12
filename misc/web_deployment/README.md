@@ -13,6 +13,8 @@ Ref: https://medium.com/techfront/step-by-step-visual-guide-on-deploying-a-flask
 At your home folder,
 ```
 unzip aws_web_app.zip -d ai_coach/
+python3 -m venv venv
+pip install -r requirements.txt
 ```
 
 ### Automatically run `AI Coach` whenever your server is restarted
