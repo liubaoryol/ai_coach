@@ -45,7 +45,7 @@ sudo systemctl enable ai_coach.service
 Check if the app is running with: `curl localhost:8000`
 
 ### Run Nginx Webserver
-* Install Nginx: `sudo apt-get nginx`
+* Install Nginx: `sudo apt-get install nginx`
 * Start Nginx service:
   ```
   sudo systemctl start nginx
