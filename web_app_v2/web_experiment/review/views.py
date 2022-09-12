@@ -79,7 +79,9 @@ def review(session_name):
                          domain_type=domain_type.name,
                          is_disabled=disabled,
                          session_title=loaded_session_title,
-                         socket_name_space=socket_name)
+                         socket_name_space=socket_name,
+                         cur_endpoint=cur_endpoint,
+                         session_name=session_name)
 
 
 review_bp.add_url_rule("/" + PageKey.Replay + "/<session_name>/<user_id>",

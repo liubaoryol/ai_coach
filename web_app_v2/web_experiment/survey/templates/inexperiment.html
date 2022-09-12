@@ -20,7 +20,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action="{{ url_for(cur_endpoint) }}">
     <div>
       <label class="statement" for="maintained">
         During the task, I moved towards the locations circled in red.

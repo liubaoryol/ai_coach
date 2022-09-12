@@ -33,7 +33,7 @@
   <img src="{{url_for('inst.static', filename='rescue.png')}}" width="50%">
 </div>
 <div class="button-center">
-  <form method="POST">
+  <form method="POST" action="{{ url_for(cur_endpoint) }}">
     <button type="submit" value="submit">Proceed to Tutorial</button>
   </form>
 </div>

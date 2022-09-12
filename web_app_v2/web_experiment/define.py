@@ -16,8 +16,8 @@ class BPName:
 
 
 class ExpType:
-  Data_collection = "Data_collection",
-  Intervention = "Intervention",
+  Data_collection = "Data_collection"
+  Intervention = "Intervention"
 
 
 class EDomainType(Enum):

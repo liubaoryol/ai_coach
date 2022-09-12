@@ -51,7 +51,7 @@ for session_name in INTERV_SESSIONS:
       socket_name = get_socket_name(session_name, group_id)
       return render_template(EXP1_TEMPLATE[session_name],
                              socket_name_space=socket_name,
-                             cur_user=cur_user,
+                             cur_endpoint=cur_endpoint,
                              is_disabled=disabled,
                              session_title=SESSION_TITLE[session_name])
 

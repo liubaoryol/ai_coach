@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action="{{ url_for(cur_endpoint) }}">
     <div>
       <label class="statement" for="comment">Please provide any comments that you might have regarding the
         study.</label>

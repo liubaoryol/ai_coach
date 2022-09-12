@@ -9,6 +9,7 @@ from . import consent_bp
 
 def consent():
   session.clear()
+  cur_endpoint = consent_bp.name + "." + PageKey.Consent
   if request.method == 'POST':
     userid = request.form['userid'].lower()
     if current_app.config['EXP_TYPE'] == 'data_collection':
@@ -33,13 +34,12 @@ def consent():
       else:
         session['user_id'] = user.userid
         session['groupid'] = user.groupid
-        cur_endpoint = consent_bp.name + "." + PageKey.Consent
         return redirect(
             get_next_url(cur_endpoint, None, user.groupid, session['exp_type']))
 
     flash(error)
 
-  return render_template('consent.html')
+  return render_template('consent.html', cur_endpoint=cur_endpoint)
 
 
 consent_bp.add_url_rule('/' + PageKey.Consent,

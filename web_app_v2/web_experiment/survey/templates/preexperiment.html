@@ -9,7 +9,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action="{{ url_for(cur_endpoint) }}">
     <div>
       <label class="statement" for="age">Age</label>
       <input name="age" id="age" value="{{ answers['age'] }}" required>

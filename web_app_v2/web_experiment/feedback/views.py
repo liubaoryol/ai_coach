@@ -44,7 +44,9 @@ def collect(session_name):
                          is_disabled=disabled,
                          session_title=loaded_session_title,
                          socket_name_space=socket_name,
-                         latent_states=lstates)
+                         latent_states=lstates,
+                         session_name=session_name,
+                         cur_endpoint=cur_endpoint)
 
 
 def feedback(session_name):
@@ -66,7 +68,9 @@ def feedback(session_name):
                          domain_type=domain_type.name,
                          groupid=groupid,
                          session_title=loaded_session_title,
-                         socket_name_space=FEEDBACK_NAMESPACES[domain_type])
+                         socket_name_space=FEEDBACK_NAMESPACES[domain_type],
+                         session_name=session_name,
+                         cur_endpoint=cur_endpoint)
 
 
 feedback_bp.add_url_rule("/" + PageKey.Collect + "/<session_name>",
