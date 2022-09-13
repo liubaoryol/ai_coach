@@ -2,6 +2,8 @@ from ai_coach_domain.rescue import (Route, Location, E_Type, Work, Place,
                                     PlaceName)
 
 MAP_RESCUE = {
+    "name":
+    "rescue",
     "places": [
         Place(PlaceName.Fire_stateion, (0.4, 0.4)),
         Place(PlaceName.City_hall, (0.1, 0.1), helps=1),
@@ -44,6 +46,8 @@ MAP_RESCUE = {
 }
 
 MAP_RESCUE_2 = {
+    "name":
+    "rescue_2",
     "places": [
         Place(PlaceName.Fire_stateion, (0.41, 0.45)),
         Place(PlaceName.City_hall, (0.17, 0.13), helps=1),

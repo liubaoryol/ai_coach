@@ -1,6 +1,6 @@
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
-from web_experiment.exp_common.page_rescue_game_base import RescueGameUserRandom
+from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
 
 
 class BoxPushV2Demo(BoxPushV2UserRandom):

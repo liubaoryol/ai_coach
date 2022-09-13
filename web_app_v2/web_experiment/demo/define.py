@@ -1,11 +1,9 @@
 from enum import Enum
 from typing import Mapping, Sequence
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import ExperimentPageBase
 import web_experiment.exp_common.page_exp1_common as pgc
 from web_experiment.demo.pages import BoxPushV2Demo, RescueDemo
-from ai_coach_domain.rescue.maps import MAP_RESCUE_2
 
 
 class E_SessionName(Enum):
@@ -28,29 +26,29 @@ SESSION_TITLE = {
 
 PAGE_LIST_MOVERS_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Movers),
-    BoxPushV2Demo(EDomainType.Movers, MAP_MOVERS, False),
+    BoxPushV2Demo(EDomainType.Movers, False),
 ]
 PAGE_LIST_MOVERS = [
     pgc.CanvasPageStart(EDomainType.Movers),
-    BoxPushV2Demo(EDomainType.Movers, MAP_MOVERS, True),
+    BoxPushV2Demo(EDomainType.Movers, True),
 ]
 PAGE_LIST_CLEANUP_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
-    BoxPushV2Demo(EDomainType.Cleanup, MAP_CLEANUP, False),
+    BoxPushV2Demo(EDomainType.Cleanup, False),
 ]
 PAGE_LIST_CLEANUP = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
-    BoxPushV2Demo(EDomainType.Cleanup, MAP_CLEANUP, True),
+    BoxPushV2Demo(EDomainType.Cleanup, True),
 ]
 
 PAGE_LIST_RESCUE_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Rescue),
-    RescueDemo(MAP_RESCUE_2, False),
+    RescueDemo(False),
 ]
 
 PAGE_LIST_RESCUE = [
     pgc.CanvasPageStart(EDomainType.Rescue),
-    RescueDemo(MAP_RESCUE_2, True),
+    RescueDemo(True),
 ]
 
 GAMEPAGES = {

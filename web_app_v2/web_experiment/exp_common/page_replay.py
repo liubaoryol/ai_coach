@@ -3,7 +3,7 @@ import copy
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.page_exp1_game_base import BoxPushGamePageBase
-from web_experiment.exp_common.page_rescue_game_base import RescueGamePageBase
+from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 
 
 class UserDataReplay(Exp1UserData):

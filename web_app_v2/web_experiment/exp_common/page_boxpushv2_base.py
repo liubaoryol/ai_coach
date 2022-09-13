@@ -3,6 +3,7 @@ from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Task,
                                              MDP_Cleanup_Agent)
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
 from ai_coach_domain.box_push.agent import (BoxPushAIAgent_PO_Indv,
                                             BoxPushAIAgent_PO_Team,
                                             InteractiveAgent)
@@ -12,29 +13,31 @@ from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.page_exp1_game_base import BoxPushGamePageBase
 from web_experiment.exp_common.helper import get_file_name
 
+TEMPERATURE = 0.3
+MOVERS_TEAMMATE_POLICY = Policy_Movers(MDP_Movers_Task(**MAP_MOVERS),
+                                       MDP_Movers_Agent(**MAP_MOVERS),
+                                       TEMPERATURE, BoxPushSimulatorV2.AGENT2)
+CLEANUP_TEAMMATE_POLICY = Policy_Cleanup(MDP_Cleanup_Task(**MAP_CLEANUP),
+                                         MDP_Cleanup_Agent(**MAP_CLEANUP),
+                                         TEMPERATURE, BoxPushSimulatorV2.AGENT2)
+
 
 class BoxPushV2GamePage(BoxPushGamePageBase):
   def __init__(self,
                domain_type,
                manual_latent_selection,
-               game_map,
                auto_prompt: bool = True,
                prompt_on_change: bool = True,
                prompt_freq: int = 5) -> None:
+    game_map = MAP_MOVERS if domain_type == EDomainType.Movers else MAP_CLEANUP
     super().__init__(domain_type, manual_latent_selection, game_map,
                      auto_prompt, prompt_on_change, prompt_freq)
+    global MOVERS_TEAMMATE_POLICY, CLEANUP_TEAMMATE_POLICY
 
-    TEMPERATURE = 0.3
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      task_mdp = MDP_Movers_Task(**self._GAME_MAP)
-      agent_mdp = MDP_Movers_Agent(**self._GAME_MAP)
-      self._TEAMMATE_POLICY = Policy_Movers(task_mdp, agent_mdp, TEMPERATURE,
-                                            self._AGENT2)
+      self._TEAMMATE_POLICY = MOVERS_TEAMMATE_POLICY
     else:
-      task_mdp = MDP_Cleanup_Task(**self._GAME_MAP)
-      agent_mdp = MDP_Cleanup_Agent(**self._GAME_MAP)
-      self._TEAMMATE_POLICY = Policy_Cleanup(task_mdp, agent_mdp, TEMPERATURE,
-                                             self._AGENT2)
+      self._TEAMMATE_POLICY = CLEANUP_TEAMMATE_POLICY
 
   def init_user_data(self, user_game_data: Exp1UserData):
     user_game_data.data[Exp1UserData.GAME_DONE] = False
@@ -118,8 +121,8 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
 
 
 class BoxPushV2UserRandom(BoxPushV2GamePage):
-  def __init__(self, domain_type, game_map, partial_obs) -> None:
-    super().__init__(domain_type, True, game_map, True, True, 5)
+  def __init__(self, domain_type, partial_obs) -> None:
+    super().__init__(domain_type, True, True, True, 5)
 
     self._PARTIAL_OBS = partial_obs
 

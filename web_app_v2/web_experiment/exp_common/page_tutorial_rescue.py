@@ -1,6 +1,6 @@
 from typing import Mapping, Any, Sequence
 from web_experiment.exp_common.page_base import Exp1UserData
-from web_experiment.exp_common.page_rescue_game_base import RescueGamePage
+from web_experiment.exp_common.page_rescue_game import RescueGamePage
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import ExpType
 from web_experiment.models import ExpDataCollection, ExpIntervention, db
@@ -16,11 +16,9 @@ class RescueTutorialBase(RescueGamePage):
 
   def __init__(self,
                manual_latent_selection,
-               game_map,
                auto_prompt: bool = True,
                prompt_on_change: bool = True) -> None:
-    super().__init__(manual_latent_selection, game_map, auto_prompt,
-                     prompt_on_change, 5)
+    super().__init__(manual_latent_selection, auto_prompt, prompt_on_change, 5)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -81,8 +79,8 @@ class RescueTutorialBase(RescueGamePage):
 
 
 class RescueTutorialActions(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(False, game_map, False, False)
+  def __init__(self) -> None:
+    super().__init__(False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -147,8 +145,8 @@ class RescueTutorialActions(RescueTutorialBase):
 
 
 class RescueTutorialPlain(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(False, game_map, False, False)
+  def __init__(self) -> None:
+    super().__init__(False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     user_game_data.data[Exp1UserData.GAME_DONE] = False
@@ -187,8 +185,8 @@ class RescueTutorialOnlyHuman(RescueTutorialPlain):
 
 
 class RescueTutorialSimpleTarget(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(False, game_map, False, False)
+  def __init__(self) -> None:
+    super().__init__(False, False, False)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
@@ -228,8 +226,8 @@ class RescueTutorialResolvedAlone(RescueTutorialPlain):
 
 
 class RescueTutorialComplexTarget(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(False, game_map, False, False)
+  def __init__(self) -> None:
+    super().__init__(False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -281,8 +279,8 @@ class RescueTutorialComplexTarget(RescueTutorialBase):
 
 
 class RescueTutorialComplexTargetTogether(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(False, game_map, False, False)
+  def __init__(self) -> None:
+    super().__init__(False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -357,8 +355,8 @@ class RescueTutorialScore(RescueTutorialPlain):
 
 
 class RescueTutorialPartialObs(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(False, game_map, False, False)
+  def __init__(self) -> None:
+    super().__init__(False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -381,8 +379,8 @@ class RescueTutorialPartialObs(RescueTutorialBase):
 
 
 class RescueTutorialDestination(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(False, game_map, False, False)
+  def __init__(self) -> None:
+    super().__init__(False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -415,8 +413,8 @@ class RescueTutorialDestination(RescueTutorialBase):
 
 
 class RescueTutorialLatent(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(True, game_map, True, True)
+  def __init__(self) -> None:
+    super().__init__(True, True, True)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -484,8 +482,8 @@ class RescueTutorialSelResult(RescueTutorialPlain):
 
 
 class RescueTutorialMiniGame(RescueTutorialBase):
-  def __init__(self, game_map) -> None:
-    super().__init__(True, game_map, True, True)
+  def __init__(self) -> None:
+    super().__init__(True, True, True)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("Now, we are at the final step of the tutorial. Feel free to " +
