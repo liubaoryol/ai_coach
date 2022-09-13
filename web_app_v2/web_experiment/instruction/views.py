@@ -15,7 +15,7 @@ def overview():
 
   logging.info('User %s accesses to overview.' % (cur_user, ))
 
-  return render_template('overview.html')
+  return render_template('overview.html', cur_endpoint=cur_endpoint)
 
 
 def movers_and_packers():
@@ -28,7 +28,7 @@ def movers_and_packers():
 
   logging.info('User %s accesses to movers_and_packers.' % (cur_user, ))
 
-  return render_template('movers_and_packers.html')
+  return render_template('movers_and_packers.html', cur_endpoint=cur_endpoint)
 
 
 def clean_up():
@@ -41,7 +41,7 @@ def clean_up():
 
   logging.info('User %s accesses to clean_up.' % (cur_user, ))
 
-  return render_template('clean_up.html')
+  return render_template('clean_up.html', cur_endpoint=cur_endpoint)
 
 
 def rescue():
@@ -54,7 +54,7 @@ def rescue():
 
   logging.info('User %s accesses to rescue.' % (cur_user, ))
 
-  return render_template('rescue.html')
+  return render_template('rescue.html', cur_endpoint=cur_endpoint)
 
 
 inst_bp.add_url_rule("/" + PageKey.Overview,

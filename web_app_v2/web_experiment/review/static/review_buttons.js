@@ -16,7 +16,7 @@ $(document).ready(function () {
   });
 
   socket.on("set_max", function (msg) {
-    document.getElementById("max_index").value = msg.max_index;
+    document.getElementById("max_index").textContent = msg.max_index;
     slider.max = msg.max_index;
   });
 });

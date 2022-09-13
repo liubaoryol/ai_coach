@@ -41,7 +41,7 @@
 </canvas>
 
 <div class="button-center">
-  <form method="post">
+  <form method="post" action="{{ url_for(cur_endpoint) }}">
     <button type="submit" value="submit" id="submit" {{ is_disabled }}>
       Proceed
     </button>

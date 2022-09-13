@@ -4,7 +4,7 @@ import numpy as np
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
 from ai_coach_domain.rescue import (E_EventType, Route, Location, Work, Place,
-                                    T_Connections, is_work_done)
+                                    E_Type, T_Connections, is_work_done)
 from ai_coach_domain.rescue.transition import transition
 
 
@@ -48,6 +48,7 @@ class RescueSimulator(Simulator):
     self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
 
   def reset_game(self):
+    self.score = 0
     self.current_step = 0
     self.history = []
     self.a1_pos = self.a1_init
@@ -59,6 +60,20 @@ class RescueSimulator(Simulator):
     if self.agent_2 is not None:
       self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
     self.changed_state = set()
+
+  def update_score(self):
+    rescued_place = []
+    for idx in range(len(self.work_states)):
+      if is_work_done(idx, self.work_states, self.work_info[idx].coupled_works):
+        place_id = self.work_info[idx].rescue_place
+        if place_id not in rescued_place:
+          rescued_place.append(place_id)
+
+    score = 0
+    for place_id in rescued_place:
+      score += self.places[place_id].helps
+
+    self.score = score
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
@@ -89,14 +104,17 @@ class RescueSimulator(Simulator):
     a2_cur_state = tuple(self.get_state_for_each_agent(self.AGENT2))
 
     state = [
-        self.current_step, self.work_states, self.a1_pos, self.a2_pos,
-        a1_action, a2_action, a1_lat, a2_lat
+        self.current_step, self.score, self.work_states, self.a1_pos,
+        self.a2_pos, a1_action, a2_action, a1_lat, a2_lat
     ]
     self.history.append(state)
 
     self._transition(a1_action, a2_action)
     self.current_step += 1
     self.changed_state.add("current_step")
+
+    self.update_score()
+    self.changed_state.add("score")
 
     if self.is_finished():
       return
@@ -174,7 +192,8 @@ class RescueSimulator(Simulator):
         "work_info": self.work_info,
         "a1_latent": self.agent_1.get_current_latent(),
         "a2_latent": self.agent_2.get_current_latent(),
-        "current_step": self.current_step
+        "current_step": self.current_step,
+        "score": self.score
     }
 
   def get_changed_objects(self):
@@ -198,11 +217,12 @@ class RescueSimulator(Simulator):
       # sequence
       txtfile.write(header)
       txtfile.write('\n')
-      txtfile.write('# cur_step, work_states, a1_pos, a2_pos, ' +
+      txtfile.write('# cur_step, score, work_states, a1_pos, a2_pos, ' +
                     'a1_act, a2_act, a1_latent, a2_latent\n')
 
-      for step, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat in self.history:
+      for step, score, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat in self.history:  # noqa: E501
         txtfile.write('%d; ' % (step, ))  # cur step
+        txtfile.write('%d; ' % (score, ))  # score
         # work states
         for idx in range(len(wstt) - 1):
           txtfile.write('%d, ' % (wstt[idx], ))
@@ -219,6 +239,7 @@ class RescueSimulator(Simulator):
 
       # last state
       txtfile.write('%d; ' % (self.current_step, ))  # cur step
+      txtfile.write('%d; ' % (self.score, ))  # score
       # work states
       for idx in range(len(self.work_states) - 1):
         txtfile.write('%d, ' % (self.work_states[idx], ))
@@ -246,7 +267,7 @@ class RescueSimulator(Simulator):
       lines = txtfile.readlines()
       i_start = 0
       for i_r, row in enumerate(lines):
-        if row == ('# cur_step, work_states, a1_pos, a2_pos, ' +
+        if row == ('# cur_step, score, work_states, a1_pos, a2_pos, ' +
                    'a1_act, a2_act, a1_latent, a2_latent\n'):
           i_start = i_r
           break
@@ -254,10 +275,11 @@ class RescueSimulator(Simulator):
       for i_r in range(i_start + 1, len(lines)):
         line = lines[i_r]
         states = line.rstrip()[:-1].split("; ")
-        if len(states) < 8:
-          for dummy in range(8 - len(states)):
+        if len(states) < 9:
+          for dummy in range(9 - len(states)):
             states.append(None)
-        step, wstate, a1pos, a2pos, a1act, a2act, a1lat, a2lat = states
+        step, score, wstate, a1pos, a2pos, a1act, a2act, a1lat, a2lat = states
+        score = int(score)
         work_state = tuple([int(elem) for elem in wstate.split(", ")])
         a1_pos = Location.from_str(a1pos)
         a2_pos = Location.from_str(a2pos)
@@ -278,6 +300,6 @@ class RescueSimulator(Simulator):
         else:
           a2_lat = int(a2lat)
         traj.append(
-            [work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat])
+            [score, work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat])
 
     return traj

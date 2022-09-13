@@ -36,8 +36,6 @@ for session_name in DATACOL_SESSIONS:
         return redirect(
             get_next_url(cur_endpoint, session_name, session['groupid'],
                          ExpType.Data_collection))
-        # url_for(get_next_endpoint(cur_endpoint, session_name),
-        #         session_name=session_name))
 
       logging.info('User %s accesses to %s.' % (cur_user, session_name))
 
@@ -55,9 +53,9 @@ for session_name in DATACOL_SESSIONS:
       socket_name = get_socket_name(session_name)
       return render_template(EXP1_TEMPLATE[session_name],
                              socket_name_space=socket_name,
-                             cur_user=cur_user,
                              is_disabled=disabled,
-                             session_title=SESSION_TITLE[session_name])
+                             session_title=SESSION_TITLE[session_name],
+                             cur_endpoint=cur_endpoint)
 
     return view_func
 

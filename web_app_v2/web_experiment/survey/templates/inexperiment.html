@@ -3,11 +3,11 @@
 {% block header %}
 <h1>{% block title %}
   {% if domain_type == 'Movers' %}
-  Movers and Packers (part 3/5)
+  Movers and Packers (part 3/6)
   {% elif domain_type == 'Cleanup' %}
-  Cleanup (part 4/5)
+  Cleanup (part 4/6)
   {% elif domain_type == 'Rescue' %}
-  Rescue (part -/5)
+  Rescue (part 5/6)
   {% else %}
   Unknown Domain
   {% endif %}
@@ -20,7 +20,7 @@
 
 {% block content %}
 <div class="form-control">
-  <form method="post">
+  <form method="post" action="{{ url_for(cur_endpoint) }}">
     <div>
       <label class="statement" for="maintained">
         During the task, I moved towards the locations circled in red.

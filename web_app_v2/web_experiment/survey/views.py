@@ -7,7 +7,7 @@ from web_experiment.auth.functions import login_required
 from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
 import csv
-from web_experiment.define import (PageKey, get_next_url, ExpType, EDomainType,
+from web_experiment.define import (PageKey, get_next_url, ExpType,
                                    get_domain_type)
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
@@ -21,7 +21,6 @@ def preexperiment():
   exp_type = session["exp_type"]
 
   if request.method == 'POST':
-    logging.info('User %s submitted pre-experiment survey.' % (cur_user, ))
     age = request.form['age']
     gender = request.form['gender']
     frequency = request.form['frequency']
@@ -74,7 +73,6 @@ def preexperiment():
                                   comment=comments)
       db.session.add(new_pre_exp)
       db.session.commit()
-      # return redirect(url_for('inst.movers_and_packers'))
       return redirect(get_next_url(cur_endpoint, None, group_id, exp_type))
 
     flash(error)
@@ -87,7 +85,10 @@ def preexperiment():
     survey_answers['frequency' + str(query_data.frequency)] = 'checked'
     survey_answers['precomment'] = query_data.comment
 
-  return render_template('preexperiment.html', answers=survey_answers)
+  logging.info('User %s accesses pre-experiment survey.' % (cur_user, ))
+  return render_template('preexperiment.html',
+                         answers=survey_answers,
+                         cur_endpoint=cur_endpoint)
 
 
 def inexp_survey_view(session_name):
@@ -97,8 +98,6 @@ def inexp_survey_view(session_name):
   exp_type = session["exp_type"]
 
   if request.method == 'POST':
-    logging.info('User %s submitted the survey for %s.' %
-                 (cur_user, session_name))
     maintained = request.form['maintained']
     fluency = request.form['fluency']
     mycarry = request.form['mycarry']
@@ -123,17 +122,7 @@ def inexp_survey_view(session_name):
       sec, msec = divmod(time.time() * 1000, 1000)
       time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
                                               time.gmtime(sec)), msec)
-      # file_name = f'insurvey_{session_name}_{cur_user}_{time_stamp}.txt'
-      # with open(os.path.join(survey_dir, file_name), 'w',
-      #           newline='') as txtfile:
-      #   txtfile.write('id: ' + cur_user + '\n')
-      #   txtfile.write('maintained: ' + maintained + '\n')
-      #   txtfile.write('fluency: ' + fluency + '\n')
-      #   txtfile.write('mycarry: ' + mycarry + '\n')
-      #   txtfile.write('robotcarry: ' + robotcarry + '\n')
-      #   txtfile.write('robotperception: ' + robotperception + '\n')
-      #   txtfile.write('cooperative: ' + cooperative + '\n')
-      #   txtfile.write('comments: ' + comments + '\n')
+
       qdata = InExperiment.query.filter_by(subject_id=cur_user,
                                            session_name=session_name).first()
       if qdata is not None:
@@ -160,15 +149,6 @@ def inexp_survey_view(session_name):
           ]
           writer.writerow(row)
 
-        # txtfile.write('id: ' + cur_user + '\n')
-        # txtfile.write('maintained: ' + maintained + '\n')
-        # txtfile.write('fluency: ' + fluency + '\n')
-        # txtfile.write('mycarry: ' + mycarry + '\n')
-        # txtfile.write('robotcarry: ' + robotcarry + '\n')
-        # txtfile.write('robotperception: ' + robotperception + '\n')
-        # txtfile.write('cooperative: ' + cooperative + '\n')
-        # txtfile.write('comments: ' + comments + '\n')
-
       new_in_exp = InExperiment(session_name=session_name,
                                 subject_id=cur_user,
                                 maintained=maintained,
@@ -180,11 +160,12 @@ def inexp_survey_view(session_name):
                                 comment=comments)
       db.session.add(new_in_exp)
       db.session.commit()
-      # return redirect(url_for(next_endpoint_name, session_name=session_name))
+
       return redirect(
           get_next_url(cur_endpoint, session_name, group_id, exp_type))
 
     flash(error)
+
   query_data = InExperiment.query.filter_by(subject_id=cur_user,
                                             session_name=session_name).first()
   survey_answers = {}
@@ -203,17 +184,19 @@ def inexp_survey_view(session_name):
   elif exp_type == ExpType.Intervention:
     session_title = intv.SESSION_TITLE[session_name]
 
+  logging.info('User %s access the survey for %s.' % (cur_user, session_name))
   domain_type = get_domain_type(session_name)
   return render_template("inexperiment.html",
                          domain_type=domain_type.name,
                          answers=survey_answers,
-                         session_title=session_title)
+                         session_title=session_title,
+                         cur_endpoint=cur_endpoint)
 
 
 def completion():
   cur_user = g.user
+  cur_endpoint = survey_bp.name + "." + PageKey.Completion
   if request.method == 'POST':
-    logging.info('User %s submitted post-experiment survey.' % (cur_user, ))
     comment = request.form['comment']
     comment = comment.replace('\n', ' ')
     question = request.form['question']
@@ -235,12 +218,6 @@ def completion():
       row = [cur_user, email, comment, question]
       writer.writerow(row)
 
-    # with open(os.path.join(survey_dir, file_name), 'w', newline='')
-    # as txtfile:
-    #   txtfile.write('id: ' + cur_user + '\n')
-    #   txtfile.write('email: ' + email + '\n')
-    #   txtfile.write('comment: ' + comment + '\n')
-    #   txtfile.write('question: ' + question + '\n')
     error = None
     user = User.query.filter_by(userid=cur_user).first()
 
@@ -279,10 +256,12 @@ def completion():
     comments = query_comments.comment
     questions = query_comments.question
 
+  logging.info('User %s accesses post-experiment survey.' % (cur_user, ))
   return render_template('completion.html',
                          saved_email=email_db,
                          saved_comment=comments,
-                         saved_question=questions)
+                         saved_question=questions,
+                         cur_endpoint=cur_endpoint)
 
 
 def thankyou():
@@ -307,7 +286,5 @@ survey_bp.add_url_rule('/' + PageKey.Completion,
                        login_required(completion),
                        methods=('GET', 'POST'))
 
-survey_bp.add_url_rule('/' + PageKey.Thankyou,
-                       PageKey.Thankyou,
-                       login_required(thankyou),
-                       methods=('GET', 'POST'))
+survey_bp.add_url_rule('/' + PageKey.Thankyou, PageKey.Thankyou,
+                       login_required(thankyou))

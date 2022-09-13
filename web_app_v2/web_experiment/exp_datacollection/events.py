@@ -1,8 +1,9 @@
+import logging
 from typing import Mapping
 from flask import request, session, current_app
 from web_experiment import socketio
 from web_experiment.models import User, ExpDataCollection
-from web_experiment.define import ExpType
+from web_experiment.define import ExpType, get_domain_type
 import web_experiment.exp_common.events_impl as event_impl
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_datacollection.define import GAMEPAGES, SocketType
@@ -12,7 +13,7 @@ g_id_2_user_data = {}  # type: Mapping[str, Exp1UserData]
 for socket_type in SocketType:
   name_space = '/' + socket_type.name
 
-  def make_init_canvas(socket_type):
+  def make_init_canvas(socket_type, name_space=name_space):
     def initial_canvas():
       global g_id_2_user_data
       cur_user = session.get('user_id')
@@ -28,8 +29,10 @@ for socket_type in SocketType:
       session_name = session["loaded_session_name"]
       expinfo = ExpDataCollection.query.filter_by(subject_id=cur_user).first()
       user_data.data[Exp1UserData.SESSION_DONE] = getattr(expinfo, session_name)
-
-      event_impl.initial_canvas(session_name, user_data, GAMEPAGES[socket_type])
+      logging.info(f"{cur_user}({env_id}) connected to socketio {name_space}")
+      event_impl.initial_canvas(env_id, name_space, session_name, user_data,
+                                GAMEPAGES[socket_type],
+                                get_domain_type(session_name))
 
     return initial_canvas
 
@@ -39,16 +42,21 @@ for socket_type in SocketType:
       env_id = request.sid
       if env_id in g_id_2_user_data:
         del g_id_2_user_data[env_id]
+      logging.info(f"{env_id} disconnected from {name_space}")
 
     return disconnected
 
-  def make_button_clicked(socket_type):
+  def make_button_clicked(socket_type, name_space=name_space):
     def button_clicked(msg):
       global g_id_2_user_data
       button = msg["name"]
       env_id = request.sid
       user_data = g_id_2_user_data[env_id]
-      event_impl.button_clicked(button, user_data, GAMEPAGES[socket_type])
+      logging.info(
+          f"{user_data.data[Exp1UserData.USER].userid}({env_id}) clicked {button} button at {name_space}"
+      )
+      event_impl.button_clicked(env_id, name_space, button, user_data,
+                                GAMEPAGES[socket_type])
 
     return button_clicked
 

@@ -73,7 +73,7 @@ class Simulator():
 
   @abc.abstractmethod
   def is_finished(self) -> bool:
-    if self.current_step > self.max_steps:
+    if self.current_step >= self.max_steps:
       return True
     return False
 

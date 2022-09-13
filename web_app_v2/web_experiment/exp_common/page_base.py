@@ -124,7 +124,6 @@ class Exp1UserData(UserData):
 class ExperimentPageBase(CanvasPageBase):
   GAME_BORDER = "ls_line"
   TEXT_INSTRUCTION = "text_inst"
-  RECT_INSTRUCTION = "rect_inst"
   TEXT_SCORE = "text_score"
   SPOTLIGHT = "Spotlight"
 
@@ -199,8 +198,8 @@ class ExperimentPageBase(CanvasPageBase):
           (self.GAME_RIGHT, self.GAME_BOTTOM))
 
     if self._SHOW_INSTRUCTION:
-      for obj in self._get_instruction_objs(user_data):
-        dict_objs[obj.name] = obj
+      obj = self._get_instruction_objs(user_data)
+      dict_objs[obj.name] = obj
 
     if self._SHOW_SCORE:
       obj = self._get_score_obj(user_data)
@@ -250,8 +249,14 @@ class ExperimentPageBase(CanvasPageBase):
 
   def _get_spotlight(self, x_cen, y_cen, radius):
     outer_ltwh = (0, 0, co.CANVAS_WIDTH, co.CANVAS_HEIGHT)
-    return co.CircleSpotlight(self.SPOTLIGHT, outer_ltwh, (x_cen, y_cen),
-                              radius)
+
+    margin = 5
+    pos = (self.GAME_RIGHT + margin, margin)
+    size = (co.CANVAS_WIDTH - pos[0] - margin, int(self.GAME_HEIGHT * 0.5))
+    return co.ClippedRectangle(self.SPOTLIGHT,
+                               outer_ltwh,
+                               list_circle=[(x_cen, y_cen, radius)],
+                               list_rect=[(*pos, *size)])
 
   def _get_instruction_objs(self, user_data: UserData):
     margin = 10
@@ -260,54 +265,21 @@ class ExperimentPageBase(CanvasPageBase):
     text_instr = co.TextObject(self.TEXT_INSTRUCTION, pos, width, 18,
                                self._get_instruction(user_data))
 
-    margin = 5
-    pos = (self.GAME_RIGHT + margin, margin)
-    size = (co.CANVAS_WIDTH - pos[0] - margin, int(self.GAME_HEIGHT * 0.5))
-    rect_instr = co.Rectangle(self.RECT_INSTRUCTION, pos, size, "white")
+    return text_instr
 
-    return text_instr, rect_instr
+  def _get_score_text(self, user_data: Exp1UserData):
+    return "Time Taken: 0"
 
   def _get_score_obj(self, user_data: Exp1UserData):
-    game = user_data.get_game_ref()
-    if game is None:
-      score = 0
-    else:
-      score = user_data.get_game_ref().current_step
-    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
-
-      if self._DOMAIN_TYPE == EDomainType.Movers:
-        best_score = user_data.data[Exp1UserData.USER].best_a
-      else:
-        best_score = user_data.data[Exp1UserData.USER].best_b
-
-      margin = 10
-      text_score = "Time Taken: " + str(score) + "\n"
-      if best_score == 999:
-        text_score += "(Your Best: - )"
-      else:
-        text_score += "(Your Best: " + str(best_score) + ")"
-      return co.TextObject(
-          self.TEXT_SCORE,
-          (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-          co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-          24,
-          text_score,
-          text_align="right")
-    elif self._DOMAIN_TYPE == EDomainType.Rescue:
-      best_score = 999
-
-      margin = 10
-      text_score = "Score: " + str(score) + "\n"
-      if best_score == 999:
-        text_score += "(Your Best: - )"
-      else:
-        text_score += "(Your Best: " + str(best_score) + ")"
-      return co.TextObject(
-          self.TEXT_SCORE,
-          (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-          co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-          24,
-          text_score,
-          text_align="right")
-    else:
-      raise ValueError(f"{self._DOMAIN_TYPE} is not implemented")
+    margin = 10
+    text_score = self._get_score_text(user_data)
+    num_line = len(text_score.split('\n'))
+    font_size = 20
+    return co.TextObject(
+        self.TEXT_SCORE,
+        (self.GAME_RIGHT + margin,
+         int(co.CANVAS_HEIGHT - num_line * font_size * 1.1 - margin)),
+        co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
+        font_size,
+        text_score,
+        text_align="right")

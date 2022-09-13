@@ -3,8 +3,7 @@ import copy
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.page_exp1_game_base import BoxPushGamePageBase
-from web_experiment.exp_common.page_rescue_game_base import RescueGamePageBase
-from web_experiment.define import EDomainType
+from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 
 
 class UserDataReplay(Exp1UserData):
@@ -54,19 +53,10 @@ class BoxPushReplayPage(BoxPushGamePageBase):
 
     return dict_init_commands, dict_objs, drawing_order, None
 
-  def _get_score_obj(self, user_data):
+  def _get_score_text(self, user_data):
     dict_game = self._get_game_env(user_data)
     score = dict_game["current_step"]
-
-    margin = 10
-    text_score = "Time Taken: " + str(score) + "\n"
-    return co.TextObject(
-        self.TEXT_SCORE,
-        (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-        co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-        24,
-        text_score,
-        text_align="right")
+    return "Time Taken: " + str(score)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return "Please review your actions and label your mental model at each step"
@@ -77,8 +67,8 @@ class BoxPushReplayPage(BoxPushGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -102,7 +92,6 @@ class BoxPushReplayPage(BoxPushGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     return drawing_order
 
@@ -160,19 +149,10 @@ class BoxPushReviewPage(BoxPushGamePageBase):
 
     return dict_init_commands, dict_objs, drawing_order, None
 
-  def _get_score_obj(self, user_data):
+  def _get_score_text(self, user_data):
     dict_game = self._get_game_env(user_data)
     score = dict_game["current_step"]
-
-    margin = 10
-    text_score = "Time Taken: " + str(score) + "\n"
-    return co.TextObject(
-        self.TEXT_SCORE,
-        (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-        co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-        24,
-        text_score,
-        text_align="right")
+    return "Time Taken: " + str(score)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return "Please review your actions and label your mental model at each step"
@@ -183,8 +163,8 @@ class BoxPushReviewPage(BoxPushGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -213,7 +193,6 @@ class BoxPushReviewPage(BoxPushGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_SELECT)
     return drawing_order
@@ -269,19 +248,10 @@ class RescueReplayPage(RescueGamePageBase):
 
     return dict_init_commands, dict_objs, drawing_order, None
 
-  def _get_score_obj(self, user_data):
+  def _get_score_text(self, user_data):
     dict_game = self._get_game_env(user_data)
     score = dict_game["current_step"]
-
-    margin = 10
-    text_score = "Time Taken: " + str(score) + "\n"
-    return co.TextObject(
-        self.TEXT_SCORE,
-        (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-        co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-        24,
-        text_score,
-        text_align="right")
+    return "Time Taken: " + str(score)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return "Please review your actions and label your mental model at each step"
@@ -292,8 +262,8 @@ class RescueReplayPage(RescueGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -317,7 +287,6 @@ class RescueReplayPage(RescueGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     return drawing_order
 
@@ -372,19 +341,10 @@ class RescueReviewPage(RescueGamePageBase):
 
     return dict_init_commands, dict_objs, drawing_order, None
 
-  def _get_score_obj(self, user_data):
+  def _get_score_text(self, user_data):
     dict_game = self._get_game_env(user_data)
     score = dict_game["current_step"]
-
-    margin = 10
-    text_score = "Time Taken: " + str(score) + "\n"
-    return co.TextObject(
-        self.TEXT_SCORE,
-        (self.GAME_RIGHT + margin, int(co.CANVAS_HEIGHT * 0.9)),
-        co.CANVAS_WIDTH - self.GAME_RIGHT - 2 * margin,
-        24,
-        text_score,
-        text_align="right")
+    return "Time Taken: " + str(score)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return "Please review your actions and label your mental model at each step"
@@ -395,8 +355,8 @@ class RescueReviewPage(RescueGamePageBase):
         self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
         (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    for obj in self._get_instruction_objs(user_data):
-      dict_objs[obj.name] = obj
+    obj = self._get_instruction_objs(user_data)
+    dict_objs[obj.name] = obj
 
     obj = self._get_score_obj(user_data)
     dict_objs[obj.name] = obj
@@ -425,7 +385,6 @@ class RescueReviewPage(RescueGamePageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_SELECT)
     return drawing_order

@@ -14,7 +14,7 @@ g_id_2_session_data = {}  # type: Mapping[Any, SessionData]
 for domain_type in REVIEW_CANVAS_PAGELIST:
   name_space = '/' + get_socket_name(PageKey.Review, domain_type)
 
-  def make_init_canvas(domain_type):
+  def make_init_canvas(domain_type, name_space=name_space):
     def init_canvas():
       global g_id_2_session_data
       sid = request.sid
@@ -26,7 +26,9 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
                                              0)
       max_idx = len(trajectory) - 1
 
-      update_canvas(REVIEW_CANVAS_PAGELIST[domain_type][0],
+      update_canvas(sid,
+                    name_space,
+                    REVIEW_CANVAS_PAGELIST[domain_type][0],
                     g_id_2_session_data[sid],
                     init_imgs=True,
                     domain_type=domain_type)
@@ -34,7 +36,7 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
 
     return init_canvas
 
-  def make_goto_index(domain_type):
+  def make_goto_index(domain_type, name_space=name_space):
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
@@ -44,7 +46,9 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
       max_index = len(session_data.trajectory) - 1
       if (idx <= max_index and idx >= 0):
         session_data.index = idx
-        update_canvas(REVIEW_CANVAS_PAGELIST[domain_type][0],
+        update_canvas(sid,
+                      name_space,
+                      REVIEW_CANVAS_PAGELIST[domain_type][0],
                       session_data,
                       init_imgs=False)
         if session_data.index == max_index:
@@ -52,7 +56,7 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
 
     return goto_index
 
-  def make_button_clicked(domain_type):
+  def make_button_clicked(domain_type, name_space=name_space):
     def button_clicked(msg):
       global g_id_2_session_data
       sid = request.sid
@@ -60,7 +64,7 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
 
       button = msg["name"]
       page = REVIEW_CANVAS_PAGELIST[domain_type][0]
-      canvas_button_clicked(button, page, session_data)
+      canvas_button_clicked(sid, name_space, button, page, session_data)
 
     return button_clicked
 

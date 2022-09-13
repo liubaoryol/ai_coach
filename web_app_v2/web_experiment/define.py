@@ -16,8 +16,8 @@ class BPName:
 
 
 class ExpType:
-  Data_collection = "Data_collection",
-  Intervention = "Intervention",
+  Data_collection = "Data_collection"
+  Intervention = "Intervention"
 
 
 class EDomainType(Enum):
@@ -165,19 +165,19 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
                                       PageKey.Movers_and_packers):
       return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_T1))
     elif current_endpoint == endpoint(BPName.Exp_datacol, PageKey.DataCol_T1):
-      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_A0))
+      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_A1))
 
     # Cleanup instructions
     elif current_endpoint == endpoint(BPName.Instruction, PageKey.Clean_up):
       return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_T2))
     elif current_endpoint == endpoint(BPName.Exp_datacol, PageKey.DataCol_T2):
-      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_B0))
+      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_B1))
 
     # Rescue instructions
     elif current_endpoint == endpoint(BPName.Instruction, PageKey.Rescue):
       return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_T3))
     elif current_endpoint == endpoint(BPName.Exp_datacol, PageKey.DataCol_T3):
-      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_C0))
+      return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_C1))
 
     elif current_endpoint in [
         endpoint(BPName.Exp_datacol, PageKey.DataCol_A0),

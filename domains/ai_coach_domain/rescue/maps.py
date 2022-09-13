@@ -2,6 +2,8 @@ from ai_coach_domain.rescue import (Route, Location, E_Type, Work, Place,
                                     PlaceName)
 
 MAP_RESCUE = {
+    "name":
+    "rescue",
     "places": [
         Place(PlaceName.Fire_stateion, (0.4, 0.4)),
         Place(PlaceName.City_hall, (0.1, 0.1), helps=1),
@@ -33,9 +35,9 @@ MAP_RESCUE = {
         Location(E_Type.Place, id=4)
     ],
     "work_info": [
-        Work(workload=1, coupled_works=[]),
-        Work(workload=2, coupled_works=[]),
-        Work(workload=1, coupled_works=[])
+        Work(workload=1, rescue_place=1, coupled_works=[]),
+        Work(workload=2, rescue_place=3, coupled_works=[]),
+        Work(workload=1, rescue_place=4, coupled_works=[])
     ],
     "a1_init":
     Location(E_Type.Place, 2),
@@ -44,6 +46,8 @@ MAP_RESCUE = {
 }
 
 MAP_RESCUE_2 = {
+    "name":
+    "rescue_2",
     "places": [
         Place(PlaceName.Fire_stateion, (0.41, 0.45)),
         Place(PlaceName.City_hall, (0.17, 0.13), helps=1),
@@ -57,7 +61,7 @@ MAP_RESCUE_2 = {
         Route(start=0,
               end=1,
               length=4,
-              coords=[(0.36, 0.35), (0.33, 0.25), (0.32, 0.17), (0.26, 0.11)]),
+              coords=[(0.35, 0.35), (0.33, 0.25), (0.32, 0.17), (0.28, 0.11)]),
         Route(start=0, end=2, length=2, coords=[(0.36, 0.53), (0.3, 0.59)]),
         Route(start=0,
               end=6,
@@ -71,12 +75,12 @@ MAP_RESCUE_2 = {
         Route(start=2,
               end=3,
               length=5,
-              coords=[(0.25, 0.7), (0.31, 0.75), (0.38, 0.83), (0.46, 0.88),
+              coords=[(0.26, 0.71), (0.32, 0.76), (0.38, 0.83), (0.46, 0.88),
                       (0.56, 0.91)]),
         Route(start=2,
               end=1,
               length=6,
-              coords=[(0.22, 0.55), (0.21, 0.47), (0.14, 0.42), (0.09, 0.36),
+              coords=[(0.22, 0.53), (0.21, 0.46), (0.14, 0.42), (0.09, 0.36),
                       (0.1, 0.3), (0.12, 0.23)]),
     ],
     "connections": {
@@ -96,10 +100,10 @@ MAP_RESCUE_2 = {
         Location(E_Type.Place, id=6),
     ],
     "work_info": [
-        Work(workload=1),
-        Work(workload=2, coupled_works=[3]),
-        Work(workload=1),
-        Work(workload=2, coupled_works=[1]),
+        Work(workload=1, rescue_place=1),
+        Work(workload=2, rescue_place=5, coupled_works=[3]),
+        Work(workload=1, rescue_place=4),
+        Work(workload=2, rescue_place=5, coupled_works=[1]),
     ],
     "a1_init":
     Location(E_Type.Place, 2),

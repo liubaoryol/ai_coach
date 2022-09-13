@@ -113,8 +113,9 @@ def read_file(file_name, domain_type: EDomainType):
   elif domain_type == EDomainType.Rescue:
     traj_of_list = RescueSimulator.read_file(file_name)
     for step, elem in enumerate(traj_of_list):
-      work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat = elem
+      score, work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat = elem
       traj_of_dict.append({
+          "score": score,
           "work_states": work_state,
           "a1_pos": a1_pos,
           "a2_pos": a2_pos,
@@ -145,7 +146,9 @@ class SessionData:
   latent_predicted: Optional[Sequence] = None
 
 
-def update_canvas(page: CanvasPageBase,
+def update_canvas(sid,
+                  name_space,
+                  page: CanvasPageBase,
                   session_data: SessionData,
                   init_imgs=False,
                   domain_type: EDomainType = None):
@@ -174,7 +177,7 @@ def update_canvas(page: CanvasPageBase,
                              animations=animations)
 
 
-def canvas_button_clicked(button, page: CanvasPageBase,
+def canvas_button_clicked(sid, name_space, button, page: CanvasPageBase,
                           session_data: SessionData):
   if session_data is None:
     return

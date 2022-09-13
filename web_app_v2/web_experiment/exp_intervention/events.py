@@ -2,7 +2,7 @@ from typing import Mapping
 from flask import request, session, current_app
 from web_experiment import socketio
 from web_experiment.models import User, ExpIntervention
-from web_experiment.define import ExpType
+from web_experiment.define import ExpType, get_domain_type
 import web_experiment.exp_common.events_impl as event_impl
 from web_experiment.exp_intervention.define import GAMEPAGES, SocketType
 from web_experiment.exp_common.page_base import Exp1UserData
@@ -13,7 +13,7 @@ for socket_type in SocketType:
   name_space = '/' + socket_type.name
 
   def make_init_canvas(socket_type):
-    def initial_canvas():
+    def initial_canvas(name_space=name_space):
       global g_id_2_user_data
       cur_user = session.get('user_id')
       user = User.query.filter_by(userid=cur_user).first()
@@ -29,7 +29,9 @@ for socket_type in SocketType:
       expinfo = ExpIntervention.query.filter_by(subject_id=cur_user).first()
       user_data.data[Exp1UserData.SESSION_DONE] = getattr(expinfo, session_name)
 
-      event_impl.initial_canvas(session_name, user_data, GAMEPAGES[socket_type])
+      event_impl.initial_canvas(env_id, name_space, session_name, user_data,
+                                GAMEPAGES[socket_type],
+                                get_domain_type(session_name))
 
     return initial_canvas
 
@@ -42,13 +44,14 @@ for socket_type in SocketType:
 
     return disconnected
 
-  def make_button_clicked(socket_type):
+  def make_button_clicked(socket_type, name_space=name_space):
     def button_clicked(msg):
       global g_id_2_user_data
       button = msg["name"]
       env_id = request.sid
       user_data = g_id_2_user_data[env_id]
-      event_impl.button_clicked(button, user_data, GAMEPAGES[socket_type])
+      event_impl.button_clicked(env_id, name_space, button, user_data,
+                                GAMEPAGES[socket_type])
 
     return button_clicked
 

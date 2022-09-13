@@ -8,8 +8,9 @@ from web_experiment.models import db, ExpDataCollection, ExpIntervention
 from web_experiment.define import ExpType, EDomainType
 from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.box_push import conv_box_state_2_idx, EventType, BoxState
-from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team2,
-                                            BoxPushAIAgent_Indv2)
+from ai_coach_domain.box_push.agent import (BoxPushAIAgent_PO_Indv,
+                                            BoxPushAIAgent_Team2,
+                                            BoxPushAIAgent_PO_Team)
 
 
 class CanvasPageTutorialStart(ExperimentPageBase):
@@ -75,7 +76,6 @@ class CanvasPageInstruction(CanvasPageStart):
 
     drawing_order.append(self.SPOTLIGHT)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_PREV)
     drawing_order.append(co.BTN_NEXT)
@@ -108,7 +108,6 @@ class CanvasPageTutorialGameStart(CanvasPageStart):
     drawing_order.append(co.BTN_SELECT)
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_PREV)
     drawing_order.append(co.BTN_NEXT)
@@ -127,11 +126,10 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
   def __init__(self,
                domain_type,
                manual_latent_selection,
-               game_map,
                auto_prompt: bool = True,
                prompt_on_change: bool = True) -> None:
-    super().__init__(domain_type, manual_latent_selection, game_map,
-                     auto_prompt, prompt_on_change, 5)
+    super().__init__(domain_type, manual_latent_selection, auto_prompt,
+                     prompt_on_change, 5)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -173,7 +171,6 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
     drawing_order.append(self.TEXT_SCORE)
 
     drawing_order.append(self.SPOTLIGHT)
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_PREV)
     drawing_order.append(co.BTN_NEXT)
@@ -193,8 +190,8 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
 
 
 class CanvasPageJoystick(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -260,8 +257,8 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
 
 
 class CanvasPageInvalidAction(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("If you take an invalid action (e.g., try to move into a wall), " +
@@ -269,8 +266,8 @@ class CanvasPageInvalidAction(CanvasPageTutorialBase):
 
 
 class CanvasPageJoystickShort(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -286,8 +283,8 @@ class CanvasPageJoystickShort(CanvasPageTutorialBase):
 
 
 class CanvasPageOnlyHuman(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
@@ -297,8 +294,8 @@ class CanvasPageOnlyHuman(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToTarget(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     object_type = ("box"
@@ -334,8 +331,8 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
 
 
 class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -425,16 +422,20 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
 
 
 class CanvasPagePickUpTarget(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
     agent1 = InteractiveAgent()
 
+    init_states = ([0] * len(self._GAME_MAP["boxes"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
+      agent2 = BoxPushAIAgent_PO_Team(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
     else:
       agent2 = InteractiveAgent()
 
@@ -477,14 +478,15 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToGoal(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
     agent1 = InteractiveAgent()
+
     if self._DOMAIN_TYPE == EDomainType.Movers:
       agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
     else:
@@ -527,8 +529,8 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
 
     return ("After picking up the " + object_type +
-            ", you need to drop it at the flag. " + "Please carry the " +
-            object_type + " to the flag and drop it there.")
+            ", you need to drop it at the truck. " + "Please carry the " +
+            object_type + " to the truck and drop it there.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -539,8 +541,8 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
 
 
 class CanvasPageRespawn(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
@@ -560,8 +562,8 @@ class CanvasPageRespawn(CanvasPageTutorialBase):
 
 
 class CanvasPageScore(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
@@ -594,8 +596,8 @@ class CanvasPageScore(CanvasPageTutorialBase):
 
 
 class CanvasPagePartialObs(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -611,8 +613,8 @@ class CanvasPagePartialObs(CanvasPageTutorialBase):
 
 
 class CanvasPageTarget(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -623,11 +625,11 @@ class CanvasPageTarget(CanvasPageTutorialBase):
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_game_data)
 
-    obj = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
-    x_cen = int(obj.pos[0] + 0.5 * obj.width)
-    y_cen = int(self.GAME_HEIGHT / 5)
-    radius = int(y_cen * 0.1)
-    dict_objs[self.SPOTLIGHT] = self._get_spotlight(x_cen, y_cen, radius)
+    # obj = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
+    # x_cen = int(obj.pos[0] + 0.5 * obj.width)
+    # y_cen = int(self.GAME_HEIGHT / 5)
+    # radius = int(y_cen * 0.1)
+    # dict_objs[self.SPOTLIGHT] = self._get_spotlight(x_cen, y_cen, radius)
 
     objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
     for obj in objs:
@@ -644,8 +646,8 @@ class CanvasPageTarget(CanvasPageTutorialBase):
 
 
 class CanvasPageLatent(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, True, game_map, True, True)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, True, True, True)
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -690,8 +692,8 @@ class CanvasPageLatent(CanvasPageTutorialBase):
 
 
 class CanvasPageSelResult(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map, is_2nd) -> None:
-    super().__init__(domain_type, False, game_map, True, True)
+  def __init__(self, domain_type, is_2nd) -> None:
+    super().__init__(domain_type, False, True, True)
     self._IS_2ND = is_2nd
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -720,8 +722,8 @@ class CanvasPageSelResult(CanvasPageTutorialBase):
 
 
 class CanvasPageSelPrompt(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, False, game_map, True, True)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, True, True)
     self._PROMPT_FREQ = 3
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -754,8 +756,8 @@ class CanvasPageSelPrompt(CanvasPageTutorialBase):
 
 
 class CanvasPageMiniGame(CanvasPageTutorialBase):
-  def __init__(self, domain_type, game_map) -> None:
-    super().__init__(domain_type, True, game_map, True, True)
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, True, True, True)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("Now, we are at the final step of the tutorial. Feel free to " +
@@ -769,10 +771,16 @@ class CanvasPageMiniGame(CanvasPageTutorialBase):
 
     game = user_game_data.get_game_ref()
     agent1 = InteractiveAgent()
+    init_states = ([0] * len(self._GAME_MAP["boxes"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
+      agent2 = BoxPushAIAgent_PO_Team(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
     else:
-      agent2 = BoxPushAIAgent_Indv2(self._TEAMMATE_POLICY)
+      agent2 = BoxPushAIAgent_PO_Indv(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
 
     game.set_autonomous_agent(agent1, agent2)
     game.event_input(self._AGENT1, EventType.SET_LATENT, ("pickup", 0))

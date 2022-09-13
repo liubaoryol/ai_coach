@@ -16,6 +16,7 @@ class User(db.Model):
 
   best_a = db.Column(db.Integer, default=999)
   best_b = db.Column(db.Integer, default=999)
+  best_c = db.Column(db.Integer, default=0)
 
   exp_datacollection = db.relationship('ExpDataCollection',
                                        backref='user',

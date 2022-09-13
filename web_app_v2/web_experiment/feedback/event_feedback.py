@@ -13,12 +13,14 @@ from web_experiment.define import EMode, GroupName
 g_id_2_session_data = {}  # type: Mapping[Any, SessionData]
 
 
-def update_canvas_helper(domain_type,
+def update_canvas_helper(sid,
+                         name_space,
+                         domain_type,
                          groupid,
                          session_data: SessionData,
                          init_imgs=False):
-  update_canvas(FEEDBACK_CANVAS_PAGELIST[domain_type][0], session_data,
-                init_imgs, domain_type)
+  update_canvas(sid, name_space, FEEDBACK_CANVAS_PAGELIST[domain_type][0],
+                session_data, init_imgs, domain_type)
   if groupid == GroupName.Group_C:
     update_latent_state(domain_type, EMode.Collected, session_data)
   elif groupid == GroupName.Group_D:
@@ -28,7 +30,7 @@ def update_canvas_helper(domain_type,
 for domain_type in FEEDBACK_NAMESPACES:
   name_space = '/' + FEEDBACK_NAMESPACES[domain_type]
 
-  def make_init_canvas(domain_type):
+  def make_init_canvas(domain_type, name_space=name_space):
     def init_canvas():
       global g_id_2_session_data
       sid = request.sid
@@ -49,12 +51,13 @@ for domain_type in FEEDBACK_NAMESPACES:
       g_id_2_session_data[sid] = session_data
       max_idx = len(trajectory) - 1
 
-      update_canvas_helper(domain_type, groupid, session_data, True)
+      update_canvas_helper(sid, name_space, domain_type, groupid, session_data,
+                           True)
       emit("set_max", {"max_index": max_idx})
 
     return init_canvas
 
-  def make_next_index(domain_type):
+  def make_next_index(domain_type, name_space=name_space):
     def next_index():
       global g_id_2_session_data
       sid = request.sid
@@ -63,11 +66,12 @@ for domain_type in FEEDBACK_NAMESPACES:
       max_index = len(session_data.trajectory) - 1
       if session_data.index < max_index:
         session_data.index += 1
-      update_canvas_helper(domain_type, session_data.groupid, session_data)
+      update_canvas_helper(sid, name_space, domain_type, session_data.groupid,
+                           session_data)
 
     return next_index
 
-  def make_prev_index(domain_type):
+  def make_prev_index(domain_type, name_space=name_space):
     def prev_index():
       global g_id_2_session_data
       sid = request.sid
@@ -75,11 +79,12 @@ for domain_type in FEEDBACK_NAMESPACES:
 
       if session_data.index > 0:
         session_data.index -= 1
-      update_canvas_helper(domain_type, session_data.groupid, session_data)
+      update_canvas_helper(sid, name_space, domain_type, session_data.groupid,
+                           session_data)
 
     return prev_index
 
-  def make_goto_index(domain_type):
+  def make_goto_index(domain_type, name_space=name_space):
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
@@ -89,7 +94,8 @@ for domain_type in FEEDBACK_NAMESPACES:
       max_index = len(session_data.trajectory) - 1
       if (idx <= max_index and idx >= 0):
         session_data.index = idx
-      update_canvas_helper(domain_type, session_data.groupid, session_data)
+      update_canvas_helper(sid, name_space, domain_type, session_data.groupid,
+                           session_data)
 
     return goto_index
 

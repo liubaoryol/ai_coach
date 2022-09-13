@@ -4,10 +4,10 @@ import logging
 from flask import url_for
 from flask_socketio import emit
 from web_experiment import socketio
-from web_experiment.exp_common.page_base import (CanvasPageBase, UserData,
+from web_experiment.exp_common.page_base import (ExperimentPageBase, UserData,
                                                  get_objs_as_dictionary)
 import web_experiment.exp_common.canvas_objects as co
-from web_experiment.define import EDomainType, get_domain_type
+from web_experiment.define import EDomainType
 
 
 def get_imgs(domain_type: EDomainType):
@@ -38,6 +38,7 @@ def get_imgs(domain_type: EDomainType):
         {'name': co.IMG_CAMPSITE, 'src': url_for('static', filename='rescue_images/camping.svg')},  # noqa: E501
         {'name': co.IMG_BRIDGE, 'src': url_for('static', filename='rescue_images/bridge.svg')},  # noqa: E501
         {'name': co.IMG_MALL, 'src': url_for('static', filename='rescue_images/mall.svg')},  # noqa: E501
+        {'name': co.IMG_HUMAN, 'src': url_for('static', filename='rescue_images/person.svg')},  # noqa: E501
     ]
     # yapf: enable
   else:
@@ -46,8 +47,9 @@ def get_imgs(domain_type: EDomainType):
   return imgs
 
 
-def initial_canvas(session_name: str, user_game_data: UserData,
-                   page_lists: Sequence[CanvasPageBase]):
+def initial_canvas(sid, name_space, session_name: str, user_game_data: UserData,
+                   page_lists: Sequence[ExperimentPageBase],
+                   domain_type: EDomainType):
 
   num_pages = len(page_lists)
   user_game_data.data[UserData.NUM_PAGES] = num_pages
@@ -65,7 +67,7 @@ def initial_canvas(session_name: str, user_game_data: UserData,
   page_drawing_info = cur_page.get_updated_drawing_info(user_game_data)
   commands, drawing_objs, drawing_order, animations = page_drawing_info
 
-  imgs = get_imgs(get_domain_type(session_name))
+  imgs = get_imgs(domain_type)
 
   update_gamedata(commands=commands,
                   imgs=imgs,
@@ -74,8 +76,8 @@ def initial_canvas(session_name: str, user_game_data: UserData,
                   animations=animations)
 
 
-def button_clicked(button, user_game_data: UserData,
-                   page_lists: Sequence[CanvasPageBase]):
+def button_clicked(sid, name_space, button, user_game_data: UserData,
+                   page_lists: Sequence[ExperimentPageBase]):
   page_idx = user_game_data.data[UserData.PAGE_IDX]
   user = user_game_data.data[UserData.USER]
 

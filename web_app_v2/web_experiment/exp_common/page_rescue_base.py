@@ -1,19 +1,18 @@
 from typing import Mapping, Any, Sequence, List
 import copy
 import numpy as np
-from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.rescue import (E_EventType, Location, E_Type, Place,
                                     T_Connections, Route)
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue.agent import AIAgent_Rescue
-from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
-from ai_coach_domain.rescue.policy import Policy_Rescue
+from ai_coach_domain.rescue.simulator import RescueSimulator
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
-from web_experiment.exp_common.helper import (get_file_name, location_2_coord,
+from web_experiment.exp_common.helper import (location_2_coord,
                                               rescue_game_scene,
-                                              rescue_game_scene_names)
+                                              rescue_game_scene_names,
+                                              RESCUE_PLACE_DRAW_INFO)
+
+RESCUE_MAX_STEP = 30
 
 
 def human_clear_problem(
@@ -71,6 +70,7 @@ class RescueGamePageBase(ExperimentPageBase):
     game = user_game_data.get_game_ref()
     if game is None:
       game = RescueSimulator()
+      game.max_steps = RESCUE_MAX_STEP
 
       user_game_data.set_game(game)
 
@@ -156,7 +156,6 @@ class RescueGamePageBase(ExperimentPageBase):
 
     drawing_order.append(self.TEXT_SCORE)
 
-    drawing_order.append(self.RECT_INSTRUCTION)
     drawing_order.append(self.TEXT_INSTRUCTION)
 
     return drawing_order
@@ -248,12 +247,11 @@ class RescueGamePageBase(ExperimentPageBase):
           coord_n = np.array(places[connection[1]].coord)
         else:
           if routes[connection[1]].start == a1pos.id:
-            dest = routes[connection[1]].end
+            coord_n = np.array(routes[connection[1]].coords[0])
           elif routes[connection[1]].end == a1pos.id:
-            dest = routes[connection[1]].start
+            coord_n = np.array(routes[connection[1]].coords[-1])
           else:
             raise ValueError("Invalid map")
-          coord_n = np.array(places[dest].coord)
 
         direction = coord_n - coord_c
         direction = direction / np.linalg.norm(direction)
@@ -317,20 +315,10 @@ class RescueGamePageBase(ExperimentPageBase):
                           fill=True,
                           border=False)
     list_buttons.append(obj)
-
-    # ctrl_btn_w = int(self.GAME_WIDTH / 12)
-    # btn_stay = co.ButtonRect(self.STAY, (x_ctrl_cen + int(ctrl_btn_w * 1.5),
-    #                                      y_ctrl_cen - int(ctrl_btn_w * 0.6)),
-    #                          (ctrl_btn_w * 2, ctrl_btn_w),
-    #                          font_size,
-    #                          "Stay",
-    #                          disable=disable_stay)
-    # list_buttons.append(btn_stay)
-
-    btn_rescue = co.ButtonRect(self.RESCUE, (x_ctrl_cen + 60, y_ctrl_cen - 20),
-                               (120, 100),
+    btn_rescue = co.ButtonRect(self.RESCUE, (x_ctrl_cen + 75, y_ctrl_cen),
+                               (120, 50),
                                font_size,
-                               "Resolve \nthe Situation",
+                               "Rescue",
                                disable=disable_rescue)
     list_buttons.append(btn_rescue)
 
@@ -338,7 +326,7 @@ class RescueGamePageBase(ExperimentPageBase):
 
   def _get_btn_select(self, user_game_data: Exp1UserData):
     x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
-    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.83)
+    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.8)
 
     buttonsize = (int(self.GAME_WIDTH / 3), int(self.GAME_WIDTH / 15))
     font_size = 18
@@ -386,27 +374,11 @@ class RescueGamePageBase(ExperimentPageBase):
     '''
     user_game_data: NOTE - values will be updated
     '''
-
     user_game_data.data[Exp1UserData.GAME_DONE] = True
 
-    game = user_game_data.get_game_ref()
-    user = user_game_data.data[Exp1UserData.USER]
-    user_id = user.userid
-
-    # save trajectory
-    save_path = user_game_data.data[Exp1UserData.SAVE_PATH]
-    session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
-    file_name = get_file_name(save_path, user_id, session_name)
-    header = game.__class__.__name__ + "-" + session_name + "\n"
-    header += "User ID: %s\n" % (str(user_id), )
-    header += str(self._GAME_MAP)
-    game.save_history(file_name, header)
-
     # update score
+    game = user_game_data.get_game_ref()
     user_game_data.data[Exp1UserData.SCORE] = game.current_step
-
-    # move to next page
-    user_game_data.go_to_next_page()
 
   def _get_updated_drawing_objects(
       self,
@@ -426,7 +398,7 @@ class RescueGamePageBase(ExperimentPageBase):
     for obj in self._game_overlay(dict_game, user_data):
       dict_objs[obj.name] = obj
 
-    obj = self._get_instruction_objs(user_data)[0]
+    obj = self._get_instruction_objs(user_data)
     dict_objs[obj.name] = obj
 
     disable_status = self._get_action_btn_disable_state(user_data, dict_game)
@@ -523,20 +495,21 @@ class RescueGamePageBase(ExperimentPageBase):
           self.GAME_LEFT, self.GAME_TOP, self.GAME_WIDTH, self.GAME_HEIGHT
       ]
 
-      coords = []
+      circles = []
       for place in places:
         if place.visible:
-          place_coord = coord_2_canvas(*place.coord)
-          if place_coord not in coords:
-            coords.append(place_coord)
+          for circle in RESCUE_PLACE_DRAW_INFO[place.name].circles:
+            cen_cnvs = coord_2_canvas(place.coord[0] + circle[0],
+                                      place.coord[1] + circle[1])
+            rad_cnvs = size_2_canvas(circle[2], 0)[0]
+            circles.append((*cen_cnvs, rad_cnvs))
 
       a1_pos = game_env["a1_pos"]
       a1_coord = coord_2_canvas(*location_2_coord(a1_pos, places, routes))
-      if a1_coord not in coords:
-        coords.append(a1_coord)
+      radius = size_2_canvas(0.06, 0)[0]
+      circles.append((*a1_coord, radius))
 
-      radii = [size_2_canvas(0.05, 0)[0]] * len(coords)
-      obj = co.MultiCircleSpotlight(co.PO_LAYER, po_outer_ltwh, coords, radii)
+      obj = co.ClippedRectangle(co.PO_LAYER, po_outer_ltwh, list_circle=circles)
       overlay_obs.append(obj)
 
     if (user_data.data[Exp1UserData.SHOW_LATENT]
@@ -548,12 +521,13 @@ class RescueGamePageBase(ExperimentPageBase):
           radius = size_2_canvas(0.05, 0)[0]
           x_cen = coord[0]
           y_cen = coord[1]
-          obj = co.Circle(co.CUR_LATENT,
-                          coord_2_canvas(x_cen, y_cen),
-                          radius,
-                          line_color="red",
-                          fill=False,
-                          border=True)
+          obj = co.BlinkCircle(co.CUR_LATENT,
+                               coord_2_canvas(x_cen, y_cen),
+                               radius,
+                               line_color="red",
+                               fill=False,
+                               border=True,
+                               linewidth=3)
           overlay_obs.append(obj)
 
     if user_data.data[Exp1UserData.SELECT]:
@@ -636,38 +610,3 @@ class RescueGamePageBase(ExperimentPageBase):
 
   def is_sel_latent_btn(self, sel_btn_name):
     return sel_btn_name[:6] == "latent"
-
-
-class RescueGamePage(RescueGamePageBase):
-  def __init__(self,
-               manual_latent_selection,
-               game_map,
-               auto_prompt: bool = True,
-               prompt_on_change: bool = True,
-               prompt_freq: int = 5) -> None:
-    super().__init__(manual_latent_selection, game_map, auto_prompt,
-                     prompt_on_change, prompt_freq)
-
-    task_mdp = MDP_Rescue_Task(**self._GAME_MAP)
-    agent_mdp = MDP_Rescue_Agent(**self._GAME_MAP)
-    TEMPERATURE = 0.3
-    self._TEAMMATE_POLICY = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE,
-                                          self._AGENT2)
-
-
-class RescueGameUserRandom(RescueGamePage):
-  def __init__(self, game_map, partial_obs) -> None:
-    super().__init__(True, game_map, True, True, 5)
-    self._PARTIAL_OBS = partial_obs
-
-  def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
-
-    agent1 = InteractiveAgent()
-    agent2 = AIAgent_Rescue(self._AGENT2, self._TEAMMATE_POLICY)
-
-    game = user_game_data.get_game_ref()
-    game.set_autonomous_agent(agent1, agent2)
-    user_game_data.data[Exp1UserData.SELECT] = True
-    user_game_data.data[Exp1UserData.SHOW_LATENT] = True
-    user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS
