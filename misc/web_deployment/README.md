@@ -13,7 +13,9 @@ Ref: https://medium.com/techfront/step-by-step-visual-guide-on-deploying-a-flask
 At your home folder,
 ```
 unzip aws_web_app.zip -d ai_coach/
+cd ai_coach
 python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
