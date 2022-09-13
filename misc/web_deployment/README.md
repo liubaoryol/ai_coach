@@ -84,6 +84,7 @@ server {
 
 ### Restart the services
 ```
+sudo systemctl daemon-reload
 sudo systemctl restart ai_coach.service
 sudo systemctl restart nginx
 ```
