@@ -21,7 +21,6 @@ def preexperiment():
   exp_type = session["exp_type"]
 
   if request.method == 'POST':
-    logging.info('User %s submitted pre-experiment survey.' % (cur_user, ))
     age = request.form['age']
     gender = request.form['gender']
     frequency = request.form['frequency']
@@ -86,6 +85,7 @@ def preexperiment():
     survey_answers['frequency' + str(query_data.frequency)] = 'checked'
     survey_answers['precomment'] = query_data.comment
 
+  logging.info('User %s accesses pre-experiment survey.' % (cur_user, ))
   return render_template('preexperiment.html',
                          answers=survey_answers,
                          cur_endpoint=cur_endpoint)
@@ -98,8 +98,6 @@ def inexp_survey_view(session_name):
   exp_type = session["exp_type"]
 
   if request.method == 'POST':
-    logging.info('User %s submitted the survey for %s.' %
-                 (cur_user, session_name))
     maintained = request.form['maintained']
     fluency = request.form['fluency']
     mycarry = request.form['mycarry']
@@ -186,6 +184,7 @@ def inexp_survey_view(session_name):
   elif exp_type == ExpType.Intervention:
     session_title = intv.SESSION_TITLE[session_name]
 
+  logging.info('User %s access the survey for %s.' % (cur_user, session_name))
   domain_type = get_domain_type(session_name)
   return render_template("inexperiment.html",
                          domain_type=domain_type.name,
@@ -198,7 +197,6 @@ def completion():
   cur_user = g.user
   cur_endpoint = survey_bp.name + "." + PageKey.Completion
   if request.method == 'POST':
-    logging.info('User %s submitted post-experiment survey.' % (cur_user, ))
     comment = request.form['comment']
     comment = comment.replace('\n', ' ')
     question = request.form['question']
@@ -258,6 +256,7 @@ def completion():
     comments = query_comments.comment
     questions = query_comments.question
 
+  logging.info('User %s accesses post-experiment survey.' % (cur_user, ))
   return render_template('completion.html',
                          saved_email=email_db,
                          saved_comment=comments,

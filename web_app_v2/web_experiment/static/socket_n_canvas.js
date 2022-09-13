@@ -47,6 +47,7 @@ $(document).ready(function () {
 
   // update
   socket.on("update_gamedata", function (json_msg) {
+    console.log("data received");
     const json_obj = JSON.parse(json_msg);
     game_data.process_json_obj(json_obj);
     game_data.spinning_circle.off();

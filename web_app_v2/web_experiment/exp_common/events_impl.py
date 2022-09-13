@@ -69,13 +69,11 @@ def initial_canvas(sid, name_space, session_name: str, user_game_data: UserData,
 
   imgs = get_imgs(domain_type)
 
-  update_gamedata_from_server(room_id=sid,
-                              name_space=name_space,
-                              commands=commands,
-                              imgs=imgs,
-                              drawing_objects=drawing_objs,
-                              drawing_order=drawing_order,
-                              animations=animations)
+  update_gamedata(commands=commands,
+                  imgs=imgs,
+                  drawing_objects=drawing_objs,
+                  drawing_order=drawing_order,
+                  animations=animations)
 
 
 def button_clicked(sid, name_space, button, user_game_data: UserData,
@@ -99,12 +97,10 @@ def button_clicked(sid, name_space, button, user_game_data: UserData,
   updated_task_done = user_game_data.data[UserData.SESSION_DONE]
 
   commands, drawing_objs, drawing_order, animations = page_drawing_info
-  update_gamedata_from_server(room_id=sid,
-                              name_space=name_space,
-                              commands=commands,
-                              drawing_objects=drawing_objs,
-                              drawing_order=drawing_order,
-                              animations=animations)
+  update_gamedata(commands=commands,
+                  drawing_objects=drawing_objs,
+                  drawing_order=drawing_order,
+                  animations=animations)
 
   if not prev_task_done and updated_task_done:
     done_task(user.userid, user_game_data.data[UserData.SESSION_NAME])

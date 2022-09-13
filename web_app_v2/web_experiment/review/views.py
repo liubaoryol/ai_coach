@@ -1,3 +1,4 @@
+import logging
 from flask import render_template, session, g, request, redirect
 from web_experiment.models import db, ExpIntervention, ExpDataCollection
 from web_experiment.define import (ExpType, PageKey, get_domain_type,
@@ -75,6 +76,7 @@ def review(session_name):
   domain_type = get_domain_type(session_name)
   socket_name = get_socket_name(PageKey.Review, domain_type)
 
+  logging.info('User %s accesses to %s.' % (cur_user, session_record_name))
   return render_template("review_base.html",
                          domain_type=domain_type.name,
                          is_disabled=disabled,

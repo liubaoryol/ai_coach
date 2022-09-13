@@ -33,7 +33,7 @@ def create_app(debug=False, test_config=None):
 
   app.config['SQLALCHEMY_DATABASE_URI'] = (
       'sqlite:///' + os.path.abspath(app.config['DATABASE']))
-  app.config.update(SESSION_COOKIE_SAMESITE=None)
+  app.config.update(SESSION_COOKIE_SAMESITE="Lax")
 
   # ensure the instance folder and data folder exists
   try:
