@@ -12,7 +12,7 @@ g_id_2_session_data = {}  # type: Mapping[Any, SessionData]
 for domain_type in REPLAY_CANVAS_PAGELIST:
   name_space = '/' + get_socket_name(PageKey.Replay, domain_type)
 
-  def make_init_canvas(domain_type):
+  def make_init_canvas(domain_type, name_space=name_space):
     def init_canvas():
       global g_id_2_session_data
       sid = request.sid
@@ -23,7 +23,9 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
       session_data = SessionData(cur_user, session_name, trajectory, 0)
       g_id_2_session_data[sid] = session_data
       max_idx = len(trajectory) - 1
-      update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0],
+      update_canvas(sid,
+                    name_space,
+                    REPLAY_CANVAS_PAGELIST[domain_type][0],
                     session_data,
                     init_imgs=True,
                     domain_type=domain_type)
@@ -34,7 +36,7 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
 
     return init_canvas
 
-  def make_next_index(domain_type):
+  def make_next_index(domain_type, name_space=name_space):
     def next_index():
       global g_id_2_session_data
       sid = request.sid
@@ -43,15 +45,15 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
       max_index = len(session_data.trajectory) - 1
       if session_data.index < max_index:
         session_data.index += 1
-        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], session_data,
-                      False)
+        update_canvas(sid, name_space, REPLAY_CANVAS_PAGELIST[domain_type][0],
+                      session_data, False)
         update_latent_state(domain_type,
                             mode=EMode.Replay,
                             session_data=session_data)
 
     return next_index
 
-  def make_prev_index(domain_type):
+  def make_prev_index(domain_type, name_space=name_space):
     def prev_index():
       global g_id_2_session_data
       sid = request.sid
@@ -59,15 +61,15 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
 
       if session_data.index > 0:
         session_data.index -= 1
-        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], session_data,
-                      False)
+        update_canvas(sid, name_space, REPLAY_CANVAS_PAGELIST[domain_type][0],
+                      session_data, False)
         update_latent_state(domain_type,
                             mode=EMode.Replay,
                             session_data=session_data)
 
     return prev_index
 
-  def make_goto_index(domain_type):
+  def make_goto_index(domain_type, name_space=name_space):
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
@@ -77,8 +79,8 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
       max_index = len(session_data.trajectory) - 1
       if (idx <= max_index and idx >= 0):
         session_data.index = idx
-        update_canvas(REPLAY_CANVAS_PAGELIST[domain_type][0], session_data,
-                      False)
+        update_canvas(sid, name_space, REPLAY_CANVAS_PAGELIST[domain_type][0],
+                      session_data, False)
         update_latent_state(domain_type,
                             mode=EMode.Replay,
                             session_data=session_data)

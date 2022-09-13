@@ -146,7 +146,9 @@ class SessionData:
   latent_predicted: Optional[Sequence] = None
 
 
-def update_canvas(page: CanvasPageBase,
+def update_canvas(sid,
+                  name_space,
+                  page: CanvasPageBase,
                   session_data: SessionData,
                   init_imgs=False,
                   domain_type: EDomainType = None):
@@ -168,14 +170,16 @@ def update_canvas(page: CanvasPageBase,
   commands, drawing_objs, drawing_order, animations = None, None, None, None
   if drawing_info is not None:
     commands, drawing_objs, drawing_order, animations = drawing_info
-  event_impl.update_gamedata(commands=commands,
-                             imgs=imgs,
-                             drawing_objects=drawing_objs,
-                             drawing_order=drawing_order,
-                             animations=animations)
+  event_impl.update_gamedata_from_server(sid,
+                                         name_space,
+                                         commands=commands,
+                                         imgs=imgs,
+                                         drawing_objects=drawing_objs,
+                                         drawing_order=drawing_order,
+                                         animations=animations)
 
 
-def canvas_button_clicked(button, page: CanvasPageBase,
+def canvas_button_clicked(sid, name_space, button, page: CanvasPageBase,
                           session_data: SessionData):
   if session_data is None:
     return
@@ -192,10 +196,12 @@ def canvas_button_clicked(button, page: CanvasPageBase,
   commands, drawing_objs, drawing_order, animations = None, None, None, None
   if drawing_info is not None:
     commands, drawing_objs, drawing_order, animations = drawing_info
-  event_impl.update_gamedata(commands=commands,
-                             drawing_objects=drawing_objs,
-                             drawing_order=drawing_order,
-                             animations=animations)
+  event_impl.update_gamedata_from_server(sid,
+                                         name_space,
+                                         commands=commands,
+                                         drawing_objects=drawing_objs,
+                                         drawing_order=drawing_order,
+                                         animations=animations)
 
 
 def update_latent_state(domain_type: EDomainType, mode: EMode,

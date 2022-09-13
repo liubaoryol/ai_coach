@@ -33,6 +33,7 @@ def create_app(debug=False, test_config=None):
 
   app.config['SQLALCHEMY_DATABASE_URI'] = (
       'sqlite:///' + os.path.abspath(app.config['DATABASE']))
+  app.config.update(SESSION_COOKIE_SAMESITE=None)
 
   # ensure the instance folder and data folder exists
   try:
@@ -74,7 +75,7 @@ def create_app(debug=False, test_config=None):
   # from web_experiment.demo.views import demo
   # app.add_url_rule('/', 'index', demo, methods=("GET", "POST"))
 
-  socketio.init_app(app)
+  socketio.init_app(app, cors_allowed_origins="*")
 
   logging.info('Create app!')
   return app

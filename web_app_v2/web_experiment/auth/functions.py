@@ -1,5 +1,5 @@
 import functools
-from flask import g, redirect, session, url_for, request
+from flask import g, redirect, session, url_for
 from . import auth_bp, ADMIN_ID
 
 

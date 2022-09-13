@@ -11,7 +11,7 @@ g_id_2_user_data = {}  # type: Mapping[str, Exp1UserData]
 for e_session in E_SessionName:
   name_space = '/' + e_session.name
 
-  def make_init_canvas(e_session: E_SessionName):
+  def make_init_canvas(e_session: E_SessionName, name_space=name_space):
     def initial_canvas():
       global g_id_2_user_data
       env_id = request.sid
@@ -22,8 +22,8 @@ for e_session in E_SessionName:
       user_data.data[Exp1UserData.SESSION_DONE] = False
 
       domain_type = GAMEPAGES[e_session][0]._DOMAIN_TYPE
-      event_impl.initial_canvas(e_session.name, user_data, GAMEPAGES[e_session],
-                                domain_type)
+      event_impl.initial_canvas(env_id, name_space, e_session.name, user_data,
+                                GAMEPAGES[e_session], domain_type)
 
     return initial_canvas
 
@@ -36,13 +36,14 @@ for e_session in E_SessionName:
 
     return disconnected
 
-  def make_button_clicked(e_session: E_SessionName):
+  def make_button_clicked(e_session: E_SessionName, name_space=name_space):
     def button_clicked(msg):
       global g_id_2_user_data
       button = msg["name"]
       env_id = request.sid
       user_data = g_id_2_user_data[env_id]
-      event_impl.button_clicked(button, user_data, GAMEPAGES[e_session])
+      event_impl.button_clicked(env_id, name_space, button, user_data,
+                                GAMEPAGES[e_session])
 
     return button_clicked
 
