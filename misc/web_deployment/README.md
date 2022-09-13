@@ -75,12 +75,21 @@ server {
         location / {
                 # First attempt to serve request as file, then
                 # as directory, then fall back to displaying a 404.
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $host;
+
                 proxy_pass http://flaskaicoach;
+
+                # enable WebSockets
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "upgrade";
         }
 
         ...
 }
 ```
+Ref: https://stackoverflow.com/a/60902101
 
 ### Restart the services
 ```
