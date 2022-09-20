@@ -3,6 +3,7 @@ from flask import session, request
 from flask_socketio import emit
 from web_experiment import socketio
 from web_experiment.define import EMode, PageKey
+from web_experiment.exp_common.page_replay import UserDataReplay
 from web_experiment.review.define import REPLAY_CANVAS_PAGELIST, get_socket_name
 from web_experiment.review.util import (update_canvas, update_latent_state,
                                         SessionData, load_trajectory)
@@ -20,7 +21,11 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
       session_name = session.get('loaded_session_name')
 
       trajectory = load_trajectory(session_name, cur_user)
-      session_data = SessionData(cur_user, session_name, trajectory, 0)
+      if trajectory is None:
+        return
+
+      session_data = SessionData(cur_user, UserDataReplay(), session_name,
+                                 trajectory, 0)
       g_id_2_session_data[sid] = session_data
       max_idx = len(trajectory) - 1
       update_canvas(sid,
@@ -40,6 +45,9 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
     def next_index():
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
+
       session_data = g_id_2_session_data[sid]
 
       max_index = len(session_data.trajectory) - 1
@@ -57,6 +65,8 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
     def prev_index():
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
 
       if session_data.index > 0:
@@ -73,6 +83,8 @@ for domain_type in REPLAY_CANVAS_PAGELIST:
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
 
       idx = int(msg['index'])

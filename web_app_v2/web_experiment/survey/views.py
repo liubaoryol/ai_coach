@@ -8,7 +8,8 @@ from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
 import csv
 from web_experiment.define import (PageKey, get_next_url, ExpType,
-                                   get_domain_type)
+                                   get_domain_type, HASH_2_SESSION_KEY,
+                                   url_name)
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
 from . import survey_bp
@@ -91,11 +92,12 @@ def preexperiment():
                          cur_endpoint=cur_endpoint)
 
 
-def inexp_survey_view(session_name):
+def inexp_survey_view(session_name_hash):
   cur_user = g.user
   cur_endpoint = survey_bp.name + "." + PageKey.InExperiment
   group_id = session["groupid"]
   exp_type = session["exp_type"]
+  session_name = HASH_2_SESSION_KEY[session_name_hash]
 
   if request.method == 'POST':
     maintained = request.form['maintained']
@@ -190,7 +192,8 @@ def inexp_survey_view(session_name):
                          domain_type=domain_type.name,
                          answers=survey_answers,
                          session_title=session_title,
-                         cur_endpoint=cur_endpoint)
+                         cur_endpoint=cur_endpoint,
+                         session_name_hash=session_name_hash)
 
 
 def completion():
@@ -271,17 +274,18 @@ def thankyou():
   return render_template('thankyou.html')
 
 
-survey_bp.add_url_rule('/' + PageKey.PreExperiment,
+survey_bp.add_url_rule('/' + url_name(PageKey.PreExperiment),
                        PageKey.PreExperiment,
                        login_required(preexperiment),
                        methods=('GET', 'POST'))
 
-survey_bp.add_url_rule('/' + PageKey.InExperiment + "/<session_name>",
+survey_bp.add_url_rule('/' + url_name(PageKey.InExperiment) +
+                       "/<session_name_hash>",
                        PageKey.InExperiment,
                        login_required(inexp_survey_view),
                        methods=('GET', 'POST'))
 
-survey_bp.add_url_rule('/' + PageKey.Completion,
+survey_bp.add_url_rule('/' + url_name(PageKey.Completion),
                        PageKey.Completion,
                        login_required(completion),
                        methods=('GET', 'POST'))

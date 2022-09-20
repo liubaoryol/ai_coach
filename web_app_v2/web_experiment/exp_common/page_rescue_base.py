@@ -543,8 +543,7 @@ class RescueGamePageBase(ExperimentPageBase):
       for idx, loc in enumerate(work_locations):
         coord = location_2_coord(loc, places, routes)
         obj = co.SelectingCircle(self.latent2selbtn(idx),
-                                 coord_2_canvas(*coord), radius, font_size,
-                                 str(idx))
+                                 coord_2_canvas(*coord), radius, font_size, "")
         overlay_obs.append(obj)
 
     return overlay_obs

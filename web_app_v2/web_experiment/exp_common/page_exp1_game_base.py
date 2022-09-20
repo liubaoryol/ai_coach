@@ -506,9 +506,6 @@ class BoxPushGamePageBase(ExperimentPageBase):
         coord = None
         if a1_latent[0] == "pickup":
           coord = game_env["boxes"][a1_latent[1]]
-        elif a1_latent[0] == "origin":
-          if a1_box >= 0:
-            coord = game_env["boxes"][a1_box]
         elif a1_latent[0] == "goal":
           coord = game_env["goals"][a1_latent[1]]
 
@@ -532,42 +529,28 @@ class BoxPushGamePageBase(ExperimentPageBase):
                          alpha=0.8)
       overlay_obs.append(obj)
 
-      cnt = 0
       radius = size_2_canvas(0.45, 0)[0]
       font_size = 20
-      if a1_box >= 0:
 
-        coord = game_env["boxes"][a1_box]
+      for idx, coord in enumerate(game_env["goals"]):
         x_cen = coord[0] + 0.5
         y_cen = coord[1] + 0.5
-        lat = ["origin", 0]
+        lat = ["goal", idx]
         obj = co.SelectingCircle(self.latent2selbtn(lat),
                                  coord_2_canvas(x_cen, y_cen), radius,
-                                 font_size, str(cnt))
+                                 font_size, "")
         overlay_obs.append(obj)
-        cnt += 1
 
-        for idx, coord in enumerate(game_env["goals"]):
-          x_cen = coord[0] + 0.5
-          y_cen = coord[1] + 0.5
-          lat = ["goal", idx]
-          obj = co.SelectingCircle(self.latent2selbtn(lat),
-                                   coord_2_canvas(x_cen, y_cen), radius,
-                                   font_size, str(cnt))
-          overlay_obs.append(obj)
-          cnt += 1
-      else:
-        for idx, bidx in enumerate(game_env["box_states"]):
-          coord = game_env["boxes"][idx]
+      for idx, bidx in enumerate(game_env["box_states"]):
+        coord = game_env["boxes"][idx]
 
-          x_cen = coord[0] + 0.5
-          y_cen = coord[1] + 0.5
-          lat = ["pickup", idx]
-          obj = co.SelectingCircle(self.latent2selbtn(lat),
-                                   coord_2_canvas(x_cen, y_cen), radius,
-                                   font_size, str(cnt))
-          overlay_obs.append(obj)
-          cnt += 1
+        x_cen = coord[0] + 0.5
+        y_cen = coord[1] + 0.5
+        lat = ["pickup", idx]
+        obj = co.SelectingCircle(self.latent2selbtn(lat),
+                                 coord_2_canvas(x_cen, y_cen), radius,
+                                 font_size, "")
+        overlay_obs.append(obj)
 
     return overlay_obs
 
@@ -589,9 +572,6 @@ class BoxPushGamePageBase(ExperimentPageBase):
         coord = None
         if a1_latent[0] == "pickup":
           coord = game_env["boxes"][a1_latent[1]]
-        elif a1_latent[0] == "origin":
-          if a1_box >= 0:
-            coord = game_env["boxes"][a1_box]
         elif a1_latent[0] == "goal":
           coord = game_env["goals"][a1_latent[1]]
 
@@ -600,16 +580,12 @@ class BoxPushGamePageBase(ExperimentPageBase):
 
     if user_data.data[Exp1UserData.SELECT]:
       overlay_names.append(co.SEL_LAYER)
-      if a1_box >= 0:
-        overlay_names.append(self.latent2selbtn(["origin", 0]))
 
-        for idx, coord in enumerate(game_env["goals"]):
-          overlay_names.append(self.latent2selbtn(["goal", idx]))
-      else:
-        for idx, bidx in enumerate(game_env["box_states"]):
-          coord = game_env["boxes"][idx]
+      for idx, coord in enumerate(game_env["goals"]):
+        overlay_names.append(self.latent2selbtn(["goal", idx]))
 
-          overlay_names.append(self.latent2selbtn(["pickup", idx]))
+      for idx, bidx in enumerate(game_env["box_states"]):
+        overlay_names.append(self.latent2selbtn(["pickup", idx]))
 
     return overlay_names
 
@@ -650,8 +626,6 @@ class BoxPushGamePageBase(ExperimentPageBase):
       return "sel_box" + str(latent[1])
     elif latent[0] == "goal":
       return "sel_goa" + str(latent[1])
-    elif latent[0] == "origin":
-      return "sel_ori" + str(latent[1])
 
     return None
 
@@ -660,10 +634,8 @@ class BoxPushGamePageBase(ExperimentPageBase):
       return ("pickup", int(sel_btn_name[7:]))
     elif sel_btn_name[:7] == "sel_goa":
       return ("goal", int(sel_btn_name[7:]))
-    elif sel_btn_name[:7] == "sel_ori":
-      return ("origin", 0)
 
     return None
 
   def is_sel_latent_btn(self, sel_btn_name):
-    return sel_btn_name[:7] in ["sel_box", "sel_goa", "sel_ori"]
+    return sel_btn_name[:7] in ["sel_box", "sel_goa"]

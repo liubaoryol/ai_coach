@@ -4,9 +4,9 @@ from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Agent)
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
 from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
-from ai_coach_domain.box_push.agent import (BoxPushAIAgent_PO_Indv,
-                                            BoxPushAIAgent_PO_Team,
-                                            InteractiveAgent)
+from ai_coach_domain.agent import InteractiveAgent
+from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
+                                               BoxPushAIAgent_PO_Team)
 from web_experiment.models import db, User
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import Exp1UserData

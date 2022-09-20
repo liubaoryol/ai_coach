@@ -9,20 +9,15 @@ import web_experiment.exp_common.page_tutorial_rescue as pgr
 from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
 
 SESSION_TITLE = {
-    PageKey.DataCol_A0: 'A0',
     PageKey.DataCol_A1: 'A1',
     PageKey.DataCol_A2: 'A2',
     PageKey.DataCol_A3: 'A3',
-    PageKey.DataCol_B0: 'B0',
-    PageKey.DataCol_B1: 'B1',
-    PageKey.DataCol_B2: 'B2',
-    PageKey.DataCol_B3: 'B3',
-    PageKey.DataCol_C0: 'C0',
+    PageKey.DataCol_A4: 'A4',
     PageKey.DataCol_C1: 'C1',
     PageKey.DataCol_C2: 'C2',
     PageKey.DataCol_C3: 'C3',
+    PageKey.DataCol_C4: 'C4',
     PageKey.DataCol_T1: 'Interactive Tutorial',
-    PageKey.DataCol_T2: 'Interactive Tutorial',
     PageKey.DataCol_T3: 'Interactive Tutorial',
 }
 
@@ -46,25 +41,20 @@ class SocketType(Enum):
 
 def get_socket_name(page_key):
   socket_type = None
-  if page_key == PageKey.DataCol_A0:
-    socket_type = SocketType.DataCol_movers_practice
-  elif page_key in [PageKey.DataCol_A1, PageKey.DataCol_A2, PageKey.DataCol_A3]:
+  if page_key in [
+      PageKey.DataCol_A1, PageKey.DataCol_A2, PageKey.DataCol_A3,
+      PageKey.DataCol_A4
+  ]:
     socket_type = SocketType.DataCol_movers_test
 
-  elif page_key == PageKey.DataCol_B0:
-    socket_type = SocketType.DataCol_cleanup_practice
-  elif page_key in [PageKey.DataCol_B1, PageKey.DataCol_B2, PageKey.DataCol_B3]:
-    socket_type = SocketType.DataCol_cleanup_test
-
-  elif page_key == PageKey.DataCol_C0:
-    socket_type = SocketType.DataCol_rescue_practice
-  elif page_key in [PageKey.DataCol_C1, PageKey.DataCol_C2, PageKey.DataCol_C3]:
+  elif page_key in [
+      PageKey.DataCol_C1, PageKey.DataCol_C2, PageKey.DataCol_C3,
+      PageKey.DataCol_C4
+  ]:
     socket_type = SocketType.DataCol_rescue_test
 
   elif page_key == PageKey.DataCol_T1:
     socket_type = SocketType.DataCol_movers_tutorial
-  elif page_key == PageKey.DataCol_T2:
-    socket_type = SocketType.DataCol_cleanup_tutorial
   elif page_key == PageKey.DataCol_T3:
     socket_type = SocketType.DataCol_rescue_tutorial
 
@@ -160,12 +150,11 @@ PAGE_LIST_RESCUE_TUTORIAL = [
     pgr.RescueTutorialOnlyHuman(),
     pgr.RescueTutorialSimpleTarget(),
     pgr.RescueTutorialResolvedAlone(),
+    pgr.RescueTutorialScore(),
     pgr.RescueTutorialComplexTarget(),
     pgr.RescueTutorialComplexTargetTogether(),
     pgr.RescueTutorialResolvedTogether(),
-    pgr.RescueTutorialScore(),
     pgr.RescueTutorialPartialObs(),
-    pgr.RescueTutorialDestination(),
     pgr.RescueTutorialLatent(),
     pgr.RescueTutorialSelResult(),
     pgr.RescueTutorialMiniGame()

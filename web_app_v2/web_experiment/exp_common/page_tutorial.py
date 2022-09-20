@@ -7,10 +7,10 @@ import web_experiment.exp_common.canvas_objects as co
 from web_experiment.models import db, ExpDataCollection, ExpIntervention
 from web_experiment.define import ExpType, EDomainType
 from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.box_push import conv_box_state_2_idx, EventType, BoxState
-from ai_coach_domain.box_push.agent import (BoxPushAIAgent_PO_Indv,
-                                            BoxPushAIAgent_Team2,
-                                            BoxPushAIAgent_PO_Team)
+from ai_coach_domain.box_push_v2 import (conv_box_state_2_idx, EventType,
+                                         BoxState, BoxPushSimulatorV2)
+from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
+                                               BoxPushAIAgent_PO_Team)
 
 
 class CanvasPageTutorialStart(ExperimentPageBase):
@@ -29,7 +29,7 @@ class CanvasPageTutorialStart(ExperimentPageBase):
     pos = (int(co.CANVAS_WIDTH / 2), int(co.CANVAS_HEIGHT / 2))
     size = (int(self.GAME_WIDTH / 2), int(self.GAME_HEIGHT / 5))
     obj = co.ButtonRect(self.BTN_TUTORIAL_START, pos, size, 30,
-                        "Interactive Tutorial")
+                        "Interactive Tutorial\n(Click to Start)")
     dict_objs[obj.name] = obj
 
     return dict_objs
@@ -301,8 +301,8 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
     object_type = ("box"
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
     return (
-        "The red circle indicates your current destination and provides" +
-        " you a hint on where to move next. Please move to the " + object_type +
+        "The red circle indicates your current destination. " +
+        "Please move to the " + object_type +
         " (using the motion buttons) and try to pick it. The pick button will" +
         " be available only when you are at the correct destination.")
 
@@ -365,9 +365,11 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      return ("Now, please pick it up using the (pick button). " +
+      return ("Now, please pick it up using the (\"Pick Up\" button). " +
               "You will notice that you cannot pick up the box alone. " +
-              "You have to pick it up together with the robot.")
+              "You have to pick it up together with the robot. " +
+              "Once you have clicked the \"Pick Up\" button, " +
+              "please click on the “Next” button to continue.")
     else:
       return ("Now, please pick it up using the (pick button). " +
               "You will notice that you can pick up the trash bag alone. " +
@@ -484,11 +486,15 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
-    game = user_game_data.get_game_ref()
+    game = user_game_data.get_game_ref()  # type: BoxPushSimulatorV2
     agent1 = InteractiveAgent()
 
+    init_states = ([0] * len(self._GAME_MAP["boxes"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      agent2 = BoxPushAIAgent_Team2(self._TEAMMATE_POLICY)
+      agent2 = BoxPushAIAgent_PO_Team(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
     else:
       agent2 = InteractiveAgent()
 
@@ -502,6 +508,7 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
           (BoxState.WithBoth, None), len(game.drops))
       game.event_input(self._AGENT1, EventType.SET_LATENT, ("goal", 0))
       game.event_input(self._AGENT2, EventType.SET_LATENT, ("goal", 0))
+      agent2.assumed_tup_states = (game.box_states, game.a1_pos, game.a2_pos)
     else:
       game.a1_pos = game.boxes[PICKUP_BOX]
       game.box_states[PICKUP_BOX] = conv_box_state_2_idx(
@@ -552,6 +559,7 @@ class CanvasPageRespawn(CanvasPageTutorialBase):
     game.event_input(self._AGENT1, EventType.SET_LATENT, None)
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     object_type = ("box"
@@ -570,6 +578,7 @@ class CanvasPageScore(CanvasPageTutorialBase):
 
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -606,10 +615,42 @@ class CanvasPagePartialObs(CanvasPageTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
-        "Unlike the tutorial so far, during the TEST sessions, " +
-        "You cannot observe the full environment of the game. You can see " +
-        "your robot teammate or objects only if they are " +
-        "at your neighborhood.")
+        "Unlike the tutorial so far, during the TASK sessions, You cannot " +
+        "observe the full environment of the game. You can see your robot " +
+        "teammate or objects only if they are in close proximity. " +
+        "Similarly, your robot teammate also does NOT know where you are " +
+        "unless you are in close proximity.")
+
+
+class CanvasPagePORobot(CanvasPageTutorialBase):
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, False, False, False)
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+    agent1 = InteractiveAgent()
+    init_states = ([0] * len(self._GAME_MAP["boxes"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
+    if self._DOMAIN_TYPE == EDomainType.Movers:
+      agent2 = BoxPushAIAgent_PO_Team(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
+    else:
+      agent2 = InteractiveAgent()
+
+    game = user_game_data.get_game_ref()  # type: BoxPushSimulatorV2
+
+    game.set_autonomous_agent(agent1, agent2)
+    game.event_input(self._AGENT1, EventType.SET_LATENT, None)
+
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
+    user_game_data.data[Exp1UserData.SELECT] = False
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return (
+        "Your robot teammate also does NOT know where you are unless you are in "
+        + "its neighborhood. The robot will choose or update its destination " +
+        "independently of you.")
 
 
 class CanvasPageTarget(CanvasPageTutorialBase):
@@ -638,7 +679,7 @@ class CanvasPageTarget(CanvasPageTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("In the TEST sessions, you will have to select your next target" +
+    return ("In the TASK sessions, you will have to select your next target" +
             " using the \"Select Destination\" button. It is very important " +
             "to provide your destination instantly whenever you change your " +
             "target in your mind. Let's see how to do this! Please click on " +
@@ -673,10 +714,11 @@ class CanvasPageLatent(CanvasPageTutorialBase):
   def _get_instruction(self, user_game_data: Exp1UserData):
     object_type = ("box"
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
-    return ("First, click the “Select Destination” button. " +
-            "Possible destinations are numbered and shown as an overlay. " +
-            "Please click on your current destination (i.e., the " +
-            object_type + " which you are planning to pick next).")
+    return (
+        "First, click the “Select Destination” button. " +
+        "Possible destinations are circled in red and shown as an overlay. " +
+        "Please click on your current destination (i.e., the " + object_type +
+        " which you are planning to pick next).")
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn == co.BTN_SELECT:
@@ -704,11 +746,15 @@ class CanvasPageSelResult(CanvasPageTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     if self._IS_2ND:
-      return ("Great! As before, your choice is marked with the red circle " +
-              "and you have selected your next destination.")
+      return ("Great! As before, your choice is marked with the flashing red " +
+              "circle and you have selected your next destination.")
     else:
-      return ("Well done! Now you can see your choice is marked with the red" +
-              " circle and you have selected your next destination.")
+      return (
+          "Well done! Now you can see your choice is marked with the " +
+          "flashing red circle and you have selected your next destination. " +
+          "The selection will NOT inform the robot of anything. " +
+          "Your robot teammate does NOT know your selected destination and " +
+          "will choose its destination independently of you.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -736,7 +782,7 @@ class CanvasPageSelPrompt(CanvasPageTutorialBase):
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
         "We will also prompt the destination selection auto- matically " +
-        "and periodically during the TEST sessions. Please move the human " +
+        "and periodically during the TASK sessions. Please move the human " +
         "player several steps. When the destination selection is prompted" +
         ", please click on your current destination.")
 
@@ -763,7 +809,7 @@ class CanvasPageMiniGame(CanvasPageTutorialBase):
     return ("Now, we are at the final step of the tutorial. Feel free to " +
             "interact with the interface and get familiar with the task. You" +
             " can also press the back button to revisit any of the previous " +
-            "prompts.\n Once you are ready, please proceed to the TEST " +
+            "prompts.\n Once you are ready, please proceed to the TASK " +
             "sessions (using the button at the bottom of this page).")
 
   def init_user_data(self, user_game_data: Exp1UserData):

@@ -81,6 +81,49 @@ class CanvasPageBase(abc.ABC):
     pass
 
 
+class CanvasPageError(CanvasPageBase):
+  TEXT_ERROR = "text_error"
+
+  def __init__(self, error_msg) -> None:
+    super().__init__()
+    self.ERROR_MSG = error_msg
+
+  def init_user_data(self, user_data: UserData):
+    return super().init_user_data(user_data)
+
+  def get_updated_drawing_info(self,
+                               user_data: UserData,
+                               clicked_button: str = None,
+                               data_to_compare: Mapping[str, Any] = None):
+    '''
+    user_data: should NOT be changed here
+    return: commands, drawing_objs, drawing_order, animations
+    '''
+    drawing_obj = self._get_init_drawing_objects(user_data)
+    drawing_order = self._get_drawing_order(user_data)
+    commands = {"clear": None}
+    return commands, drawing_obj, drawing_order, None
+
+  def button_clicked(self, user_data: UserData, clicked_btn: str):
+    return super().button_clicked(user_data, clicked_btn)
+
+  def _get_drawing_order(self, user_game_data=None):
+    return [self.TEXT_ERROR]
+
+  def _get_init_drawing_objects(self,
+                                user_data) -> Mapping[str, co.DrawingObject]:
+    font_size = 30
+    obj = co.TextObject(self.TEXT_ERROR,
+                        (0, int(co.CANVAS_HEIGHT / 2 - font_size)),
+                        co.CANVAS_WIDTH,
+                        font_size,
+                        self.ERROR_MSG,
+                        text_align="center",
+                        text_baseline="middle")
+
+    return {obj.name: obj}
+
+
 class Exp1UserData(UserData):
   '''
   user data that should be valid only during flask-socketio session

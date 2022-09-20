@@ -3,18 +3,26 @@
 {% block header %}
 <h1>{% block title %}
   {% if domain_type == 'Movers' %}
-  Movers and Packers (part 3/6)
+  Movers and Packers (part 3/5)
   {% elif domain_type == 'Cleanup' %}
-  Cleanup (part 4/6)
+  Cleanup (part 4/5)
   {% elif domain_type == 'Rescue' %}
-  Rescue (part 5/6)
+  Rescue (part 4/5)
   {% else %}
   Unknown Domain
   {% endif %}
   {% endblock %}</h1>
-<h2>{% block subtitle %} Review Latent States{% endblock %}</h2>
+<h2>{% block subtitle %} Review TASK {{ session_title}} {% endblock %}</h2>
 <div class="explanation">
-  <p>Review latent states - Session: {{session_title}} - Total Steps: <span id="max_index"></span></p>
+  <p>
+    Please review the destinations labeled based on your choices.
+    If you selected incorrect destinations or forgot to update your destination at right time during the task,
+    please correct it via the "Fix Destination" button on the right bottom.
+  </p>
+  <p>
+    If you think you already provided us with correct destinations, you can skip this review page and proceed
+    to the next stage. Once you move to the next stage, you cannot review this task anymore.
+  </p>
 </div>
 {% endblock %}
 
@@ -32,22 +40,20 @@
   initSocketIO("{{ socket_name_space }}");
 </script>
 
+<div class="slidecontainer">
+  <label for="playback">Please scroll to the right.
+  </label>
+  <input type="range" min="0" max="1" value="0" class="slider" id="playback">
+  <!-- <p>Time step: <span id="timestep"></span></p> -->
+</div>
+
 <canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 
-<div class="slidecontainer">
-  <p></p>
-  <label for="playback">Please scroll to review if you correctly selected your destination at each step. If the red
-    circle is not aligned with what you have actually thought of as the destination, please click "Fix Destination"
-    button to update it.
-  </label>
-  <input type="range" min="0" max="1" value="0" class="slider" id="playback">
-  <p>Time step: <span id="timestep"></span></p>
-</div>
 
 <div>
-  <form method="POST" action="{{ url_for(cur_endpoint, session_name=session_name) }}">
+  <form method="POST" action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}">
     <input type="hidden" name="proceed" value="proceed">
     <div class="button-center">
       <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to Next Stage</button>

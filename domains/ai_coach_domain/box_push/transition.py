@@ -53,8 +53,7 @@ def get_moved_coord_impl(coord,
                          a2_pos=None,
                          box_locations=None,
                          goals=None,
-                         drops=None,
-                         check_box=False):
+                         drops=None):
   x, y = coord
   coord_new = None
   if action == EventType.UP:
@@ -72,8 +71,8 @@ def get_moved_coord_impl(coord,
     return coord
     # coord_new = coord
 
-  if check_box and get_box_idx_impl(coord_new, box_states, a1_pos, a2_pos,
-                                    box_locations, goals, drops) >= 0:
+  if box_states is not None and get_box_idx_impl(
+      coord_new, box_states, a1_pos, a2_pos, box_locations, goals, drops) >= 0:
     return coord
     # coord_new = coord
 
@@ -137,10 +136,10 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
     return get_box_idx_impl(coord, box_states, a1_pos, a2_pos, box_locations,
                             goals, drops)
 
-  def get_moved_coord(coord, action, check_box=False):
+  def get_moved_coord(coord, action, box_states=None):
     return get_moved_coord_impl(coord, action, x_bound, y_bound, walls,
                                 box_states, a1_pos, a2_pos, box_locations,
-                                goals, drops, check_box)
+                                goals, drops)
 
   def hold_state():
     return hold_state_impl(box_states, drops, goals)
@@ -212,7 +211,7 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
     elif a1_act == EventType.UNHOLD:
       box_states_new[bidx] = conv_box_state_2_idx((BoxState.WithAgent2, None),
                                                   num_drops)
-      a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+      a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
       if a2_pos_new == a2_pos:
         list_next_env.append((1.0, box_states_new, a1_pos, a2_pos))
       else:
@@ -221,7 +220,7 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
     elif a2_act == EventType.UNHOLD:
       box_states_new[bidx] = conv_box_state_2_idx((BoxState.WithAgent1, None),
                                                   num_drops)
-      a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+      a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
       if a1_pos_new == a1_pos:
         list_next_env.append((1.0, box_states_new, a1_pos, a2_pos))
       else:
@@ -232,11 +231,11 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
           or (a1_act == EventType.STAY and a2_act == EventType.STAY)):
         list_next_env.append((1.0, box_states, a1_pos, a2_pos))
       elif a1_act == a2_act:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         list_next_env.append((1.0, box_states, a1_pos_new, a1_pos_new))
       else:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a1_pos_new == a2_pos_new:
           list_next_env.append((1.0, box_states, a1_pos_new, a1_pos_new))
         else:
@@ -256,7 +255,7 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
         update_dropped_box_state(bidx, a1_pos, box_states_new)
         p_a1_success = 1
       else:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
@@ -267,7 +266,7 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
         update_dropped_box_state(bidx, a2_pos, box_states_new)
         p_a2_success = 1
       else:
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -288,12 +287,12 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
       agent_dist = (abs(a1_pos[0] - a2_pos[0]) + abs(a1_pos[1] - a2_pos[1]))
       if agent_dist > 2:
         p_a1_success = 0
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
         p_a2_success = 0
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -311,12 +310,12 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
           list_next_env.append((p_ff, box_states, a1_pos, a2_pos))
       elif agent_dist == 2:
         p_a1_success = 0
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
         p_a2_success = 0
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -340,8 +339,8 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
         if p_ff > 0:
           list_next_env.append((p_ff, box_states, a1_pos, a2_pos))
       else:  # agent_dst == 1
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a1_pos_new != a1_pos and a2_pos_new != a2_pos:
           list_next_env.append(
               (P_MOVE * P_MOVE, box_states, a1_pos_new, a2_pos_new))
@@ -398,7 +397,7 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
         update_dropped_box_state(bidx, a1_pos, box_states_new)
         p_a1_success = 1.0
       else:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
@@ -440,7 +439,7 @@ def transition_alone_and_together(box_states: list, a1_pos, a2_pos, a1_act,
         update_dropped_box_state(bidx, a2_pos, box_states_new)
         p_a2_success = 1.0
       else:
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -474,10 +473,10 @@ def transition_always_together(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
     return get_box_idx_impl(coord, box_states, a1_pos, a2_pos, box_locations,
                             goals, drops)
 
-  def get_moved_coord(coord, action, check_box=False):
+  def get_moved_coord(coord, action, box_states=None):
     return get_moved_coord_impl(coord, action, x_bound, y_bound, walls,
                                 box_states, a1_pos, a2_pos, box_locations,
-                                goals, drops, check_box)
+                                goals, drops)
 
   def hold_state():
     return hold_state_impl(box_states, drops, goals)
@@ -534,11 +533,11 @@ def transition_always_together(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
           or (a1_act == EventType.STAY and a2_act == EventType.STAY)):
         list_next_env.append((1.0, box_states, a1_pos, a2_pos))
       elif a1_act == a2_act:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         list_next_env.append((1.0, box_states, a1_pos_new, a1_pos_new))
       else:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a1_pos_new == a2_pos_new:
           list_next_env.append((1.0, box_states, a1_pos_new, a1_pos_new))
         else:
@@ -561,10 +560,10 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
     return get_box_idx_impl(coord, box_states, a1_pos, a2_pos, box_locations,
                             goals, drops)
 
-  def get_moved_coord(coord, action, check_box=False):
+  def get_moved_coord(coord, action, box_states=None):
     return get_moved_coord_impl(coord, action, x_bound, y_bound, walls,
                                 box_states, a1_pos, a2_pos, box_locations,
-                                goals, drops, check_box)
+                                goals, drops)
 
   def hold_state():
     return hold_state_impl(box_states, drops, goals)
@@ -627,7 +626,7 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
         update_dropped_box_state(bidx, a1_pos, box_states_new)
         p_a1_success = 1
       else:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
@@ -638,7 +637,7 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
         update_dropped_box_state(bidx, a2_pos, box_states_new)
         p_a2_success = 1
       else:
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -659,12 +658,12 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
       agent_dist = (abs(a1_pos[0] - a2_pos[0]) + abs(a1_pos[1] - a2_pos[1]))
       if agent_dist > 2:
         p_a1_success = 0
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
         p_a2_success = 0
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -682,12 +681,12 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
           list_next_env.append((p_ff, box_states, a1_pos, a2_pos))
       elif agent_dist == 2:
         p_a1_success = 0
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
         p_a2_success = 0
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -711,8 +710,8 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
         if p_ff > 0:
           list_next_env.append((p_ff, box_states, a1_pos, a2_pos))
       else:  # agent_dst == 1
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a1_pos_new != a1_pos and a2_pos_new != a2_pos:
           list_next_env.append(
               (P_MOVE * P_MOVE, box_states, a1_pos_new, a2_pos_new))
@@ -760,7 +759,7 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
                                                     num_drops)
         p_a1_success = 1.0
       else:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
@@ -778,7 +777,7 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
         update_dropped_box_state(bidx, a1_pos, box_states_new)
         p_a1_success = 1.0
       else:
-        a1_pos_new = get_moved_coord(a1_pos, a1_act, True)
+        a1_pos_new = get_moved_coord(a1_pos, a1_act, box_states)
         if a1_pos_new != a1_pos:
           p_a1_success = P_MOVE
 
@@ -810,7 +809,7 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
                                                     num_drops)
         p_a2_success = 1.0
       else:
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 
@@ -828,7 +827,7 @@ def transition_always_alone(box_states: list, a1_pos, a2_pos, a1_act, a2_act,
         update_dropped_box_state(bidx, a2_pos, box_states_new)
         p_a2_success = 1.0
       else:
-        a2_pos_new = get_moved_coord(a2_pos, a2_act, True)
+        a2_pos_new = get_moved_coord(a2_pos, a2_act, box_states)
         if a2_pos_new != a2_pos:
           p_a2_success = P_MOVE
 

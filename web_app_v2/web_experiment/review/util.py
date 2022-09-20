@@ -12,7 +12,7 @@ from ai_coach_core.utils.data_utils import Trajectories
 from ai_coach_domain.box_push.agent_model import (
     assumed_initial_mental_distribution)
 
-from ai_coach_domain.box_push import get_possible_latent_states
+from ai_coach_domain.box_push_v2 import get_possible_latent_states
 from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP
 from ai_coach_domain.box_push_v2.mdp import (MDP_BoxPushV2, MDP_Cleanup_Agent,
                                              MDP_Cleanup_Task, MDP_Movers_Agent,
@@ -23,7 +23,7 @@ from ai_coach_domain.rescue.maps import MAP_RESCUE
 
 from web_experiment.define import EMode, EDomainType, get_domain_type
 import web_experiment.exp_common.events_impl as event_impl
-from web_experiment.exp_common.page_base import CanvasPageBase
+from web_experiment.exp_common.page_base import CanvasPageBase, CanvasPageError
 from web_experiment.exp_common.page_replay import UserDataReplay
 
 
@@ -138,12 +138,23 @@ class SessionData:
     from "connect" to "disconnect" of socketio
   '''
   user_id: str
+  user_data: UserDataReplay
   session_name: str
   trajectory: Sequence
   index: int = 0
   groupid: Optional[str] = None
   latent_collected: Optional[Sequence] = None
   latent_predicted: Optional[Sequence] = None
+
+
+def no_trajectory_page(sid, name_space, text):
+  page = CanvasPageError(text)
+  (commands, drawing_objs, drawing_order,
+   animations) = page.get_updated_drawing_info(None)
+  event_impl.update_gamedata(commands=commands,
+                             drawing_objects=drawing_objs,
+                             drawing_order=drawing_order,
+                             animations=animations)
 
 
 def update_canvas(sid,
@@ -158,7 +169,7 @@ def update_canvas(sid,
 
   drawing_info = None
   if session_data is not None:
-    user_data = UserDataReplay(None)
+    user_data = session_data.user_data
     user_data.data[UserDataReplay.TRAJECTORY] = session_data.trajectory
     user_data.data[UserDataReplay.TRAJ_IDX] = session_data.index
     page.init_user_data(user_data)
@@ -182,7 +193,7 @@ def canvas_button_clicked(sid, name_space, button, page: CanvasPageBase,
   if session_data is None:
     return
 
-  user_data = UserDataReplay(None)
+  user_data = session_data.user_data
   user_data.data[UserDataReplay.TRAJECTORY] = session_data.trajectory
   user_data.data[UserDataReplay.TRAJ_IDX] = session_data.index
 

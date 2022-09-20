@@ -1,0 +1,14 @@
+The purpose of this study is to collect data of actions and the destinations that 
+you had in your mind when taking each action.
+The true actions that you took to complete the task are easy to collect.
+On the other hand, the true destinations cannot be easily collected because it exists only in your mind.
+Hence, data of the destinations depend on your faithful participation in,
+using the "Destination Selection" interface whenever you change your destination.
+We have prompted the "Destination Selection" interface periodically and automatically,
+to reduce the discrepancy between your new destination and the marked destination.
+However, there is still a chance you forgot to update your destination at right time or
+selected the wrong one accidentally.
+To reduce invalid data, we would like you to review the destinations labeled at each time step.
+This review session is voluntary. 
+If you think you already provided us with correct destinations at each step, you can skip this review session.
+Otherwise, please move to the review page and fix incorrect destinations.

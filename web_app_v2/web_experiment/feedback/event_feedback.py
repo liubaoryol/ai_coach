@@ -2,6 +2,7 @@ from typing import Mapping, Any
 from flask import session, request
 from flask_socketio import emit
 from web_experiment import socketio
+from web_experiment.exp_common.page_replay import UserDataReplay
 from web_experiment.review.util import (update_canvas, update_latent_state,
                                         SessionData, load_trajectory,
                                         predict_human_latent_full)
@@ -39,7 +40,11 @@ for domain_type in FEEDBACK_NAMESPACES:
       groupid = session.get('groupid')
 
       trajectory = load_trajectory(session_name, cur_user)
-      session_data = SessionData(cur_user, session_name, trajectory, 0)
+      if trajectory is None:
+        return
+
+      session_data = SessionData(cur_user, UserDataReplay(), session_name,
+                                 trajectory, 0)
       session_data.groupid = groupid
       if groupid == GroupName.Group_C:
         session_data.latent_collected = load_latent(cur_user, session_name)
@@ -61,6 +66,8 @@ for domain_type in FEEDBACK_NAMESPACES:
     def next_index():
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
 
       max_index = len(session_data.trajectory) - 1
@@ -75,6 +82,8 @@ for domain_type in FEEDBACK_NAMESPACES:
     def prev_index():
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
 
       if session_data.index > 0:
@@ -88,6 +97,8 @@ for domain_type in FEEDBACK_NAMESPACES:
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
 
       idx = int(msg['index'])
