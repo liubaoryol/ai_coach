@@ -14,14 +14,10 @@ SESSION_TITLE = {
     PageKey.Interv_A0: 'A0',
     PageKey.Interv_A1: 'A1',
     PageKey.Interv_A2: 'A2',
-    PageKey.Interv_B0: 'B0',
-    PageKey.Interv_B1: 'B1',
-    PageKey.Interv_B2: 'B2',
     PageKey.Interv_C0: 'C0',
     PageKey.Interv_C1: 'C1',
     PageKey.Interv_C2: 'C2',
     PageKey.Interv_T1: 'Interactive Tutorial',
-    PageKey.Interv_T2: 'Interactive Tutorial',
     PageKey.Interv_T3: 'Interactive Tutorial',
 }
 
@@ -58,16 +54,6 @@ def get_socket_name(page_key, group_id):
     else:
       socket_type = SocketType.Interv_movers_normal
 
-  elif page_key == PageKey.Interv_B0:
-    socket_type = SocketType.Interv_cleanup_practice
-  elif page_key == PageKey.Interv_B1:
-    socket_type = SocketType.Interv_cleanup_normal
-  elif page_key == PageKey.Interv_B2:
-    if group_id == GroupName.Group_B:
-      socket_type = SocketType.Interv_cleanup_intervention
-    else:
-      socket_type = SocketType.Interv_cleanup_normal
-
   elif page_key == PageKey.Interv_C0:
     socket_type = SocketType.Interv_rescue_practice
   elif page_key == PageKey.Interv_C1:
@@ -80,8 +66,6 @@ def get_socket_name(page_key, group_id):
 
   elif page_key == PageKey.Interv_T1:
     socket_type = SocketType.Interv_movers_tutorial
-  elif page_key == PageKey.Interv_T2:
-    socket_type = SocketType.Interv_cleanup_tutorial
   elif page_key == PageKey.Interv_T3:
     socket_type = SocketType.Interv_rescue_tutorial
 

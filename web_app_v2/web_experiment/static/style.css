@@ -41,7 +41,7 @@ hr {
   border-left: none;
   padding: 32px 50px;
   font-size: 18px;
-  margin-bottom: 25px;
+  margin-bottom: 0px;
 }
 
 /* Styling form-control Class */
@@ -61,7 +61,7 @@ hr {
 
 /* Styling form-control Label */
 .form-control label {
-    display: block;
+    display: inline-block;
     margin-bottom: 10px;
 }
 
@@ -91,6 +91,10 @@ button and Checkbox */
     text-align: center;
 }
 
+.video-center {
+  text-align: center;
+  margin-bottom: 30px;
+}
 .image-center {
   text-align: center;
   margin-bottom: 30px;
@@ -206,6 +210,12 @@ table.center {
   margin-right:15%;
 }
 
+table, th, td {
+  border:1px solid black;
+  border-collapse: collapse;
+}
+
+
 .wrapper {
   display: flex; 
   justify-content: space-between;
@@ -217,7 +227,12 @@ iframe {
 }
 
 .slidecontainer {
-  width: 100%; /* Width of the outside container */
+  width: 95%; /* Width of the outside container */
+  margin: auto;
+  font-size: 20px;
+  font-weight: bold;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  margin-bottom: 0px;
 }
 
 /* The slider itself */

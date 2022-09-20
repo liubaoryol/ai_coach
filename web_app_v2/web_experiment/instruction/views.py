@@ -1,6 +1,6 @@
 import logging
 from flask import render_template, g, request, redirect, session
-from web_experiment.define import get_next_url, PageKey
+from web_experiment.define import get_next_url, PageKey, url_name
 from web_experiment.auth.functions import login_required
 from . import inst_bp
 
@@ -57,19 +57,36 @@ def rescue():
   return render_template('rescue.html', cur_endpoint=cur_endpoint)
 
 
-inst_bp.add_url_rule("/" + PageKey.Overview,
+def description_review():
+  cur_user = g.user
+  group_id = session["groupid"]
+  exp_type = session["exp_type"]
+  cur_endpoint = inst_bp.name + "." + PageKey.Description_Review
+  if request.method == "POST":
+    return redirect(get_next_url(cur_endpoint, None, group_id, exp_type))
+
+  logging.info('User %s accesses to the description of review.' % (cur_user, ))
+
+  return render_template('description_review.html', cur_endpoint=cur_endpoint)
+
+
+inst_bp.add_url_rule("/" + url_name(PageKey.Overview),
                      PageKey.Overview,
                      login_required(overview),
                      methods=("GET", "POST"))
-inst_bp.add_url_rule("/" + PageKey.Movers_and_packers,
+inst_bp.add_url_rule("/" + url_name(PageKey.Movers_and_packers),
                      PageKey.Movers_and_packers,
                      login_required(movers_and_packers),
                      methods=("GET", "POST"))
-inst_bp.add_url_rule("/" + PageKey.Clean_up,
+inst_bp.add_url_rule("/" + url_name(PageKey.Clean_up),
                      PageKey.Clean_up,
                      login_required(clean_up),
                      methods=("GET", "POST"))
-inst_bp.add_url_rule("/" + PageKey.Rescue,
+inst_bp.add_url_rule("/" + url_name(PageKey.Rescue),
                      PageKey.Rescue,
                      login_required(rescue),
+                     methods=("GET", "POST"))
+inst_bp.add_url_rule("/" + url_name(PageKey.Description_Review),
+                     PageKey.Description_Review,
+                     login_required(description_review),
                      methods=("GET", "POST"))

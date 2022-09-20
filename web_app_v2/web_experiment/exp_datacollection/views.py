@@ -1,29 +1,24 @@
 import logging
 from flask import render_template, g, request, redirect, session
 from web_experiment.auth.functions import login_required
-from web_experiment.models import ExpDataCollection
+from web_experiment.models import ExpDataCollection, User
 from web_experiment.define import (PageKey, DATACOL_SESSIONS, get_next_url,
-                                   ExpType)
+                                   ExpType, url_name)
 from web_experiment.exp_datacollection.define import (SESSION_TITLE,
                                                       get_socket_name)
 from . import exp_dcollect_bp
 
 EXP1_TEMPLATE = {
-    PageKey.DataCol_A0: 'exp1_session_a_practice.html',
-    PageKey.DataCol_A1: 'exp1_session_a_test.html',
-    PageKey.DataCol_A2: 'exp1_session_a_test.html',
-    PageKey.DataCol_A3: 'exp1_session_a_test.html',
-    PageKey.DataCol_B0: 'exp1_session_b_practice.html',
-    PageKey.DataCol_B1: 'exp1_session_b_test.html',
-    PageKey.DataCol_B2: 'exp1_session_b_test.html',
-    PageKey.DataCol_B3: 'exp1_session_b_test.html',
-    PageKey.DataCol_C0: 'exp1_session_c_practice.html',
-    PageKey.DataCol_C1: 'exp1_session_c_test.html',
-    PageKey.DataCol_C2: 'exp1_session_c_test.html',
-    PageKey.DataCol_C3: 'exp1_session_c_test.html',
-    PageKey.DataCol_T1: 'tutorial1.html',
-    PageKey.DataCol_T2: 'tutorial2.html',
-    PageKey.DataCol_T3: 'tutorial3.html',
+    PageKey.DataCol_A1: 'dcol_session_a_test.html',
+    PageKey.DataCol_A2: 'dcol_session_a_test.html',
+    PageKey.DataCol_A3: 'dcol_session_a_test.html',
+    PageKey.DataCol_A4: 'dcol_session_a_test.html',
+    PageKey.DataCol_C1: 'dcol_session_c_test.html',
+    PageKey.DataCol_C2: 'dcol_session_c_test.html',
+    PageKey.DataCol_C3: 'dcol_session_c_test.html',
+    PageKey.DataCol_C4: 'dcol_session_c_test.html',
+    PageKey.DataCol_T1: 'dcol_tutorial1.html',
+    PageKey.DataCol_T3: 'dcol_tutorial3.html',
 }
 
 for session_name in DATACOL_SESSIONS:
@@ -39,10 +34,11 @@ for session_name in DATACOL_SESSIONS:
 
       logging.info('User %s accesses to %s.' % (cur_user, session_name))
 
+      user = User.query.filter_by(userid=cur_user).first()
       query_data = ExpDataCollection.query.filter_by(
           subject_id=cur_user).first()
       disabled = ''
-      if not getattr(query_data, session_name):
+      if not user.test and not getattr(query_data, session_name):
         disabled = 'disabled'
 
       # session_name is needed when initializing UserData during 'connect' event
@@ -60,7 +56,7 @@ for session_name in DATACOL_SESSIONS:
     return view_func
 
   func = login_required(make_view_func(session_name))
-  exp_dcollect_bp.add_url_rule('/' + session_name,
+  exp_dcollect_bp.add_url_rule('/' + url_name(session_name),
                                session_name,
                                func,
                                methods=('GET', 'POST'))

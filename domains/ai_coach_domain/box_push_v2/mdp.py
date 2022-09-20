@@ -1,6 +1,8 @@
 import numpy as np
-from ai_coach_domain.box_push import BoxState, EventType, AGENT_ACTIONSPACE
+from ai_coach_core.utils.mdp_utils import StateSpace
 from ai_coach_domain.box_push.mdp import BoxPushMDP
+from ai_coach_domain.box_push_v2 import BoxState, EventType, AGENT_ACTIONSPACE
+from ai_coach_domain.box_push_v2 import get_possible_latent_states
 from ai_coach_domain.box_push_v2.transition import transition_mixed
 
 
@@ -11,6 +13,11 @@ class MDP_BoxPushV2(BoxPushMDP):
     self.a1_init = a1_init
     self.a2_init = a2_init
     super().__init__(x_grid, y_grid, boxes, goals, walls, drops, **kwargs)
+
+  def init_latentspace(self):
+    latent_states = get_possible_latent_states(len(self.boxes), len(self.drops),
+                                               len(self.goals))
+    self.latent_space = StateSpace(latent_states)
 
   def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
     return transition_mixed(box_states, a1_pos, a2_pos, a1_action, a2_action,

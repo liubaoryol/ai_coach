@@ -11,7 +11,7 @@ class User(db.Model):
                      primary_key=True)
   groupid = db.Column(db.String(80), unique=False, default='')
   email = db.Column(db.String(120), default='')
-  admin = db.Column(db.Boolean, nullable=False, default=False)
+  test = db.Column(db.Boolean, nullable=False, default=False)
   completed = db.Column(db.Boolean, default=False)
 
   best_a = db.Column(db.Integer, default=999)
@@ -76,7 +76,7 @@ class ExpIntervention(db.Model):
 
   vars()[get_record_session_key(PageKey.Interv_A1)] = db.Column(db.Boolean,
                                                                 default=False)
-  vars()[get_record_session_key(PageKey.Interv_B1)] = db.Column(db.Boolean,
+  vars()[get_record_session_key(PageKey.Interv_C1)] = db.Column(db.Boolean,
                                                                 default=False)
 
   def __repr__(self):

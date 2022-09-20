@@ -4,11 +4,9 @@ from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Task,
                                              MDP_Cleanup_Agent)
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
-from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Team2,
-                                            BoxPushAIAgent_Indv2,
-                                            BoxPushAIAgent_PO_Team,
-                                            BoxPushAIAgent_PO_Indv,
-                                            InteractiveAgent)
+from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
+                                               BoxPushAIAgent_PO_Indv)
+from ai_coach_domain.agent import InteractiveAgent
 from stand_alone.box_push_app import BoxPushApp
 
 IS_MOVERS = True

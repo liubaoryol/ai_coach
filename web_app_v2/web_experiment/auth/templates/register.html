@@ -5,27 +5,39 @@
 {% block content %}
 <div class="form-control">
   <form method="post" action="{{ url_for('auth.register') }}">
-    <label for="userid">Register User ID</label>
-    <input name="userid" id="userid" required>
-    <label for="groupid">User Group</label>
-    <select name="groupid" id="groupid">
-      {% for id in group_ids %}
-      <option value="{{ id }}">{{ id }}</option>
-      {% endfor %}
-    </select>
-    <input type="submit" value="Register">
+    <div>
+      <div>
+        <label for="userid">Register User ID</label>
+        <input name="userid" id="userid" required>
+      </div>
+      <div>
+        <input type="checkbox" id="testuser" name="testuser" value="testuser">
+        <label for="testuser">Test User</label>
+      </div>
+      <div>
+        <label for="groupid">User Group</label>
+        <select name="groupid" id="groupid">
+          {% for id in group_ids %}
+          <option value="{{ id }}">{{ id }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <input type="submit" value="Register">
+    </div>
     <div style="height:200px; overflow-y: scroll;">
-      <table>
+      <table style="width:90%">
         <tr>
-          <th>User ID</th>
+          <th style="width:20%">User ID</th>
           <th>Group ID</th>
-          <th>E-mail</th>
-          <th>Completed</th>
+          <th>Test User?</th>
+          <th style="width:40%">E-mail</th>
+          <th>Completed?</th>
         </tr>
         {% for usr in userlist %}
         <tr>
           <td>{{ usr['userid'] }}</td>
           <td>{{ usr['groupid'] }}</td>
+          <td>{{ usr['testuser'] }}</td>
           <td>{{ usr['email'] }}</td>
           <td>{{ usr['completed'] }}</td>
         </tr>

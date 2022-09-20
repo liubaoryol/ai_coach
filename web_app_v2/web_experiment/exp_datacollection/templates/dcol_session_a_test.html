@@ -1,0 +1,29 @@
+{% extends 'dcol_session_contents.html' %}
+
+{% block header %}
+<h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
+<h2>{% block subtitle %}TASK {{ session_title }}{% endblock %}</h2>
+<div class="explanation">
+  <p>In this task,</p>
+  <ul>
+    <li>Your goal is to move all the boxes to the truck as soon as possible.</li>
+    <li>You cannot pick up the box alone.</li>
+    <li>You can only pick up the box circled in red.</li>
+  </ul>
+
+  <p><b>Special instructions</b></p>
+  <ul>
+    <li>
+      The purpose of this study is to collect your action data as well as the destination you had in mind as you took
+      each action.
+    </li>
+    <li>
+      Please update the red circle via the "Select Destination" button as soon as you change the target you want to go
+      to during the game.
+    </li>
+    <li>
+      We will also periodically prompt the Select Destination interface.
+    </li>
+  </ul>
+</div>
+{% endblock %}

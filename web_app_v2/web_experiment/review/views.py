@@ -1,8 +1,9 @@
 import logging
 from flask import render_template, session, g, request, redirect
-from web_experiment.models import db, ExpIntervention, ExpDataCollection
+from web_experiment.models import db, ExpIntervention, ExpDataCollection, User
 from web_experiment.define import (ExpType, PageKey, get_domain_type,
-                                   get_next_url, get_record_session_key)
+                                   get_next_url, get_record_session_key,
+                                   HASH_2_SESSION_KEY, url_name)
 from web_experiment.auth.functions import admin_required, login_required
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
@@ -47,7 +48,8 @@ def record(session_name, user_id):
                          latent_states=lstates)
 
 
-def review(session_name):
+def review(session_name_hash):
+  session_name = HASH_2_SESSION_KEY[session_name_hash]
   cur_user = g.user
   cur_endpoint = review_bp.name + "." + PageKey.Review
   groupid = session["groupid"]
@@ -69,9 +71,10 @@ def review(session_name):
 
   session['loaded_session_name'] = session_name
 
+  # user = User.query.filter_by(userid=cur_user).first()
   disabled = ''
-  if not getattr(query_data, session_record_name):
-    disabled = 'disabled'
+  # if not user.test and not getattr(query_data, session_record_name):
+  #   disabled = 'disabled'
 
   domain_type = get_domain_type(session_name)
   socket_name = get_socket_name(PageKey.Review, domain_type)
@@ -83,14 +86,14 @@ def review(session_name):
                          session_title=loaded_session_title,
                          socket_name_space=socket_name,
                          cur_endpoint=cur_endpoint,
-                         session_name=session_name)
+                         session_name_hash=session_name_hash)
 
 
 review_bp.add_url_rule("/" + PageKey.Replay + "/<session_name>/<user_id>",
                        PageKey.Replay, admin_required(replay))
 review_bp.add_url_rule("/" + PageKey.Record + "/<session_name>/<user_id>",
                        PageKey.Record, admin_required(record))
-review_bp.add_url_rule("/" + PageKey.Review + "/<session_name>",
+review_bp.add_url_rule("/" + url_name(PageKey.Review) + "/<session_name_hash>",
                        PageKey.Review,
                        login_required(review),
                        methods=("GET", "POST"))

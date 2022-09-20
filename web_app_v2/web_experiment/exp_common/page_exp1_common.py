@@ -174,7 +174,7 @@ class CanvasPageEnd(ExperimentPageBase):
     dict_objs = super()._get_init_drawing_objects(user_data)
 
     text = ("This session is now complete. " +
-            "Please proceed to the survey using the button below.")
+            "Please proceed using the button below.")
     font_size = 30
     obj = co.TextObject(self.TEXT_END,
                         (0, int(co.CANVAS_HEIGHT / 2 - font_size)),

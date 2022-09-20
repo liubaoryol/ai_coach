@@ -19,6 +19,7 @@ def register():
     if 'userid' in request.form:
       userid = request.form['userid'].lower()
       groupid = request.form['groupid']
+      testuser = 'testuser' in request.form
       error = None
 
       if not userid:
@@ -31,7 +32,7 @@ def register():
           error = 'User {} is already registered.'.format(userid)
 
       if error is None:
-        new_user = User(userid=userid, groupid=groupid)
+        new_user = User(userid=userid, groupid=groupid, test=testuser)
         exp_dcol = ExpDataCollection(subject_id=userid)
         exp_intv = ExpIntervention(subject_id=userid)
         db.session.add(new_user)
@@ -111,9 +112,10 @@ def register():
   for user in User.query.all():
     dict_user = {
         "userid": user.userid,
+        "testuser": "Yes" if user.test else "No",
         "email": user.email,
         "groupid": user.groupid,
-        "completed": "Y" if user.completed else "N"
+        "completed": "Yes" if user.completed else "No"
     }
     user_list.append(dict_user)
 
