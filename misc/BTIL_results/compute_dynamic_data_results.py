@@ -14,13 +14,13 @@ from ai_coach_core.utils.result_utils import (norm_hamming_distance,
                                               alignment_sequence,
                                               cal_latent_policy_error)
 
+from ai_coach_domain.helper import TrueModelConverter
 import ai_coach_domain.box_push.maps as bp_maps
 import ai_coach_domain.box_push.simulator as bp_sim
 import ai_coach_domain.box_push.mdp as bp_mdp
 import ai_coach_domain.box_push.policy as bp_policy
 import ai_coach_domain.box_push.agent as bp_agent
-from ai_coach_domain.box_push.utils import (TrueModelConverter,
-                                            BoxPushTrajectories)
+from ai_coach_domain.box_push.utils import BoxPushTrajectories
 from ai_coach_domain.box_push.agent_model import get_holding_box_and_floor_boxes
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")

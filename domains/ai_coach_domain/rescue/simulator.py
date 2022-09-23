@@ -4,7 +4,7 @@ import numpy as np
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
 from ai_coach_domain.rescue import (E_EventType, Route, Location, Work, Place,
-                                    E_Type, T_Connections, is_work_done)
+                                    T_Connections, is_work_done)
 from ai_coach_domain.rescue.transition import transition
 
 

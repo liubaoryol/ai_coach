@@ -11,9 +11,9 @@ class Trajectories:
                num_state_factors,
                num_action_factors,
                num_latent_factors=0,
-               num_latents=0) -> None:
+               tup_num_latents=(0, 0)) -> None:
     self.list_np_trajectory = []  # type: List[np.ndarray]
-    self.num_latents = num_latents
+    self.tup_num_latents = tup_num_latents
     self.num_samples_to_use = None
 
     # TODO: make more generic
@@ -113,7 +113,8 @@ class Trajectories:
                      np_trj.shape[0])
       start_idx, end_idx = 0, self.num_state_factors
       if self.num_state_factors == 1:
-        list_states = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze(axis=1))
+        list_states = list(np_trj[:row_end_idx,
+                                  start_idx:end_idx].squeeze(axis=1))
       else:
         list_states = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
       list_traj.append(list_states)
@@ -121,7 +122,8 @@ class Trajectories:
       row_end_idx = -1 if is_terminal else np_trj.shape[0]
       start_idx, end_idx = end_idx, end_idx + self.num_action_factors
       if self.num_action_factors == 1:
-        list_actions = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze(axis=1))
+        list_actions = list(np_trj[:row_end_idx,
+                                   start_idx:end_idx].squeeze(axis=1))
       else:
         list_actions = list(map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
       list_traj.append(list_actions)
@@ -129,7 +131,8 @@ class Trajectories:
       if self.num_latent_factors > 0:
         start_idx, end_idx = end_idx, end_idx + self.num_latent_factors
         if self.num_latent_factors == 1:
-          list_latents = list(np_trj[:row_end_idx, start_idx:end_idx].squeeze(axis=1))
+          list_latents = list(np_trj[:row_end_idx,
+                                     start_idx:end_idx].squeeze(axis=1))
         else:
           list_latents = list(
               map(tuple, np_trj[:row_end_idx, start_idx:end_idx]))
@@ -152,7 +155,7 @@ class Trajectories:
     list_by_agent = []
     idx_lat_start = self.num_state_factors + self.num_action_factors
     for nidx in range(self.num_action_factors):
-      list_lat = [list() for dummy in range(self.num_latents)]
+      list_lat = [list() for dummy in range(self.tup_num_latents[nidx])]
       for np_trj in self.list_np_trajectory[:self.get_num_samples_to_use()]:
         if np_trj.shape[0] < 2:
           continue

@@ -79,7 +79,7 @@ class StaticBoxPushTrajectories(Trajectories):
     super().__init__(num_state_factors=1,
                      num_action_factors=2,
                      num_latent_factors=2,
-                     num_latents=num_latents)
+                     tup_num_latents=(num_latents, num_latents))
 
   def load_from_files(self, file_names):
     for file_nm in file_names:

@@ -5,8 +5,8 @@ from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
                                           BoxPushAgentMDP_AlwaysAlone)
 from ai_coach_domain.box_push.policy import (BoxPushPolicyTeamExp1,
                                              BoxPushPolicyIndvExp1)
-from ai_coach_domain.box_push.agent import (InteractiveAgent,
-                                            BoxPushAIAgent_Indv2,
+from ai_coach_domain.agent import InteractiveAgent
+from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Indv2,
                                             BoxPushAIAgent_Team2,
                                             BoxPushAIAgent_Host)
 import web_experiment.experiment1.page_game as pgg
