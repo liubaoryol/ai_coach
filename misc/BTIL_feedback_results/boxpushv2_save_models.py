@@ -25,15 +25,17 @@ import helper
 @click.command()
 @click.option("--is-team", type=bool, default=True, help="team / indv")
 @click.option("--synthetic", type=bool, default=True, help="")
-@click.option("--num-training-data", type=int, default=100, help="")
-@click.option("--supervision", type=float, default=1.0, help="value should be between 0.0 and 1.0")  # noqa: E501
+@click.option("--num-training-data", type=int, default=500, help="")
+@click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
 @click.option("--use-true-tx", type=bool, default=False, help="")
-@click.option("--gen-trainset", type=bool, default=True, help="")
+@click.option("--gen-trainset", type=bool, default=False, help="")
 @click.option("--beta-pi", type=float, default=1.1, help="")
-@click.option("--beta-tx", type=float, default=1.1, help="")
+@click.option("--beta-tx", type=float, default=1.01, help="")
+@click.option("--tx-dependency", type=str, default="FTTT",
+              help="sequence of T or F indicating dependency on cur_state, actions, and next_state")  # noqa: E501
 # yapf: enable
 def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
-         gen_trainset, beta_pi, beta_tx):
+         gen_trainset, beta_pi, beta_tx, tx_dependency):
   logging.info("is_TEAM: %s" % (is_team, ))
   logging.info("synthetic: %s" % (synthetic, ))
   logging.info("num training data: %s" % (num_training_data, ))
@@ -42,8 +44,18 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
   logging.info("Gen trainset: %s" % (gen_trainset, ))
   logging.info("beta pi: %s" % (beta_pi, ))
   logging.info("beta Tx: %s" % (beta_tx, ))
+  logging.info("Tx dependency: %s" % (tx_dependency, ))
 
   assert synthetic or not use_true_tx
+
+  tuple_tx_dependency = []
+  for cha in tx_dependency:
+    if cha == "T":
+      tuple_tx_dependency.append(True)
+    else:
+      tuple_tx_dependency.append(False)
+
+  tuple_tx_dependency = tuple(tuple_tx_dependency)
 
   # define the domain where trajectories were generated
   ##################################################
@@ -156,7 +168,7 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
                      (MDP_AGENT.num_latents, MDP_AGENT.num_latents),
                      joint_action_num,
                      transition_s,
-                     trans_x_dependency=(True, True, True, False),
+                     trans_x_dependency=tuple_tx_dependency,
                      epsilon=0.01,
                      max_iteration=100)
   btil_models.set_dirichlet_prior(beta_pi, beta_tx)
@@ -177,6 +189,7 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
   policy_file_name = SAVE_PREFIX + "_btil_policy_"
   policy_file_name += "synth_" if synthetic else "human_"
   policy_file_name += "withTx_" if use_true_tx else "woTx_"
+  policy_file_name += tx_dependency + "_" if not use_true_tx else ""
   policy_file_name += "%d_%.2f" % (num_train, supervision)
   policy_file_name = os.path.join(save_dir, policy_file_name)
   np.save(policy_file_name + "_a1", btil_models.list_np_policy[0])
@@ -185,6 +198,7 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
   if not use_true_tx:
     tx_file_name = SAVE_PREFIX + "_btil_tx_"
     tx_file_name += "synth_" if synthetic else "human_"
+    tx_file_name += tx_dependency + "_"
     tx_file_name += "%d_%.2f" % (num_train, supervision)
     tx_file_name = os.path.join(save_dir, tx_file_name)
     np.save(tx_file_name + "_a1", btil_models.list_Tx[0].np_Tx)

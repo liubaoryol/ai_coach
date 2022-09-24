@@ -1,11 +1,14 @@
+from typing import Sequence
+import numpy as np
 from ai_coach_core.models.policy import CachedPolicyInterface
-from ai_coach_domain.agent import AIAgent_PartialObs
+from ai_coach_domain.agent import (AIAgent_PartialObs, AIAgent_Abstract,
+                                   BTILCachedAgentModel)
 from ai_coach_domain.box_push_v2 import (conv_box_idx_2_state,
                                          conv_box_state_2_idx, BoxState)
 from ai_coach_domain.box_push_v2.mdp import MDP_BoxPushV2
-from ai_coach_domain.box_push_v2.agent_model import (AM_BoxPushV2,
-                                                     AM_BoxPushV2_Cleanup,
-                                                     AM_BoxPushV2_Movers)
+from ai_coach_domain.box_push_v2.agent_model import (
+    AM_BoxPushV2, AM_BoxPushV2_Cleanup, AM_BoxPushV2_Movers,
+    assumed_initial_mental_distribution)
 
 
 class BoxPushAIAgent_PartialObs(AIAgent_PartialObs):
@@ -141,3 +144,47 @@ class BoxPushAIAgent_PO_Indv(BoxPushAIAgent_PartialObs):
   def _create_agent_model(self,
                           policy_model: CachedPolicyInterface) -> AM_BoxPushV2:
     return AM_BoxPushV2_Cleanup(self.agent_idx, policy_model)
+
+
+class BoxPushAIAgent_Team(AIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
+    super().__init__(policy_model, has_mind, agent_idx)
+
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> AM_BoxPushV2:
+    return AM_BoxPushV2_Movers(agent_idx=self.agent_idx,
+                               policy_model=policy_model)
+
+
+class BoxPushAIAgent_Indv(AIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
+    super().__init__(policy_model, has_mind, agent_idx)
+
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> AM_BoxPushV2:
+    return AM_BoxPushV2_Cleanup(self.agent_idx, policy_model)
+
+
+class BoxPushAIAgent_BTIL(AIAgent_Abstract):
+  def __init__(self,
+               np_tx: np.ndarray,
+               mask_sas: Sequence[bool],
+               policy_model: CachedPolicyInterface,
+               agent_idx: int = 0) -> None:
+    self.np_tx = np_tx
+    self.mask_sas = mask_sas
+    super().__init__(policy_model, True, agent_idx)
+
+  def _create_agent_model(self, policy_model: CachedPolicyInterface):
+    def init_latents(obstate_idx):
+      return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
+                                                 policy_model.mdp)
+
+    return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
+                                policy_model)

@@ -481,7 +481,7 @@ class BTIL:
       num_s = self.num_ostates if self.tx_dependency[0] else None
       list_num_a = []
       for i_a in range(self.num_agents):
-        if self.tx_dependency[i_a]:
+        if self.tx_dependency[i_a + 1]:
           list_num_a.append(self.tuple_num_actions[i_a])
         else:
           list_num_a.append(None)
