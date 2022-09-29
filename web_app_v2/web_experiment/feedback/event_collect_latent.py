@@ -2,6 +2,7 @@ from typing import Mapping, Any
 from flask import session, request
 from flask_socketio import emit
 from web_experiment import socketio
+from web_experiment.exp_common.page_replay import UserDataReplay
 from web_experiment.review.util import (update_canvas, SessionData,
                                         load_trajectory)
 from web_experiment.feedback.define import (COLLECT_CANVAS_PAGELIST,
@@ -28,7 +29,12 @@ for socket_type in COLLECT_CANVAS_PAGELIST:
       session_name = session.get('loaded_session_name')
 
       trajectory = load_trajectory(session_name, cur_user)
-      session_data = SessionData(cur_user, session_name, trajectory, 0)
+      if trajectory is None:
+        emit('complete')
+        return
+
+      session_data = SessionData(cur_user, UserDataReplay(), session_name,
+                                 trajectory, 0)
       g_id_2_session_data[sid] = session_data
       max_idx = len(trajectory) - 1
       session_data.latent_collected = ["None"] * len(trajectory)
@@ -48,6 +54,9 @@ for socket_type in COLLECT_CANVAS_PAGELIST:
     def next_index(msg):
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
+
       session_data = g_id_2_session_data[sid]
 
       max_index = len(session_data.trajectory) - 1
@@ -69,6 +78,8 @@ for socket_type in COLLECT_CANVAS_PAGELIST:
     def prev_index():
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
 
       if session_data.index > 0:
@@ -87,6 +98,8 @@ for socket_type in COLLECT_CANVAS_PAGELIST:
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
 
       idx = int(msg['index'])
@@ -107,6 +120,8 @@ for socket_type in COLLECT_CANVAS_PAGELIST:
     def record_latent_wrapper(msg):
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
       session_data = g_id_2_session_data[sid]
       record_latent(msg, session_data)
 

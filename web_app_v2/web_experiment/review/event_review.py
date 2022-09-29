@@ -2,11 +2,15 @@ from typing import Any, Mapping
 from flask import session, request
 from flask_socketio import emit
 from web_experiment import socketio
-from web_experiment.define import PageKey, get_domain_type
+from web_experiment.models import ExpDataCollection
+from web_experiment.define import (PageKey, get_domain_type,
+                                   get_record_session_key)
+from web_experiment.exp_common.page_replay import UserDataReplay
 from web_experiment.review.define import REVIEW_CANVAS_PAGELIST, get_socket_name
 from web_experiment.review.util import (update_canvas, canvas_button_clicked,
                                         SessionData, load_trajectory,
-                                        latent_state_from_traj)
+                                        latent_state_from_traj,
+                                        no_trajectory_page)
 from web_experiment.feedback.helper import store_latent_locally
 
 g_id_2_session_data = {}  # type: Mapping[Any, SessionData]
@@ -22,8 +26,20 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
       session_name = session.get('loaded_session_name')
 
       trajectory = load_trajectory(session_name, cur_user)
-      g_id_2_session_data[sid] = SessionData(cur_user, session_name, trajectory,
-                                             0)
+      if trajectory is None:
+        no_trajectory_page(sid, name_space, "ERROR: No trajectory")
+        emit('complete')
+        return
+
+      record_session_name = get_record_session_key(session_name)
+      query = ExpDataCollection.query.filter_by(subject_id=cur_user).first()
+      if getattr(query, record_session_name):
+        no_trajectory_page(sid, name_space, "You cannot fix this task anymore.")
+        emit('complete')
+        return
+
+      g_id_2_session_data[sid] = SessionData(cur_user, UserDataReplay(),
+                                             session_name, trajectory, 0)
       max_idx = len(trajectory) - 1
 
       update_canvas(sid,
@@ -40,6 +56,9 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
+
       session_data = g_id_2_session_data[sid]
 
       idx = int(msg['index'])
@@ -60,6 +79,9 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
     def button_clicked(msg):
       global g_id_2_session_data
       sid = request.sid
+      if sid not in g_id_2_session_data:
+        return
+
       session_data = g_id_2_session_data[sid]
 
       button = msg["name"]

@@ -3,15 +3,15 @@ from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 from ai_coach_domain.rescue.policy import Policy_Rescue
-from ai_coach_domain.rescue.maps import MAP_RESCUE_2
+from ai_coach_domain.rescue.maps import MAP_RESCUE
 from web_experiment.models import db, User
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.helper import get_file_name
 from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 
 TEMPERATURE = 0.3
-RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE_2),
-                                       MDP_Rescue_Agent(**MAP_RESCUE_2),
+RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
+                                       MDP_Rescue_Agent(**MAP_RESCUE),
                                        TEMPERATURE, RescueSimulator.AGENT2)
 
 
@@ -21,7 +21,7 @@ class RescueGamePage(RescueGamePageBase):
                auto_prompt: bool = True,
                prompt_on_change: bool = True,
                prompt_freq: int = 5) -> None:
-    super().__init__(manual_latent_selection, MAP_RESCUE_2, auto_prompt,
+    super().__init__(manual_latent_selection, MAP_RESCUE, auto_prompt,
                      prompt_on_change, prompt_freq)
     global RESCUE_TEAMMATE_POLICY
 

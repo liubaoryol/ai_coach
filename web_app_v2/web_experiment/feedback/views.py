@@ -1,7 +1,8 @@
 from flask import redirect, render_template, request, session, g
 from web_experiment.models import db, ExpIntervention, ExpDataCollection
 from web_experiment.define import (ExpType, get_next_url, PageKey,
-                                   get_record_session_key, get_domain_type)
+                                   get_record_session_key, get_domain_type,
+                                   HASH_2_SESSION_KEY, url_name)
 from web_experiment.auth.functions import login_required
 from web_experiment.review.util import possible_latent_states
 import web_experiment.exp_intervention.define as intv
@@ -10,7 +11,8 @@ from web_experiment.feedback.define import FEEDBACK_NAMESPACES, get_socket_name
 from . import feedback_bp
 
 
-def collect(session_name):
+def collect(session_name_hash):
+  session_name = HASH_2_SESSION_KEY[session_name_hash]
   cur_user = g.user
   cur_endpoint = feedback_bp.name + "." + PageKey.Collect
   groupid = session["groupid"]
@@ -45,11 +47,12 @@ def collect(session_name):
                          session_title=loaded_session_title,
                          socket_name_space=socket_name,
                          latent_states=lstates,
-                         session_name=session_name,
+                         session_name_hash=session_name_hash,
                          cur_endpoint=cur_endpoint)
 
 
-def feedback(session_name):
+def feedback(session_name_hash):
+  session_name = HASH_2_SESSION_KEY[session_name_hash]
   cur_endpoint = feedback_bp.name + "." + PageKey.Feedback
   groupid = session["groupid"]
   exp_type = session["exp_type"]
@@ -69,15 +72,17 @@ def feedback(session_name):
                          groupid=groupid,
                          session_title=loaded_session_title,
                          socket_name_space=FEEDBACK_NAMESPACES[domain_type],
-                         session_name=session_name,
+                         session_name_hash=session_name_hash,
                          cur_endpoint=cur_endpoint)
 
 
-feedback_bp.add_url_rule("/" + PageKey.Collect + "/<session_name>",
+feedback_bp.add_url_rule("/" + url_name(PageKey.Collect) +
+                         "/<session_name_hash>",
                          PageKey.Collect,
                          login_required(collect),
                          methods=("GET", "POST"))
-feedback_bp.add_url_rule("/" + PageKey.Feedback + "/<session_name>",
+feedback_bp.add_url_rule("/" + url_name(PageKey.Feedback) +
+                         "/<session_name_hash>",
                          PageKey.Feedback,
                          login_required(feedback),
                          methods=("GET", "POST"))

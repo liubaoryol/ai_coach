@@ -105,10 +105,12 @@ class RescueTutorialActions(RescueTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("During the task, you control the police car. You can move the " +
-            "police car by clicking the action buttons on the right. Please " +
-            "investigate how each action buttons work. Once you get familiar " +
-            "with them, please click on the “Next” button to continue.")
+    return (
+        "During the task, you control the police car. You can move the " +
+        "police car by clicking the move buttons on the right. Please " +
+        "investigate how each move buttons work. You will see the direction " +
+        "of the move button changes according to your location. Once you " +
+        "get familiar with them, please click on the \"Next\" button.")
 
   def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
     if clicked_btn in self.ACTION_BUTTONS:
@@ -173,7 +175,7 @@ class RescueTutorialOverallGoal(RescueTutorialPlain):
     return ("Your goal is to rescue people as many as possible in " + MAX_STEP +
             " steps. " +
             "You can rescue each group of people by resolving the situations " +
-            "marked with \"yellow sign\".")
+            "at the places marked with \"yellow sign\".")
 
 
 class RescueTutorialOnlyHuman(RescueTutorialPlain):
@@ -190,9 +192,8 @@ class RescueTutorialSimpleTarget(RescueTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
-        "The red circle indicates your current destination that you should " +
-        "specify manually. Please move to the place and try to rescue people" +
-        " by resolving the emergency. The \"Resolve the Situation\" button will"
+        "The red circle indicates your current destination. Please move to " +
+        "the circled place and try to rescue people. The \"Rescue\" button will"
         + " be available only when you are at the correct destination.")
 
   def _get_init_drawing_objects(
@@ -220,9 +221,9 @@ class RescueTutorialSimpleTarget(RescueTutorialBase):
 
 class RescueTutorialResolvedAlone(RescueTutorialPlain):
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("Well done! You will see the \"yellow sign\" on the place is now " +
-            "disappeared. As you just did, the situation at City Hall and " +
-            "the Campsite can be resolved by just one player.")
+    return ("Well done! You will see the \"yellow sign\" at City Hall" +
+            " is now disappeared and one person is rescued. Similarly, " +
+            "people at the Campsite can also be rescued by just one player.")
 
 
 class RescueTutorialComplexTarget(RescueTutorialBase):
@@ -243,9 +244,9 @@ class RescueTutorialComplexTarget(RescueTutorialBase):
     return (
         "To rescue people in the mall, you should repair one of the bridges. " +
         "However, to repair the bridge, both you (police car) and the fire " +
-        "engine should work together. Please move to the red-circled bridge " +
-        "and click \"Resolve the Situation\" button. You will see you can't " +
-        "resolve it on your own.")
+        "engine should work together. Please move to the bridge circled in " +
+        "red and click \"Rescue\" button. You will see you can't resolve it " +
+        "on your own.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -297,10 +298,9 @@ class RescueTutorialComplexTargetTogether(RescueTutorialBase):
     game.event_input(self._AGENT2, E_EventType.Set_Latent, TARGET_BOTH)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return (
-        "Please move to the red-circled bridge and try to resolve it again. " +
-        "This time the fire engine will also move to it. Wait for the" +
-        " fire engine at the bridge and resolve the situation together.")
+    return ("Please move to the red circle and try to resolve it again. " +
+            "This time the fire engine will also come to there. Wait for the" +
+            " fire engine at the circled location and rescue people together.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -340,7 +340,7 @@ class RescueTutorialScore(RescueTutorialPlain):
 
     obj = dict_objs[self.TEXT_SCORE]  # type: co.TextObject
     x_cen = int(obj.pos[0] + 0.95 * obj.width)
-    y_cen = int(obj.pos[1] + 0.5 * obj.font_size)
+    y_cen = int(obj.pos[1] + 1.5 * obj.font_size)
     radius = int(obj.font_size * 2)
     obj = self._get_spotlight(x_cen, y_cen, radius)
     dict_objs[obj.name] = obj
@@ -348,10 +348,11 @@ class RescueTutorialScore(RescueTutorialPlain):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("You might have noticed that whenever you resolved the problems" +
-            " the \"Score\" (shown below) was increasing. " +
-            "Your goal is to receive points as many as possible in " +
-            MAX_STEP + " steps.")
+    return ("You might have noticed that whenever you rescue people, the " +
+            "\"Score\" (shown below) was increasing. Your goal is to receive " +
+            "points as many as possible in " + MAX_STEP + " steps. Please " +
+            "note that people rescued by your teammate (fire engine) " +
+            "will also be counted as the same points and added to your score.")
 
 
 class RescueTutorialPartialObs(RescueTutorialBase):
@@ -372,10 +373,11 @@ class RescueTutorialPartialObs(RescueTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
-        "Unlike the tutorial so far, during the TEST sessions, " +
-        "You cannot observe the fire engine unless it is at each landmark " +
-        "or overlaps with you (police car). Therefore, to do the task " +
-        "efficiently you will need to guess where the fire engine will go.")
+        "During the TASK sessions, You cannot " +
+        "observe the fire engine unless it is at each landmark or at the " +
+        "same location as you (police car). Therefore, to do the task " +
+        "efficiently you will need to guess where the fire engine will go. " +
+        "Similarly, the fire engine CANNOT fully observe you.")
 
 
 class RescueTutorialDestination(RescueTutorialBase):
@@ -405,11 +407,10 @@ class RescueTutorialDestination(RescueTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("In the TEST sessions, you will have to select your next target" +
-            " using the \"Select Destination\" button. It is very important " +
-            "to provide your destination instantly whenever you change your " +
-            "target in your mind. Let's see how to do this! Please click on " +
-            "the \"Next\" button to continue.")
+    return ("In the TASK sessions, you will have to select your next target" +
+            " using the \"Select Destination\" button. Again, it is very " +
+            "important to provide your destination instantly whenever you " +
+            "change your target in your mind.")
 
 
 class RescueTutorialLatent(RescueTutorialBase):
@@ -438,9 +439,10 @@ class RescueTutorialLatent(RescueTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("First, click the “Select Destination” button. " +
-            "Possible destinations are numbered and shown as an overlay. " +
-            "Please click on your current destination.")
+    return ("In the TASK sessions, you will have to select your next target" +
+            " using the \"Select Destination\" button. Again, it is very " +
+            "important to provide your destination instantly whenever you " +
+            "change your target in your mind.")
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn == co.BTN_SELECT:
@@ -463,11 +465,12 @@ class RescueTutorialSelResult(RescueTutorialPlain):
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("Well done! Now you can see your choice is marked with the red" +
-            " circle and you have selected your next destination. Also note " +
-            "that we will prompt the destination selection automatically and" +
-            "periodically to make sure the red circle is aligned " +
-            "with your current destination in your mind.")
+    return (
+        "Well done! You can see your choice is marked with the flashing " +
+        "red circle and you have selected your current destination. Also note" +
+        " that we will prompt the destination selection automatically and " +
+        "periodically to track the change in your mind as seamlessly" +
+        " as possible.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -489,7 +492,7 @@ class RescueTutorialMiniGame(RescueTutorialBase):
     return ("Now, we are at the final step of the tutorial. Feel free to " +
             "interact with the interface and get familiar with the task. You" +
             " can also press the back button to revisit any of the previous " +
-            "prompts.\n Once you are ready, please proceed to the TEST " +
+            "prompts.\n Once you are ready, please proceed to the TASK " +
             "sessions (using the button at the bottom of this page).")
 
   def init_user_data(self, user_game_data: Exp1UserData):

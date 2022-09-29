@@ -4,7 +4,7 @@ from web_experiment.exp_common.page_replay import (BoxPushReplayPage,
                                                    RescueReplayPage,
                                                    RescueReviewPage)
 from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
-from ai_coach_domain.rescue.maps import MAP_RESCUE_2
+from ai_coach_domain.rescue.maps import MAP_RESCUE
 
 
 def get_socket_name(page_key, domain_type: EDomainType):
@@ -16,7 +16,7 @@ REPLAY_CANVAS_PAGELIST = {
     [BoxPushReplayPage(EDomainType.Movers, True, MAP_MOVERS)],
     EDomainType.Cleanup:
     [BoxPushReplayPage(EDomainType.Cleanup, True, MAP_CLEANUP)],
-    EDomainType.Rescue: [RescueReplayPage(True, MAP_RESCUE_2)]
+    EDomainType.Rescue: [RescueReplayPage(True, MAP_RESCUE)]
 }
 
 REVIEW_CANVAS_PAGELIST = {
@@ -24,5 +24,5 @@ REVIEW_CANVAS_PAGELIST = {
     [BoxPushReviewPage(EDomainType.Movers, True, MAP_MOVERS)],
     EDomainType.Cleanup:
     [BoxPushReviewPage(EDomainType.Cleanup, True, MAP_CLEANUP)],
-    EDomainType.Rescue: [RescueReviewPage(True, MAP_RESCUE_2)]
+    EDomainType.Rescue: [RescueReviewPage(True, MAP_RESCUE)]
 }

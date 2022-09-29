@@ -20,20 +20,20 @@
     }
   });
 
-  // block default key event handler (block scroll bar movement by key)
-  window.addEventListener(
-    "keydown",
-    function (e) {
-      if (
-        ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(
-          e.code
-        ) > -1
-      ) {
-        e.preventDefault();
-      }
-    },
-    false
-  );
+  // // block default key event handler (block scroll bar movement by key)
+  // window.addEventListener(
+  //   "keydown",
+  //   function (e) {
+  //     if (
+  //       ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(
+  //         e.code
+  //       ) > -1
+  //     ) {
+  //       e.preventDefault();
+  //     }
+  //   },
+  //   false
+  // );
 </script>
 
 <canvas id="myCanvas" width="900" height="600" style="border: 5px solid #000000" tabindex="1">

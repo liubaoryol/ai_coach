@@ -1,4 +1,5 @@
 .vscode/
+.DS_Store
 
 *.pyc
 __pycache__/
@@ -24,6 +25,7 @@ core/ai_coach_core/tests/*_data
 *.log
 *.csv
 *.orig
+*.mp4
 
 aws_data*
 data_old/
