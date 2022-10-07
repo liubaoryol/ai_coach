@@ -28,6 +28,10 @@
     msg += "predicted human latent state: " + env.latent_human_predicted + "\n";
     msg += "robot latent state: " + env.latent_robot + "\n";
     msg += "P(x): " + env.prob + "\n";
+    var text_box = document.getElementById('intervention_text');
+    if (text_box != null) {
+      text_box.innerText = msg;
+    }
     alert(msg);
   });
 
@@ -49,7 +53,8 @@
 
 <div class="thought-bubble">
   <img src="/static/coach-people.svg" width="15%">
-  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
+  <p id='intervention_text'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
+    labore et dolore
     magna aliqua. </p>
 </div>
 

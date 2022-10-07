@@ -291,7 +291,7 @@ iframe {
 }
 
 .thought-bubble p::after {
-  content: '';
+  /* content: '';
   position: absolute;
   width: 0;
   height: 0;
@@ -301,7 +301,24 @@ iframe {
   border-top: none;
 
   border-bottom-color: #fff;
-  filter: drop-shadow(0 -0.0625rem 0.0625rem rgba(0, 0, 0, .1));
+  filter: drop-shadow(0 -0.0625rem 0.0625rem rgba(0, 0, 0, .1)); */
+
+  
+  content: ''; 
+  bottom: 100%;
+  border-top: none;
+  filter: drop-shadow(-0.0625rem 0.0625rem 0.0625rem rgba(0, 0, 0, .3));
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border: 1.133em solid transparent;
+  border-right-color: #fff;
+  border-left: 0;
+  border-bottom: 0;
+  margin-top: -0.567em;
+  margin-left: -1.133em;
 }
 
 .thought-bubble img {
