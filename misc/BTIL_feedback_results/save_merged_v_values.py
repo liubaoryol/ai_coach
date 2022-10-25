@@ -7,9 +7,10 @@ from tqdm import tqdm
 from ai_coach_core.intervention.full_mdp import FullMDP
 from ai_coach_core.models.mdp import v_value_from_policy
 
+from ai_coach_domain.box_push_v2 import EventType
 from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task, MDP_Movers_Agent
 from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task, MDP_Cleanup_Agent
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V2
+from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V3
 from ai_coach_domain.box_push_v2.agent import AM_BoxPushV2_Movers
 from ai_coach_domain.box_push_v2.agent import AM_BoxPushV2_Cleanup
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
@@ -65,7 +66,7 @@ class FullMDP_Rescue(FullMDP):
 
 # yapf: disable
 @click.command()
-@click.option("--domain", type=str, default="movers", help="movers / cleanup_v2 / rescue_2")
+@click.option("--domain", type=str, default="movers", help="movers / cleanup_v3 / rescue_2")
 @click.option("--iteration", type=int, default=500, help="")
 @click.option("--num-train", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
@@ -93,9 +94,10 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
     agent_model_a2 = AM_BoxPushV2_Movers(1, policy_a2)
 
     FullMDP_Base = FullMDP
-  elif domain == "cleanup_v2":
-    task_mdp = MDP_Cleanup_Task(**MAP_CLEANUP_V2)
-    agent_mdp = MDP_Cleanup_Agent(**MAP_CLEANUP_V2)
+    stay_actions = (EventType.STAY, EventType.STAY)
+  elif domain == "cleanup_v3":
+    task_mdp = MDP_Cleanup_Task(**MAP_CLEANUP_V3)
+    agent_mdp = MDP_Cleanup_Agent(**MAP_CLEANUP_V3)
     tup_lstate = (agent_mdp.latent_space, agent_mdp.latent_space)
 
     TEMPERATURE = 0.3
@@ -106,6 +108,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
     agent_model_a2 = AM_BoxPushV2_Cleanup(1, policy_a2)
 
     FullMDP_Base = FullMDP
+    stay_actions = (EventType.STAY, EventType.STAY)
   elif domain == "rescue_2":
     task_mdp = MDP_Rescue_Task(**MAP_RESCUE)
     agent_mdp = MDP_Rescue_Agent(**MAP_RESCUE)
@@ -119,6 +122,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
     agent_model_a2 = RescueAM(1, policy_a2)
 
     FullMDP_Base = FullMDP_Rescue
+    stay_actions = (E_EventType.Stay, E_EventType.Stay)
 
   DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
   model_dir = os.path.join(DATA_DIR, "learned_models/")
@@ -221,6 +225,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
               act1, act2 = full_mdp.conv_idx_to_action(aidx)
               np_policy[sidx, aidx] = np_action1[act1] * np_action2[act2]
     else:
+      stay_aidx = full_mdp.conv_sim_actions_to_mdp_aidx(stay_actions)
       for obs_idx in tqdm(range(task_mdp.num_states)):
         obs_vec = task_mdp.conv_idx_to_state(obs_idx)
 
@@ -234,7 +239,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
 
             legal_actions = full_mdp.legal_actions(sidx)
             if len(legal_actions) == 0:
-              np_policy[sidx, 4] = 1
+              np_policy[sidx, stay_aidx] = 1
             else:
               for aidx in legal_actions:
                 act1, act2 = full_mdp.conv_idx_to_action(aidx)

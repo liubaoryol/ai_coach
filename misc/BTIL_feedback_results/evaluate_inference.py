@@ -265,7 +265,7 @@ def prediction_result(domain_name: str,
 
 
 if __name__ == "__main__":
-  DO_TEST = True
+  DO_TEST = False
   if DO_TEST:
     res = prediction_result("cleanup_v3", 500, 0.3, True, 100, False)
     print(np.array(res).mean())

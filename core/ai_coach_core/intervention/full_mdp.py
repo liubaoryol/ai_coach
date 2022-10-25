@@ -6,6 +6,7 @@ from ai_coach_core.models.mdp import MDP
 
 
 class FullMDP(MDP):
+
   def __init__(self, mmdp: MDP, cb_tx: Callable,
                tup_lstate: Sequence[StateSpace]):
     self.mmdp = mmdp
@@ -50,10 +51,10 @@ class FullMDP(MDP):
     return super().conv_mdp_sidx_to_sim_states(state_idx)
 
   def conv_mdp_aidx_to_sim_actions(self, action_idx):
-    return super().conv_mdp_aidx_to_sim_actions(action_idx)
+    return self.mmdp.conv_mdp_aidx_to_sim_actions(action_idx)
 
   def conv_sim_actions_to_mdp_aidx(self, tuple_actions):
-    return super().conv_sim_actions_to_mdp_aidx(tuple_actions)
+    return self.mmdp.conv_sim_actions_to_mdp_aidx(tuple_actions)
 
   def transition_model(self, state_idx: int, action_idx: int) -> np.ndarray:
     num_obs_dim = self.mmdp.num_state_factors

@@ -18,6 +18,7 @@ class RescueSimulatorV2(Simulator):
     self.agent_1 = None
     self.agent_2 = None
     self.agent_3 = None
+    self.max_steps = 15
 
   def init_game(self, places: Sequence[Place], routes: Sequence[Route],
                 connections: Mapping[int, T_Connections],

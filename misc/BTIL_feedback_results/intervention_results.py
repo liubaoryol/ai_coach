@@ -175,14 +175,14 @@ def intervention_result(domain_name,
       step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
       return (bstt, a1pos, a2pos), (a1act, a2act)
 
-  elif domain_name == "cleanup_v2":
+  elif domain_name == "cleanup_v3":
     from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2
+    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
     from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
     from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Agent
     from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task
     from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    game_map = MAP_CLEANUP_V2
+    game_map = MAP_CLEANUP_V3
     MDP_Task = MDP_Cleanup_Task(**game_map)
     MDP_Agent = MDP_Cleanup_Agent(**game_map)
 
@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
   rows = []
 
-  domains = ["movers", "cleanup_v2", "rescue_2"]
+  domains = ["movers", "cleanup_v3", "rescue_2"]
   dict_interv_thres = {
       "movers": [0, 1, 3, 5, 10, 15, 20, 30, 50],
       "cleanup_v2": [0, 0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 7.0, 10.0],

@@ -188,7 +188,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
     if TRUE_MODELS:
       raise NotImplementedError
     else:
-      stay_actions = full_mdp.conv_sim_actions_to_mdp_aidx(
+      stay_aidx = full_mdp.conv_sim_actions_to_mdp_aidx(
           (E_EventType.Stay, E_EventType.Stay, E_EventType.Stay))
       for obs_idx in tqdm(range(task_mdp.num_states)):
         obs_vec = task_mdp.conv_idx_to_state(obs_idx)
@@ -205,7 +205,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
 
               legal_actions = full_mdp.legal_actions(sidx)
               if len(legal_actions) == 0:
-                np_policy[sidx, stay_actions] = 1
+                np_policy[sidx, stay_aidx] = 1
               else:
                 for aidx in legal_actions:
                   act1, act2, act3 = full_mdp.conv_idx_to_action(aidx)
