@@ -1,6 +1,7 @@
 import numpy as np
 from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP, MAP_CLEANUP_V2
+from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
 from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Task,
                                              MDP_Cleanup_Agent)
@@ -18,7 +19,7 @@ from stand_alone.intervention_simulator import InterventionSimulator
 
 TEST_BTIL_AGENT = False
 TEST_BTIL_USE_TRUE_TX = False
-IS_MOVERS = True
+IS_MOVERS = False
 DATA_DIR = "misc/BTIL_feedback_results/data/"
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS
@@ -33,13 +34,13 @@ if IS_MOVERS:
   NP_TX_A1 = "movers_btil2_tx_synth_FTTT_500_0,30_a1.npy"
   NP_TX_A2 = "movers_btil2_tx_synth_FTTT_500_0,30_a2.npy"
 else:
-  GAME_MAP = MAP_CLEANUP_V2
+  GAME_MAP = MAP_CLEANUP
   POLICY = Policy_Cleanup
   MDP_TASK = MDP_Cleanup_Task
   MDP_AGENT = MDP_Cleanup_Agent
   AGENT = BoxPushAIAgent_PO_Indv
   TEST_AGENT = BoxPushAIAgent_Indv
-  V_VAL_FILE_NAME = "cleanup_v2_500_0,30_500_merged_v_values_learned.pickle"
+  V_VAL_FILE_NAME = None
   NP_POLICY_A1 = "cleanup_v2_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
   NP_POLICY_A2 = "cleanup_v2_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
   NP_TX_A1 = "cleanup_v2_btil2_tx_synth_FTTT_500_0,30_a1.npy"

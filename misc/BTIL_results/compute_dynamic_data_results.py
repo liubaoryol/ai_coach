@@ -302,7 +302,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
     init_state = MDP_TASK.conv_sim_states_to_mdp_sidx(
         [[0] * len(sim.box_states), sim.a1_init, sim.a2_init])
 
-    true_methods = TrueModelConverter(agent1, agent2, MDP_AGENT.num_latents)
+    true_methods = TrueModelConverter([agent1, agent2], MDP_AGENT.num_latents)
 
     # generate data
     ############################################################################

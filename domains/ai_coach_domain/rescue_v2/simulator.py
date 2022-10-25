@@ -272,7 +272,7 @@ class RescueSimulatorV2(Simulator):
         txtfile.write('%s; ' % a2pos)
         txtfile.write('%s; ' % a3pos)
 
-        txtfile.write('%s; %s; ' % (a1act.name, a2act.name, a3act.name))
+        txtfile.write('%s; %s; %s; ' % (a1act.name, a2act.name, a3act.name))
 
         txtfile.write('%s; ' % a1lat)
         txtfile.write('%s; ' % a2lat)

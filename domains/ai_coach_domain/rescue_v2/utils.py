@@ -43,7 +43,6 @@ class RescueV2Trajectories(Trajectories):
                  if a2lat is not None else Trajectories.EPISODE_END)
         xidx3 = (self.cb_conv_latent_to_idx(2, a3lat)
                  if a3lat is not None else Trajectories.EPISODE_END)
-
         np_trj[tidx, :] = [sidx, aidx1, aidx2, aidx3, xidx1, xidx2, xidx3]
 
       self.list_np_trajectory.append(np_trj)

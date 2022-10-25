@@ -7,10 +7,10 @@ sns.set_theme(style="white")
 
 
 def save_evaluation_plot(data_dir, output_dir, save_plot):
-  df = pd.read_csv(data_dir + "eval_result.csv")
+  df = pd.read_csv(data_dir + "eval_result2.csv")
   ax = sns.barplot(x='domain', y='value', hue='train_setup', data=df)
 
-  ax.set_xticklabels(["Movers", "Cleanup", "Rescue"])
+  ax.set_xticklabels(["Movers", "Cleanup", "Rescue", "Rescue2"])
   h, l = ax.get_legend_handles_labels()
   ax.legend(h, ["150(100%)", "500(30%)", "500(100%)"],
             title="# Data (Supervision)")
@@ -195,10 +195,10 @@ if __name__ == "__main__":
   SAVE_RESULT = True
   NO_SAVE = not SAVE_RESULT
 
-  # save_evaluation_plot(data_dir, output_dir, NO_SAVE)
+  save_evaluation_plot(data_dir, output_dir, NO_SAVE)
   # save_score_vs_delta_plots(data_dir, output_dir, NO_SAVE)
   # save_score_vs_theta_plots(data_dir, output_dir, NO_SAVE)
   # save_num_feedback_vs_delta_plots(data_dir, output_dir, NO_SAVE)
-  save_score_vs_intervention_plots(data_dir, output_dir, SAVE_RESULT)
+  # save_score_vs_intervention_plots(data_dir, output_dir, SAVE_RESULT)
 
   plt.show()
