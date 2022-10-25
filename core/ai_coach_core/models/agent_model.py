@@ -43,7 +43,6 @@ class AgentModel:
                                                        obstate_idx,
                                                        tuple_action_idx,
                                                        obstate_next_idx)
-
     return np.random.choice(range(len(np_next_latent_dist)),
                             p=np_next_latent_dist)
 

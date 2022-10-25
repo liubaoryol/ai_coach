@@ -153,6 +153,7 @@ HASH_2_SESSION_KEY = {
 
 
 def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
+
   def endpoint(bp_name, page_key):
     return bp_name + "." + page_key
 

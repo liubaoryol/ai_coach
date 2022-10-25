@@ -34,3 +34,21 @@ MAP_CLEANUP = {
     "wall_dir": [0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0],
     "drops": []
 }
+
+MAP_CLEANUP_V2 = {
+    "name":
+    "cleanup_v2",
+    "x_grid":
+    7,
+    "y_grid":
+    7,
+    "a1_init": (0, 5),
+    "a2_init": (1, 6),
+    "boxes": [(6, 0), (4, 2), (2, 4)],
+    "box_types": [1, 1, 1],  # number of agents needed to pick up each box
+    "goals": [(0, 6)],
+    "walls": [(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (5, 2), (1, 3), (5, 3),
+              (1, 4), (5, 4), (1, 5), (2, 5), (3, 5), (5, 5)],
+    "wall_dir": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+    "drops": []
+}

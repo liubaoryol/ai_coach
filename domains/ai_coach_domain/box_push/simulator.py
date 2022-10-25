@@ -60,6 +60,8 @@ class BoxPushSimulator(Simulator):
     self.agent_1 = agent1
     self.agent_2 = agent2
 
+    self.agents = [agent1, agent2]
+
     # order can be important as Agent2 state may include Agent1's mental state,
     # or vice versa. here we assume agent2 updates its mental state later
     self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
@@ -79,6 +81,9 @@ class BoxPushSimulator(Simulator):
     if self.agent_2 is not None:
       self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
     self.changed_state = set()
+
+  def get_score(self):
+    return -self.get_current_step()
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
@@ -317,6 +322,7 @@ class BoxPushSimulator(Simulator):
 
 
 class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
+
   def __init__(
       self,
       id: Hashable,
@@ -332,6 +338,7 @@ class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
 
 
 class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
+
   def __init__(
       self,
       id: Hashable,
@@ -347,6 +354,7 @@ class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
 
 
 class BoxPushSimulator_AlwaysAlone(BoxPushSimulator):
+
   def __init__(
       self,
       id: Hashable,

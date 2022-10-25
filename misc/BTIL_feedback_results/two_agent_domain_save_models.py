@@ -8,35 +8,44 @@ import numpy as np
 from ai_coach_core.model_learning.BTIL import BTIL
 from ai_coach_domain.helper import TrueModelConverter
 from ai_coach_domain.box_push.agent_model import (
-    assumed_initial_mental_distribution)
+    assumed_initial_mental_distribution as bp_init_mental_dist)
 from ai_coach_domain.box_push.utils import BoxPushTrajectories
 from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
                                                BoxPushAIAgent_PO_Team)
 from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2, MAP_MOVERS
 from ai_coach_domain.box_push_v2.policy import Policy_Cleanup, Policy_Movers
 from ai_coach_domain.box_push_v2.mdp import (MDP_Cleanup_Agent,
                                              MDP_Cleanup_Task, MDP_Movers_Agent,
                                              MDP_Movers_Task)
+
+from ai_coach_domain.rescue.agent import (assumed_initial_mental_distribution as
+                                          res_init_mental_dist)
+from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
+from ai_coach_domain.rescue.simulator import RescueSimulator
+from ai_coach_domain.rescue.maps import MAP_RESCUE
+from ai_coach_domain.rescue.policy import Policy_Rescue
+from ai_coach_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+from ai_coach_domain.rescue.utils import RescueTrajectories
 import helper
 
 
 # yapf: disable
 @click.command()
-@click.option("--is-team", type=bool, default=True, help="team / indv")
+@click.option("--domain", type=str, default="rescue", help="movers / cleanup_v2 / rescue_2")
 @click.option("--synthetic", type=bool, default=True, help="")
 @click.option("--num-training-data", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
 @click.option("--use-true-tx", type=bool, default=False, help="")
-@click.option("--gen-trainset", type=bool, default=False, help="")
-@click.option("--beta-pi", type=float, default=1.1, help="")
+@click.option("--gen-trainset", type=bool, default=True, help="")
+@click.option("--beta-pi", type=float, default=1.01, help="")
 @click.option("--beta-tx", type=float, default=1.01, help="")
 @click.option("--tx-dependency", type=str, default="FTTT",
               help="sequence of T or F indicating dependency on cur_state, actions, and next_state")  # noqa: E501
 # yapf: enable
-def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
+def main(domain, synthetic, num_training_data, supervision, use_true_tx,
          gen_trainset, beta_pi, beta_tx, tx_dependency):
-  logging.info("is_TEAM: %s" % (is_team, ))
+  logging.info("domain: %s" % (domain, ))
   logging.info("synthetic: %s" % (synthetic, ))
   logging.info("num training data: %s" % (num_training_data, ))
   logging.info("supervision: %s" % (supervision, ))
@@ -59,12 +68,11 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
 
   # define the domain where trajectories were generated
   ##################################################
-  sim = BoxPushSimulatorV2(0)
-  TEMPERATURE = 0.3
-
-  if is_team:
+  if domain == "movers":
+    sim = BoxPushSimulatorV2(0)
+    TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
-    SAVE_PREFIX = GAME_MAP["name"] + "_v2"
+    SAVE_PREFIX = GAME_MAP["name"]
     MDP_TASK = MDP_Movers_Task(**GAME_MAP)
     MDP_AGENT = MDP_Movers_Agent(**GAME_MAP)
     POLICY_1 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
@@ -77,9 +85,13 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
     AGENT_2 = BoxPushAIAgent_PO_Team(init_states,
                                      POLICY_2,
                                      agent_idx=sim.AGENT2)
-  else:
-    GAME_MAP = MAP_CLEANUP
-    SAVE_PREFIX = GAME_MAP["name"] + "_v2"
+    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
+    assumed_init_mental_dist = bp_init_mental_dist
+  elif domain == "cleanup_v2":
+    sim = BoxPushSimulatorV2(0)
+    TEMPERATURE = 0.3
+    GAME_MAP = MAP_CLEANUP_V2
+    SAVE_PREFIX = GAME_MAP["name"]
     MDP_TASK = MDP_Cleanup_Task(**GAME_MAP)
     MDP_AGENT = MDP_Cleanup_Agent(**GAME_MAP)
     POLICY_1 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
@@ -92,6 +104,34 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
     AGENT_2 = BoxPushAIAgent_PO_Indv(init_states,
                                      POLICY_2,
                                      agent_idx=sim.AGENT2)
+    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
+    assumed_init_mental_dist = bp_init_mental_dist
+  elif domain == "rescue_2":
+    sim = RescueSimulator()
+    TEMPERATURE = 0.3
+
+    GAME_MAP = MAP_RESCUE
+    SAVE_PREFIX = GAME_MAP["name"]
+    MDP_TASK = MDP_Rescue_Task(**GAME_MAP)
+    MDP_AGENT = MDP_Rescue_Agent(**GAME_MAP)
+    POLICY_1 = Policy_Rescue(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
+    POLICY_2 = Policy_Rescue(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
+
+    init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
+                   GAME_MAP["a2_init"])
+    AGENT_1 = AIAgent_Rescue_PartialObs(init_states, 0, POLICY_1)
+    AGENT_2 = AIAgent_Rescue_PartialObs(init_states, 1, POLICY_2)
+
+    def conv_latent_to_idx(agent_idx, latent):
+      if agent_idx == 0:
+        return AGENT_1.conv_latent_to_idx(latent)
+      else:
+        return AGENT_2.conv_latent_to_idx(latent)
+
+    train_data = RescueTrajectories(
+        MDP_TASK, (MDP_AGENT.num_latents, MDP_AGENT.num_latents),
+        conv_latent_to_idx)
+    assumed_init_mental_dist = res_init_mental_dist
 
   sim.init_game(**GAME_MAP)
   sim.set_autonomous_agent(AGENT_1, AGENT_2)
@@ -114,13 +154,15 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
   fn_get_bx = None
   fn_get_Tx = None
   if synthetic:
-    fn_get_bx = true_methods.get_init_latent_dist
+    # fn_get_bx = true_methods.get_init_latent_dist
+    fn_get_bx = (
+        lambda a, s: np.ones(MDP_AGENT.num_latents) / MDP_AGENT.num_latents)
     fn_get_Tx = true_methods.true_Tx_for_var_infer
   else:
 
     def assumed_init_latent_dist(agent_idx, state_idx):
       if agent_idx == 0:
-        return assumed_initial_mental_distribution(0, state_idx, MDP_TASK)
+        return assumed_init_mental_dist(0, state_idx, MDP_TASK)
       else:
         return AGENT_2.get_initial_latent_distribution(state_idx)
 
@@ -136,7 +178,6 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
 
   train_files = file_names[:num_train]
 
-  train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
   train_data.load_from_files(train_files)
   traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
                                                  include_terminal=False)
@@ -186,20 +227,20 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx,
   if not os.path.exists(save_dir):
     os.mkdir(save_dir)
 
-  policy_file_name = SAVE_PREFIX + "_btil_policy_"
+  policy_file_name = SAVE_PREFIX + "_btil2_policy_"
   policy_file_name += "synth_" if synthetic else "human_"
   policy_file_name += "withTx_" if use_true_tx else "woTx_"
   policy_file_name += tx_dependency + "_" if not use_true_tx else ""
-  policy_file_name += "%d_%.2f" % (num_train, supervision)
+  policy_file_name += ("%d_%.2f" % (num_train, supervision)).replace('.', ',')
   policy_file_name = os.path.join(save_dir, policy_file_name)
   np.save(policy_file_name + "_a1", btil_models.list_np_policy[0])
   np.save(policy_file_name + "_a2", btil_models.list_np_policy[1])
 
   if not use_true_tx:
-    tx_file_name = SAVE_PREFIX + "_btil_tx_"
+    tx_file_name = SAVE_PREFIX + "_btil2_tx_"
     tx_file_name += "synth_" if synthetic else "human_"
     tx_file_name += tx_dependency + "_"
-    tx_file_name += "%d_%.2f" % (num_train, supervision)
+    tx_file_name += ("%d_%.2f" % (num_train, supervision)).replace('.', ',')
     tx_file_name = os.path.join(save_dir, tx_file_name)
     np.save(tx_file_name + "_a1", btil_models.list_Tx[0].np_Tx)
     np.save(tx_file_name + "_a2", btil_models.list_Tx[1].np_Tx)

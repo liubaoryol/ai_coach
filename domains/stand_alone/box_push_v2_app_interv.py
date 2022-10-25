@@ -15,10 +15,12 @@ from stand_alone.box_push_app import BoxPushApp
 import pickle
 from ai_coach_core.intervention.feedback_strategy import get_combos_sorted_by_simulated_values
 from stand_alone.intervention_simulator import InterventionSimulator
+from ai_coach_core.intervention.feedback_strategy import (
+    InterventionValueBased, E_CertaintyHandling)
 
 TEST_BTIL_AGENT = False
 TEST_BTIL_USE_TRUE_TX = False
-IS_MOVERS = True
+IS_MOVERS = False
 DATA_DIR = "misc/BTIL_feedback_results/data/"
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS
@@ -99,7 +101,31 @@ class BoxPushV2App(BoxPushApp):
         agent1 = BoxPushAIAgent_BTIL(np_tx_1, mask, test_policy_1, 0)
         agent2 = BoxPushAIAgent_BTIL(np_tx_2, mask, test_policy_2, 1)
 
+    model_dir = DATA_DIR + "/learned_models/"  # noqa: E501
+    np_policy_1 = np.load(model_dir + NP_POLICY_A1)
+    np_policy_2 = np.load(model_dir + NP_POLICY_A2)
+    np_tx_1 = np.load(model_dir + NP_TX_A1)
+    np_tx_2 = np.load(model_dir + NP_TX_A2)
+
+    intervention_strategy = InterventionValueBased(
+        self.np_v_values,
+        E_CertaintyHandling.Threshold,
+        inference_threshold=0,
+        intervention_threshold=0.02,
+        intervention_cost=0)
+
+    def get_state_action(history):
+      step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
+      return (bstt, a1pos, a2pos), (a1act, a2act)
+
     self.game.set_autonomous_agent(agent1, agent2)
+    self.interv_sim = InterventionSimulator(self.game,
+                                            [np_policy_1, np_policy_2],
+                                            [np_tx_1, np_tx_2],
+                                            intervention_strategy,
+                                            get_state_action,
+                                            fix_illegal=True)
+    self.interv_sim.reset_game()
 
   def _update_canvas_scene(self):
     super()._update_canvas_scene()
@@ -120,6 +146,30 @@ class BoxPushV2App(BoxPushApp):
       list_combos = get_combos_sorted_by_simulated_values(
           self.np_v_values, oidx)
       print(list_combos[:6])
+      print(game.get_score())
+
+  def _on_key_pressed(self, key_event):
+    if not self._started:
+      return
+
+    agent, e_type, e_value = self._conv_key_to_agent_event(key_event.keysym)
+    self.game.event_input(agent, e_type, e_value)
+    if self._event_based:
+      action_map = self.game.get_joint_action()
+      self.game.take_a_step(action_map)
+      print("====")
+      print(action_map)
+      self.interv_sim.intervene()
+
+      if not self.game.is_finished():
+        # update canvas
+        self._update_canvas_scene()
+        self._update_canvas_overlay()
+        # pop-up for latent?
+      else:
+        self._on_game_end()
+    else:
+      pass
 
 
 if __name__ == "__main__":

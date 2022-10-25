@@ -3,14 +3,16 @@ import numpy as np
 from ai_coach_core.models.policy import PolicyInterface
 from ai_coach_core.models.agent_model import AgentModel
 from ai_coach_core.models.mdp import LatentMDP
+from ai_coach_core.utils.mdp_utils import StateSpace
 
 
 class BTILCachedPolicy(PolicyInterface):
-  def __init__(self, np_policy: np.ndarray, task_mdp: LatentMDP,
-               agent_idx: int) -> None:
+  def __init__(self, np_policy: np.ndarray, task_mdp: LatentMDP, agent_idx: int,
+               latent_space: StateSpace) -> None:
     super().__init__(task_mdp)
     self.agent_idx = agent_idx
     self.np_policy = np_policy
+    self.latent_space = latent_space
 
   def policy(self, obstate_idx: int, latstate_idx: int) -> np.ndarray:
     return self.np_policy[latstate_idx, obstate_idx]
@@ -26,13 +28,13 @@ class BTILCachedPolicy(PolicyInterface):
         self.agent_idx].action_to_idx[action],
 
   def get_num_latent_states(self):
-    return self.mdp.num_latents
+    return self.latent_space.num_states
 
   def conv_idx_to_latent(self, latent_idx: int):
-    return self.mdp.latent_space.idx_to_state[latent_idx]
+    return self.latent_space.idx_to_state[latent_idx]
 
   def conv_latent_to_idx(self, latent_state):
-    return self.mdp.latent_space.state_to_idx[latent_state]
+    return self.latent_space.state_to_idx[latent_state]
 
 
 class BTILCachedAgentModel(AgentModel):

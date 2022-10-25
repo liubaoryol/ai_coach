@@ -3,24 +3,26 @@ import os
 import numpy as np
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
-from ai_coach_domain.rescue import (E_EventType, Route, Location, Work, Place,
-                                    T_Connections, is_work_done)
-from ai_coach_domain.rescue.transition import transition
+from ai_coach_domain.rescue_v2 import (E_EventType, Route, Location, Work,
+                                       Place, T_Connections, is_work_done)
+from ai_coach_domain.rescue_v2.transition import transition
 
 
-class RescueSimulator(Simulator):
+class RescueSimulatorV2(Simulator):
   AGENT1 = 0
   AGENT2 = 1
+  AGENT3 = 2
 
   def __init__(self, id: Hashable = None) -> None:
     super().__init__(id)
     self.agent_1 = None
     self.agent_2 = None
+    self.agent_3 = None
 
   def init_game(self, places: Sequence[Place], routes: Sequence[Route],
                 connections: Mapping[int, T_Connections],
                 work_locations: Sequence[Location], work_info: Sequence[Work],
-                a1_init, a2_init, **kwargs):
+                a1_init, a2_init, a3_init, **kwargs):
 
     self.routes = routes
     self.places = places
@@ -29,25 +31,29 @@ class RescueSimulator(Simulator):
     self.work_info = work_info
     self.a1_init = a1_init
     self.a2_init = a2_init
+    self.a3_init = a3_init
 
     self.reset_game()
 
   def get_state_for_each_agent(self, agent_idx):
     'Redefine this method at subclasses as needed'
-    return [self.work_states, self.a1_pos, self.a2_pos]
+    return [self.work_states, self.a1_pos, self.a2_pos, self.a3_pos]
 
   def set_autonomous_agent(self,
                            agent1: SimulatorAgent = InteractiveAgent(),
-                           agent2: SimulatorAgent = InteractiveAgent()):
+                           agent2: SimulatorAgent = InteractiveAgent(),
+                           agent3: SimulatorAgent = InteractiveAgent()):
     self.agent_1 = agent1
     self.agent_2 = agent2
+    self.agent_3 = agent3
 
-    self.agents = [agent1, agent2]
+    self.agents = [agent1, agent2, agent3]
 
     # order can be important as Agent2 state may include Agent1's mental state,
     # or vice versa. here we assume agent2 updates its mental state later
     self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
     self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
+    self.agent_3.init_latent(self.get_state_for_each_agent(self.AGENT3))
 
   def reset_game(self):
     self.score = 0
@@ -55,12 +61,15 @@ class RescueSimulator(Simulator):
     self.history = []
     self.a1_pos = self.a1_init
     self.a2_pos = self.a2_init
+    self.a3_pos = self.a3_init
     self.work_states = [1] * len(self.work_locations)
 
     if self.agent_1 is not None:
       self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
     if self.agent_2 is not None:
       self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
+    if self.agent_3 is not None:
+      self.agent_3.init_latent(self.get_state_for_each_agent(self.AGENT3))
     self.changed_state = set()
 
   def update_score(self):
@@ -77,9 +86,6 @@ class RescueSimulator(Simulator):
 
     self.score = score
 
-  def get_score(self):
-    return self.score
-
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
     a1_action = None
@@ -88,14 +94,19 @@ class RescueSimulator(Simulator):
     a2_action = None
     if self.AGENT2 in map_agent_2_action:
       a2_action = map_agent_2_action[self.AGENT2]
+    a3_action = None
+    if self.AGENT3 in map_agent_2_action:
+      a3_action = map_agent_2_action[self.AGENT3]
 
-    if a1_action is None and a2_action is None:
+    if a1_action is None and a2_action is None and a3_action is None:
       return
 
     if a1_action is None:
       a1_action = E_EventType.Stay
     if a2_action is None:
       a2_action = E_EventType.Stay
+    if a3_action is None:
+      a3_action = E_EventType.Stay
 
     a1_lat = self.agent_1.get_current_latent()
     if a1_lat is None:
@@ -105,16 +116,22 @@ class RescueSimulator(Simulator):
     if a2_lat is None:
       a2_lat = "None"
 
+    a3_lat = self.agent_3.get_current_latent()
+    if a3_lat is None:
+      a3_lat = "None"
+
     a1_cur_state = tuple(self.get_state_for_each_agent(self.AGENT1))
     a2_cur_state = tuple(self.get_state_for_each_agent(self.AGENT2))
+    a3_cur_state = tuple(self.get_state_for_each_agent(self.AGENT3))
 
     state = [
         self.current_step, self.score, self.work_states, self.a1_pos,
-        self.a2_pos, a1_action, a2_action, a1_lat, a2_lat
+        self.a2_pos, self.a3_pos, a1_action, a2_action, a3_action, a1_lat,
+        a2_lat, a3_lat
     ]
     self.history.append(state)
 
-    self._transition(a1_action, a2_action)
+    self._transition(a1_action, a2_action, a3_action)
     self.current_step += 1
     self.changed_state.add("current_step")
 
@@ -125,38 +142,44 @@ class RescueSimulator(Simulator):
       return
 
     # update mental model
-    tuple_actions = (a1_action, a2_action)
+    tuple_actions = (a1_action, a2_action, a3_action)
     self.agent_1.update_mental_state(a1_cur_state, tuple_actions,
                                      self.get_state_for_each_agent(self.AGENT1))
     self.agent_2.update_mental_state(a2_cur_state, tuple_actions,
                                      self.get_state_for_each_agent(self.AGENT2))
+    self.agent_3.update_mental_state(a3_cur_state, tuple_actions,
+                                     self.get_state_for_each_agent(self.AGENT3))
     self.changed_state.add("a1_latent")
     self.changed_state.add("a2_latent")
+    self.changed_state.add("a3_latent")
 
-  def _transition(self, a1_action, a2_action):
-    list_next_env = self._get_transition_distribution(a1_action, a2_action)
+  def _transition(self, a1_action, a2_action, a3_action):
+    list_next_env = self._get_transition_distribution(a1_action, a2_action,
+                                                      a3_action)
 
     list_prop = []
     for item in list_next_env:
       list_prop.append(item[0])
 
     idx_c = np.random.choice(range(len(list_next_env)), 1, p=list_prop)[0]
-    _, work_states, a1_pos, a2_pos = list_next_env[idx_c]
+    _, work_states, a1_pos, a2_pos, a3_pos = list_next_env[idx_c]
     self.a1_pos = a1_pos
     self.a2_pos = a2_pos
+    self.a3_pos = a3_pos
     self.work_states = work_states
 
     self.changed_state.add("a1_pos")
     self.changed_state.add("a2_pos")
+    self.changed_state.add("a3_pos")
     self.changed_state.add("work_states")
 
-  def _get_transition_distribution(self, a1_action, a2_action):
-    return transition(self.work_states, self.a1_pos, self.a2_pos, a1_action,
-                      a2_action, self.routes, self.connections,
-                      self.work_locations, self.work_info)
+  def _get_transition_distribution(self, a1_action, a2_action, a3_action):
+    return transition(self.work_states, self.a1_pos, self.a2_pos, self.a3_pos,
+                      a1_action, a2_action, a3_action, self.routes,
+                      self.connections, self.work_locations, self.work_info)
 
   def get_num_agents(self):
-    return 2
+    return 3
 
   def event_input(self, agent: Hashable, event_type: Hashable, value):
     if (agent is None) or (event_type is None):
@@ -174,6 +197,12 @@ class RescueSimulator(Simulator):
       else:
         self.agent_2.set_latent(value)
         self.changed_state.add("a2_latent")
+    elif agent == self.AGENT3:
+      if event_type != E_EventType.Set_Latent:
+        self.agent_3.set_action(event_type)
+      else:
+        self.agent_3.set_latent(value)
+        self.changed_state.add("a3_latent")
 
   def get_joint_action(self) -> Mapping[Hashable, Hashable]:
 
@@ -182,6 +211,8 @@ class RescueSimulator(Simulator):
         self.get_state_for_each_agent(self.AGENT1))
     map_a2a[self.AGENT2] = self.agent_2.get_action(
         self.get_state_for_each_agent(self.AGENT2))
+    map_a2a[self.AGENT3] = self.agent_3.get_action(
+        self.get_state_for_each_agent(self.AGENT3))
 
     return map_a2a
 
@@ -190,6 +221,7 @@ class RescueSimulator(Simulator):
         "work_states": self.work_states,
         "a1_pos": self.a1_pos,
         "a2_pos": self.a2_pos,
+        "a3_pos": self.a3_pos,
         "work_locations": self.work_locations,
         "routes": self.routes,
         "places": self.places,
@@ -197,6 +229,7 @@ class RescueSimulator(Simulator):
         "work_info": self.work_info,
         "a1_latent": self.agent_1.get_current_latent(),
         "a2_latent": self.agent_2.get_current_latent(),
+        "a3_latent": self.agent_3.get_current_latent(),
         "current_step": self.current_step,
         "score": self.score
     }
@@ -208,6 +241,8 @@ class RescueSimulator(Simulator):
         dict_changed_obj[state] = self.agent_1.get_current_latent()
       elif state == "a2_latent":
         dict_changed_obj[state] = self.agent_2.get_current_latent()
+      elif state == "a3_latent":
+        dict_changed_obj[state] = self.agent_3.get_current_latent()
       else:
         dict_changed_obj[state] = getattr(self, state)
     self.changed_state = set()
@@ -222,10 +257,10 @@ class RescueSimulator(Simulator):
       # sequence
       txtfile.write(header)
       txtfile.write('\n')
-      txtfile.write('# cur_step, score, work_states, a1_pos, a2_pos, ' +
-                    'a1_act, a2_act, a1_latent, a2_latent\n')
+      txtfile.write('# cur_step, score, work_states, a1_pos, a2_pos, a3_pos, ' +
+                    'a1_act, a2_act, a3_act, a1_latent, a2_latent, a3_latent\n')
 
-      for step, score, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat in self.history:  # noqa: E501
+      for step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat, a3lat in self.history:  # noqa: E501
         txtfile.write('%d; ' % (step, ))  # cur step
         txtfile.write('%d; ' % (score, ))  # score
         # work states
@@ -235,11 +270,13 @@ class RescueSimulator(Simulator):
 
         txtfile.write('%s; ' % a1pos)
         txtfile.write('%s; ' % a2pos)
+        txtfile.write('%s; ' % a3pos)
 
-        txtfile.write('%s; %s; ' % (a1act.name, a2act.name))
+        txtfile.write('%s; %s; ' % (a1act.name, a2act.name, a3act.name))
 
         txtfile.write('%s; ' % a1lat)
         txtfile.write('%s; ' % a2lat)
+        txtfile.write('%s; ' % a3lat)
         txtfile.write('\n')
 
       # last state
@@ -252,6 +289,7 @@ class RescueSimulator(Simulator):
 
       txtfile.write('%s; ' % self.a1_pos)
       txtfile.write('%s; ' % self.a2_pos)
+      txtfile.write('%s; ' % self.a3_pos)
       txtfile.write('\n')
 
   def is_finished(self) -> bool:
@@ -272,22 +310,23 @@ class RescueSimulator(Simulator):
       lines = txtfile.readlines()
       i_start = 0
       for i_r, row in enumerate(lines):
-        if row == ('# cur_step, score, work_states, a1_pos, a2_pos, ' +
-                   'a1_act, a2_act, a1_latent, a2_latent\n'):
+        if row == ('# cur_step, score, work_states, a1_pos, a2_pos, a3_pos, ' +
+                   'a1_act, a2_act, a3_act, a1_latent, a2_latent, a3_latent\n'):
           i_start = i_r
           break
 
       for i_r in range(i_start + 1, len(lines)):
         line = lines[i_r]
         states = line.rstrip()[:-1].split("; ")
-        if len(states) < 9:
-          for dummy in range(9 - len(states)):
+        if len(states) < 12:
+          for dummy in range(12 - len(states)):
             states.append(None)
-        step, score, wstate, a1pos, a2pos, a1act, a2act, a1lat, a2lat = states
+        step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat, a3lat = states
         score = int(score)
-        work_state = tuple([int(elem) for elem in wstate.split(", ")])
+        work_state = tuple([int(elem) for elem in wstt.split(", ")])
         a1_pos = Location.from_str(a1pos)
         a2_pos = Location.from_str(a2pos)
+        a3_pos = Location.from_str(a3pos)
         if a1act is None:
           a1_act = None
         else:
@@ -296,6 +335,10 @@ class RescueSimulator(Simulator):
           a2_act = None
         else:
           a2_act = E_EventType[a2act]
+        if a3act is None:
+          a3_act = None
+        else:
+          a3_act = E_EventType[a3act]
         if a1lat is None:
           a1_lat = None
         else:
@@ -304,7 +347,13 @@ class RescueSimulator(Simulator):
           a2_lat = None
         else:
           a2_lat = int(a2lat)
-        traj.append(
-            [score, work_state, a1_pos, a2_pos, a1_act, a2_act, a1_lat, a2_lat])
+        if a3lat is None:
+          a3_lat = None
+        else:
+          a3_lat = int(a3lat)
+        traj.append([
+            score, work_state, a1_pos, a2_pos, a3_pos, a1_act, a2_act, a3_act,
+            a1_lat, a2_lat, a3_lat
+        ])
 
     return traj
