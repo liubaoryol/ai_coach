@@ -86,11 +86,6 @@ class InterventionSimulator:
               (tup_action_prev[agent_idx], ))
       joint_action.append(aidx_i)
 
-    # aidx1, = self.game.agent_1.agent_model.policy_model.conv_action_to_idx(
-    #     (tup_action_prev[0], ))
-    # aidx2, = self.game.agent_2.agent_model.policy_model.conv_action_to_idx(
-    #     (tup_action_prev[1], ))
-
     sidx_n = task_mdp.conv_sim_states_to_mdp_sidx(
         tuple(self.game.get_state_for_each_agent(0)))
     list_state = [sidx, sidx_n]
@@ -122,19 +117,3 @@ class InterventionSimulator:
         np_int_x_dist = np.zeros(len(self.list_prev_np_x_dist[agent_idx]))
         np_int_x_dist[lat1] = 1.0
         self.list_prev_np_x_dist[agent_idx] = np_int_x_dist
-
-    # if 0 in feedback:
-    #   lat1 = feedback[0]
-    #   self.game.agent_1.set_latent(
-    #       self.game.agent_1.agent_model.policy_model.conv_idx_to_latent(lat1))
-    #   np_int_x_dist = np.zeros(len(self.list_prev_np_x_dist[0]))
-    #   np_int_x_dist[lat1] = 1.0
-    #   self.list_prev_np_x_dist[0] = np_int_x_dist
-
-    # if 1 in feedback:
-    #   lat2 = feedback[1]
-    #   self.game.agent_2.set_latent(
-    #       self.game.agent_2.agent_model.policy_model.conv_idx_to_latent(lat2))
-    #   np_int_x_dist = np.zeros(len(self.list_prev_np_x_dist[1]))
-    #   np_int_x_dist[lat2] = 1.0
-    #   self.list_prev_np_x_dist[1] = np_int_x_dist

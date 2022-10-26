@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 sns.set_theme(style="white")
 
 
-def save_evaluation_plot(data_dir, output_dir, save_plot):
-  df = pd.read_csv(data_dir + "eval_result2.csv")
+def save_evaluation_plot(df_input_name, output_name, save_plot):
+  df = pd.read_csv(df_input_name)
   ax = sns.barplot(x='domain', y='value', hue='train_setup', data=df)
 
   ax.set_xticklabels(["Movers", "Cleanup", "Rescue", "Rescue2"])
@@ -22,11 +22,11 @@ def save_evaluation_plot(data_dir, output_dir, save_plot):
   fig = ax.get_figure()
   fig.tight_layout()
   if save_plot:
-    fig.savefig(output_dir + "inference_eval.png")
+    fig.savefig(output_name)
 
 
-def save_score_vs_delta_plots(data_dir, output_dir, save_plot):
-  df = pd.read_csv(data_dir + "intervention_result.csv")
+def save_score_vs_delta_plots(df_input_name, output_name, save_plot):
+  df = pd.read_csv(df_input_name)
 
   list_domains = ["movers", "cleanup_v2", "rescue_2"]
   list_domain_names = ["Movers", "Cleanup", "Rescue"]
@@ -59,11 +59,11 @@ def save_score_vs_delta_plots(data_dir, output_dir, save_plot):
     ax.legend(h, l + ["Everytime", "None"], title="Strategy")
   fig.tight_layout()
   if save_plot:
-    fig.savefig(output_dir + "score_vs_delta.png")
+    fig.savefig(output_name)
 
 
-def save_score_vs_theta_plots(data_dir, output_dir, save_plot):
-  df = pd.read_csv(data_dir + "intervention_result.csv")
+def save_score_vs_theta_plots(df_input_name, output_name, save_plot):
+  df = pd.read_csv(df_input_name)
 
   list_domains = ["movers"]
   list_domain_names = ["Movers"]
@@ -96,11 +96,11 @@ def save_score_vs_theta_plots(data_dir, output_dir, save_plot):
     ax.legend(h, ["Argmax", "Everytime", "None"], title="Strategy")
   fig.tight_layout()
   if save_plot:
-    fig.savefig(output_dir + "score_vs_theta.png")
+    fig.savefig(output_name)
 
 
-def save_num_feedback_vs_delta_plots(data_dir, output_dir, save_plot):
-  df = pd.read_csv(data_dir + "intervention_result.csv")
+def save_num_feedback_vs_delta_plots(df_input_name, output_name, save_plot):
+  df = pd.read_csv(df_input_name)
 
   list_domains = ["movers"]
   list_domain_names = ["Movers"]
@@ -128,11 +128,11 @@ def save_num_feedback_vs_delta_plots(data_dir, output_dir, save_plot):
 
   fig.tight_layout()
   if save_plot:
-    fig.savefig(output_dir + "num_feedback_vs_delta.png")
+    fig.savefig(output_name)
 
 
-def save_score_vs_intervention_plots(data_dir, output_dir, save_plot):
-  df = pd.read_csv(data_dir + "intervention_result.csv")
+def save_score_vs_intervention_plots(df_input_name, output_name, save_plot):
+  df = pd.read_csv(df_input_name)
 
   # list_domains = ["movers", "cleanup_v2", "rescue_2"]
   list_domains = ["movers"]
@@ -150,26 +150,6 @@ def save_score_vs_intervention_plots(data_dir, output_dir, save_plot):
     df_mean = df_domain.groupby(['strategy', 'interv_thres',
                                  'infer_thres'])[["score",
                                                   "num_feedback"]].mean()
-    # # average strategy
-    # df_averge = df_domain[(df_domain["strategy"] == "Average")
-    #                       & (df_domain["interv_thres"] != 0)]
-    # df_mean_average = df_averge.groupby("interv_thres")[[
-    #     "score", "num_feedback"
-    # ]].mean()
-
-    # # argmax strategy
-    # df_argmax = df_domain[(df_domain["strategy"] == "Argmax")
-    #                       & (df_domain["interv_thres"] != 0)]
-    # df_mean_argmax = df_argmax.groupby("interv_thres")[[
-    #     "score", "num_feedback"
-    # ]].mean()
-
-    # # argmax w thres strategy
-    # df_argmax_thres = df_domain[(df_domain["strategy"] == "Argmax_thres")
-    #                       & (df_domain["infer_thres"] != 0)]
-    # df_mean_argmax_thres = df_argmax_thres.groupby("infer_thres")[[
-    #     "score", "num_feedback"
-    # ]].mean()
 
     ax = sns.scatterplot(ax=axes[idx],
                          data=df_mean,
@@ -185,20 +165,30 @@ def save_score_vs_intervention_plots(data_dir, output_dir, save_plot):
 
   fig.tight_layout()
   if save_plot:
-    fig.savefig(output_dir + "num_feedback_vs_score.png")
+    fig.savefig(output_name)
 
 
 if __name__ == "__main__":
   data_dir = os.path.join(os.path.dirname(__file__), "data/")
   output_dir = os.path.join(os.path.dirname(__file__), "output/")
 
+  eval_result_name = data_dir + "eval_result2.csv"
+  intv_result_name = data_dir + "intervention_result2.csv"
+
   SAVE_RESULT = True
   NO_SAVE = not SAVE_RESULT
 
-  save_evaluation_plot(data_dir, output_dir, NO_SAVE)
-  # save_score_vs_delta_plots(data_dir, output_dir, NO_SAVE)
-  # save_score_vs_theta_plots(data_dir, output_dir, NO_SAVE)
-  # save_num_feedback_vs_delta_plots(data_dir, output_dir, NO_SAVE)
-  # save_score_vs_intervention_plots(data_dir, output_dir, SAVE_RESULT)
+  # save_evaluation_plot(eval_result_name, output_dir + "inference_eval.png",
+  #                      NO_SAVE)
+  save_score_vs_delta_plots(intv_result_name, output_dir + "score_vs_delta.png",
+                            NO_SAVE)
+  save_score_vs_theta_plots(intv_result_name, output_dir + "score_vs_theta.png",
+                            NO_SAVE)
+  save_num_feedback_vs_delta_plots(intv_result_name,
+                                   output_dir + "num_feedback_vs_delta.png",
+                                   NO_SAVE)
+  save_score_vs_intervention_plots(intv_result_name,
+                                   output_dir + "num_feedback_vs_score.png",
+                                   NO_SAVE)
 
   plt.show()

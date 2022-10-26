@@ -1,6 +1,6 @@
 from abc import abstractmethod, ABC
 from enum import Enum
-from typing import Sequence
+from typing import Sequence, Callable
 import itertools
 import numpy as np
 from ai_coach_core.utils.result_utils import compute_js
@@ -10,6 +10,7 @@ class E_ComboSelection(Enum):
   Value = 0  # need to specify whether the full change is allowed or not
   Acceptibility = 1  # pick one that is likely to be accepted by the team
   LeastChange = 2  # pick one that changes the least number of members
+  Confidence = 3
 
 
 class E_CertaintyHandling(Enum):
@@ -57,14 +58,135 @@ class InterventionAbstract(ABC):
 class InterventionRuleBased(InterventionAbstract):
 
   def __init__(self,
-               e_combo_selection: E_ComboSelection,
+               cb_get_valid_latent: Callable,
+               num_agent: int,
                e_inference_certainty: E_CertaintyHandling,
                inference_threshold: float,
                intervention_threshold: float,
                intervention_cost: float = 0):
-    super().__init__(e_combo_selection, e_inference_certainty,
-                     inference_threshold, intervention_threshold,
-                     intervention_cost)
+    super().__init__(e_combo_selection=E_ComboSelection.Confidence,
+                     e_inference_certainty=e_inference_certainty,
+                     inference_threshold=inference_threshold,
+                     intervention_threshold=intervention_threshold,
+                     intervention_cost=intervention_cost)
+    self.cb_get_valid_latent = cb_get_valid_latent
+    self.num_agent = num_agent
+
+  def get_compatible_latent_combos(self, obstate_idx):
+    'no valid'
+    valid_latent = self.cb_get_valid_latent(obstate_idx)
+    list_valid_combo_pairs = []
+    for lat in valid_latent:
+      list_valid_combo_pairs.append(tuple([lat] * self.num_agent))
+
+    return list_valid_combo_pairs
+
+  def _confidence_based_combo(self, list_valid_combos,
+                              list_np_latent_distribution):
+    max_prob = -1
+    max_idx = -1
+    if len(list_valid_combos) == 0:
+      return None
+
+    for idx, combo in enumerate(list_valid_combos):
+      for nidx, lat in enumerate(combo):
+        prob = list_np_latent_distribution[nidx][lat]
+        if max_prob < prob:
+          max_prob = prob
+          max_idx = idx
+
+    return list_valid_combos[max_idx]
+
+  def deterministic_decision(self, list_valid_combos, est_combo):
+    if len(list_valid_combos) == 0:
+      return False
+
+    return not (est_combo in list_valid_combos)
+
+  def get_argmax(self, list_np_latent_distribution):
+    # get argmax
+    list_p = []
+    list_argmax = []
+    for np_dist in list_np_latent_distribution:
+      max_p = np_dist.max()
+      max_indices = np.where(np_dist == max_p)[0]
+      list_p.append(max_p)
+      list_argmax.append(max_indices)
+
+    return list_argmax, list_p
+
+  def get_intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
+                       obstate_idx: int):
+    '''
+    return: a map from an agent index to the tuple of
+          (inference_probability, inferred_mental_models, desired_mental_model)
+    '''
+    list_valid_combos = self.get_compatible_latent_combos(obstate_idx)
+
+    picked_combo = None
+    # find the optimal combination that satisfies the method and criteria
+    if self.e_combo_selection == E_ComboSelection.Confidence:
+      picked_combo = self._confidence_based_combo(list_valid_combos,
+                                                  list_np_latent_distribution)
+
+    else:
+      raise NotImplementedError
+
+    if picked_combo is None:
+      return None
+
+    # whether to intervene or not, based on value threshold
+    # deterministic approach assumes the inferred combination is argmax of
+    # each distribution
+    do_intervention = False
+    if self.e_inference_certainty == E_CertaintyHandling.Average:
+      decision_average = 0
+      # all possible combinations
+      list_range_latent = [
+          range(len(np_dist)) for np_dist in list_np_latent_distribution
+      ]
+      for combo in itertools.product(*list_range_latent):
+        prob = 1.0
+        for idx, lat in enumerate(combo):
+          prob *= list_np_latent_distribution[idx][lat]
+
+        decision_average += prob * int(
+            self.deterministic_decision(list_valid_combos, combo))
+
+      if decision_average > 0.5:
+        do_intervention = True
+    elif self.e_inference_certainty == E_CertaintyHandling.Threshold:
+      list_argmax, list_p = self.get_argmax(list_np_latent_distribution)
+
+      p_all = 1.0
+      for prob in list_p:
+        p_all *= prob
+
+      if p_all >= self.inference_threshold:
+        decision_average = 0
+        count = 0
+        for combo_cur in itertools.product(*list_argmax):
+          decision_average += int(
+              self.deterministic_decision(list_valid_combos, combo_cur))
+          count += 1
+
+        decision_average = decision_average / count
+        if decision_average > 0.5:
+          do_intervention = True
+    else:
+      raise NotImplementedError
+
+    # check if inferred combination is in the set of compatible combinations
+    # if not in, get the agents whose mental model needs to be updated
+    if do_intervention:
+      dict_intervention_p_x_inf_x_int = {}
+      for idx, lat in enumerate(picked_combo):
+        # if lat not in list_argmax[idx]:
+        dict_intervention_p_x_inf_x_int[idx] = lat
+
+      return dict_intervention_p_x_inf_x_int
+
+    return None
 
 
 class InterventionValueBased(InterventionAbstract):
@@ -76,13 +198,15 @@ class InterventionValueBased(InterventionAbstract):
       inference_threshold: float,  # theta
       intervention_threshold: float,  # delta
       intervention_cost: float = 0.0,
-      compatibility_tolerance: float = 0.0) -> None:
+      compatibility_tolerance: float = 0.0,
+      argmax_cur_val_by_average=False) -> None:
     super().__init__(e_combo_selection=E_ComboSelection.Value,
                      e_inference_certainty=e_inference_certainty,
                      inference_threshold=inference_threshold,
                      intervention_threshold=intervention_threshold,
                      intervention_cost=intervention_cost)
     self.np_v_values = np_v_values
+    self.argmax_cur_val_by_average = argmax_cur_val_by_average
 
     # NOTE: there could be multiple ways to define compatible combinations
     #       with v-values
@@ -95,7 +219,7 @@ class InterventionValueBased(InterventionAbstract):
         self.np_v_values, obstate_idx)
 
     optimal_val = list_vval_combo_pairs[0][0]
-    criteria_val = optimal_val + optimal_val * self.compatibility_tolerance
+    criteria_val = optimal_val - optimal_val * self.compatibility_tolerance
     num_combos = 0
     for idx in range(len(list_vval_combo_pairs)):
       if list_vval_combo_pairs[idx][0] > criteria_val:
@@ -124,19 +248,33 @@ class InterventionValueBased(InterventionAbstract):
 
     return list_argmax, list_p
 
-  def get_vval_current(self, list_compatible_vval_combos, list_argmax):
-    max_vval = float("-inf")
-    best_argmax = None
-    for combo_cur in itertools.product(*list_argmax):
-      vval = self.get_vval_of_combo(combo_cur, list_compatible_vval_combos)
-      if vval > max_vval:
-        max_vval = vval
-        best_argmax = combo_cur
+  def get_vval_current(self,
+                       list_compatible_vval_combos,
+                       list_argmax,
+                       average=False):
+    if not average:
+      max_vval = float("-inf")
+      best_argmax = None
+      for combo_cur in itertools.product(*list_argmax):
+        vval = self.get_vval_of_combo(combo_cur, list_compatible_vval_combos)
+        if vval > max_vval:
+          max_vval = vval
+          best_argmax = combo_cur
 
-    if best_argmax is None:
-      return None, None
+      if best_argmax is None:
+        return None, None
+      else:
+        return max_vval, best_argmax
     else:
-      return max_vval, best_argmax
+      avg_val = 0
+      count = 0
+      for combo_cur in itertools.product(*list_argmax):
+        count += 1
+        avg_val += self.get_vval_of_combo(combo_cur,
+                                          list_compatible_vval_combos)
+
+      avg_val = avg_val / count
+      return avg_val, None
 
   def get_intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
                        obstate_idx: int):
@@ -169,15 +307,6 @@ class InterventionValueBased(InterventionAbstract):
     # each distribution
     do_intervention = False
     opt_vval = vval_combo[0]
-    # if self.is_deterministic:
-
-    #   list_argmax, list_p = self.get_argmax(list_np_latent_distribution)
-    #   cur_vval, best_one = self.get_vval_current(list_vval_combo_pairs,
-    #                                              list_argmax)
-
-    #   if self.deterministic_decision(opt_vval, cur_vval):
-    #     do_intervention = True
-    # else:
     if self.e_inference_certainty == E_CertaintyHandling.Average:
       decision_average = 0
       # all possible combinations
@@ -198,13 +327,14 @@ class InterventionValueBased(InterventionAbstract):
     elif self.e_inference_certainty == E_CertaintyHandling.Threshold:
       list_argmax, list_p = self.get_argmax(list_np_latent_distribution)
       cur_vval, best_one = self.get_vval_current(list_vval_combo_pairs,
-                                                 list_argmax)
+                                                 list_argmax,
+                                                 self.argmax_cur_val_by_average)
 
       p_all = 1.0
       for prob in list_p:
         p_all *= prob
 
-      if prob >= self.inference_threshold:
+      if p_all >= self.inference_threshold:
         if self.deterministic_decision(opt_vval, cur_vval):
           do_intervention = True
     else:
