@@ -173,31 +173,6 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
       return np_dist
 
   full_mdp = FullMDP_Base(mmdp=task_mdp, cb_tx=all_Tx, tup_lstate=tup_lstate)
-  # full mdp transition
-  full_transition_file_name = domain + f"_{num_train}_{sup_txt}" + "_full_transition"
-  full_transition_file_name += "" if TRUE_MODELS else "_learned"
-  pickle_full_trans = os.path.join(DATA_DIR,
-                                   full_transition_file_name + ".pickle")
-
-  if os.path.exists(pickle_full_trans):
-    with open(pickle_full_trans, 'rb') as handle:
-      np_transition_model = pickle.load(handle)
-  else:
-    np_transition_model = full_mdp.np_transition_model
-    with open(pickle_full_trans, 'wb') as handle:
-      pickle.dump(np_transition_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-  # full mdp reward
-  reward_file_name = domain + "_reward"
-  pickle_reward = os.path.join(DATA_DIR, reward_file_name + ".pickle")
-
-  if os.path.exists(pickle_reward):
-    with open(pickle_reward, 'rb') as handle:
-      np_reward_model = pickle.load(handle)
-  else:
-    np_reward_model = full_mdp.np_reward_model
-    with open(pickle_reward, 'wb') as handle:
-      pickle.dump(np_reward_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # joint policy
   policy_file_name = domain + f"_{num_train}_{sup_txt}" + "_joint_policy"
@@ -248,6 +223,32 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
 
     with open(pickle_joint_policy, 'wb') as handle:
       pickle.dump(np_policy, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+  # full mdp transition
+  full_transition_file_name = domain + f"_{num_train}_{sup_txt}" + "_full_transition"
+  full_transition_file_name += "" if TRUE_MODELS else "_learned"
+  pickle_full_trans = os.path.join(DATA_DIR,
+                                   full_transition_file_name + ".pickle")
+
+  if os.path.exists(pickle_full_trans):
+    with open(pickle_full_trans, 'rb') as handle:
+      np_transition_model = pickle.load(handle)
+  else:
+    np_transition_model = full_mdp.np_transition_model
+    with open(pickle_full_trans, 'wb') as handle:
+      pickle.dump(np_transition_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+  # full mdp reward
+  reward_file_name = domain + "_reward"
+  pickle_reward = os.path.join(DATA_DIR, reward_file_name + ".pickle")
+
+  if os.path.exists(pickle_reward):
+    with open(pickle_reward, 'rb') as handle:
+      np_reward_model = pickle.load(handle)
+  else:
+    np_reward_model = full_mdp.np_reward_model
+    with open(pickle_reward, 'wb') as handle:
+      pickle.dump(np_reward_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # v-value
   file_name = domain + f"_{num_train}_{sup_txt}_{iteration}" + "_merged_v_values"
