@@ -5,6 +5,8 @@ import web_experiment.exp_common.page_exp1_common as pgc
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 from web_experiment.exp_intervention.page_intervention import (
     BoxPushV2Intervention)
+from web_experiment.exp_intervention.page_intervention_rescue import (
+    RescueV2Intervention)
 import web_experiment.exp_common.page_tutorial as pgt
 import web_experiment.exp_common.page_tutorial_rescue as pgr
 from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
@@ -163,6 +165,12 @@ PAGE_LIST_RESCUE = [
     RescueGameUserRandom(True, False),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
+PAGE_LIST_RESCUE_INTERV = [
+    pgc.CanvasPageStart(EDomainType.Rescue),
+    pgc.CanvasPageWarning(EDomainType.Rescue),
+    RescueV2Intervention(True),
+    pgc.CanvasPageEnd(EDomainType.Rescue)
+]
 PAGE_LIST_RESCUE_TUTORIAL = [
     pgt.CanvasPageTutorialStart(EDomainType.Rescue),
     pgt.CanvasPageInstruction(EDomainType.Rescue),
@@ -195,5 +203,5 @@ GAMEPAGES = {
     SocketType.Interv_rescue_practice: PAGE_LIST_RESCUE,
     SocketType.Interv_rescue_normal: PAGE_LIST_RESCUE,
     SocketType.Interv_rescue_tutorial: PAGE_LIST_RESCUE_TUTORIAL,
-    SocketType.Interv_rescue_intervention: PAGE_LIST_RESCUE,
+    SocketType.Interv_rescue_intervention: PAGE_LIST_RESCUE_INTERV,
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]

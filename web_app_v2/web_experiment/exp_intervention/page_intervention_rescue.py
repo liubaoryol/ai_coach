@@ -1,5 +1,6 @@
 from typing import Mapping, Sequence, Any
-from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
+from web_experiment.define import EDomainType
+from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
 from web_experiment.exp_intervention.helper import task_intervention
 from ai_coach_core.intervention.feedback_strategy import (
@@ -8,28 +9,28 @@ import pickle
 import numpy as np
 
 # TODO: encapsulate these variables.
-np_v_values_movers = None
+np_v_values_rescue = None
 list_np_policy = []
 list_np_tx = []
 
 
-class BoxPushV2Intervention(BoxPushV2UserRandom):
+class RescueV2Intervention(RescueGameUserRandom):
 
-  def __init__(self, domain_type, partial_obs) -> None:
-    super().__init__(domain_type, partial_obs, latent_collection=False)
+  def __init__(self, partial_obs) -> None:
+    super().__init__(partial_obs, latent_collection=False)
 
     data_dir = "../misc/BTIL_feedback_results/data/"
     model_dir = data_dir + "learned_models/"
-    v_value_movers_file = "movers_500_0,30_500_merged_v_values_learned.pickle"
+    v_value_file = "rescue_2_500_0,30_30_merged_v_values_learned.pickle"
 
-    tx1_file = "movers_btil2_tx_synth_FTTT_500_0,30_a1.npy"
-    tx2_file = "movers_btil2_tx_synth_FTTT_500_0,30_a2.npy"
+    tx1_file = "rescue_2_btil2_tx_synth_FTTT_500_0,30_a1.npy"
+    tx2_file = "rescue_2_btil2_tx_synth_FTTT_500_0,30_a2.npy"
 
-    policy1_file = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
-    policy2_file = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
+    policy1_file = "rescue_2_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
+    policy2_file = "rescue_2_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
 
-    with open(data_dir + v_value_movers_file, 'rb') as handle:
-      np_v_values_movers = pickle.load(handle)
+    with open(data_dir + v_value_file, 'rb') as handle:
+      np_v_values_rescue = pickle.load(handle)
 
     np_policy1 = np.load(model_dir + policy1_file)
     np_tx1 = np.load(model_dir + tx1_file)
@@ -41,7 +42,7 @@ class BoxPushV2Intervention(BoxPushV2UserRandom):
     list_np_tx.append(np_tx2)
 
     self.intervention_strategy = InterventionValueBased(
-        np_v_values_movers, E_CertaintyHandling.Average, 0, 15, 0)
+        np_v_values_rescue, E_CertaintyHandling.Average, 0, 0.1, 0)
 
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
