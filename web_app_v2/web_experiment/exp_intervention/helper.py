@@ -4,6 +4,7 @@ from web_experiment.review.util import predict_human_latent
 from ai_coach_domain.box_push.simulator import (BoxPushSimulator)
 from ai_coach_domain.box_push import AGENT_ACTIONSPACE
 from web_experiment.define import EDomainType
+import random
 
 
 def task_intervention(game_history, game: BoxPushSimulator,
@@ -17,26 +18,35 @@ def task_intervention(game_history, game: BoxPushSimulator,
         "a2_pos": a2pos,
         "a1_latent": a1lat,
         "a2_latent": a2lat,
-        "a1_action": AGENT_ACTIONSPACE.idx_to_action[a1act],
-        "a2_action": AGENT_ACTIONSPACE.idx_to_action[a2act]
+        "a1_action": a1act,
+        "a2_action": a2act
     })
-  latent, prob = predict_human_latent(traj, len(traj) - 1, domain_type)
+
+  # latent, prob = predict_human_latent(traj, len(traj) - 1, domain_type)
   current_box_states = traj[-1]["box_states"]
 
-  latent_human_predicted_state = str(latent)
+  # latent_human_predicted_state = str(latent)
   latent_robot_state = str(latent_robot)
 
-  print(f"latent human predicted: {latent_human_predicted_state}" +
-        f"with probability {prob}")
+  # print(f"latent human predicted: {latent_human_predicted_state}" +
+  #       f"with probability {prob}")
   print(f"latent robot: {latent_robot}")
 
-  if check_misalignment(current_box_states, latent, latent_robot, domain_type):
-    objs = {}
-    objs["latent_human_predicted"] = latent_human_predicted_state
-    objs["latent_robot"] = latent_robot_state
-    objs["prob"] = prob
-    objs_json = json.dumps(objs)
-    emit("intervention", objs_json)
+  # hardcode intervention to happen every time
+  objs = {}
+  objs["latent_human_predicted"] = ""
+  objs["latent_robot"] = latent_robot_state
+  objs["prob"] = random.random(1)
+  objs_json = json.dumps(objs)
+  emit("intervention", objs_json)
+
+  # if check_misalignment(current_box_states, latent, latent_robot, domain_type):
+  #   objs = {}
+  #   objs["latent_human_predicted"] = latent_human_predicted_state
+  #   objs["latent_robot"] = latent_robot_state
+  #   objs["prob"] = prob
+  #   objs_json = json.dumps(objs)
+  #   emit("intervention", objs_json)
 
 
 def check_misalignment(box_states, a1_latent, a2_latent,
