@@ -36,7 +36,7 @@ def task_intervention(game_history, game: BoxPushSimulator,
   objs = {}
   objs["latent_human_predicted"] = ""
   objs["latent_robot"] = latent_robot_state
-  objs["prob"] = random.random(1)
+  objs["prob"] = random.random()
   objs_json = json.dumps(objs)
   emit("intervention", objs_json)
 
