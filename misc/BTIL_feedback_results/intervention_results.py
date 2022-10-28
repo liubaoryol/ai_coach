@@ -35,16 +35,25 @@ def intervention_result(domain_name,
 
   if domain_name == "rescue_2":
     iteration = 30
+  elif domain_name == "rescue_3":
+    iteration = 15
   else:
     iteration = 500
 
   v_value_file_name = domain_name + f"_{num_train}_{sup_txt}_{iteration}_merged_v_values_learned.pickle"
-  policy1_file = domain_name + f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a1.npy"
-  policy2_file = domain_name + f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a2.npy"
-  tx1_file = domain_name + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a1.npy"
-  tx2_file = domain_name + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a2.npy"
+  if domain_name == "rescue_3":
+    tx_dependency = "FTTTT"
+  else:
+    tx_dependency = "FTTT"
 
-  num_agent = 2
+  policy1_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy"
+  policy2_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a2.npy"
+  policy3_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
+
+  tx1_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a1.npy"
+  tx2_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy"
+  tx3_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
+
   if domain_name == "movers":
     from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
     from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
@@ -65,6 +74,7 @@ def intervention_result(domain_name,
                   game_map["a2_init"])
     agent1 = BoxPushAIAgent_PO_Team(init_state, policy1, agent_idx=0)
     agent2 = BoxPushAIAgent_PO_Team(init_state, policy2, agent_idx=1)
+    agents = [agent1, agent2]
     game = BoxPushSimulatorV2(0)
 
     def get_state_action(history):
@@ -113,6 +123,7 @@ def intervention_result(domain_name,
                   game_map["a2_init"])
     agent1 = BoxPushAIAgent_PO_Indv(init_state, policy1, agent_idx=0)
     agent2 = BoxPushAIAgent_PO_Indv(init_state, policy2, agent_idx=1)
+    agents = [agent1, agent2]
     game = BoxPushSimulatorV2(0)
 
     def get_state_action(history):
@@ -138,6 +149,7 @@ def intervention_result(domain_name,
                   game_map["a2_init"])
     agent1 = BoxPushAIAgent_PO_Indv(init_state, policy1, agent_idx=0)
     agent2 = BoxPushAIAgent_PO_Indv(init_state, policy2, agent_idx=1)
+    agents = [agent1, agent2]
     game = BoxPushSimulatorV2(0)
 
     def get_state_action(history):
@@ -161,6 +173,7 @@ def intervention_result(domain_name,
     policy2 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 1)
     agent1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
     agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
+    agents = [agent1, agent2]
 
     game = RescueSimulator()
     game.max_steps = 30
@@ -168,6 +181,34 @@ def intervention_result(domain_name,
     def get_state_action(history):
       step, score, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
       return (wstt, a1pos, a2pos), (a1act, a2act)
+  elif domain_name == "rescue_3":
+    from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+    from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
+    from ai_coach_domain.rescue_v2.policy import Policy_Rescue
+    from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
+    game_map = MAP_RESCUE
+    temperature = 0.3
+
+    MDP_Task = MDP_Rescue_Task(**game_map)
+    MDP_Agent = MDP_Rescue_Agent(**game_map)
+
+    init_states = ([1] * len(game_map["work_locations"]), game_map["a1_init"],
+                   game_map["a2_init"], game_map["a3_init"])
+    policy1 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 0)
+    policy2 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 1)
+    policy3 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 2)
+    agent1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
+    agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
+    agent3 = AIAgent_Rescue_PartialObs(init_states, 2, policy3)
+    agents = [agent1, agent2, agent3]
+
+    game = RescueSimulatorV2()
+    game.max_steps = 15
+
+    def get_state_action(history):
+      step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat, a3lat = history
+      return (wstt, a1pos, a2pos, a3pos), (a1act, a2act, a3act)
   else:
     raise NotImplementedError(domain_name)
 
@@ -178,6 +219,15 @@ def intervention_result(domain_name,
   np_tx1 = np.load(model_dir + tx1_file)
   np_policy2 = np.load(model_dir + policy2_file)
   np_tx2 = np.load(model_dir + tx2_file)
+
+  list_np_policy = [np_policy1, np_policy2]
+  list_np_tx = [np_tx1, np_tx2]
+  if len(agents) == 3:
+    np_policy3 = np.load(model_dir + policy3_file)
+    np_tx3 = np.load(model_dir + tx3_file)
+    list_np_policy.append(np_policy3)
+    list_np_tx.append(np_tx3)
+
   if no_intervention:
     intervention_strategy = None
   else:
@@ -191,7 +241,7 @@ def intervention_result(domain_name,
     elif selection_type == "Rule":
       intervention_strategy = InterventionRuleBased(
           fn_valid_latent,
-          num_agent,
+          len(agents),
           e_certainty,
           inference_threshold=theta,
           intervention_threshold=delta,
@@ -200,10 +250,12 @@ def intervention_result(domain_name,
       raise NotImplementedError
 
   game.init_game(**game_map)
-  game.set_autonomous_agent(agent1, agent2)
-  sim = intervention_simulator.InterventionSimulator(
-      game, [np_policy1, np_policy2], [np_tx1, np_tx2], intervention_strategy,
-      get_state_action, fix_illegal)
+  game.set_autonomous_agent(*agents)
+  sim = intervention_simulator.InterventionSimulator(game, list_np_policy,
+                                                     list_np_tx,
+                                                     intervention_strategy,
+                                                     get_state_action,
+                                                     fix_illegal)
 
   list_score, list_num_feedback = sim.run_game(num_runs)
   return list(zip(list_score, list_num_feedback))
@@ -222,26 +274,43 @@ if __name__ == "__main__":
   NO_INTERVENTION = True
   INTERVENTION = False
 
-  DO_TEST = False
+  DO_TEST = True
 
   if DO_TEST:
     domain_name = "movers"
-    list_res = intervention_result(domain_name, num_runs, INTERVENTION, RULE,
-                                   THRESHOLD, 0, None, cost)
+    list_res = intervention_result(domain_name, num_runs, NO_INTERVENTION,
+                                   VALUE, AVERAGE, 0, 0.2, cost)
     print(np.array(list_res).mean(axis=0))
 
     raise RuntimeError
 
   rows = []
 
-  domains = ["movers", "cleanup_v2", "rescue_2"]
+  list_infer_thres = [0, 0.2, 0.3, 0.5, 0.7, 0.9]
+  domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
   dict_interv_thres = {
       domains[0]: [0, 1, 3, 5, 10, 15, 20, 30, 50],
-      domains[1]: [0, 0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 7.0, 10.0],
+      domains[1]: [0, 0.1, 0.3, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0],
       domains[2]: [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0],
+      domains[3]: [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
   }
 
-  list_infer_thres = [0, 0.2, 0.3, 0.5, 0.7, 0.9]
+  # ====== rule-based intervention
+  print("movers - rule-based")
+  domain_name = "movers"
+  for theta in list_infer_thres:
+    list_res = intervention_result(domain_name, num_runs, INTERVENTION, RULE,
+                                   THRESHOLD, theta, None, cost)
+
+    rows = rows + [(domain_name, "Rule_thres", cost, 0, theta, *item)
+                   for item in list_res]
+
+  list_res = intervention_result(domain_name, num_runs, INTERVENTION, RULE,
+                                 AVERAGE, None, None, cost)
+
+  rows = rows + [(domain_name, "Rule_avg", cost, 0, 0, *item)
+                 for item in list_res]
+
   for domain_name in domains:
     print(domain_name)
     list_interv_thres = dict_interv_thres[domain_name]
@@ -291,4 +360,4 @@ if __name__ == "__main__":
                     ])
 
   data_dir = os.path.join(os.path.dirname(__file__), "data/")
-  df.to_csv(data_dir + "intervention_result2.csv", index=False)
+  df.to_csv(data_dir + "intervention_result4.csv", index=False)

@@ -267,7 +267,7 @@ def prediction_result(domain_name: str,
 if __name__ == "__main__":
   DO_TEST = False
   if DO_TEST:
-    res = prediction_result("cleanup_v3", 500, 0.3, True, 100, False)
+    res = prediction_result("rescue_2", 500, 0.3, True, 100, False)
     print(np.array(res).mean())
 
     raise RuntimeError
@@ -288,4 +288,4 @@ if __name__ == "__main__":
   df = pd.DataFrame(rows, columns=['domain', 'train_setup', 'value'])
 
   data_dir = os.path.join(os.path.dirname(__file__), "data/")
-  df.to_csv(data_dir + "eval_result2.csv", index=False)
+  df.to_csv(data_dir + "eval_result3.csv", index=False)

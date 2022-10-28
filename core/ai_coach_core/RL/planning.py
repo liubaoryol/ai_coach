@@ -132,7 +132,8 @@ def value_iteration(
     q_value = mdp_lib.q_value_from_v_value(v_value, transition_model,
                                            reward_model, discount_factor)
     new_v_value = q_value.max(axis=-1)
-    delta_v = np.linalg.norm(new_v_value[:] - v_value[:])
+    delta_v = np.linalg.norm(
+        np.nan_to_num(new_v_value[:]) - np.nan_to_num(v_value[:]))
     iteration_idx += 1
     v_value = new_v_value
     progress_bar.set_postfix({'delta': delta_v})

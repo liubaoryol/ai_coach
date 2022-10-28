@@ -17,7 +17,7 @@ GAME_MAP = MAP_RESCUE
 
 TEST_BTIL_AGENT = False
 DATA_DIR = "misc/BTIL_feedback_results/data/"
-V_VAL_FILE_NAME = None
+V_VAL_FILE_NAME = "rescue_3_500_0,30_15_merged_v_values_learned.pickle"
 
 
 class RescueApp(AppInterface):
@@ -238,6 +238,7 @@ class RescueApp(AppInterface):
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
       list_combos = get_combos_sorted_by_simulated_values(
           self.np_v_values, oidx)
+      print("===========================================")
       print(list_combos)
 
   def _update_canvas_overlay(self):

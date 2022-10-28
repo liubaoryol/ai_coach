@@ -46,7 +46,8 @@ class InterventionSimulator:
     return self.list_np_policy[nidx][xidx, sidx, tuple_aidx[nidx]]
 
   def Tx_nxsasx(self, nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
-    np_dist = self.list_np_tx[nidx][xidx, tuple_aidx[0], tuple_aidx[1], sidx_n]
+    np_idx = tuple([xidx, *tuple_aidx, sidx_n])
+    np_dist = self.list_np_tx[nidx][np_idx]
 
     # for illegal states or states that haven't appeared during the training,
     # we assume mental model was maintained.

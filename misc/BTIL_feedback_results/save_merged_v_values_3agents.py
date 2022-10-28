@@ -231,7 +231,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
                                       epsilon=0.1,
                                       discount_factor=1.)
     np_v_values.shape = (task_mdp.num_states, tup_num_latent[0],
-                         tup_num_latent[1])
+                         tup_num_latent[1], tup_num_latent[2])
 
     logging.info("save v_value by pickle")
     with open(pickle_v_values, 'wb') as handle:

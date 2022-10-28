@@ -66,8 +66,8 @@ class FullMDP_Rescue(FullMDP):
 
 # yapf: disable
 @click.command()
-@click.option("--domain", type=str, default="movers", help="movers / cleanup_v3 / rescue_2")
-@click.option("--iteration", type=int, default=500, help="")
+@click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2")
+@click.option("--iteration", type=int, default=30, help="")
 @click.option("--num-train", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
 # yapf: enable

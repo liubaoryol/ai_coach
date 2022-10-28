@@ -36,6 +36,9 @@ class RescueSimulatorV2(Simulator):
 
     self.reset_game()
 
+  def get_score(self):
+    return self.score
+
   def get_state_for_each_agent(self, agent_idx):
     'Redefine this method at subclasses as needed'
     return [self.work_states, self.a1_pos, self.a2_pos, self.a3_pos]

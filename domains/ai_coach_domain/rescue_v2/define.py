@@ -15,7 +15,7 @@ class PlaceName:
   Campsite = "Campsite"
   Mall = "Mall"
   Bridge_2 = "Bridge 2"
-  Hospitol = "Hospitol"
+  Hospital = "Hospital"
   Intersection1 = "Intersection 1"
   Intersection2 = "Intersection 2"
   Intersection3 = "Intersection 3"

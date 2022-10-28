@@ -40,11 +40,11 @@ else:
   MDP_AGENT = MDP_Cleanup_Agent
   AGENT = BoxPushAIAgent_PO_Indv
   TEST_AGENT = BoxPushAIAgent_Indv
-  V_VAL_FILE_NAME = None
-  NP_POLICY_A1 = "cleanup_v2_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
-  NP_POLICY_A2 = "cleanup_v2_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
-  NP_TX_A1 = "cleanup_v2_btil2_tx_synth_FTTT_500_0,30_a1.npy"
-  NP_TX_A2 = "cleanup_v2_btil2_tx_synth_FTTT_500_0,30_a2.npy"
+  V_VAL_FILE_NAME = "cleanup_v3_500_0,30_500_merged_v_values_learned.pickle"
+  NP_POLICY_A1 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
+  NP_POLICY_A2 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
+  NP_TX_A1 = "cleanup_v3_btil2_tx_synth_FTTT_500_0,30_a1.npy"
+  NP_TX_A2 = "cleanup_v3_btil2_tx_synth_FTTT_500_0,30_a2.npy"
 
 
 class BoxPushV2App(BoxPushApp):
@@ -120,7 +120,8 @@ class BoxPushV2App(BoxPushApp):
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
       list_combos = get_combos_sorted_by_simulated_values(
           self.np_v_values, oidx)
-      print(list_combos[:6])
+      print("=================================================")
+      print(list_combos)
 
 
 if __name__ == "__main__":

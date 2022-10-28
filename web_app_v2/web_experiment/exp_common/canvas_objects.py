@@ -52,6 +52,10 @@ IMG_CAMPSITE = "campsite"
 IMG_MALL = "mall"
 IMG_BRIDGE = "bridge"
 IMG_HUMAN = "human"
+IMG_HOSPITAL = "hospital"
+IMG_AMBULANCE = "ambulance"
+IMG_TOWER = "tower"
+IMG_THUNDER = "thunder"
 
 ################################################################################
 # Classes here should always match with corresponding javascript classes
@@ -59,6 +63,7 @@ IMG_HUMAN = "human"
 
 
 class DrawingObject:
+
   def __init__(self, name: str):
     self.name = name
 
@@ -67,6 +72,7 @@ class DrawingObject:
 
 
 class ClippedRectangle(DrawingObject):
+
   def __init__(self,
                name: str,
                outer_ltwh: Sequence[int],
@@ -87,6 +93,7 @@ class ClippedRectangle(DrawingObject):
 
 
 class LineSegment(DrawingObject):
+
   def __init__(self,
                name: str,
                start: Sequence[int],
@@ -104,6 +111,7 @@ class LineSegment(DrawingObject):
 
 
 class Curve(DrawingObject):
+
   def __init__(self,
                name: str,
                coords: Sequence[Tuple[int, int]],
@@ -119,6 +127,7 @@ class Curve(DrawingObject):
 
 
 class Primitive(DrawingObject):
+
   def __init__(self,
                name: str,
                fill_color: str = "black",
@@ -137,6 +146,7 @@ class Primitive(DrawingObject):
 
 
 class Rectangle(Primitive):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -160,6 +170,7 @@ class Rectangle(Primitive):
 
 
 class Ellipse(Primitive):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -183,6 +194,7 @@ class Ellipse(Primitive):
 
 
 class Circle(Primitive):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -206,6 +218,7 @@ class Circle(Primitive):
 
 
 class BlinkCircle(Circle):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -229,6 +242,7 @@ class BlinkCircle(Circle):
 
 
 class ButtonObject(Primitive):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -261,6 +275,7 @@ class ButtonObject(Primitive):
 
 
 class ButtonRect(ButtonObject):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -296,6 +311,7 @@ class ButtonRect(ButtonObject):
 
 
 class ButtonCircle(ButtonObject):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -331,6 +347,7 @@ class ButtonCircle(ButtonObject):
 
 
 class ThickArrow(ButtonObject):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -352,6 +369,7 @@ class ThickArrow(ButtonObject):
 
 
 class JoystickObject(ButtonObject):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -370,6 +388,7 @@ class JoystickObject(ButtonObject):
 
 
 class JoystickUp(JoystickObject):
+
   def __init__(self,
                pos: Sequence[int],
                width: int,
@@ -380,6 +399,7 @@ class JoystickUp(JoystickObject):
 
 
 class JoystickDown(JoystickObject):
+
   def __init__(self,
                pos: Sequence[int],
                width: int,
@@ -390,6 +410,7 @@ class JoystickDown(JoystickObject):
 
 
 class JoystickLeft(JoystickObject):
+
   def __init__(self,
                pos: Sequence[int],
                width: int,
@@ -400,6 +421,7 @@ class JoystickLeft(JoystickObject):
 
 
 class JoystickRight(JoystickObject):
+
   def __init__(self,
                pos: Sequence[int],
                width: int,
@@ -410,6 +432,7 @@ class JoystickRight(JoystickObject):
 
 
 class JoystickStay(JoystickObject):
+
   def __init__(self,
                pos: Sequence[int],
                width: int,
@@ -420,6 +443,7 @@ class JoystickStay(JoystickObject):
 
 
 class TextObject(DrawingObject):
+
   def __init__(self,
                name: str,
                pos: Sequence[int],
@@ -441,6 +465,7 @@ class TextObject(DrawingObject):
 
 
 class GameObject(DrawingObject):
+
   def __init__(self, name: str, pos: Sequence[int], size: Sequence[int],
                angle: float, img_name: str):
     super().__init__(name)
@@ -452,6 +477,7 @@ class GameObject(DrawingObject):
 
 
 class SelectingCircle(ButtonCircle):
+
   def __init__(self, name: str, pos: Sequence[int], radius: int, font_size: int,
                text: str):
     super().__init__(name,
