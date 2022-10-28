@@ -24,10 +24,8 @@
   socket.on("intervention", function (json_msg) {
     const env = JSON.parse(json_msg);
     console.log("hello");
-    let msg = "Misaligned mental states.\n";
-    msg += "predicted human latent state: " + env.latent_human_predicted + "\n";
-    msg += "robot latent state: " + env.latent_robot + "\n";
-    msg += "P(x): " + env.prob + "\n";
+    let msg = "I found some inefficiency in your teamwork\n";
+    msg += "I recommend you move Box " + env.latent_human_predicted + "\n";
     var text_box = document.getElementById('intervention_text');
     if (text_box != null) {
       text_box.innerText = msg;
@@ -53,9 +51,10 @@
 
 <div class="thought-bubble">
   <img src="/static/coach-people.svg" width="15%">
-  <p id='intervention_text'>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut
-    labore et dolore
-    magna aliqua. </p>
+  <p id='intervention_text'>Hi! This is Tim.
+    I will help you coordinate with your teammate.
+    Please check my guidance while performing the task.
+  </p>
 </div>
 
 <canvas id="myCanvas" width="900" height="600" style="border: 5px solid #000000" tabindex="1">

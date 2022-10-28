@@ -51,6 +51,7 @@ def get_objs_as_dictionary(drawing_objs: Mapping[str, co.DrawingObject]):
 
 
 class CanvasPageBase(abc.ABC):
+
   @abc.abstractmethod
   def __init__(self) -> None:
     pass
@@ -137,6 +138,7 @@ class Exp1UserData(UserData):
   SAVE_PATH = "save_path"
   SHOW_LATENT = "show_latent"
   COLLECT_LATENT = "collect_latent"
+  PREV_INFERENCE = "prev_inference"
 
   def __init__(self, user) -> None:
     super().__init__(user)
@@ -149,6 +151,7 @@ class Exp1UserData(UserData):
     self.data[Exp1UserData.SAVE_PATH] = ""
     self.data[Exp1UserData.SHOW_LATENT] = False
     self.data[Exp1UserData.COLLECT_LATENT] = True
+    self.data[Exp1UserData.PREV_INFERENCE] = None
 
   def get_game_ref(self) -> Simulator:
     return self.data[Exp1UserData.GAME]

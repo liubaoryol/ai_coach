@@ -2,13 +2,17 @@ import json
 from flask_socketio import emit
 from web_experiment.review.util import predict_human_latent
 from ai_coach_domain.box_push.simulator import (BoxPushSimulator)
-from ai_coach_domain.box_push import AGENT_ACTIONSPACE
 from web_experiment.define import EDomainType
 import random
+import numpy as np
+from ai_coach_core.latent_inference.decoding import forward_inference
+from ai_coach_core.intervention.feedback_strategy import InterventionAbstract
 
 
 def task_intervention(game_history, game: BoxPushSimulator,
-                      domain_type: EDomainType):
+                      domain_type: EDomainType,
+                      intervention: InterventionAbstract, prev_inference,
+                      cb_policy, cb_Tx):
   traj = []
   _, _, _, _, _, _, _, latent_robot = game_history[-1]
   for step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat in game_history:
@@ -22,23 +26,54 @@ def task_intervention(game_history, game: BoxPushSimulator,
         "a2_action": a2act
     })
 
-  # latent, prob = predict_human_latent(traj, len(traj) - 1, domain_type)
-  current_box_states = traj[-1]["box_states"]
+  if domain_type == EDomainType.Movers:
+    task_mdp = game.agent_2.agent_model.get_reference_mdp()
 
-  # latent_human_predicted_state = str(latent)
-  latent_robot_state = str(latent_robot)
+    def get_state_action(history):
+      step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
+      return (bstt, a1pos, a2pos), (a1act, a2act)
 
-  # print(f"latent human predicted: {latent_human_predicted_state}" +
-  #       f"with probability {prob}")
-  print(f"latent robot: {latent_robot}")
+    tup_state_prev, tup_action_prev = get_state_action(game_history[-1])
 
-  # hardcode intervention to happen every time
-  objs = {}
-  objs["latent_human_predicted"] = ""
-  objs["latent_robot"] = latent_robot_state
-  objs["prob"] = random.random()
-  objs_json = json.dumps(objs)
-  emit("intervention", objs_json)
+    sidx = task_mdp.conv_sim_states_to_mdp_sidx(tup_state_prev)
+    joint_action = []
+    for agent_idx in range(game.get_num_agents()):
+      aidx_i, = game.agent_2.agent_model.policy_model.conv_action_to_idx(
+          (tup_action_prev[agent_idx], ))
+      joint_action.append(aidx_i)
+
+    sidx_n = task_mdp.conv_sim_states_to_mdp_sidx(
+        tuple(game.get_state_for_each_agent(0)))
+    list_state = [sidx, sidx_n]
+    list_action = [tuple(joint_action)]
+
+    num_lat = game.agent_2.agent_model.policy_model.get_num_latent_states()
+
+    def init_latent_nxs(nidx, xidx, sidx):
+      return 1 / num_lat  # uniform
+
+    # list_latent = get_possible_latent_states(len(game.boxes), len(game.drops),
+    #                                          len(game.goals))
+    # num_latent = len(list_latent)
+
+  _, list_np_x_dist = forward_inference(list_state, list_action,
+                                        game.get_num_agents(), num_lat,
+                                        cb_policy, cb_Tx, init_latent_nxs,
+                                        prev_inference)
+  prev_inference = list_np_x_dist
+
+  feedback = intervention.get_intervention(list_np_x_dist, sidx_n)
+
+  if feedback is not None:
+    # hardcode intervention to happen every time
+    objs = {}
+    objs["latent_human_predicted"] = feedback[0]
+    objs["latent_robot"] = "Non"
+    objs["prob"] = random.random()
+    objs_json = json.dumps(objs)
+    emit("intervention", objs_json)
+
+  return prev_inference
 
   # if check_misalignment(current_box_states, latent, latent_robot, domain_type):
   #   objs = {}
