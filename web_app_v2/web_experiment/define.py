@@ -128,7 +128,7 @@ INTERV_TUTORIALS = [PageKey.Interv_T1, PageKey.Interv_T3]
 
 INTERV_SESSIONS = INTERV_TASKS + INTERV_TUTORIALS
 
-USE_IDENTIFIABLE_URL = False
+USE_IDENTIFIABLE_URL = True
 
 
 def url_name(page_key):
@@ -153,6 +153,7 @@ HASH_2_SESSION_KEY = {
 
 
 def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
+
   def endpoint(bp_name, page_key):
     return bp_name + "." + page_key
 

@@ -354,16 +354,17 @@ class RescueGamePageBase(ExperimentPageBase):
                                              game.get_env_info(),
                                              tuple_actions[0])
 
-    select_latent = False
-    if self._PROMPT_ON_CHANGE and work_state_changed:
-      select_latent = True
-
-    if self._AUTO_PROMPT:
-      user_game_data.data[Exp1UserData.ACTION_COUNT] += 1
-      if user_game_data.data[Exp1UserData.ACTION_COUNT] >= self._PROMPT_FREQ:
+    if user_game_data.data[Exp1UserData.COLLECT_LATENT]:
+      select_latent = False
+      if self._PROMPT_ON_CHANGE and work_state_changed:
         select_latent = True
 
-    user_game_data.data[Exp1UserData.SELECT] = select_latent
+      if self._AUTO_PROMPT:
+        user_game_data.data[Exp1UserData.ACTION_COUNT] += 1
+        if user_game_data.data[Exp1UserData.ACTION_COUNT] >= self._PROMPT_FREQ:
+          select_latent = True
+
+      user_game_data.data[Exp1UserData.SELECT] = select_latent
     user_game_data.data[Exp1UserData.SCORE] = (
         user_game_data.get_game_ref().current_step)
 
@@ -474,6 +475,7 @@ class RescueGamePageBase(ExperimentPageBase):
 
   def _game_overlay(self, game_env,
                     user_data: Exp1UserData) -> List[co.DrawingObject]:
+
     def coord_2_canvas(coord_x, coord_y):
       x = int(self.GAME_LEFT + coord_x * self.GAME_WIDTH)
       y = int(self.GAME_TOP + coord_y * self.GAME_HEIGHT)
@@ -579,6 +581,7 @@ class RescueGamePageBase(ExperimentPageBase):
     return rescue_game_scene(game_env, game_ltwh, include_background)
 
   def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
+
     def is_visible(img_name):
       if user_data.data[Exp1UserData.PARTIAL_OBS]:
         if img_name == co.IMG_FIRE_ENGINE:

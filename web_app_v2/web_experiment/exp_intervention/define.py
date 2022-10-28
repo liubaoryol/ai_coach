@@ -75,13 +75,13 @@ def get_socket_name(page_key, group_id):
 PAGE_LIST_MOVERS_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Movers),
     pgc.CanvasPageWarning(EDomainType.Movers),
-    BoxPushV2UserRandom(EDomainType.Movers, False),
+    BoxPushV2UserRandom(EDomainType.Movers, False, False),
     pgc.CanvasPageEnd(EDomainType.Movers)
 ]
 PAGE_LIST_MOVERS = [
     pgc.CanvasPageStart(EDomainType.Movers),
     pgc.CanvasPageWarning(EDomainType.Movers),
-    BoxPushV2UserRandom(EDomainType.Movers, True),
+    BoxPushV2UserRandom(EDomainType.Movers, True, False),
     pgc.CanvasPageEnd(EDomainType.Movers)
 ]
 PAGE_LIST_MOVERS_INTERV = [
@@ -93,13 +93,13 @@ PAGE_LIST_MOVERS_INTERV = [
 PAGE_LIST_CLEANUP_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
     pgc.CanvasPageWarning(EDomainType.Cleanup),
-    BoxPushV2UserRandom(EDomainType.Cleanup, False),
+    BoxPushV2UserRandom(EDomainType.Cleanup, False, False),
     pgc.CanvasPageEnd(EDomainType.Cleanup)
 ]
 PAGE_LIST_CLEANUP = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
     pgc.CanvasPageWarning(EDomainType.Cleanup),
-    BoxPushV2UserRandom(EDomainType.Cleanup, True),
+    BoxPushV2UserRandom(EDomainType.Cleanup, True, False),
     pgc.CanvasPageEnd(EDomainType.Cleanup)
 ]
 PAGE_LIST_CLEANUP_INTERV = [
@@ -153,14 +153,14 @@ PAGELIST_CLEANUP_TUTORIAL = [
 PAGE_LIST_RESCUE_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Rescue),
     pgc.CanvasPageWarning(EDomainType.Rescue),
-    RescueGameUserRandom(False),
+    RescueGameUserRandom(False, False),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 
 PAGE_LIST_RESCUE = [
     pgc.CanvasPageStart(EDomainType.Rescue),
     pgc.CanvasPageWarning(EDomainType.Rescue),
-    RescueGameUserRandom(True),
+    RescueGameUserRandom(True, False),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 PAGE_LIST_RESCUE_TUTORIAL = [

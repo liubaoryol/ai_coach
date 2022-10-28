@@ -5,6 +5,10 @@ from web_experiment.exp_intervention.helper import task_intervention
 
 
 class BoxPushV2Intervention(BoxPushV2UserRandom):
+
+  def __init__(self, domain_type, partial_obs) -> None:
+    super().__init__(domain_type, partial_obs, latent_collection=False)
+
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):

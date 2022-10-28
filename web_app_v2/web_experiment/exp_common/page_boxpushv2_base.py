@@ -23,6 +23,7 @@ CLEANUP_TEAMMATE_POLICY = Policy_Cleanup(MDP_Cleanup_Task(**MAP_CLEANUP),
 
 
 class BoxPushV2GamePage(BoxPushGamePageBase):
+
   def __init__(self,
                domain_type,
                manual_latent_selection,
@@ -121,10 +122,12 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
 
 
 class BoxPushV2UserRandom(BoxPushV2GamePage):
-  def __init__(self, domain_type, partial_obs) -> None:
+
+  def __init__(self, domain_type, partial_obs, latent_collection=True) -> None:
     super().__init__(domain_type, True, True, True, 5)
 
     self._PARTIAL_OBS = partial_obs
+    self._LATENT_COLLECTION = latent_collection
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -143,7 +146,9 @@ class BoxPushV2UserRandom(BoxPushV2GamePage):
 
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent(agent1, agent2)
-    user_game_data.data[Exp1UserData.SELECT] = True
-    user_game_data.data[Exp1UserData.SHOW_LATENT] = True
+    if not self._LATENT_COLLECTION:
+      user_game_data.data[Exp1UserData.SELECT] = False
+      user_game_data.data[Exp1UserData.SHOW_LATENT] = False
+      user_game_data.data[Exp1UserData.COLLECT_LATENT] = False
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS

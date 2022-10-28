@@ -76,6 +76,7 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
 # canvas page game
 ###############################################################################
 class BoxPushGamePageBase(ExperimentPageBase):
+
   def __init__(self,
                domain_type: EDomainType,
                manual_latent_selection,
@@ -233,16 +234,17 @@ class BoxPushGamePageBase(ExperimentPageBase):
     (a1_pos_changed, a2_pos_changed, a1_hold_changed, a2_hold_changed, a1_box,
      a2_box) = are_agent_states_changed(dict_prev_game, game.get_env_info())
 
-    select_latent = False
-    if self._PROMPT_ON_CHANGE and a1_hold_changed:
-      select_latent = True
-
-    if self._AUTO_PROMPT:
-      user_game_data.data[Exp1UserData.ACTION_COUNT] += 1
-      if user_game_data.data[Exp1UserData.ACTION_COUNT] >= self._PROMPT_FREQ:
+    if user_game_data.data[Exp1UserData.COLLECT_LATENT]:
+      select_latent = False
+      if self._PROMPT_ON_CHANGE and a1_hold_changed:
         select_latent = True
 
-    user_game_data.data[Exp1UserData.SELECT] = select_latent
+      if self._AUTO_PROMPT:
+        user_game_data.data[Exp1UserData.ACTION_COUNT] += 1
+        if user_game_data.data[Exp1UserData.ACTION_COUNT] >= self._PROMPT_FREQ:
+          select_latent = True
+
+      user_game_data.data[Exp1UserData.SELECT] = select_latent
     user_game_data.data[Exp1UserData.SCORE] = (
         user_game_data.get_game_ref().current_step)
 
@@ -601,6 +603,7 @@ class BoxPushGamePageBase(ExperimentPageBase):
                               include_background)
 
   def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
+
     def is_visible(img_name):
       if user_data.data[Exp1UserData.PARTIAL_OBS]:
         a1_pos = game_env["a1_pos"]
