@@ -7,6 +7,7 @@ from ai_coach_domain.box_push_v2.transition import transition_mixed
 
 
 class MDP_BoxPushV2(BoxPushMDP):
+
   def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, box_types,
                a1_init, a2_init, **kwargs):
     self.box_types = box_types
@@ -67,16 +68,17 @@ class MDP_BoxPushV2(BoxPushMDP):
     if both_hold and a1_pos != a2_pos:  # illegal state
       return []
 
-    # if not a1_hold and a1_pos in self.goals:  # illegal state
+    # if not (a1_hold or both_hold) and a1_pos in self.goals:  # illegal state
     #   return []
 
-    # if not a2_hold and a2_pos in self.goals:  # illegal state
+    # if not (a2_hold or both_hold) and a2_pos in self.goals:  # illegal state
     #   return []
 
     return super().legal_actions(state_idx)
 
 
 class MDP_BoxPushV2_Agent(MDP_BoxPushV2):
+
   def init_actionspace(self):
     self.dict_factored_actionspace = {}
     self.my_act_space = AGENT_ACTIONSPACE
@@ -140,7 +142,7 @@ class MDP_BoxPushV2_Agent(MDP_BoxPushV2):
     if latent[0] == "pickup":
       # if already holding a box, set every action but stay as illegal
       if holding_box >= 0:
-        if my_act == EventType.STAY:
+        if my_act != EventType.HOLD:
           return 0
         else:
           return -np.inf
@@ -171,7 +173,7 @@ class MDP_BoxPushV2_Agent(MDP_BoxPushV2):
       if my_pos != desired_loc and my_act == EventType.UNHOLD:
         return -np.inf
     else:  # "drop the box" but not having a box (illegal state)
-      if my_act == EventType.STAY:
+      if my_act != EventType.HOLD:
         return 0
       else:
         return -np.inf
@@ -180,6 +182,7 @@ class MDP_BoxPushV2_Agent(MDP_BoxPushV2):
 
 
 class MDP_BoxPushV2_Task(MDP_BoxPushV2):
+
   def init_actionspace(self):
     self.dict_factored_actionspace = {}
     self.a1_a_space = AGENT_ACTIONSPACE
@@ -211,6 +214,7 @@ class MDP_BoxPushV2_Task(MDP_BoxPushV2):
 
 
 class MDP_Movers_Agent(MDP_BoxPushV2_Agent):
+
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithBoth, None)]
     num_drops = len(self.drops)
@@ -224,6 +228,7 @@ class MDP_Movers_Agent(MDP_BoxPushV2_Agent):
 
 
 class MDP_Cleanup_Agent(MDP_BoxPushV2_Agent):
+
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithAgent1, None),
                   (BoxState.WithAgent2, None)]
@@ -238,6 +243,7 @@ class MDP_Cleanup_Agent(MDP_BoxPushV2_Agent):
 
 
 class MDP_Movers_Task(MDP_BoxPushV2_Task):
+
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithBoth, None)]
     num_drops = len(self.drops)
@@ -251,6 +257,7 @@ class MDP_Movers_Task(MDP_BoxPushV2_Task):
 
 
 class MDP_Cleanup_Task(MDP_BoxPushV2_Task):
+
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithAgent1, None),
                   (BoxState.WithAgent2, None)]

@@ -39,6 +39,10 @@ def get_imgs(domain_type: EDomainType):
         {'name': co.IMG_BRIDGE, 'src': url_for('static', filename='rescue_images/bridge.svg')},  # noqa: E501
         {'name': co.IMG_MALL, 'src': url_for('static', filename='rescue_images/mall.svg')},  # noqa: E501
         {'name': co.IMG_HUMAN, 'src': url_for('static', filename='rescue_images/person.svg')},  # noqa: E501
+        {'name': co.IMG_AMBULANCE, 'src': url_for('static', filename='rescue_images/ambulance.svg')},  # noqa: E501
+        {'name': co.IMG_HOSPITAL, 'src': url_for('static', filename='rescue_images/hospital.svg')},  # noqa: E501
+        {'name': co.IMG_THUNDER, 'src': url_for('static', filename='rescue_images/thunder.svg')},  # noqa: E501
+        {'name': co.IMG_TOWER, 'src': url_for('static', filename='rescue_images/tower.svg')},  # noqa: E501
     ]
     # yapf: enable
   else:

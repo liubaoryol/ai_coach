@@ -2,9 +2,9 @@ from typing import Sequence, Optional
 import numpy as np
 from ai_coach_core.models.agent_model import AgentModel
 from ai_coach_core.models.policy import PolicyInterface, CachedPolicyInterface
-from ai_coach_domain.agent import SimulatorAgent
-from ai_coach_domain.rescue import (AGENT_ACTIONSPACE, E_EventType,
-                                    is_work_done, Location, E_Type)
+from ai_coach_domain.agent import AIAgent_PartialObs, AIAgent_Abstract
+from ai_coach_domain.agent.cached_agent import BTILCachedAgentModel
+from ai_coach_domain.rescue import is_work_done, Location, E_Type
 from ai_coach_domain.rescue.mdp import MDP_Rescue
 
 
@@ -50,11 +50,7 @@ class RescueAM(AgentModel):
         obstate_idx)
     work_states_nxt, _, _ = mdp.conv_mdp_sidx_to_sim_states(obstate_next_idx)
 
-    my_loc = a1_pos if self.agent_idx == 0 else a2_pos
     mate_loc = a2_pos if self.agent_idx == 0 else a1_pos
-
-    my_aidx = tuple_action_idx[self.agent_idx]
-    my_act = AGENT_ACTIONSPACE.idx_to_action[my_aidx]
 
     if work_states_cur != work_states_nxt:
       if is_work_done(latstate_idx, work_states_nxt,
@@ -83,79 +79,18 @@ class RescueAM(AgentModel):
     return np_Tx
 
 
-class AIAgent_Rescue(SimulatorAgent):
-  def __init__(self,
-               agent_idx,
-               policy_model: CachedPolicyInterface,
-               has_mind: bool = True) -> None:
-    super().__init__(has_mind=has_mind, has_policy=True)
-    self.agent_idx = agent_idx
-    self.agent_model = self._create_agent_model(policy_model)
-    self.manual_action = None
-
-  def _create_agent_model(self,
-                          policy_model: CachedPolicyInterface) -> RescueAM:
-    'Should be implemented at inherited method'
-    return RescueAM(agent_idx=self.agent_idx, policy_model=policy_model)
-
-  def init_latent(self, tup_states):
-    mdp = self.agent_model.get_reference_mdp()
-    sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
-
-    self.agent_model.set_init_mental_state_idx(sidx)
-
-  def get_current_latent(self):
-    if self.agent_model.is_current_latent_valid():
-      return self.agent_model.policy_model.conv_idx_to_latent(
-          self.agent_model.current_latent)
-    else:
-      return None
-
-  def get_action(self, tup_states):
-    if self.manual_action is not None:
-      next_action = self.manual_action
-      self.manual_action = None
-      return next_action
-
-    mdp = self.agent_model.get_reference_mdp()
-    sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
-    tup_aidx = self.agent_model.get_action_idx(sidx)
-    return self.agent_model.policy_model.conv_idx_to_action(tup_aidx)[0]
-
-  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
-    'tup_actions: tuple of actions'
-
-    mdp = self.agent_model.get_reference_mdp()
-    sidx_cur = mdp.conv_sim_states_to_mdp_sidx(tup_cur_state)
-    sidx_nxt = mdp.conv_sim_states_to_mdp_sidx(tup_nxt_state)
-
-    list_aidx = []
-    for idx, act in enumerate(tup_actions):
-      if act is None:
-        list_aidx.append(None)
-      else:
-        list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
-
-    self.agent_model.update_mental_state_idx(sidx_cur, tuple(list_aidx),
-                                             sidx_nxt)
-
-  def set_latent(self, latent):
-    xidx = self.agent_model.policy_model.conv_latent_to_idx(latent)
-    self.agent_model.set_init_mental_state_idx(None, xidx)
-
-  def set_action(self, action):
-    self.manual_action = action
-
-
-class AIAgent_Rescue_PartialObs(AIAgent_Rescue):
+class AIAgent_Rescue_PartialObs(AIAgent_PartialObs):
   def __init__(self,
                init_tup_states,
                agent_idx,
                policy_model: CachedPolicyInterface,
                has_mind: bool = True) -> None:
-    super().__init__(agent_idx, policy_model, has_mind)
-    self.init_tup_states = init_tup_states
-    self.assumed_tup_states = init_tup_states
+    super().__init__(init_tup_states, policy_model, has_mind, agent_idx)
+
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> RescueAM:
+    'Should be implemented at inherited method'
+    return RescueAM(agent_idx=self.agent_idx, policy_model=policy_model)
 
   def observed_states(self, tup_states):
     work_states, a1_pos, a2_pos = tup_states
@@ -191,20 +126,30 @@ class AIAgent_Rescue_PartialObs(AIAgent_Rescue):
 
     return asm_work_states, asm_a1_pos, asm_a2_pos
 
-  def init_latent(self, tup_state):
-    self.assumed_tup_states = self.init_tup_states
-    return super().init_latent(self.assumed_tup_states)
-
-  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
-    prev_tuple_states = self.assumed_tup_states
-    self.assumed_tup_states = self.observed_states(tup_nxt_state)
-
+  def observed_actions(self, tup_actions, tup_nxt_state):
     observed_actions = [None, None]
     if self.agent_idx == 0:
       observed_actions[0] = tup_actions[0]
     else:
       observed_actions[1] = tup_actions[1]
 
-    return super().update_mental_state(prev_tuple_states,
-                                       tuple(observed_actions),
-                                       self.assumed_tup_states)
+    return tuple(observed_actions)
+
+
+class AIAgent_Rescue_BTIL(AIAgent_Abstract):
+  def __init__(self,
+               np_tx: np.ndarray,
+               mask_sas: Sequence[bool],
+               policy_model: CachedPolicyInterface,
+               agent_idx: int = 0) -> None:
+    self.np_tx = np_tx
+    self.mask_sas = mask_sas
+    super().__init__(policy_model, True, agent_idx)
+
+  def _create_agent_model(self, policy_model: CachedPolicyInterface):
+    def init_latents(obstate_idx):
+      return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
+                                                 policy_model.mdp)
+
+    return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
+                                policy_model)

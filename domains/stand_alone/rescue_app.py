@@ -6,15 +6,24 @@ from ai_coach_domain.rescue import (E_EventType, Work, Location, Place, Route,
 from ai_coach_domain.rescue.maps import MAP_RESCUE
 from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue.agent import (AIAgent_Rescue,
-                                          AIAgent_Rescue_PartialObs)
+from ai_coach_domain.agent.cached_agent import BTILCachedPolicy
+from ai_coach_domain.rescue.agent import (AIAgent_Rescue_PartialObs,
+                                          AIAgent_Rescue_BTIL)
 from ai_coach_domain.rescue.policy import Policy_Rescue
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+import pickle
+from ai_coach_core.intervention.feedback_strategy import get_combos_sorted_by_simulated_values
 
 GAME_MAP = MAP_RESCUE
 
+TEST_BTIL_AGENT = True
+DATA_DIR = "misc/BTIL_feedback_results/data/"
+V_VAL_FILE_NAME = "rescue_2_500_0,30_30_merged_v_values_learned.pickle"
+# V_VAL_FILE_NAME = None
+
 
 class RescueApp(AppInterface):
+
   def __init__(self) -> None:
     super().__init__()
 
@@ -24,17 +33,45 @@ class RescueApp(AppInterface):
 
     self.game.init_game(**GAME_MAP)
 
-    TEMPERATURE = 0.3
-    AGENT_2 = RescueSimulator.AGENT2
+    if V_VAL_FILE_NAME is not None:
+      with open(DATA_DIR + V_VAL_FILE_NAME, 'rb') as handle:
+        self.np_v_values = pickle.load(handle)
+
     task_mdp = MDP_Rescue_Task(**GAME_MAP)
     agent_mdp = MDP_Rescue_Agent(**GAME_MAP)
-    policy2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, AGENT_2)
-    # agent2 = AIAgent_Rescue(AGENT_2, policy2)
-    init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
-                   GAME_MAP["a2_init"])
-    agent2 = AIAgent_Rescue_PartialObs(init_states, AGENT_2, policy2)
+    self.mdp = task_mdp
 
-    self.game.set_autonomous_agent(agent2=agent2)
+    if not TEST_BTIL_AGENT:
+      TEMPERATURE = 0.3
+      init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
+                     GAME_MAP["a2_init"])
+
+      policy1 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 0)
+      agent1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
+
+      # agent2 = AIAgent_Rescue(AGENT_2, policy2)
+      policy2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 1)
+      agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
+    else:
+      data_dir = "misc/BTIL_feedback_results/data/learned_models/"  # noqa: E501
+      np_policy_1 = np.load(
+          data_dir + "rescue_2_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy")
+      test_policy_1 = BTILCachedPolicy(np_policy_1, task_mdp, 0,
+                                       agent_mdp.latent_space)
+      np_policy_2 = np.load(
+          data_dir + "rescue_2_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy")
+      test_policy_2 = BTILCachedPolicy(np_policy_2, task_mdp, 1,
+                                       agent_mdp.latent_space)
+
+      np_tx_1 = np.load(data_dir +
+                        "rescue_2_btil2_tx_synth_FTTT_500_0,30_a1.npy")
+      np_tx_2 = np.load(data_dir +
+                        "rescue_2_btil2_tx_synth_FTTT_500_0,30_a2.npy")
+      mask = (False, True, True, True)
+      agent1 = AIAgent_Rescue_BTIL(np_tx_1, mask, test_policy_1, 0)
+      agent2 = AIAgent_Rescue_BTIL(np_tx_2, mask, test_policy_2, 1)
+
+    self.game.set_autonomous_agent(agent1, agent2)
 
   def _init_gui(self):
     self.main_window.title("Rescue")
@@ -174,6 +211,13 @@ class RescueApp(AppInterface):
                      str(self.game.agent_1.get_current_latent()))
     self.create_text(x_c2, y_c2 + 10,
                      str(self.game.agent_2.get_current_latent()))
+    if V_VAL_FILE_NAME is not None:
+      game = self.game  # type: RescueSimulator
+      tup_state = tuple(game.get_state_for_each_agent(0))
+      oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
+      list_combos = get_combos_sorted_by_simulated_values(
+          self.np_v_values, oidx)
+      print(list_combos)
 
   def _update_canvas_overlay(self):
     pass

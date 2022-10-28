@@ -7,6 +7,7 @@ from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 import web_experiment.exp_common.page_tutorial as pgt
 import web_experiment.exp_common.page_tutorial_rescue as pgr
 from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
+import web_experiment.exp_common.page_tutorial_rescue_v2 as pgrv2
 
 SESSION_TITLE = {
     PageKey.DataCol_A1: 'A1',
@@ -160,14 +161,44 @@ PAGE_LIST_RESCUE_TUTORIAL = [
     pgr.RescueTutorialMiniGame()
 ]
 
+PAGE_LIST_RESCUE_V2_TUTORIAL = [
+    pgt.CanvasPageTutorialStart(EDomainType.Rescue),
+    pgt.CanvasPageInstruction(EDomainType.Rescue),
+    pgt.CanvasPageTutorialGameStart(EDomainType.Rescue),
+    pgrv2.RescueV2TutorialActions(),
+    pgrv2.RescueV2TutorialOverallGoal(),
+    pgrv2.RescueV2TutorialOnlyHuman(),
+    pgrv2.RescueV2TutorialSimpleTarget(),
+    pgrv2.RescueV2TutorialResolvedAlone(),
+    pgrv2.RescueV2TutorialScore(),
+    pgrv2.RescueV2TutorialComplexTarget(),
+    pgrv2.RescueV2TutorialComplexTargetTogether(),
+    pgrv2.RescueV2TutorialResolvedTogether(),
+    pgrv2.RescueV2TutorialPartialObs(),
+    pgrv2.RescueV2TutorialLatent(),
+    pgrv2.RescueV2TutorialSelResult(),
+    pgrv2.RescueV2TutorialMiniGame()
+]
+
 GAMEPAGES = {
-    SocketType.DataCol_movers_practice: PAGE_LIST_MOVERS_FULL_OBS,
-    SocketType.DataCol_movers_test: PAGE_LIST_MOVERS,
-    SocketType.DataCol_cleanup_practice: PAGE_LIST_CLEANUP_FULL_OBS,
-    SocketType.DataCol_cleanup_test: PAGE_LIST_CLEANUP,
-    SocketType.DataCol_movers_tutorial: PAGE_LIST_MOVERS_TUTORIAL,
-    SocketType.DataCol_cleanup_tutorial: PAGE_LIST_CLEANUP_TUTORIAL,
-    SocketType.DataCol_rescue_practice: PAGE_LIST_RESCUE_FULL_OBS,
-    SocketType.DataCol_rescue_test: PAGE_LIST_RESCUE,
-    SocketType.DataCol_rescue_tutorial: PAGE_LIST_RESCUE_TUTORIAL,
+    SocketType.DataCol_movers_practice:
+    PAGE_LIST_MOVERS_FULL_OBS,
+    SocketType.DataCol_movers_test:
+    PAGE_LIST_MOVERS,
+    SocketType.DataCol_cleanup_practice:
+    PAGE_LIST_CLEANUP_FULL_OBS,
+    SocketType.DataCol_cleanup_test:
+    PAGE_LIST_CLEANUP,
+    # SocketType.DataCol_movers_tutorial: PAGE_LIST_CLEANUP_TUTORIAL,
+    SocketType.DataCol_movers_tutorial:
+    PAGE_LIST_MOVERS_TUTORIAL,
+    SocketType.DataCol_cleanup_tutorial:
+    PAGE_LIST_CLEANUP_TUTORIAL,
+    SocketType.DataCol_rescue_practice:
+    PAGE_LIST_RESCUE_FULL_OBS,
+    SocketType.DataCol_rescue_test:
+    PAGE_LIST_RESCUE,
+    # SocketType.DataCol_rescue_tutorial: PAGE_LIST_RESCUE_V2_TUTORIAL,
+    SocketType.DataCol_rescue_tutorial:
+    PAGE_LIST_RESCUE_TUTORIAL
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]

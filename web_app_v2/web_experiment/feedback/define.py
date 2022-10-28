@@ -1,7 +1,8 @@
 from web_experiment.define import EDomainType, PageKey
 from web_experiment.exp_common.page_replay import (BoxPushReplayPage,
                                                    RescueReplayPage)
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2 as MAP_CLEANUP
 from ai_coach_domain.rescue.maps import MAP_RESCUE
 
 

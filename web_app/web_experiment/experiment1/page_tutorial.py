@@ -5,8 +5,8 @@ from web_experiment.experiment1.page_exp1_common import CanvasPageStart
 import web_experiment.experiment1.canvas_objects as co
 from web_experiment.models import db, User
 
-from ai_coach_domain.box_push.agent import (BoxPushSimpleAgent,
-                                            InteractiveAgent)
+from ai_coach_domain.agent import InteractiveAgent
+from ai_coach_domain.box_push.agent import BoxPushSimpleAgent
 from ai_coach_domain.box_push import conv_box_state_2_idx
 
 

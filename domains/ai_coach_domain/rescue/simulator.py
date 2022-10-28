@@ -4,7 +4,7 @@ import numpy as np
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
 from ai_coach_domain.rescue import (E_EventType, Route, Location, Work, Place,
-                                    E_Type, T_Connections, is_work_done)
+                                    T_Connections, is_work_done)
 from ai_coach_domain.rescue.transition import transition
 
 
@@ -16,6 +16,7 @@ class RescueSimulator(Simulator):
     super().__init__(id)
     self.agent_1 = None
     self.agent_2 = None
+    self.max_steps = 30
 
   def init_game(self, places: Sequence[Place], routes: Sequence[Route],
                 connections: Mapping[int, T_Connections],
@@ -41,6 +42,8 @@ class RescueSimulator(Simulator):
                            agent2: SimulatorAgent = InteractiveAgent()):
     self.agent_1 = agent1
     self.agent_2 = agent2
+
+    self.agents = [agent1, agent2]
 
     # order can be important as Agent2 state may include Agent1's mental state,
     # or vice versa. here we assume agent2 updates its mental state later
@@ -74,6 +77,9 @@ class RescueSimulator(Simulator):
       score += self.places[place_id].helps
 
     self.score = score
+
+  def get_score(self):
+    return self.score
 
   def take_a_step(self, map_agent_2_action: Mapping[Hashable,
                                                     Hashable]) -> None:
