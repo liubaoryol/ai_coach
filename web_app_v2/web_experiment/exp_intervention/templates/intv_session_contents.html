@@ -23,16 +23,26 @@
   // intervention
   socket.on("intervention", function (json_msg) {
     const env = JSON.parse(json_msg);
-    console.log("hello");
+    let misalign = env.misalign
+
     let msg = "Misaligned mental states.\n";
     msg += "predicted human latent state: " + env.latent_human_predicted + "\n";
     msg += "robot latent state: " + env.latent_robot + "\n";
     msg += "P(x): " + env.prob + "\n";
     var text_box = document.getElementById('intervention_text');
     if (text_box != null) {
-      text_box.innerText = msg;
+      if (misalign === "misaligned") {
+        text_box.innerText = msg;
+        socket.emit("button_clicked", { name: "Select Destination" });
+      } else {
+        text_box.innerText = "Great Job!"
+      }
+
     }
-    alert(msg);
+    // alert(msg);
+
+
+
   });
 
   // block default key event handler (block scroll bar movement by key)

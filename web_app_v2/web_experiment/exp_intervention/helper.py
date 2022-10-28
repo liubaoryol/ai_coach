@@ -37,6 +37,11 @@ def task_intervention(game_history, game: BoxPushSimulator,
   objs["latent_human_predicted"] = ""
   objs["latent_robot"] = latent_robot_state
   objs["prob"] = random.random()
+  if random.random() < 0.2:
+    objs["misalign"] = "misaligned"
+  else:
+    objs["misalign"] = "aligned"
+
   objs_json = json.dumps(objs)
   emit("intervention", objs_json)
 
