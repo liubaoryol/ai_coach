@@ -3,9 +3,8 @@ import numpy as np
 import pickle
 from tqdm import tqdm
 from ai_coach_core.intervention.feedback_strategy import (
-    InterventionValueBased, InterventionRuleBased, E_ComboSelection,
-    E_CertaintyHandling)
-import intervention_simulator
+    InterventionValueBased, InterventionRuleBased, E_CertaintyHandling)
+import ai_coach_domain.intervention_simulator as intervention_simulator
 import pandas as pd
 
 
@@ -41,19 +40,30 @@ def intervention_result(domain_name,
   else:
     iteration = 500
 
-  v_value_file_name = domain_name + f"_{num_train}_{sup_txt}_{iteration}_merged_v_values_learned.pickle"
+  v_value_file_name = (
+      domain_name +
+      f"_{num_train}_{sup_txt}_{iteration}_merged_v_values_learned.pickle")
   if domain_name == "rescue_3":
     tx_dependency = "FTTTT"
   else:
     tx_dependency = "FTTT"
 
-  policy1_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy"
-  policy2_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a2.npy"
-  policy3_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
+  policy1_file = (
+      domain_name +
+      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
+  policy2_file = (
+      domain_name +
+      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
+  policy3_file = (
+      domain_name +
+      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
 
-  tx1_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a1.npy"
-  tx2_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy"
-  tx3_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
+  tx1_file = (domain_name +
+              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
+  tx2_file = (domain_name +
+              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
+  tx3_file = (domain_name +
+              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
 
   if domain_name == "movers":
     from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_BTIL
@@ -62,12 +72,12 @@ def intervention_result(domain_name,
     from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Agent
     from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task
     from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push.agent_model import get_holding_box_and_floor_boxes
+    from ai_coach_domain.box_push.agent_model import (
+        get_holding_box_and_floor_boxes)
     game_map = MAP_MOVERS
     MDP_Task = MDP_Movers_Task(**game_map)
     MDP_Agent = MDP_Movers_Agent(**game_map)
 
-    temperature = 0.3
     np_policy1 = np.load(model_dir + policy1_file)
     np_tx1 = np.load(model_dir + tx1_file)
     np_policy2 = np.load(model_dir + policy2_file)

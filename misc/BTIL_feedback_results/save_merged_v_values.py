@@ -66,7 +66,7 @@ class FullMDP_Rescue(FullMDP):
 
 # yapf: disable
 @click.command()
-@click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2")
+@click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2")  # noqa: E501
 @click.option("--iteration", type=int, default=30, help="")
 @click.option("--num-train", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
@@ -76,8 +76,10 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
   # domain: movers | cleanup_v2 | rescue_2
 
   sup_txt = ("%.2f" % supervision).replace('.', ',')
-  policy1_file = domain + f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a1.npy"
-  policy2_file = domain + f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a2.npy"
+  policy1_file = (domain +
+                  f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a1.npy")
+  policy2_file = (domain +
+                  f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a2.npy")
   tx1_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a1.npy"
   tx2_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a2.npy"
 
@@ -225,7 +227,8 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
       pickle.dump(np_policy, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # full mdp transition
-  full_transition_file_name = domain + f"_{num_train}_{sup_txt}" + "_full_transition"
+  full_transition_file_name = (domain + f"_{num_train}_{sup_txt}" +
+                               "_full_transition")
   full_transition_file_name += "" if TRUE_MODELS else "_learned"
   pickle_full_trans = os.path.join(DATA_DIR,
                                    full_transition_file_name + ".pickle")
@@ -251,7 +254,8 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
       pickle.dump(np_reward_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # v-value
-  file_name = domain + f"_{num_train}_{sup_txt}_{iteration}" + "_merged_v_values"
+  file_name = (domain + f"_{num_train}_{sup_txt}_{iteration}" +
+               "_merged_v_values")
   file_name += "" if TRUE_MODELS else "_learned"
   pickle_v_values = os.path.join(DATA_DIR, file_name + ".pickle")
   if os.path.exists(pickle_v_values):

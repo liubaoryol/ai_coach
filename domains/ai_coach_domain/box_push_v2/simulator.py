@@ -4,6 +4,7 @@ from ai_coach_domain.box_push_v2.transition import transition_mixed
 
 
 class BoxPushSimulatorV2(BoxPushSimulator):
+
   def init_game(self, x_grid: int, y_grid: int, a1_init: Coord, a2_init: Coord,
                 boxes: Sequence[Coord], goals: Sequence[Coord],
                 walls: Sequence[Coord], drops: Sequence[Coord],

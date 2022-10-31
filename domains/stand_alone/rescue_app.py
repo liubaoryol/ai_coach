@@ -1,18 +1,17 @@
-from typing import Hashable, Tuple, Mapping, Sequence
+from typing import Hashable, Tuple, Sequence
 from stand_alone.app import AppInterface
 import numpy as np
-from ai_coach_domain.rescue import (E_EventType, Work, Location, Place, Route,
-                                    E_Type, T_Connections)
+from ai_coach_domain.rescue import E_EventType, Location, Place, Route, E_Type
 from ai_coach_domain.rescue.maps import MAP_RESCUE
 from ai_coach_domain.rescue.simulator import RescueSimulator
-from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.agent.cached_agent import BTILCachedPolicy
 from ai_coach_domain.rescue.agent import (AIAgent_Rescue_PartialObs,
                                           AIAgent_Rescue_BTIL)
 from ai_coach_domain.rescue.policy import Policy_Rescue
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 import pickle
-from ai_coach_core.intervention.feedback_strategy import get_combos_sorted_by_simulated_values
+from ai_coach_core.intervention.feedback_strategy import (
+    get_combos_sorted_by_simulated_values)
 
 GAME_MAP = MAP_RESCUE
 
@@ -135,9 +134,7 @@ class RescueApp(AppInterface):
     data = self.game.get_env_info()
     work_state = data["work_states"]  # type: Sequence[int]
     work_locations = data["work_locations"]  # type: Sequence[Location]
-    work_info = data["work_info"]  # type: Sequence[Work]
     places = data["places"]  # type: Sequence[Place]
-    connections = data["connections"]  # type: Mapping[int, T_Connections]
     routes = data["routes"]  # type: Sequence[Route]
     a1_pos = data["a1_pos"]  # type: Location
     a2_pos = data["a2_pos"]  # type: Location

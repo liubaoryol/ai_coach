@@ -13,7 +13,7 @@ import helper
 
 # yapf: disable
 @click.command()
-@click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2 /rescue_3")
+@click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2 /rescue_3")  # noqa: E501
 @click.option("--synthetic", type=bool, default=True, help="")
 @click.option("--num-training-data", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501

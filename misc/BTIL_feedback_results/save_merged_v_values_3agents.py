@@ -74,9 +74,12 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
   # domain: movers | cleanup_v2 | rescue_2
 
   sup_txt = ("%.2f" % supervision).replace('.', ',')
-  policy1_file = domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a1.npy"
-  policy2_file = domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a2.npy"
-  policy3_file = domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a3.npy"
+  policy1_file = (
+      domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a1.npy")
+  policy2_file = (
+      domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a2.npy")
+  policy3_file = (
+      domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a3.npy")
   tx1_file = domain + f"_btil2_tx_synth_FTTTT_{num_train}_{sup_txt}_a1.npy"
   tx2_file = domain + f"_btil2_tx_synth_FTTTT_{num_train}_{sup_txt}_a2.npy"
   tx3_file = domain + f"_btil2_tx_synth_FTTTT_{num_train}_{sup_txt}_a3.npy"
@@ -150,7 +153,8 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
 
   full_mdp = FullMDP_Base(mmdp=task_mdp, cb_tx=all_Tx, tup_lstate=tup_lstate)
   # full mdp transition
-  full_transition_file_name = domain + f"_{num_train}_{sup_txt}" + "_full_transition"
+  full_transition_file_name = (domain + f"_{num_train}_{sup_txt}" +
+                               "_full_transition")
   full_transition_file_name += "" if TRUE_MODELS else "_learned"
   pickle_full_trans = os.path.join(DATA_DIR,
                                    full_transition_file_name + ".pickle")
@@ -217,7 +221,8 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
       pickle.dump(np_policy, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # v-value
-  file_name = domain + f"_{num_train}_{sup_txt}_{iteration}" + "_merged_v_values"
+  file_name = (domain + f"_{num_train}_{sup_txt}_{iteration}" +
+               "_merged_v_values")
   file_name += "" if TRUE_MODELS else "_learned"
   pickle_v_values = os.path.join(DATA_DIR, file_name + ".pickle")
   if os.path.exists(pickle_v_values):

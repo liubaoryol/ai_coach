@@ -61,9 +61,9 @@ class MDP_BoxPushV2(BoxPushMDP):
       if bstate[0] == BoxState.WithBoth:
         both_hold = True
       elif bstate[0] == BoxState.WithAgent1:
-        a1_hold = True
+        a1_hold = True  # noqa: F841
       elif bstate[0] == BoxState.WithAgent2:
-        a2_hold = True
+        a2_hold = True  # noqa: F841
 
     if both_hold and a1_pos != a2_pos:  # illegal state
       return []

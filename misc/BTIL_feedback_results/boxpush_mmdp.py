@@ -6,12 +6,12 @@ import numpy as np
 from ai_coach_core.models.mdp import MDP
 from ai_coach_core.utils.mdp_utils import StateSpace
 from ai_coach_core.RL.planning import value_iteration
-import ai_coach_domain.box_push_v2 as bp
-from ai_coach_domain.box_push_v2 import BoxState, EventType, AGENT_ACTIONSPACE
+from ai_coach_domain.box_push_v2 import BoxState, AGENT_ACTIONSPACE
 from ai_coach_domain.box_push_v2 import (conv_box_state_2_idx,
                                          conv_box_idx_2_state)
 from ai_coach_domain.box_push_v2.transition import transition_mixed
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V2, MAP_CLEANUP_V3
+from ai_coach_domain.box_push_v2.maps import (MAP_MOVERS, MAP_CLEANUP_V2,
+                                              MAP_CLEANUP_V3)
 from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
 
 
@@ -130,9 +130,9 @@ class MMDP_BoxPush(MDP):
       if bstate[0] == BoxState.WithBoth:
         both_hold = True
       elif bstate[0] == BoxState.WithAgent1:
-        a1_hold = True
+        a1_hold = True  # noqa: F841
       elif bstate[0] == BoxState.WithAgent2:
-        a2_hold = True
+        a2_hold = True  # noqa: F841
 
     if both_hold and a1_pos != a2_pos:  # illegal state
       return []

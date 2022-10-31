@@ -26,7 +26,8 @@ class RescueV2Trajectories(Trajectories):
 
       np_trj = np.zeros((len(trj), self.get_width()), dtype=np.int32)
       for tidx, vec_state_action in enumerate(trj):
-        scr, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat, a3lat = vec_state_action
+        (scr, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat,
+         a3lat) = vec_state_action
 
         sidx = self.task_mdp.conv_sim_states_to_mdp_sidx(
             [wstt, a1pos, a2pos, a3pos])

@@ -264,7 +264,8 @@ class RescueSimulatorV2(Simulator):
       txtfile.write('# cur_step, score, work_states, a1_pos, a2_pos, a3_pos, ' +
                     'a1_act, a2_act, a3_act, a1_latent, a2_latent, a3_latent\n')
 
-      for step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat, a3lat in self.history:  # noqa: E501
+      for (step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat,
+           a2lat, a3lat) in self.history:
         txtfile.write('%d; ' % (step, ))  # cur step
         txtfile.write('%d; ' % (score, ))  # score
         # work states
@@ -325,7 +326,8 @@ class RescueSimulatorV2(Simulator):
         if len(states) < 12:
           for dummy in range(12 - len(states)):
             states.append(None)
-        step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat, a3lat = states
+        (step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat,
+         a2lat, a3lat) = states
         score = int(score)
         work_state = tuple([int(elem) for elem in wstt.split(", ")])
         a1_pos = Location.from_str(a1pos)

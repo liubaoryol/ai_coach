@@ -12,6 +12,7 @@ from ai_coach_domain.box_push_v2.agent_model import (
 
 
 class BoxPushAIAgent_PartialObs(AIAgent_PartialObs):
+
   def observed_states(self, tup_states):
     box_states, a1_pos, a2_pos = tup_states
 
@@ -120,6 +121,7 @@ class BoxPushAIAgent_PartialObs(AIAgent_PartialObs):
 
 
 class BoxPushAIAgent_PO_Team(BoxPushAIAgent_PartialObs):
+
   def __init__(self,
                init_tup_states,
                policy_model: CachedPolicyInterface,
@@ -134,6 +136,7 @@ class BoxPushAIAgent_PO_Team(BoxPushAIAgent_PartialObs):
 
 
 class BoxPushAIAgent_PO_Indv(BoxPushAIAgent_PartialObs):
+
   def __init__(self,
                init_tup_states,
                policy_model: CachedPolicyInterface,
@@ -147,6 +150,7 @@ class BoxPushAIAgent_PO_Indv(BoxPushAIAgent_PartialObs):
 
 
 class BoxPushAIAgent_Team(AIAgent_Abstract):
+
   def __init__(self,
                policy_model: CachedPolicyInterface,
                has_mind: bool = True,
@@ -160,6 +164,7 @@ class BoxPushAIAgent_Team(AIAgent_Abstract):
 
 
 class BoxPushAIAgent_Indv(AIAgent_Abstract):
+
   def __init__(self,
                policy_model: CachedPolicyInterface,
                has_mind: bool = True,
@@ -172,6 +177,7 @@ class BoxPushAIAgent_Indv(AIAgent_Abstract):
 
 
 class BoxPushAIAgent_BTIL(AIAgent_Abstract):
+
   def __init__(self,
                np_tx: np.ndarray,
                mask_sas: Sequence[bool],
@@ -182,6 +188,7 @@ class BoxPushAIAgent_BTIL(AIAgent_Abstract):
     super().__init__(policy_model, True, agent_idx)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
+
     def init_latents(obstate_idx):
       return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
                                                  policy_model.mdp)

@@ -121,7 +121,8 @@ class AIAgent_Rescue_PartialObs(AIAgent_PartialObs):
 
     mdp = self.agent_model.get_reference_mdp()  # type: MDP_Rescue
 
-    prev_work_states, prev_a1_pos, prev_a2_pos, prev_a3_pos = self.assumed_tup_states
+    (prev_work_states, prev_a1_pos, prev_a2_pos,
+     prev_a3_pos) = self.assumed_tup_states
     asm_work_states = list(prev_work_states)
     asm_a1_pos = prev_a1_pos
     asm_a2_pos = prev_a2_pos

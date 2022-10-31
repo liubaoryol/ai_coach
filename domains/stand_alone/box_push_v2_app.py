@@ -11,11 +11,11 @@ from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
                                                BoxPushAIAgent_BTIL,
                                                BoxPushAIAgent_Team,
                                                BoxPushAIAgent_Indv)
-from ai_coach_domain.agent import InteractiveAgent, BTILCachedPolicy
+from ai_coach_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
-from ai_coach_core.intervention.feedback_strategy import get_combos_sorted_by_simulated_values
-from stand_alone.intervention_simulator import InterventionSimulator
+from ai_coach_core.intervention.feedback_strategy import (
+    get_combos_sorted_by_simulated_values)
 
 TEST_BTIL_AGENT = True
 TEST_BTIL_USE_TRUE_TX = False

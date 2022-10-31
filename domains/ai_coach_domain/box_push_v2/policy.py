@@ -8,6 +8,7 @@ policy_cleanup_list = []
 
 
 class Policy_Movers(PolicyFromIdenticalAgentMDP_BoxPush):
+
   def __init__(self, task_mdp: MDP_BoxPushV2, agent_mdp: MDP_BoxPushV2,
                temperature: float, agent_idx: int) -> None:
     super().__init__(task_mdp, agent_idx)
@@ -22,6 +23,7 @@ class Policy_Movers(PolicyFromIdenticalAgentMDP_BoxPush):
 
 
 class Policy_Cleanup(PolicyFromIdenticalAgentMDP_BoxPush):
+
   def __init__(self, task_mdp: MDP_BoxPushV2, agent_mdp: MDP_BoxPushV2,
                temperature: float, agent_idx: int) -> None:
     super().__init__(task_mdp, agent_idx)

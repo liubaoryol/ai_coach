@@ -1,6 +1,6 @@
-from typing import Sequence, Mapping, Union, Tuple
+from typing import Sequence, Mapping, Union
 from ai_coach_domain.rescue_v2 import (Route, Location, E_Type, Work,
-                                       E_EventType, Place, T_Connections)
+                                       E_EventType, T_Connections)
 
 
 def find_location_index(list_locations: Sequence[Location], location: Location):

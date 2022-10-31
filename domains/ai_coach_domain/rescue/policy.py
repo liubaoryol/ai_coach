@@ -7,6 +7,7 @@ policy_rescue_list = []
 
 
 class Policy_Rescue(PolicyFromIdenticalAgentMDP):
+
   def __init__(self, task_mdp: MDP_Rescue, agent_mdp: MDP_Rescue,
                temperature: float, agent_idx: int) -> None:
     super().__init__(task_mdp, agent_idx)

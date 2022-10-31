@@ -18,13 +18,22 @@ def prediction_result(domain_name: str,
   else:
     tx_dependency = "FTTT"
 
-  policy1_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy"
-  policy2_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a2.npy"
-  policy3_file = domain_name + f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
+  policy1_file = (
+      domain_name +
+      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
+  policy2_file = (
+      domain_name +
+      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
+  policy3_file = (
+      domain_name +
+      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
 
-  tx1_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a1.npy"
-  tx2_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy"
-  tx3_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
+  tx1_file = (domain_name +
+              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
+  tx2_file = (domain_name +
+              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
+  tx3_file = (domain_name +
+              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
 
   # =========== LOAD ENV ============
   if domain_name == "movers":

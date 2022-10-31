@@ -10,6 +10,7 @@ from ai_coach_domain.rescue.transition import transition
 
 
 class MDP_Rescue(LatentMDP):
+
   def __init__(self, routes: Sequence[Route], places: Sequence[Place],
                connections: Mapping[int, T_Connections],
                work_locations: Sequence[Location], work_info: Sequence[Work],
@@ -136,6 +137,7 @@ class MDP_Rescue(LatentMDP):
 
 
 class MDP_Rescue_Agent(MDP_Rescue):
+
   def init_actionspace(self):
     self.my_act_space = AGENT_ACTIONSPACE
     self.dict_factored_actionspace = {0: self.my_act_space}
@@ -217,6 +219,7 @@ class MDP_Rescue_Agent(MDP_Rescue):
 
 
 class MDP_Rescue_Task(MDP_Rescue):
+
   def init_actionspace(self):
     self.a1_a_space = AGENT_ACTIONSPACE
     self.a2_a_space = AGENT_ACTIONSPACE

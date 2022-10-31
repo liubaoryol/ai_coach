@@ -13,7 +13,7 @@ def save_evaluation_plot(df_input_name, output_name, list_domain_names,
   ax = sns.barplot(ax=axes, x='domain', y='value', hue='train_setup', data=df)
 
   ax.set_xticklabels(list_domain_names)
-  h, l = ax.get_legend_handles_labels()
+  h, _ = ax.get_legend_handles_labels()
   ax.legend(h, ["150(100%)", "500(30%)", "500(100%)"],
             title="# Data (Supervision)")
 
@@ -43,7 +43,7 @@ def save_box_plots(df_input_name, output_name, list_domains, list_domain_names,
 
   df["real_score"] = df["score"] - df["num_feedback"] * df["cost"]
 
-  num_domain = len(list_domains)
+  # num_domain = len(list_domains)
 
   handle = None
   labels = [
@@ -96,7 +96,7 @@ def save_box_plots(df_input_name, output_name, list_domains, list_domain_names,
                ls='--',
                lw=line_width)
 
-    h, l = ax.get_legend_handles_labels()
+    h, _ = ax.get_legend_handles_labels()
     fontsize = 16
     ax.set_ylabel("Task reward", fontsize=fontsize)
     ax.set_xlabel(r"Benefit threshold ($\delta$)")
@@ -214,7 +214,7 @@ def save_rescue_plots(df_input_name, output_name, list_domains,
                ls='--',
                lw=line_width)
 
-    h, l = ax.get_legend_handles_labels()
+    h, _ = ax.get_legend_handles_labels()
     fontsize = 16
     ax.set_ylabel("Task reward", fontsize=fontsize)
     ax.set_xlabel(r"Benefit threshold ($\delta$)")
@@ -313,7 +313,7 @@ def save_reward_vs_delta_plots(df_input_name,
     labels.append("Centralized policy")
     labels.append("No intervention")
 
-    h, l = ax.get_legend_handles_labels()
+    h, _ = ax.get_legend_handles_labels()
     fontsize = 18
     ax.set_ylabel("Task Reward", fontsize=fontsize)
     ax.set_xlabel(r"Benefit threshold ($\delta$)", fontsize=fontsize)
@@ -393,7 +393,7 @@ def save_score_vs_delta_plots(df_input_name, output_name, list_domains,
     labels.append("Centralized policy")
     labels.append("No intervention")
 
-    h, l = ax.get_legend_handles_labels()
+    h, _ = ax.get_legend_handles_labels()
     fontsize = 18
     ax.set_ylabel("Objective(J)", fontsize=fontsize)
     ax.set_xlabel(r"Benefit threshold ($\delta$)")
@@ -448,7 +448,7 @@ def save_reward_vs_theta_plots(df_input_name, output_name, list_domains,
     ax.axhline(perfect_scr, label="Perfect", color='y', ls='-.')
     ax.axhline(no_interv_score, label="None", color='black', ls='--')
 
-    h, l = ax.get_legend_handles_labels()
+    h, _ = ax.get_legend_handles_labels()
     ax.set_ylabel("Reward")
     ax.set_xlabel(r"Inference threshold ($\theta$)")
     ax.set_title(f"\n{list_domain_names[idx]}")
@@ -523,7 +523,7 @@ def save_score_vs_theta_plots(df_input_name, output_name, list_domains,
                lw=line_width)
 
     thr = dict_interv_thres[list_domains[idx]][3]
-    h, l = ax.get_legend_handles_labels()
+    h, _ = ax.get_legend_handles_labels()
     fontsize = 13
     ax.set_ylabel("Objective(J)", fontsize=fontsize)
     ax.set_xlabel(r"Inference threshold ($\theta$)", fontsize=fontsize)
@@ -560,7 +560,7 @@ def save_num_feedback_vs_delta_plots(df_input_name, output_name, list_domains,
                       y='num_feedback',
                       hue="strategy")
 
-    h, l = ax.get_legend_handles_labels()
+    h, _ = ax.get_legend_handles_labels()
     ax.set_ylabel("# intervention")
     ax.set_title(list_domain_names[idx])
     ax.set_xlabel(r"Benefit threshold ($\delta$)")
@@ -622,11 +622,11 @@ def save_reward_vs_intervention_plots(df_input_name, output_name, list_domains,
                          style='strategy')
 
     fontsize = 13
-    h, l = ax.get_legend_handles_labels()
+    h, lable = ax.get_legend_handles_labels()
     ax.set_xlabel("# intervention", fontsize=fontsize)
     ax.set_ylabel("Task reward", fontsize=fontsize)
     ax.set_title(list_domain_names[idx], fontsize=fontsize + 2)
-    ax.legend(h, l)
+    ax.legend(h, lable)
 
   fig.tight_layout()
   if save_plot:
@@ -690,14 +690,13 @@ def save_score_vs_intervention_plots(df_input_name, output_name, list_domains,
 
     perfect_scr = perfect_scores[idx] - cost * perfect_steps[idx]
     ax.plot(perfect_steps[idx], perfect_scr, 'c^', label="Centralized policy")
-    # ax.axhline(perfect_scr, label="Centralized policy", color='green', ls='-.')
 
     fontsize = 13
-    h, l = ax.get_legend_handles_labels()
+    h, label = ax.get_legend_handles_labels()
     ax.set_xlabel("# intervention", fontsize=fontsize)
     ax.set_ylabel("Objective(J)", fontsize=fontsize)
     ax.set_title(list_domain_names[idx], fontsize=fontsize + 2)
-    ax.legend(h, l, prop={'size': 8})
+    ax.legend(h, label, prop={'size': 8})
 
   fig.tight_layout()
   if save_plot:
@@ -762,7 +761,8 @@ if __name__ == "__main__":
   # save_reward_vs_theta_plots(intv_result_name,
   #                            output_dir + "reward_vs_theta.png",
   #                            list_domains[:1], list_domain_names[:1],
-  #                            perfect_scores[:1], perfect_steps[:1], SAVE_RESULT)
+  #                            perfect_scores[:1], perfect_steps[:1],
+  #                            SAVE_RESULT)
   save_score_vs_theta_plots(intv_result_name, output_dir + "score_vs_theta.png",
                             list_domains[:1], list_domain_names[:1],
                             perfect_scores[:1], perfect_steps[:1], cost,
@@ -774,8 +774,8 @@ if __name__ == "__main__":
 
   # save_reward_vs_intervention_plots(intv_result_name,
   #                                   output_dir + "num_feedback_vs_reward.png",
-  #                                   list_domains[:1], list_domain_names[:1], 0,
-  #                                   SAVE_RESULT)
+  #                                   list_domains[:1], list_domain_names[:1],
+  #                                   0, SAVE_RESULT)
   save_score_vs_intervention_plots(intv_result_name,
                                    output_dir + "num_feedback_vs_score.png",
                                    list_domains[:1], list_domain_names[:1],

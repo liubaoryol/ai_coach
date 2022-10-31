@@ -184,8 +184,8 @@ class MDP_Rescue_Agent(MDP_Rescue):
     if self.is_terminal(state_idx):
       return np.array([[1.0, state_idx]])
 
-    work_states, my_pos, mate_pos1, mate_pos2 = self.conv_mdp_sidx_to_sim_states(
-        state_idx)
+    (work_states, my_pos, mate_pos1,
+     mate_pos2) = self.conv_mdp_sidx_to_sim_states(state_idx)
     my_act, = self.conv_mdp_aidx_to_sim_actions(action_idx)
 
     # assume teammates have the same possible actions as me

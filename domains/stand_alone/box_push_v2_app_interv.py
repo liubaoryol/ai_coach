@@ -1,6 +1,6 @@
 import numpy as np
 from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP, MAP_CLEANUP_V2
+from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V2
 from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Task,
                                              MDP_Cleanup_Agent)
@@ -10,10 +10,11 @@ from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
                                                BoxPushAIAgent_BTIL,
                                                BoxPushAIAgent_Team,
                                                BoxPushAIAgent_Indv)
-from ai_coach_domain.agent import InteractiveAgent, BTILCachedPolicy
+from ai_coach_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
-from ai_coach_core.intervention.feedback_strategy import get_combos_sorted_by_simulated_values
+from ai_coach_core.intervention.feedback_strategy import (
+    get_combos_sorted_by_simulated_values)
 from stand_alone.intervention_simulator import InterventionSimulator
 from ai_coach_core.intervention.feedback_strategy import (
     InterventionValueBased, E_CertaintyHandling)
