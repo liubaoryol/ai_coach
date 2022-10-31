@@ -1,7 +1,6 @@
 // document ready will be executed first-in-first-serve manner
 $(document).ready(function () {
   const slider = document.getElementById("playback");
-  const confirm = document.getElementById("confirm");
   slider.value = 0;
   // const label_timestep = document.getElementById("timestep");
   // label_timestep.innerHTML = slider.value;
