@@ -15,13 +15,15 @@ class InterventionSimulator:
                list_np_tx: List[np.ndarray],
                intervention: InterventionAbstract,
                cb_get_prev_state_action: Callable,
-               fix_illegal: bool = False) -> None:
+               fix_illegal: bool = False,
+               increase_step: bool = False) -> None:
     self.game = game
     self.list_np_policy = list_np_policy
     self.list_np_tx = list_np_tx
     self.intervention = intervention
     self.cb_get_prev_state_action = cb_get_prev_state_action
     self.fix_illegal = fix_illegal
+    self.increase_step = increase_step
 
   def run_game(self, num_runs):
     list_score = []
@@ -70,9 +72,9 @@ class InterventionSimulator:
       return
 
     # inference
-    for agent_idx in range(self.game.get_num_agents()):
-      if not isinstance(self.game.agents[agent_idx], AIAgent_PartialObs):
-        raise RuntimeError("Invalid agent class")
+    # for agent_idx in range(self.game.get_num_agents()):
+    #   if not isinstance(self.game.agents[agent_idx], AIAgent_PartialObs):
+    #     raise RuntimeError("Invalid agent class")
 
     task_mdp = self.game.agent_1.agent_model.get_reference_mdp()
 
@@ -108,6 +110,8 @@ class InterventionSimulator:
       return
 
     self.num_feedback += 1
+    if self.increase_step:
+      self.game.current_step += 1
 
     for agent_idx in range(self.game.get_num_agents()):
       if agent_idx in feedback:

@@ -316,7 +316,7 @@ if __name__ == "__main__":
     game = BoxPushSimulatorV2(0)
     game.init_game(**game_map)
     game.set_autonomous_agent()
-
+    INCREASE_STEP = True
     list_score = []
     list_steps = []
     for _ in range(num_runs):
@@ -329,6 +329,10 @@ if __name__ == "__main__":
 
         game.event_input(0, act1, None)
         game.event_input(1, act2, None)
+        if INCREASE_STEP:
+          game.current_step += 1
+          if game.is_finished():
+            break
 
         map_agent_2_action = game.get_joint_action()
         game.take_a_step(map_agent_2_action)

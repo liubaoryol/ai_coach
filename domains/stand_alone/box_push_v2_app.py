@@ -17,9 +17,9 @@ import pickle
 from ai_coach_core.intervention.feedback_strategy import get_combos_sorted_by_simulated_values
 from stand_alone.intervention_simulator import InterventionSimulator
 
-TEST_BTIL_AGENT = False
+TEST_BTIL_AGENT = True
 TEST_BTIL_USE_TRUE_TX = False
-IS_MOVERS = False
+IS_MOVERS = True
 DATA_DIR = "misc/BTIL_feedback_results/data/"
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS

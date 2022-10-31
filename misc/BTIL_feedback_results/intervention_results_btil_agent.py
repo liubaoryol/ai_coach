@@ -56,9 +56,9 @@ def intervention_result(domain_name,
   tx3_file = domain_name + f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
 
   if domain_name == "movers":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
+    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_BTIL
+    from ai_coach_domain.agent import BTILCachedPolicy
     from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v2.policy import Policy_Movers
     from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Agent
     from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task
     from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
@@ -68,13 +68,17 @@ def intervention_result(domain_name,
     MDP_Agent = MDP_Movers_Agent(**game_map)
 
     temperature = 0.3
-    policy1 = Policy_Movers(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Movers(MDP_Task, MDP_Agent, temperature, 1)
+    np_policy1 = np.load(model_dir + policy1_file)
+    np_tx1 = np.load(model_dir + tx1_file)
+    np_policy2 = np.load(model_dir + policy2_file)
+    np_tx2 = np.load(model_dir + tx2_file)
+    mask = (False, True, True, True)
 
-    init_state = ([0] * len(game_map["boxes"]), game_map["a1_init"],
-                  game_map["a2_init"])
-    agent1 = BoxPushAIAgent_PO_Team(init_state, policy1, agent_idx=0)
-    agent2 = BoxPushAIAgent_PO_Team(init_state, policy2, agent_idx=1)
+    policy1 = BTILCachedPolicy(np_policy1, MDP_Task, 0, MDP_Agent.latent_space)
+    policy2 = BTILCachedPolicy(np_policy2, MDP_Task, 1, MDP_Agent.latent_space)
+
+    agent1 = BoxPushAIAgent_BTIL(np_tx1, mask, policy1, 0)
+    agent2 = BoxPushAIAgent_BTIL(np_tx2, mask, policy2, 1)
     agents = [agent1, agent2]
     game = BoxPushSimulatorV2(0)
 
@@ -105,121 +109,11 @@ def intervention_result(domain_name,
 
     fn_valid_latent = valid_latent2
 
-  elif domain_name == "cleanup_v2":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    game_map = MAP_CLEANUP_V2
-    MDP_Task = MDP_Cleanup_Task(**game_map)
-    MDP_Agent = MDP_Cleanup_Agent(**game_map)
-
-    temperature = 0.3
-    policy1 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 1)
-
-    init_state = ([0] * len(game_map["boxes"]), game_map["a1_init"],
-                  game_map["a2_init"])
-    agent1 = BoxPushAIAgent_PO_Indv(init_state, policy1, agent_idx=0)
-    agent2 = BoxPushAIAgent_PO_Indv(init_state, policy2, agent_idx=1)
-    agents = [agent1, agent2]
-    game = BoxPushSimulatorV2(0)
-
-    def get_state_action(history):
-      step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
-      return (bstt, a1pos, a2pos), (a1act, a2act)
-
-  elif domain_name == "cleanup_v3":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    game_map = MAP_CLEANUP_V3
-    MDP_Task = MDP_Cleanup_Task(**game_map)
-    MDP_Agent = MDP_Cleanup_Agent(**game_map)
-
-    temperature = 0.3
-    policy1 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 1)
-
-    init_state = ([0] * len(game_map["boxes"]), game_map["a1_init"],
-                  game_map["a2_init"])
-    agent1 = BoxPushAIAgent_PO_Indv(init_state, policy1, agent_idx=0)
-    agent2 = BoxPushAIAgent_PO_Indv(init_state, policy2, agent_idx=1)
-    agents = [agent1, agent2]
-    game = BoxPushSimulatorV2(0)
-
-    def get_state_action(history):
-      step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
-      return (bstt, a1pos, a2pos), (a1act, a2act)
-  elif domain_name == "rescue_2":
-    from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue.maps import MAP_RESCUE
-    from ai_coach_domain.rescue.policy import Policy_Rescue
-    from ai_coach_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue.simulator import RescueSimulator
-    game_map = MAP_RESCUE
-    temperature = 0.3
-
-    MDP_Task = MDP_Rescue_Task(**game_map)
-    MDP_Agent = MDP_Rescue_Agent(**game_map)
-
-    init_states = ([1] * len(game_map["work_locations"]), game_map["a1_init"],
-                   game_map["a2_init"])
-    policy1 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 1)
-    agent1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
-    agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
-    agents = [agent1, agent2]
-
-    game = RescueSimulator()
-    game.max_steps = 30
-
-    def get_state_action(history):
-      step, score, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
-      return (wstt, a1pos, a2pos), (a1act, a2act)
-  elif domain_name == "rescue_3":
-    from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
-    from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-    from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
-    game_map = MAP_RESCUE
-    temperature = 0.3
-
-    MDP_Task = MDP_Rescue_Task(**game_map)
-    MDP_Agent = MDP_Rescue_Agent(**game_map)
-
-    init_states = ([1] * len(game_map["work_locations"]), game_map["a1_init"],
-                   game_map["a2_init"], game_map["a3_init"])
-    policy1 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 1)
-    policy3 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 2)
-    agent1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
-    agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
-    agent3 = AIAgent_Rescue_PartialObs(init_states, 2, policy3)
-    agents = [agent1, agent2, agent3]
-
-    game = RescueSimulatorV2()
-    game.max_steps = 15
-
-    def get_state_action(history):
-      step, score, wstt, a1pos, a2pos, a3pos, a1act, a2act, a3act, a1lat, a2lat, a3lat = history
-      return (wstt, a1pos, a2pos, a3pos), (a1act, a2act, a3act)
   else:
     raise NotImplementedError(domain_name)
 
   with open(data_dir + v_value_file_name, 'rb') as handle:
     np_v_values = pickle.load(handle)
-
-  np_policy1 = np.load(model_dir + policy1_file)
-  np_tx1 = np.load(model_dir + tx1_file)
-  np_policy2 = np.load(model_dir + policy2_file)
-  np_tx2 = np.load(model_dir + tx2_file)
 
   list_np_policy = [np_policy1, np_policy2]
   list_np_tx = [np_tx1, np_tx2]
@@ -280,29 +174,26 @@ if __name__ == "__main__":
 
   if DO_TEST:
     domain_name = "movers"
-    list_res = intervention_result(domain_name, num_runs, NO_INTERVENTION,
-                                   VALUE, AVERAGE, 0, 0.2, 0)
+    list_res = intervention_result(domain_name, num_runs, INTERVENTION, VALUE,
+                                   AVERAGE, 0, 3, 0)
     print(np.array(list_res).mean(axis=0))
 
     raise RuntimeError
 
   rows = []
 
-  list_cost = [0, 0.2, 0.5, 1]
+  list_cost = [0, 1]
   # cost = list_cost[0]
   list_infer_thres = [0, 0.2, 0.3, 0.5, 0.7, 0.9]
-  domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
+  domains = ["movers"]
   dict_interv_thres = {
       domains[0]: [0, 1, 3, 5, 10, 15, 20, 30, 50],
-      domains[1]: [0, 0.3, 0.5, 1.0, 2.0, 5.0, 10, 15, 20],
-      domains[2]: [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0],
-      domains[3]: [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
   }
 
   for cost in list_cost:
     for domain_name in domains:
       if cost == 1:
-        list_increase_step = [False, True]
+        list_increase_step = [False]
       else:
         list_increase_step = [False]
       for increase_step in list_increase_step:
@@ -427,4 +318,4 @@ if __name__ == "__main__":
                     ])
 
   data_dir = os.path.join(os.path.dirname(__file__), "data/")
-  df.to_csv(data_dir + "intervention_result8.csv", index=False)
+  df.to_csv(data_dir + "btil_intervention_result.csv", index=False)
