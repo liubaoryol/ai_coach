@@ -354,17 +354,16 @@ class RescueGamePageBase(ExperimentPageBase):
                                              game.get_env_info(),
                                              tuple_actions[0])
 
-    if user_game_data.data[Exp1UserData.COLLECT_LATENT]:
-      select_latent = False
-      if self._PROMPT_ON_CHANGE and work_state_changed:
+    select_latent = False
+    if self._PROMPT_ON_CHANGE and work_state_changed:
+      select_latent = True
+
+    if self._AUTO_PROMPT:
+      user_game_data.data[Exp1UserData.ACTION_COUNT] += 1
+      if user_game_data.data[Exp1UserData.ACTION_COUNT] >= self._PROMPT_FREQ:
         select_latent = True
 
-      if self._AUTO_PROMPT:
-        user_game_data.data[Exp1UserData.ACTION_COUNT] += 1
-        if user_game_data.data[Exp1UserData.ACTION_COUNT] >= self._PROMPT_FREQ:
-          select_latent = True
-
-      user_game_data.data[Exp1UserData.SELECT] = select_latent
+    user_game_data.data[Exp1UserData.SELECT] = select_latent
     user_game_data.data[Exp1UserData.SCORE] = (
         user_game_data.get_game_ref().current_step)
 
