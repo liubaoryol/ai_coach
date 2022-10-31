@@ -4,7 +4,7 @@ import numpy as np
 from ai_coach_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.box_push.agent_model import BoxPushAM
 from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
-from ai_coach_domain.box_push.agent import BoxPushAIAgent_Abstract
+from ai_coach_domain.agent import AIAgent_Abstract
 from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 
 GAME_MAP = TUTORIAL_MAP
@@ -38,7 +38,7 @@ class StaticBoxPushAM(BoxPushAM):
     raise NotImplementedError
 
 
-class StaticBoxPushAgent(BoxPushAIAgent_Abstract):
+class StaticBoxPushAgent(AIAgent_Abstract):
   def __init__(self, policy_model: CachedPolicyInterface, agent_idx) -> None:
     self.agent_idx = agent_idx
     super().__init__(policy_model, has_mind=True)

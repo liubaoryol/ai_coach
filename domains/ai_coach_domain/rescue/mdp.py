@@ -265,13 +265,13 @@ class MDP_Rescue_Task(MDP_Rescue):
     if pos2.type == E_Type.Route:
       a2_actions = [E_EventType(idx) for idx in range(2)]
       a2_actions.append(E_EventType.Stay)
-      a1_actions.append(E_EventType.Rescue)
+      a2_actions.append(E_EventType.Rescue)
     else:
       a2_actions = [
           E_EventType(idx) for idx in range(len(self.connections[pos2.id]))
       ]
       a2_actions.append(E_EventType.Stay)
-      a1_actions.append(E_EventType.Rescue)
+      a2_actions.append(E_EventType.Rescue)
 
     list_actions = []
     for tuple_actions in itertools.product(a1_actions, a2_actions):

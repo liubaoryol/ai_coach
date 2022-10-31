@@ -9,6 +9,8 @@ from web_experiment.exp_common.helper import (boxpush_game_scene,
                                               boxpush_game_scene_names,
                                               get_btn_boxpush_actions)
 
+TEST_ROBOT_SIGHT = False
+
 
 def get_holding_box_idx(box_states, num_drops, num_goals):
   a1_box = -1
@@ -462,33 +464,35 @@ class BoxPushGamePageBase(ExperimentPageBase):
       po_outer_ltwh = [
           self.GAME_LEFT, self.GAME_TOP, self.GAME_WIDTH, self.GAME_HEIGHT
       ]
-      a1_pos = game_env["a1_pos"]
+      cen_pos = game_env["a1_pos"]
+      if TEST_ROBOT_SIGHT:
+        cen_pos = game_env["a2_pos"]
       x_grid = game_env["x_grid"]
       y_grid = game_env["y_grid"]
 
       radius = size_2_canvas(3, 0)[0] / 10
       radii = [radius] * 4
 
-      inner_left = max(0, a1_pos[0] - 1)
-      inner_top = max(0, a1_pos[1] - 1)
-      inner_right = min(a1_pos[0] + 2, x_grid)
-      inner_bottom = min(a1_pos[1] + 2, y_grid)
+      inner_left = max(0, cen_pos[0] - 1)
+      inner_top = max(0, cen_pos[1] - 1)
+      inner_right = min(cen_pos[0] + 2, x_grid)
+      inner_bottom = min(cen_pos[1] + 2, y_grid)
       inner_width = inner_right - inner_left
       inner_height = inner_bottom - inner_top
 
       pos = coord_2_canvas(inner_left, inner_top)
       size = size_2_canvas(inner_width, inner_height)
 
-      if a1_pos[0] - 1 < 0:
+      if cen_pos[0] - 1 < 0:
         radii[0] = 0
         radii[1] = 0
-      if a1_pos[1] - 1 < 0:
+      if cen_pos[1] - 1 < 0:
         radii[0] = 0
         radii[3] = 0
-      if a1_pos[0] + 2 > x_grid:
+      if cen_pos[0] + 2 > x_grid:
         radii[2] = 0
         radii[3] = 0
-      if a1_pos[1] + 2 > y_grid:
+      if cen_pos[1] + 2 > y_grid:
         radii[1] = 0
         radii[2] = 0
 
@@ -601,22 +605,43 @@ class BoxPushGamePageBase(ExperimentPageBase):
                               include_background)
 
   def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
-    def is_visible(img_name):
-      if user_data.data[Exp1UserData.PARTIAL_OBS]:
-        a1_pos = game_env["a1_pos"]
-        if img_name == co.IMG_ROBOT or img_name == co.IMG_ROBOT_BAG:
-          a2_pos = game_env["a2_pos"]
-          diff = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
-          if diff > 1:
-            return False
-        elif img_name[:-1] == co.IMG_BOX or img_name[:-1] == co.IMG_TRASH_BAG:
-          bidx = int(img_name[-1])
-          box_pos = game_env["boxes"][bidx]
-          diff = max(abs(a1_pos[0] - box_pos[0]), abs(a1_pos[1] - box_pos[1]))
-          if diff > 1:
-            return False
+    if TEST_ROBOT_SIGHT:
 
-      return True
+      def is_visible(img_name):
+        if user_data.data[Exp1UserData.PARTIAL_OBS]:
+          a2_pos = game_env["a2_pos"]
+          if (img_name == co.IMG_WOMAN or img_name == co.IMG_MAN_BAG
+              or img_name == co.IMG_MAN):
+            a1_pos = game_env["a1_pos"]
+            diff = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
+            if diff > 1:
+              return False
+          elif img_name[:-1] == co.IMG_BOX or img_name[:-1] == co.IMG_TRASH_BAG:
+            bidx = int(img_name[-1])
+            box_pos = game_env["boxes"][bidx]
+            diff = max(abs(a2_pos[0] - box_pos[0]), abs(a2_pos[1] - box_pos[1]))
+            if diff > 1:
+              return False
+
+        return True
+    else:
+
+      def is_visible(img_name):
+        if user_data.data[Exp1UserData.PARTIAL_OBS]:
+          a1_pos = game_env["a1_pos"]
+          if img_name == co.IMG_ROBOT or img_name == co.IMG_ROBOT_BAG:
+            a2_pos = game_env["a2_pos"]
+            diff = max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1]))
+            if diff > 1:
+              return False
+          elif img_name[:-1] == co.IMG_BOX or img_name[:-1] == co.IMG_TRASH_BAG:
+            bidx = int(img_name[-1])
+            box_pos = game_env["boxes"][bidx]
+            diff = max(abs(a1_pos[0] - box_pos[0]), abs(a1_pos[1] - box_pos[1]))
+            if diff > 1:
+              return False
+
+        return True
 
     is_movers = self._DOMAIN_TYPE == EDomainType.Movers
     return boxpush_game_scene_names(game_env, is_movers, is_visible)

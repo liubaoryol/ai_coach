@@ -13,7 +13,8 @@ from ai_coach_domain.box_push.agent_model import (
     assumed_initial_mental_distribution)
 
 from ai_coach_domain.box_push_v2 import get_possible_latent_states
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP
+from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2 as MAP_CLEANUP
 from ai_coach_domain.box_push_v2.mdp import (MDP_BoxPushV2, MDP_Cleanup_Agent,
                                              MDP_Cleanup_Task, MDP_Movers_Agent,
                                              MDP_Movers_Task)
@@ -256,6 +257,7 @@ def get_latent_states(domain_type: EDomainType, mode: EMode,
 
 
 class BoxPushTrajectoryConverter(Trajectories):
+
   def __init__(self, task_mdp: MDP_BoxPushV2, agent_mdp: MDP_BoxPushV2) -> None:
     super().__init__(1, 2, 2, 5)
     self.task_mdp = task_mdp
@@ -305,8 +307,8 @@ def get_mdp_policy_tx(domain_type: EDomainType):
     game_map = MAP_MOVERS
     mdp_agent = MDP_Movers_Agent(**game_map)
     mdp_task = MDP_Movers_Task(**game_map)
-    policy_file = "movers_v2_btil_policy_synth_woTx_200_1.00_a1.npy"
-    tx_file = "movers_v2_btil_tx_synth_200_1.00_a1.npy"
+    policy_file = "movers_btil_policy_synth_woTx_200_1.00_a1.npy"
+    tx_file = "movers_btil_tx_synth_200_1.00_a1.npy"
   elif domain_type == EDomainType.Cleanup:
     game_map = MAP_CLEANUP
     mdp_agent = MDP_Cleanup_Agent(**game_map)

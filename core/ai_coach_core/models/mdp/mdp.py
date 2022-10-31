@@ -258,7 +258,7 @@ class MDP:
 
           for (next_p, next_state) in np_next_p_state_idx:
             next_state = int(next_state)
-            coord_2_data[(state, action, next_state)] = next_p
+            coord_2_data[(state, action, next_state)] = np.float32(next_p)
 
       self._np_transition_model = sparse.COO.from_iter(coord_2_data,
                                                        dtype=np.float32)
@@ -310,9 +310,9 @@ class MDP:
     for state in tqdm(range(self.num_states)):
       if self.is_terminal(state):
         # there is no valid action at the terminal state
-        # but set one of them to have 0 reward
+        # but set them to have 0 reward
         # in order to make planning algorithms work
-        self._np_reward_model[state, 0] = 0
+        self._np_reward_model[state, :] = 0
       else:
         # for action in range(self.num_actions):
         for action in self.legal_actions(state):
@@ -425,14 +425,20 @@ def v_value_from_policy(
 
   iteration_idx = 0
   delta_v = epsilon + 1.
+  progress_bar = tqdm(total=max_iteration)
   while (iteration_idx < max_iteration) and (delta_v > epsilon):
     q_value = q_value_from_v_value(v_value, transition_model, reward_model,
                                    discount_factor)
 
     new_v_value = np.sum(stochastic_policy * np.nan_to_num(q_value), axis=-1)
-    delta_v = np.linalg.norm(new_v_value[:] - v_value[:])
+
+    delta_v = np.linalg.norm(
+        np.nan_to_num(new_v_value[:]) - np.nan_to_num(v_value[:]))
     iteration_idx += 1
     v_value = new_v_value
+    progress_bar.set_postfix({'delta': delta_v})
+    progress_bar.update()
+  progress_bar.close()
 
   return v_value
 

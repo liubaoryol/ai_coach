@@ -67,7 +67,7 @@ def main(is_team, synthetic, num_training_data, supervision, use_true_tx):
     agent1 = tbp.bp_agent.BoxPushAIAgent_Indv1(policy1)
     agent2 = tbp.bp_agent.BoxPushAIAgent_Indv2(policy2)
 
-  true_methods = tbp.TrueModelConverter(agent1, agent2,
+  true_methods = tbp.TrueModelConverter([agent1, agent2],
                                         tbp.MDP_AGENT.num_latents)
 
   def assumed_init_latent_dist(agent_idx, state_idx):

@@ -1,24 +1,17 @@
+from typing import Sequence
+import numpy as np
 from ai_coach_core.models.policy import CachedPolicyInterface
-from ai_coach_domain.box_push.agent import BoxPushAIAgent_Abstract
+from ai_coach_domain.agent import (AIAgent_PartialObs, AIAgent_Abstract,
+                                   BTILCachedAgentModel)
 from ai_coach_domain.box_push_v2 import (conv_box_idx_2_state,
                                          conv_box_state_2_idx, BoxState)
 from ai_coach_domain.box_push_v2.mdp import MDP_BoxPushV2
-from ai_coach_domain.box_push_v2.agent_model import (AM_BoxPushV2,
-                                                     AM_BoxPushV2_Cleanup,
-                                                     AM_BoxPushV2_Movers)
+from ai_coach_domain.box_push_v2.agent_model import (
+    AM_BoxPushV2, AM_BoxPushV2_Cleanup, AM_BoxPushV2_Movers,
+    assumed_initial_mental_distribution)
 
 
-class BoxPushAIAgent_PartialObs(BoxPushAIAgent_Abstract):
-  def __init__(self,
-               init_tup_states,
-               policy_model: CachedPolicyInterface,
-               has_mind: bool = True,
-               agent_idx: int = 0) -> None:
-    super().__init__(policy_model, has_mind, agent_idx)
-    box_states, a1_pos, a2_pos = init_tup_states
-    self.init_tup_states = (tuple(box_states), tuple(a1_pos), tuple(a2_pos))
-    self.assumed_tup_states = init_tup_states
-
+class BoxPushAIAgent_PartialObs(AIAgent_PartialObs):
   def observed_states(self, tup_states):
     box_states, a1_pos, a2_pos = tup_states
 
@@ -35,10 +28,7 @@ class BoxPushAIAgent_PartialObs(BoxPushAIAgent_Abstract):
                       my_pos, mate_pos, e_boxstate_with_me: BoxState,
                       e_boxstate_with_mate: BoxState):
       agent_dist = max_dist(my_pos, mate_pos)
-      # prev_my_pos = prev_a1_pos
-      # prev_mate_pos = prev_a2_pos
-      # my_pos = a1_pos
-      # mate_pos = a2_pos
+
       assumed_box_states = list(prev_box_states)
 
       assumed_my_pos = my_pos
@@ -114,33 +104,19 @@ class BoxPushAIAgent_PartialObs(BoxPushAIAgent_Abstract):
 
     return assumed_box_states, assumed_a1_pos, assumed_a2_pos
 
-  def init_latent(self, tup_state):
-    self.assumed_tup_states = self.init_tup_states
-    return super().init_latent(self.assumed_tup_states)
-
-  def get_action(self, tup_state):
-    return super().get_action(self.assumed_tup_states)
-
-  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
-    prev_tuple_states = self.assumed_tup_states
-    self.assumed_tup_states = self.observed_states(tup_nxt_state)
-
-    bstate_nxt, a1_pos_nxt, a2_pos_nxt = tup_nxt_state
+  def observed_actions(self, tup_actions, tup_nxt_state) -> tuple:
+    bstate, a1_pos, a2_pos = self.assumed_tup_states
     observed_actions = [None, None]
     if self.agent_idx == 0:
       observed_actions[0] = tup_actions[0]
-      if max(abs(a1_pos_nxt[0] - a2_pos_nxt[0]),
-             abs(a1_pos_nxt[1] - a2_pos_nxt[1])) <= 1:
+      if max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1])) <= 1:
         observed_actions[1] = tup_actions[1]
     else:
       observed_actions[1] = tup_actions[1]
-      if max(abs(a1_pos_nxt[0] - a2_pos_nxt[0]),
-             abs(a1_pos_nxt[1] - a2_pos_nxt[1])) <= 1:
+      if max(abs(a1_pos[0] - a2_pos[0]), abs(a1_pos[1] - a2_pos[1])) <= 1:
         observed_actions[0] = tup_actions[0]
 
-    return super().update_mental_state(prev_tuple_states,
-                                       tuple(observed_actions),
-                                       self.assumed_tup_states)
+    return tuple(observed_actions)
 
 
 class BoxPushAIAgent_PO_Team(BoxPushAIAgent_PartialObs):
@@ -168,3 +144,47 @@ class BoxPushAIAgent_PO_Indv(BoxPushAIAgent_PartialObs):
   def _create_agent_model(self,
                           policy_model: CachedPolicyInterface) -> AM_BoxPushV2:
     return AM_BoxPushV2_Cleanup(self.agent_idx, policy_model)
+
+
+class BoxPushAIAgent_Team(AIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
+    super().__init__(policy_model, has_mind, agent_idx)
+
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> AM_BoxPushV2:
+    return AM_BoxPushV2_Movers(agent_idx=self.agent_idx,
+                               policy_model=policy_model)
+
+
+class BoxPushAIAgent_Indv(AIAgent_Abstract):
+  def __init__(self,
+               policy_model: CachedPolicyInterface,
+               has_mind: bool = True,
+               agent_idx: int = 0) -> None:
+    super().__init__(policy_model, has_mind, agent_idx)
+
+  def _create_agent_model(self,
+                          policy_model: CachedPolicyInterface) -> AM_BoxPushV2:
+    return AM_BoxPushV2_Cleanup(self.agent_idx, policy_model)
+
+
+class BoxPushAIAgent_BTIL(AIAgent_Abstract):
+  def __init__(self,
+               np_tx: np.ndarray,
+               mask_sas: Sequence[bool],
+               policy_model: CachedPolicyInterface,
+               agent_idx: int = 0) -> None:
+    self.np_tx = np_tx
+    self.mask_sas = mask_sas
+    super().__init__(policy_model, True, agent_idx)
+
+  def _create_agent_model(self, policy_model: CachedPolicyInterface):
+    def init_latents(obstate_idx):
+      return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
+                                                 policy_model.mdp)
+
+    return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
+                                policy_model)

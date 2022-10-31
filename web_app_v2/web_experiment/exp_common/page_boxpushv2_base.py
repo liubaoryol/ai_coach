@@ -3,7 +3,8 @@ from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Task,
                                              MDP_Cleanup_Agent)
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP, MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
 from ai_coach_domain.agent import InteractiveAgent
 from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
                                                BoxPushAIAgent_PO_Team)
@@ -23,6 +24,7 @@ CLEANUP_TEAMMATE_POLICY = Policy_Cleanup(MDP_Cleanup_Task(**MAP_CLEANUP),
 
 
 class BoxPushV2GamePage(BoxPushGamePageBase):
+
   def __init__(self,
                domain_type,
                manual_latent_selection,
@@ -121,6 +123,7 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
 
 
 class BoxPushV2UserRandom(BoxPushV2GamePage):
+
   def __init__(self, domain_type, partial_obs) -> None:
     super().__init__(domain_type, True, True, True, 5)
 
