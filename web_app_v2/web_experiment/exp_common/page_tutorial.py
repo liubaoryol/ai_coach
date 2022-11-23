@@ -46,6 +46,7 @@ class CanvasPageTutorialStart(ExperimentPageBase):
 
 
 class CanvasPageInstruction(CanvasPageStart):
+
   def _get_init_drawing_objects(
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
@@ -89,6 +90,7 @@ class CanvasPageInstruction(CanvasPageStart):
 
 
 class CanvasPageTutorialGameStart(CanvasPageStart):
+
   def _get_init_drawing_objects(
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
@@ -190,6 +192,7 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
 
 
 class CanvasPageJoystick(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -217,7 +220,7 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("During the task, you control the human player. " +
             "You can move the human player by clicking the motion buttons. " +
-            "Once you have pressed all five buttons " +
+            "Once you have tested each motion button " +
             "(left, right, up, down, and wait), " +
             "please click on the “Next” button to continue.")
 
@@ -245,7 +248,7 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
     dict_objs[btn_next.name] = btn_next
 
     clicked_btns = user_data.data[self.CLICKED_BTNS]  # type: set
-    if len(clicked_btns) != 5:
+    if len(clicked_btns) == 0:
       for obj_name in clicked_btns:
         obj = dict_objs[obj_name]  # type: co.JoystickObject
         obj.fill_color = "LightGreen"
@@ -257,8 +260,17 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
 
 
 class CanvasPageInvalidAction(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+
+    user_game_data.data[Exp1UserData.SELECT] = False
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
+    game = user_game_data.get_game_ref()
+    game.event_input(self._AGENT1, EventType.SET_LATENT, None)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("If you take an invalid action (e.g., try to move into a wall), " +
@@ -266,6 +278,7 @@ class CanvasPageInvalidAction(CanvasPageTutorialBase):
 
 
 class CanvasPageJoystickShort(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -283,8 +296,17 @@ class CanvasPageJoystickShort(CanvasPageTutorialBase):
 
 
 class CanvasPageOnlyHuman(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+
+    user_game_data.data[Exp1UserData.SELECT] = False
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
+    game = user_game_data.get_game_ref()
+    game.event_input(self._AGENT1, EventType.SET_LATENT, None)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
@@ -294,6 +316,7 @@ class CanvasPageOnlyHuman(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToTarget(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -331,6 +354,7 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
 
 
 class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -424,6 +448,7 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
 
 
 class CanvasPagePickUpTarget(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -480,6 +505,7 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToGoal(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -548,6 +574,7 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
 
 
 class CanvasPageRespawn(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -570,6 +597,7 @@ class CanvasPageRespawn(CanvasPageTutorialBase):
 
 
 class CanvasPageScore(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -605,6 +633,7 @@ class CanvasPageScore(CanvasPageTutorialBase):
 
 
 class CanvasPagePartialObs(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -623,6 +652,7 @@ class CanvasPagePartialObs(CanvasPageTutorialBase):
 
 
 class CanvasPagePORobot(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -654,6 +684,7 @@ class CanvasPagePORobot(CanvasPageTutorialBase):
 
 
 class CanvasPageTarget(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -687,6 +718,7 @@ class CanvasPageTarget(CanvasPageTutorialBase):
 
 
 class CanvasPageLatent(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, True, True, True)
 
@@ -734,6 +766,7 @@ class CanvasPageLatent(CanvasPageTutorialBase):
 
 
 class CanvasPageSelResult(CanvasPageTutorialBase):
+
   def __init__(self, domain_type, is_2nd) -> None:
     super().__init__(domain_type, False, True, True)
     self._IS_2ND = is_2nd
@@ -768,6 +801,7 @@ class CanvasPageSelResult(CanvasPageTutorialBase):
 
 
 class CanvasPageSelPrompt(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, True, True)
     self._PROMPT_FREQ = 3
@@ -802,6 +836,7 @@ class CanvasPageSelPrompt(CanvasPageTutorialBase):
 
 
 class CanvasPageMiniGame(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, True, True, True)
 

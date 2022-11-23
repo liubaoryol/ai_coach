@@ -22,6 +22,7 @@ def assumed_initial_mental_distribution(agent_idx: int, obstate_idx: int,
 
 
 class RescueAM(AgentModel):
+
   def __init__(self,
                agent_idx: int,
                policy_model: Optional[PolicyInterface] = None) -> None:
@@ -80,6 +81,7 @@ class RescueAM(AgentModel):
 
 
 class AIAgent_Rescue_PartialObs(AIAgent_PartialObs):
+
   def __init__(self,
                init_tup_states,
                agent_idx,
@@ -137,6 +139,7 @@ class AIAgent_Rescue_PartialObs(AIAgent_PartialObs):
 
 
 class AIAgent_Rescue_BTIL(AIAgent_Abstract):
+
   def __init__(self,
                np_tx: np.ndarray,
                mask_sas: Sequence[bool],
@@ -147,6 +150,7 @@ class AIAgent_Rescue_BTIL(AIAgent_Abstract):
     super().__init__(policy_model, True, agent_idx)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
+
     def init_latents(obstate_idx):
       return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
                                                  policy_model.mdp)

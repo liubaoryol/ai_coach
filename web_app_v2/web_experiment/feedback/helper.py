@@ -4,6 +4,36 @@ import glob
 from flask import current_app
 
 
+def store_user_fix_locally(user_id, session_name, user_fixes):
+  file_name = get_user_fix_file_name(user_id, session_name)
+  dir_path = os.path.dirname(file_name)
+  if dir_path != '' and not os.path.exists(dir_path):
+    os.makedirs(dir_path)
+
+  with open(file_name, 'w', newline='') as txtfile:
+    # sequence
+    txtfile.write('# time_step, fixed_user_label\n')
+
+    for key in user_fixes:
+      txtfile.write('%d; %s;' % (key, user_fixes[key]))
+      txtfile.write('\n')
+
+
+def get_user_fix_file_name(user_id, session_name):
+  traj_dir = os.path.join(current_app.config["USER_LABEL_PATH"], user_id)
+
+  # save somewhere
+  if not os.path.exists(traj_dir):
+    os.makedirs(traj_dir)
+
+  sec, msec = divmod(time.time() * 1000, 1000)
+  time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
+                                          time.gmtime(sec)), msec)
+  file_name = ('user_fix_' + session_name + '_' + str(user_id) + '_' +
+               time_stamp + '.txt')
+  return os.path.join(traj_dir, file_name)
+
+
 def store_latent_locally(user_id, session_name, lstates):
   # # if latent state has not been previously stored
   # if not check_latent_exist(user_id, session_name):

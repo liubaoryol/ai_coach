@@ -50,6 +50,37 @@ RESCUE_PLACE_DRAW_INFO = {
 }
 
 
+def store_user_label_locally(user_label_path, user_id, session_name,
+                             user_labels):
+  file_name = get_user_label_file_name(user_label_path, user_id, session_name)
+  dir_path = os.path.dirname(file_name)
+  if dir_path != '' and not os.path.exists(dir_path):
+    os.makedirs(dir_path)
+
+  with open(file_name, 'w', newline='') as txtfile:
+    # sequence
+    txtfile.write('# cur_step, user_label\n')
+
+    for tup_label in user_labels:
+      txtfile.write('%d; %s;' % tup_label)
+      txtfile.write('\n')
+
+
+def get_user_label_file_name(user_label_path, user_id, session_name):
+  traj_dir = os.path.join(user_label_path, user_id)
+
+  # save somewhere
+  if not os.path.exists(traj_dir):
+    os.makedirs(traj_dir)
+
+  sec, msec = divmod(time.time() * 1000, 1000)
+  time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
+                                          time.gmtime(sec)), msec)
+  file_name = ('user_label_' + session_name + '_' + str(user_id) + '_' +
+               time_stamp + '.txt')
+  return os.path.join(traj_dir, file_name)
+
+
 def get_file_name(save_path, user_id, session_name):
   traj_dir = os.path.join(save_path, user_id)
   # save somewhere

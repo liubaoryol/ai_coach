@@ -1,5 +1,3 @@
-from typing import Sequence, Optional
-from dataclasses import dataclass
 import numpy as np
 import json
 import os
@@ -26,6 +24,16 @@ from web_experiment.define import EMode, EDomainType, get_domain_type
 import web_experiment.exp_common.events_impl as event_impl
 from web_experiment.exp_common.page_base import CanvasPageBase, CanvasPageError
 from web_experiment.exp_common.page_replay import UserDataReplay
+
+
+def get_init_user_data(cur_user, session_name, trajectory):
+  user_data = UserDataReplay()
+  user_data.data[UserDataReplay.USER] = cur_user
+  user_data.data[UserDataReplay.SESSION_NAME] = session_name
+  user_data.data[UserDataReplay.TRAJECTORY] = trajectory
+  user_data.data[UserDataReplay.TRAJ_IDX] = 0
+  user_data.data[UserDataReplay.USER_FIX] = {}
+  return user_data
 
 
 def load_trajectory(session_name, id):
@@ -132,22 +140,6 @@ def read_file(file_name, domain_type: EDomainType):
   return traj_of_dict
 
 
-@dataclass
-class SessionData:
-  '''
-    socketio session data whose life cycle is intended to be
-    from "connect" to "disconnect" of socketio
-  '''
-  user_id: str
-  user_data: UserDataReplay
-  session_name: str
-  trajectory: Sequence
-  index: int = 0
-  groupid: Optional[str] = None
-  latent_collected: Optional[Sequence] = None
-  latent_predicted: Optional[Sequence] = None
-
-
 def no_trajectory_page(sid, name_space, text):
   page = CanvasPageError(text)
   (commands, drawing_objs, drawing_order,
@@ -161,7 +153,7 @@ def no_trajectory_page(sid, name_space, text):
 def update_canvas(sid,
                   name_space,
                   page: CanvasPageBase,
-                  session_data: SessionData,
+                  user_data: UserDataReplay,
                   init_imgs=False,
                   domain_type: EDomainType = None):
   imgs = None
@@ -169,10 +161,7 @@ def update_canvas(sid,
     imgs = event_impl.get_imgs(domain_type)
 
   drawing_info = None
-  if session_data is not None:
-    user_data = session_data.user_data
-    user_data.data[UserDataReplay.TRAJECTORY] = session_data.trajectory
-    user_data.data[UserDataReplay.TRAJ_IDX] = session_data.index
+  if user_data is not None:
     page.init_user_data(user_data)
     drawing_info = page.get_updated_drawing_info(user_data)
 
@@ -190,15 +179,9 @@ def update_canvas(sid,
 
 
 def canvas_button_clicked(sid, name_space, button, page: CanvasPageBase,
-                          session_data: SessionData):
-  if session_data is None:
+                          user_data: UserDataReplay):
+  if user_data is None:
     return
-
-  user_data = session_data.user_data
-  user_data.data[UserDataReplay.TRAJECTORY] = session_data.trajectory
-  user_data.data[UserDataReplay.TRAJ_IDX] = session_data.index
-
-  page.init_user_data(user_data)
 
   page.button_clicked(user_data, button)
 
@@ -213,9 +196,9 @@ def canvas_button_clicked(sid, name_space, button, page: CanvasPageBase,
 
 
 def update_latent_state(domain_type: EDomainType, mode: EMode,
-                        session_data: SessionData):
+                        user_data: UserDataReplay):
   latent_human, latent_human_predicted, latent_robot = get_latent_states(
-      domain_type, mode=mode, session_data=session_data)
+      domain_type, mode=mode, user_data=user_data)
   objs = {}
   objs['latent_human'] = latent_human
   objs['latent_robot'] = latent_robot
@@ -233,23 +216,25 @@ def update_latent_state(domain_type: EDomainType, mode: EMode,
 
 
 def get_latent_states(domain_type: EDomainType, mode: EMode,
-                      session_data: SessionData):
-  dict = session_data.trajectory[session_data.index]
+                      user_data: UserDataReplay):
+  trj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
+  dict = user_data.data[UserDataReplay.TRAJECTORY][trj_idx]
   latent_human = "None"
   latent_robot = "None"
   latent_human_predicted = "None"
   if mode == EMode.Replay:
     if dict['a1_latent']:
       latent_human = str(dict["a1_latent"])
-    latent, prob = predict_human_latent(session_data.trajectory,
-                                        session_data.index, domain_type)
+    latent, prob = predict_human_latent(
+        user_data.data[UserDataReplay.TRAJECTORY], trj_idx, domain_type)
     latent_human_predicted = str(latent) + f", P(x) = {prob:.2f}"
   elif mode == EMode.Collected:
-    if session_data.latent_collected is not None:
-      latent_human = session_data.latent_collected[session_data.index]
+    if user_data.data[UserDataReplay.LATENT_COLLECTED] is not None:
+      latent_human = user_data.data[UserDataReplay.LATENT_COLLECTED][trj_idx]
   elif mode == EMode.Predicted:
-    if session_data.latent_predicted is not None:
-      latent_human_predicted = session_data.latent_predicted[session_data.index]
+    if user_data.data[UserDataReplay.LATENT_PREDICTED] is not None:
+      latent_human_predicted = user_data.data[
+          UserDataReplay.LATENT_PREDICTED][trj_idx]
 
   if dict['a2_latent']:
     latent_robot = str(dict['a2_latent'])

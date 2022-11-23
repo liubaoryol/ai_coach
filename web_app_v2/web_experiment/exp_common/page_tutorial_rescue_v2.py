@@ -395,7 +395,7 @@ class RescueV2TutorialPartialObs(RescueV2TutorialBase):
         "observe the fire engine unless it is at each landmark or at the " +
         "same location as you (police car). Therefore, to do the task " +
         "efficiently you will need to guess where the fire engine will go. " +
-        "Similarly, the fire engine CANNOT fully observe you.")
+        "Similarly, the fire engine CANNOT always observe you.")
 
 
 class RescueV2TutorialDestination(RescueV2TutorialBase):

@@ -79,6 +79,7 @@ class RescueTutorialBase(RescueGamePage):
 
 
 class RescueTutorialActions(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(False, False, False)
 
@@ -147,6 +148,7 @@ class RescueTutorialActions(RescueTutorialBase):
 
 
 class RescueTutorialPlain(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(False, False, False)
 
@@ -171,6 +173,7 @@ class RescueTutorialPlain(RescueTutorialBase):
 
 
 class RescueTutorialOverallGoal(RescueTutorialPlain):
+
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("Your goal is to rescue people as many as possible in " + MAX_STEP +
             " steps. " +
@@ -179,6 +182,7 @@ class RescueTutorialOverallGoal(RescueTutorialPlain):
 
 
 class RescueTutorialOnlyHuman(RescueTutorialPlain):
+
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
         "While the success of the task depends on both you (police car) " +
@@ -187,6 +191,7 @@ class RescueTutorialOnlyHuman(RescueTutorialPlain):
 
 
 class RescueTutorialSimpleTarget(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(False, False, False)
 
@@ -220,6 +225,7 @@ class RescueTutorialSimpleTarget(RescueTutorialBase):
 
 
 class RescueTutorialResolvedAlone(RescueTutorialPlain):
+
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("Well done! You will see the \"yellow sign\" at City Hall" +
             " is now disappeared and one person is rescued. Similarly, " +
@@ -227,6 +233,7 @@ class RescueTutorialResolvedAlone(RescueTutorialPlain):
 
 
 class RescueTutorialComplexTarget(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(False, False, False)
 
@@ -280,6 +287,7 @@ class RescueTutorialComplexTarget(RescueTutorialBase):
 
 
 class RescueTutorialComplexTargetTogether(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(False, False, False)
 
@@ -326,6 +334,7 @@ class RescueTutorialComplexTargetTogether(RescueTutorialBase):
 
 
 class RescueTutorialResolvedTogether(RescueTutorialPlain):
+
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
         "Well done! You will see the bridge is repaired and the \"yellow sign\""
@@ -334,6 +343,7 @@ class RescueTutorialResolvedTogether(RescueTutorialPlain):
 
 
 class RescueTutorialScore(RescueTutorialPlain):
+
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_game_data)
@@ -356,6 +366,7 @@ class RescueTutorialScore(RescueTutorialPlain):
 
 
 class RescueTutorialPartialObs(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(False, False, False)
 
@@ -377,10 +388,11 @@ class RescueTutorialPartialObs(RescueTutorialBase):
         "observe the fire engine unless it is at each landmark or at the " +
         "same location as you (police car). Therefore, to do the task " +
         "efficiently you will need to guess where the fire engine will go. " +
-        "Similarly, the fire engine CANNOT fully observe you.")
+        "Similarly, the fire engine CANNOT always observe you.")
 
 
 class RescueTutorialDestination(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(False, False, False)
 
@@ -414,6 +426,7 @@ class RescueTutorialDestination(RescueTutorialBase):
 
 
 class RescueTutorialLatent(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(True, True, True)
 
@@ -458,6 +471,7 @@ class RescueTutorialLatent(RescueTutorialBase):
 
 
 class RescueTutorialSelResult(RescueTutorialPlain):
+
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
@@ -485,6 +499,7 @@ class RescueTutorialSelResult(RescueTutorialPlain):
 
 
 class RescueTutorialMiniGame(RescueTutorialBase):
+
   def __init__(self) -> None:
     super().__init__(True, True, True)
 

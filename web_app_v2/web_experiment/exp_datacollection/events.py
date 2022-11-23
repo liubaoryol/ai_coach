@@ -14,6 +14,7 @@ for socket_type in SocketType:
   name_space = '/' + socket_type.name
 
   def make_init_canvas(socket_type, name_space=name_space):
+
     def initial_canvas():
       global g_id_2_user_data
       cur_user = session.get('user_id')
@@ -24,6 +25,8 @@ for socket_type in SocketType:
 
       user_data.data[Exp1UserData.SAVE_PATH] = (
           current_app.config["TRAJECTORY_PATH"])
+      user_data.data[Exp1UserData.USER_LABEL_PATH] = (
+          current_app.config["USER_LABEL_PATH"])
       user_data.data[Exp1UserData.EXP_TYPE] = ExpType.Data_collection
 
       session_name = session["loaded_session_name"]
@@ -37,6 +40,7 @@ for socket_type in SocketType:
     return initial_canvas
 
   def make_disconnected():
+
     def disconnected():
       global g_id_2_user_data
       env_id = request.sid
@@ -47,6 +51,7 @@ for socket_type in SocketType:
     return disconnected
 
   def make_button_clicked(socket_type, name_space=name_space):
+
     def button_clicked(msg):
       global g_id_2_user_data
       button = msg["name"]

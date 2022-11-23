@@ -78,6 +78,7 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
 # canvas page game
 ###############################################################################
 class BoxPushGamePageBase(ExperimentPageBase):
+
   def __init__(self,
                domain_type: EDomainType,
                manual_latent_selection,
@@ -152,6 +153,8 @@ class BoxPushGamePageBase(ExperimentPageBase):
         game.event_input(self._AGENT1, EventType.SET_LATENT, latent)
         user_game_data.data[Exp1UserData.SELECT] = False
         user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+        user_game_data.data[Exp1UserData.USER_LABELS].append(
+            (game.current_step, latent))
         return
 
     return super().button_clicked(user_game_data, clicked_btn)

@@ -1,4 +1,4 @@
-from typing import Mapping, Any
+from typing import Mapping, Any, Optional
 import copy
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_base import Exp1UserData
@@ -9,14 +9,21 @@ from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 class UserDataReplay(Exp1UserData):
   TRAJECTORY = "trajectory"
   TRAJ_IDX = "traj_idx"
+  USER_FIX = "user_fix"
+  LATENT_COLLECTED = "latent_collected"
+  LATENT_PREDICTED = "latent_predicted"
 
   def __init__(self, user=None) -> None:
     super().__init__(user)
     self.data[self.TRAJECTORY] = []
     self.data[self.TRAJ_IDX] = 0
+    self.data[self.USER_FIX] = None  # type: Optional[Mapping]
+    self.data[self.LATENT_COLLECTED] = None
+    self.data[self.LATENT_PREDICTED] = None
 
 
 class BoxPushReplayPage(BoxPushGamePageBase):
+
   def __init__(self, domain_type, partial_obs, game_map) -> None:
     super().__init__(domain_type, False, game_map, False, False, 0)
     self._PARTIAL_OBS = partial_obs
@@ -99,6 +106,7 @@ class BoxPushReplayPage(BoxPushGamePageBase):
 
 
 class BoxPushReviewPage(BoxPushReplayPage):
+
   def _get_fix_destination(self, disable):
     ctrl_btn_w = int(self.GAME_WIDTH / 12)
     x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
@@ -122,8 +130,8 @@ class BoxPushReviewPage(BoxPushReplayPage):
     dict_objs = super().canvas_objects(dict_game, user_data)
 
     max_idx = len(user_data.data[UserDataReplay.TRAJECTORY])
-    fix_disable = ((user_data.data[UserDataReplay.TRAJ_IDX] == max_idx - 1)
-                   or user_data.data[UserDataReplay.SELECT])
+    fix_disable = (user_data.data[UserDataReplay.TRAJ_IDX] == max_idx - 1)
+
     obj = self._get_fix_destination(fix_disable)
     dict_objs[obj.name] = obj
 
@@ -146,7 +154,8 @@ class BoxPushReviewPage(BoxPushReplayPage):
 
   def button_clicked(self, user_data: UserDataReplay, clicked_btn: str):
     if clicked_btn == co.BTN_SELECT:
-      user_data.data[UserDataReplay.SELECT] = True
+      user_data.data[UserDataReplay.SELECT] = (
+          not user_data.data[UserDataReplay.SELECT])
       return
     elif self.is_sel_latent_btn(clicked_btn):
       latent = self.selbtn2latent(clicked_btn)
@@ -155,12 +164,14 @@ class BoxPushReviewPage(BoxPushReplayPage):
         traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
         dict_game = user_data.data[UserDataReplay.TRAJECTORY][traj_idx]
         dict_game["a1_latent"] = latent
+        user_data.data[UserDataReplay.USER_FIX][traj_idx] = latent
         return
 
     return super().button_clicked(user_data, clicked_btn)
 
 
 class RescueReplayPage(RescueGamePageBase):
+
   def __init__(self, partial_obs, game_map) -> None:
     super().__init__(False, game_map, False, False, 0)
     self._PARTIAL_OBS = partial_obs
@@ -246,6 +257,7 @@ class RescueReplayPage(RescueGamePageBase):
 
 
 class RescueReviewPage(RescueReplayPage):
+
   def _get_fix_destination(self, disable):
     ctrl_btn_w = int(self.GAME_WIDTH / 12)
     x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
@@ -292,7 +304,8 @@ class RescueReviewPage(RescueReplayPage):
 
   def button_clicked(self, user_data: UserDataReplay, clicked_btn: str):
     if clicked_btn == co.BTN_SELECT:
-      user_data.data[Exp1UserData.SELECT] = True
+      user_data.data[Exp1UserData.SELECT] = (
+          not user_data.data[Exp1UserData.SELECT])
       return
     elif self.is_sel_latent_btn(clicked_btn):
       latent = self.selbtn2latent(clicked_btn)
@@ -301,6 +314,7 @@ class RescueReviewPage(RescueReplayPage):
         traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
         dict_game = user_data.data[UserDataReplay.TRAJECTORY][traj_idx]
         dict_game["a1_latent"] = latent
+        user_data.data[UserDataReplay.USER_FIX][traj_idx] = latent
         return
 
     return super().button_clicked(user_data, clicked_btn)

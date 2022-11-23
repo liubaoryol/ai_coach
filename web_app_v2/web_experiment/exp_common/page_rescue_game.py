@@ -6,7 +6,8 @@ from ai_coach_domain.rescue.policy import Policy_Rescue
 from ai_coach_domain.rescue.maps import MAP_RESCUE
 from web_experiment.models import db, User
 from web_experiment.exp_common.page_base import Exp1UserData
-from web_experiment.exp_common.helper import get_file_name
+from web_experiment.exp_common.helper import (get_file_name,
+                                              store_user_label_locally)
 from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 
 TEMPERATURE = 0.3
@@ -16,6 +17,7 @@ RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
 
 
 class RescueGamePage(RescueGamePageBase):
+
   def __init__(self,
                manual_latent_selection,
                auto_prompt: bool = True,
@@ -45,6 +47,11 @@ class RescueGamePage(RescueGamePageBase):
     header += "User ID: %s\n" % (str(user_id), )
     header += str(self._GAME_MAP)
     game.save_history(file_name, header)
+
+    user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
+    user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
+    store_user_label_locally(user_label_path, user_id, session_name,
+                             user_labels)
 
     # update score
     best_score = user.best_c
@@ -78,6 +85,7 @@ class RescueGamePage(RescueGamePageBase):
 
 
 class RescueGameUserRandom(RescueGamePage):
+
   def __init__(self, partial_obs) -> None:
     super().__init__(True, True, True, 5)
     self._PARTIAL_OBS = partial_obs
