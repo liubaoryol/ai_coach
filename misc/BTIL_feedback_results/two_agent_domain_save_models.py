@@ -4,8 +4,8 @@ import click
 import logging
 import random
 import numpy as np
-# from ai_coach_core.model_learning.BTIL.btil_for_two import BTILforTwo
-from ai_coach_core.model_learning.BTIL import BTIL
+# from ai_coach_core.model_learning.BTIL import BTIL
+from ai_coach_core.model_learning.BTIL.btil_decentral import BTIL_Decen
 from ai_coach_domain.helper import TrueModelConverter
 
 import helper
@@ -283,15 +283,15 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
                                     tup_aidx, sidx_n)
 
   # learning models
-  btil_models = BTIL(traj_labeled_ver[0:labeled_data_idx] +
-                     traj_unlabel_ver[labeled_data_idx:],
-                     MDP_TASK.num_states,
-                     tuple([MDP_AGENT.num_latents] * len(AGENTS)),
-                     joint_action_num,
-                     transition_s,
-                     trans_x_dependency=tuple_tx_dependency,
-                     epsilon=0.01,
-                     max_iteration=100)
+  btil_models = BTIL_Decen(traj_labeled_ver[0:labeled_data_idx] +
+                           traj_unlabel_ver[labeled_data_idx:],
+                           MDP_TASK.num_states,
+                           tuple([MDP_AGENT.num_latents] * len(AGENTS)),
+                           joint_action_num,
+                           transition_s,
+                           trans_x_dependency=tuple_tx_dependency,
+                           epsilon=0.01,
+                           max_iteration=100)
   btil_models.set_dirichlet_prior(beta_pi, beta_tx)
 
   if use_true_tx:
@@ -307,7 +307,7 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
   if not os.path.exists(save_dir):
     os.mkdir(save_dir)
 
-  policy_file_name = SAVE_PREFIX + "_btil2_policy_"
+  policy_file_name = SAVE_PREFIX + "_btil_dec_policy_"
   policy_file_name += "synth_" if synthetic else "human_"
   policy_file_name += "withTx_" if use_true_tx else "woTx_"
   policy_file_name += tx_dependency + "_" if not use_true_tx else ""
@@ -316,20 +316,14 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
   for idx in range(len(btil_models.list_np_policy)):
     np.save(policy_file_name + f"_a{idx + 1}", btil_models.list_np_policy[idx])
 
-  # np.save(policy_file_name + "_a1", btil_models.list_np_policy[0])
-  # np.save(policy_file_name + "_a2", btil_models.list_np_policy[1])
-
   if not use_true_tx:
-    tx_file_name = SAVE_PREFIX + "_btil2_tx_"
+    tx_file_name = SAVE_PREFIX + "_btil_dec_tx_"
     tx_file_name += "synth_" if synthetic else "human_"
     tx_file_name += tx_dependency + "_"
     tx_file_name += ("%d_%.2f" % (num_train, supervision)).replace('.', ',')
     tx_file_name = os.path.join(save_dir, tx_file_name)
     for idx in range(len(btil_models.list_Tx)):
       np.save(tx_file_name + f"_a{idx + 1}", btil_models.list_Tx[idx].np_Tx)
-
-    # np.save(tx_file_name + "_a1", btil_models.list_Tx[0].np_Tx)
-    # np.save(tx_file_name + "_a2", btil_models.list_Tx[1].np_Tx)
 
 
 if __name__ == "__main__":

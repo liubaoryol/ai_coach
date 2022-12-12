@@ -6,14 +6,8 @@ from ai_coach_core.model_learning.BTIL.transition_x import TransitionX
 
 T_SAXSeqence = Sequence[Tuple[int, Tuple[int, int], Tuple[int, int]]]
 
-# input: trajectories, mental models (optional), number of agents,
-# output: policy table
 
-# components: dirichlet distribution
-# pi: |X| x |S| x |A|
-
-
-class BTIL:
+class BTIL_Decen:
 
   def __init__(
       self,
@@ -69,232 +63,149 @@ class BTIL:
 
   def estep_local_variables(self, list_policy):
 
-    list_q_x = []  # Ntraj x Nstep x X^2
-    list_q_x_xn = []  # Ntraj x Nstep x X^4
+    list_q_x = []
+    list_q_x_xn = []
     for m_th in range(len(self.trajectories)):
       trajectory = self.trajectories[m_th]
 
-      # Forward messaging
-      with np.errstate(divide='ignore'):
-        np_log_forward = np.log(
-            np.zeros((len(trajectory), *self.tuple_num_latents)))
-
-      t = 0
-      stt_p, joint_a_p, joint_x_p = trajectory[t]
-
-      idx_xp = [None] * self.num_agents
-      len_xp = [None] * self.num_agents
-      for idx in range(self.num_agents):
-        if joint_x_p[idx] is None:
-          idx_xp[idx] = slice(None)
-          len_xp[idx] = self.tuple_num_latents[idx]
-        else:
-          idx_xp[idx] = joint_x_p[idx]
-          len_xp[idx] = 1
-
-      # yapf: disable
-      with np.errstate(divide='ignore'):
-        np_log_forward[t][tuple(idx_xp)] = 0.0
-
-        for i_a in range(self.num_agents):
-          none_1hot = [None] * self.num_agents
-          none_1hot[i_a] = idx_xp[i_a]
-          one_1hot = [1] * self.num_agents
-          one_1hot[i_a] = len_xp[i_a]
-
-          np_log_forward[t][tuple(idx_xp)] += np.log(
-            self.cb_bx(i_a, stt_p)[tuple(none_1hot)].reshape(*one_1hot) *
-            list_policy[i_a][:, stt_p, joint_a_p[i_a]][tuple(none_1hot)].reshape(*one_1hot))  # noqa: E501
-      # yapf: enable
-
-      # t = 1:N-1
-      for t in range(1, len(trajectory)):
-        t_p = t - 1
-        stt, joint_a, joint_x = trajectory[t]
-
-        idx_x = [None] * self.num_agents
-        len_x = [None] * self.num_agents
-        for idx in range(self.num_agents):
-          if joint_x[idx] is None:
-            idx_x[idx] = slice(None)
-            len_x[idx] = self.tuple_num_latents[idx]
-          else:
-            idx_x[idx] = joint_x[idx]
-            len_x[idx] = 1
-
-        # yapf: disable
-        with np.errstate(divide='ignore'):
-          nones_wo_xp = idx_xp + [None] * self.num_agents
-          ones_wo_xp = len_xp + [1] * self.num_agents
-          np_log_prob = np_log_forward[t_p][tuple(nones_wo_xp)].reshape(*ones_wo_xp)  # noqa: E501
-
-          for i_a in range(self.num_agents):
-            none_xp_x_2hot = [None] * (2 * self.num_agents)
-            none_xp_x_2hot[i_a] = idx_xp[i_a]
-            none_xp_x_2hot[i_a + self.num_agents] = idx_x[i_a]
-
-            one_xp_x_2hot = [1] * (2 * self.num_agents)
-            one_xp_x_2hot[i_a] = len_xp[i_a]
-            one_xp_x_2hot[i_a + self.num_agents] = len_x[i_a]
-
-            np_log_prob = np_log_prob + np.log(
-              self.get_Tx(i_a, stt_p, joint_a_p, stt)[tuple(none_xp_x_2hot)].reshape(*one_xp_x_2hot)  # noqa: E501
-            )
-
-            none_x_1hot = [None] * (2 * self.num_agents)
-            none_x_1hot[i_a + self.num_agents] = idx_x[i_a]
-            one_x_1hot = [1] * (2 * self.num_agents)
-            one_x_1hot[i_a + self.num_agents] = len_x[i_a]
-            np_log_prob = np_log_prob + np.log(
-              list_policy[i_a][:, stt, joint_a[i_a]][tuple(none_x_1hot)].reshape(*one_x_1hot)  # noqa: E501
-            )
-
-          np_log_prob = np_log_prob + np.log(self.cb_transition_s(stt_p, joint_a_p, stt))  # noqa: E501
-
-        np_log_forward[t][tuple(idx_x)] = logsumexp(np_log_prob, axis=tuple(range(self.num_agents)))  # noqa: E501
-        # yapf: enable
-
-        stt_p = stt
-        joint_a_p = joint_a
-        idx_xp = idx_x
-        len_xp = len_x
-
-      # Backward messaging
-      with np.errstate(divide='ignore'):
-        np_log_backward = np.log(
-            np.zeros((len(trajectory), *self.tuple_num_latents)))
-      # t = N-1
-      t = len(trajectory) - 1
-
-      stt_n, joint_a_n, joint_x_n = trajectory[t]
-
-      idx_xn = [None] * self.num_agents
-      len_xn = [None] * self.num_agents
-      for idx in range(self.num_agents):
-        if joint_x_n[idx] is None:
-          idx_xn[idx] = slice(None)
-          len_xn[idx] = self.tuple_num_latents[idx]
-        else:
-          idx_xn[idx] = joint_x_n[idx]
-          len_xn[idx] = 1
-
-      np_log_backward[t][tuple(idx_xn)] = 0.0
-
-      # t = 0:N-2
-      for t in reversed(range(0, len(trajectory) - 1)):
-        t_n = t + 1
-        stt, joint_a, joint_x = trajectory[t]
-
-        idx_x = [None] * self.num_agents
-        len_x = [None] * self.num_agents
-        for idx in range(self.num_agents):
-          if joint_x[idx] is None:
-            idx_x[idx] = slice(None)
-            len_x[idx] = self.tuple_num_latents[idx]
-          else:
-            idx_x[idx] = joint_x[idx]
-            len_x[idx] = 1
-
-        # yapf: disable
-        with np.errstate(divide='ignore'):
-          nones_wo_x = [None] * self.num_agents + idx_xn
-          ones_wo_x = [1] * self.num_agents + len_xn
-          np_log_prob = np_log_backward[t_n][tuple(nones_wo_x)].reshape(*ones_wo_x)  # noqa: E501
-
-          for i_a in range(self.num_agents):
-            none_x_xn_2hot = [None] * (2 * self.num_agents)
-            none_x_xn_2hot[i_a] = idx_x[i_a]
-            none_x_xn_2hot[i_a + self.num_agents] = idx_xn[i_a]
-            one_x_xn_2hot = [1] * (2 * self.num_agents)
-            one_x_xn_2hot[i_a] = len_x[i_a]
-            one_x_xn_2hot[i_a + self.num_agents] = len_xn[i_a]
-
-            np_log_prob = np_log_prob + np.log(
-              self.get_Tx(i_a, stt, joint_a, stt_n)[tuple(none_x_xn_2hot)].reshape(*one_x_xn_2hot)  # noqa: E501
-            )
-
-            none_xn_1hot = [None] * (2 * self.num_agents)
-            none_xn_1hot[i_a + self.num_agents] = idx_xn[i_a]
-            one_xn_1hot = [1] * (2 * self.num_agents)
-            one_xn_1hot[i_a + self.num_agents] = len_xn[i_a]
-
-            np_log_prob = np_log_prob + np.log(
-              list_policy[i_a][:, stt_n, joint_a_n[i_a]][tuple(none_xn_1hot)].reshape(*one_xn_1hot)  # noqa: E501
-            )
-
-          np_log_prob = np_log_prob + np.log(self.cb_transition_s(stt, joint_a, stt_n))  # noqa: E501
-
-        np_log_backward[t][tuple(idx_x)] = logsumexp(np_log_prob, axis=tuple(range(self.num_agents, 2 * self.num_agents)))  # noqa: E501
-        # yapf: enable
-
-        stt_n = stt
-        joint_a_n = joint_a
-        # joint_x_n = joint_x
-        idx_xn = idx_x
-        len_xn = len_x
-
-      # compute q_x, q_x_xp
-      log_q_joint_x = np_log_forward + np_log_backward
-
       qx_all = []
-      for i_a in range(self.num_agents):
-        axis = tuple(range(1, i_a + 1)) + tuple(
-            range(i_a + 2, self.num_agents + 1))
-        log_q_x = logsumexp(log_q_joint_x, axis=axis)
-        q_x = softmax(log_q_x, axis=1)
-        qx_all.append(q_x)
-
-      list_q_x.append(qx_all)
-
-      if self.cb_Tx is None:
-        # n_x = self.num_lstates
+      q_x_xn_all = []
+      for idx_a in range(self.num_agents):
+        n_lat = self.tuple_num_latents[idx_a]
+        # Forward messaging
         with np.errstate(divide='ignore'):
-          log_q_xx_xnxn = np.log(
-              np.zeros((len(trajectory) - 1, *self.tuple_num_latents,
-                        *self.tuple_num_latents)))  # noqa: E501
+          np_log_forward = np.log(np.zeros((len(trajectory), n_lat)))
 
-        for t in range(len(trajectory) - 1):
+        t = 0
+        stt_p, joint_a_p, joint_x_p = trajectory[t]
+
+        idx_xp = joint_x_p[idx_a]
+        len_xp = 1
+        if joint_x_p[idx_a] is None:
+          idx_xp = slice(None)
+          len_xp = n_lat
+
+        with np.errstate(divide='ignore'):
+          np_log_forward[t][idx_xp] = 0.0
+
+          np_log_forward[t][idx_xp] += np.log(
+              self.cb_bx(idx_a, stt_p)[idx_xp] *
+              list_policy[idx_a][idx_xp, stt_p, joint_a_p[idx_a]])
+
+        # t = 1:N-1
+        for t in range(1, len(trajectory)):
+          t_p = t - 1
           stt, joint_a, joint_x = trajectory[t]
-          sttn, joint_a_n, joint_x_n = trajectory[t + 1]
+
+          idx_x = joint_x[idx_a]
+          len_x = 1
+          if joint_x[idx_a] is None:
+            idx_x = slice(None)
+            len_x = n_lat
 
           # yapf: disable
           with np.errstate(divide='ignore'):
-            ones = [1] * self.num_agents
-            log_q_xx_xnxn[t] = (
-              np_log_forward[t].reshape(*self.tuple_num_latents, *ones) +
-              np_log_backward[t + 1].reshape(*ones, *self.tuple_num_latents)
+            np_log_prob = np_log_forward[t_p][idx_xp].reshape(len_xp, 1)
+
+            np_log_prob = np_log_prob + np.log(
+              self.get_Tx(idx_a, stt_p, joint_a_p, stt)[idx_xp, idx_x].reshape(len_xp, len_x)  # noqa: E501
             )
 
-            for i_a in range(self.num_agents):
-              one_x_xn_2hot = [1] * (2 * self.num_agents)
-              one_x_xn_2hot[i_a] = self.tuple_num_latents[i_a]
-              one_x_xn_2hot[i_a + self.num_agents] = self.tuple_num_latents[i_a]
+            np_log_prob = np_log_prob + np.log(
+              list_policy[idx_a][idx_x, stt, joint_a[idx_a]].reshape(1, len_x)  # noqa: E501
+            )
 
-              log_q_xx_xnxn[t] += np.log(
-                self.list_Tx[i_a].get_q_xxn(stt, joint_a, sttn).reshape(*one_x_xn_2hot)  # noqa: E501
-              )
-
-              one_xn_1hot = [1] * (2 * self.num_agents)
-              one_xn_1hot[i_a + self.num_agents] = self.tuple_num_latents[i_a]
-
-              log_q_xx_xnxn[t] += np.log(
-                list_policy[i_a][:, sttn, joint_a_n[i_a]].reshape(*one_xn_1hot)
-              )
-
-            log_q_xx_xnxn[t] += np.log(self.cb_transition_s(stt, joint_a, sttn))
+          np_log_forward[t][idx_x] = logsumexp(np_log_prob, axis=0)
           # yapf: enable
 
-        q_x_xn_all = []
-        for i_a in range(self.num_agents):
-          axis = (
-              tuple(range(1, i_a + 1)) +
-              tuple(range(i_a + 2, self.num_agents + 1)) +
-              tuple(range(self.num_agents + 1, self.num_agents + i_a + 1)) +
-              tuple(range(self.num_agents + i_a + 2, 2 * self.num_agents + 1)))
-          log_q_x_xn = logsumexp(log_q_xx_xnxn, axis=axis)
+          stt_p = stt
+          joint_a_p = joint_a
+          idx_xp = idx_x
+          len_xp = len_x
+
+        # Backward messaging
+        with np.errstate(divide='ignore'):
+          np_log_backward = np.log(np.zeros((len(trajectory), n_lat)))
+        # t = N-1
+        t = len(trajectory) - 1
+
+        stt_n, joint_a_n, joint_x_n = trajectory[t]
+
+        idx_xn = joint_x_n[idx_a]
+        len_xn = 1
+        if joint_x_n[idx_a] is None:
+          idx_xn = slice(None)
+          len_xn = n_lat
+
+        np_log_backward[t][idx_xn] = 0.0
+
+        # t = 0:N-2
+        for t in reversed(range(0, len(trajectory) - 1)):
+          t_n = t + 1
+          stt, joint_a, joint_x = trajectory[t]
+
+          idx_x = joint_x[idx_a]
+          len_x = 1
+          if joint_x[idx_a] is None:
+            idx_x = slice(None)
+            len_x = n_lat
+
+          # yapf: disable
+          with np.errstate(divide='ignore'):
+            np_log_prob = np_log_backward[t_n][idx_xn].reshape(1, len_xn)  # noqa: E501
+
+            np_log_prob = np_log_prob + np.log(
+              self.get_Tx(idx_a, stt, joint_a, stt_n)[idx_x, idx_xn].reshape(len_x, len_xn)  # noqa: E501
+            )
+
+            np_log_prob = np_log_prob + np.log(
+              list_policy[idx_a][idx_xn, stt_n, joint_a_n[idx_a]].reshape(1, len_xn)  # noqa: E501
+            )
+
+          np_log_backward[t][idx_x] = logsumexp(np_log_prob, axis=1)  # noqa: E501
+          # yapf: enable
+
+          stt_n = stt
+          joint_a_n = joint_a
+          idx_xn = idx_x
+          len_xn = len_x
+
+        # compute q_x, q_x_xp
+        log_q_x = np_log_forward + np_log_backward
+
+        q_x = softmax(log_q_x, axis=1)
+        qx_all.append(q_x)
+
+        if self.cb_Tx is None:
+          # n_x = self.num_lstates
+          with np.errstate(divide='ignore'):
+            log_q_x_xn = np.log(np.zeros((len(trajectory) - 1, n_lat, n_lat)))
+
+          for t in range(len(trajectory) - 1):
+            stt, joint_a, joint_x = trajectory[t]
+            sttn, joint_a_n, joint_x_n = trajectory[t + 1]
+
+            # yapf: disable
+            with np.errstate(divide='ignore'):
+              log_q_x_xn[t] = (
+                np_log_forward[t].reshape(n_lat, 1) +
+                np_log_backward[t + 1].reshape(1, n_lat)
+              )
+
+              log_q_x_xn[t] += np.log(
+                self.list_Tx[idx_a].get_q_xxn(stt, joint_a, sttn)
+              )
+
+              log_q_x_xn[t] += np.log(
+                list_policy[idx_a][:, sttn, joint_a_n[idx_a]].reshape(1, n_lat)
+              )
+            # yapf: enable
+
           q_x_xn = softmax(log_q_x_xn, axis=(1, 2))
           q_x_xn_all.append(q_x_xn)
 
+      list_q_x.append(qx_all)
+      if self.cb_Tx is None:
         list_q_x_xn.append(q_x_xn_all)
 
     return list_q_x, list_q_x_xn
@@ -322,10 +233,8 @@ class BTIL:
         self.list_Tx[i_a].init_lambda_Tx(self.beta_Tx)
 
       for m_th in range(len(self.trajectories)):
-        # q_x_xn1, q_x_xn2 = list_q_x_xn[m_th]
         q_x_xn_all = list_q_x_xn[m_th]
         traj = self.trajectories[m_th]
-        # for t, state, joint_a, joint_x in enumerate(traj):
         for t in range(len(traj) - 1):
           state, joint_a, _ = traj[t]
           state_n, _, _ = traj[t + 1]
