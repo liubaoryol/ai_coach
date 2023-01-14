@@ -73,12 +73,6 @@ class BTIL_Abstraction:
     self.lr = lr
     self.decay = decay
 
-  # def get_Tx(self, agent_idx, tup_aidx, zidx_n):
-  #   return self.list_Tx[agent_idx].get_Tx_prop(None, tup_aidx, zidx_n)
-
-  # def get_bx(self, agent_idx, zidx):
-  #   return self.list_bx[agent_idx][zidx]
-
   def set_prior(self, gem_prior: float, tx_prior: float, pi_prior: float,
                 abs_prior: float):
     self.hyper_gem = gem_prior
@@ -86,73 +80,8 @@ class BTIL_Abstraction:
     self.hyper_pi = pi_prior
     self.hyper_abs = abs_prior
 
-  def mc_e_Eqz_ln_bx(self, idx_a, np_bx_samples, qz_samples):
-    ln_bx_avg = np.zeros(self.tuple_num_latents[idx_a])
-    # sample
-    for z in qz_samples:
-      ln_bx_avg += np.sum(np.log(np_bx_samples[:, z, :]), axis=0)
-    ln_bx_avg /= len(qz_samples) * np_bx_samples.shape[0]
-
-    return np.exp(ln_bx_avg)
-
-  def mc_e_Eqz_ln_pi(self, idx_a, np_pi_samples, qz_samples, joint_a):
-    ln_pi_avg = np.zeros(self.tuple_num_latents[idx_a])
-    for z in qz_samples:
-      ln_pi_avg += np.sum(np.log(np_pi_samples[:, :, z, joint_a[idx_a]]),
-                          axis=0)
-    ln_pi_avg /= len(qz_samples) * np_pi_samples.shape[0]
-
-    return np.exp(ln_pi_avg)
-
-  def mc_e_Eqz_ln_tx(self, idx_a, np_tx_samples, joint_a, qz_samples):
-    n_lat = self.tuple_num_latents[idx_a]
-    ln_tx_avg = np.zeros((n_lat, n_lat))
-    for z in qz_samples:
-      index = (slice(None), slice(None), *joint_a, z, slice(None))
-      ln_tx_avg += np.sum(np.log(np_tx_samples[index]), axis=0)
-
-    ln_tx_avg /= len(qz_samples) * np_tx_samples.shape[0]
-
-    return np.exp(ln_tx_avg)
-
-  def mc_e_Eqx_ln_bx(self, idx_a, np_bx_samples, qx_samples):
-    ln_bx_avg = np.zeros(self.num_abstates)
-    for x in qx_samples:
-      ln_bx_avg += np.sum(np.log(np_bx_samples[:, :, x]), axis=0)
-    ln_bx_avg /= len(qx_samples) * np_bx_samples.shape[0]
-
-    return np.exp(ln_bx_avg)
-
-  def mc_e_Eqx_ln_pi(self, idx_a, np_pi_samples, qx_samples, joint_a):
-    ln_pi_avg = np.zeros(self.num_abstates)
-    for x in qx_samples:
-      ln_pi_avg += np.sum(np.log(np_pi_samples[:, x, :, joint_a[idx_a]]),
-                          axis=0)
-    ln_pi_avg /= len(qx_samples) * np_pi_samples.shape[0]
-
-    return np.exp(ln_pi_avg)
-
-  def mc_e_Eqx_ln_tx(self, idx_a, np_tx_samples, joint_a, qxx_samples):
-    ln_tx_avg = np.zeros(self.num_abstates)
-    for x1, x2 in qxx_samples:
-      index = (slice(None), x1, *joint_a, slice(None), x2)
-      ln_tx_avg += np.sum(np.log(np_tx_samples[index]), axis=0)
-
-    ln_tx_avg /= len(qxx_samples) * np_tx_samples.shape[0]
-
-    return np.exp(ln_tx_avg)
-
-  def sample_1d(self, q_z, n_draws):
-    return np.random.choice(len(q_z), size=n_draws, p=q_z)
-
-  def sample_2d(self, qxx: np.ndarray, n_draws):
-    flat = qxx.flatten()
-    sample_index = np.random.choice(len(flat), size=n_draws, p=flat)
-    adjusted_index = np.unravel_index(sample_index, qxx.shape)
-    return list(zip(*adjusted_index))
-
-  def forward_backward_messaging(self, idx_a, trajectory, list_qz_samples,
-                                 np_pi_samples, np_bx_samples, np_tx_samples):
+  def forward_backward_messaging(self, idx_a, trajectory, np_q_z, np_pi_tilde,
+                                 np_tx_tilde, np_bx_tilde):
     n_lat = self.tuple_num_latents[idx_a]
     # Forward messaging
     with np.errstate(divide='ignore'):
@@ -164,9 +93,8 @@ class BTIL_Abstraction:
     with np.errstate(divide='ignore'):
       np_log_forward[t] = 0.0
       np_log_forward[t] += np.log(
-          self.mc_e_Eqz_ln_bx(idx_a, np_bx_samples, list_qz_samples[t]) *
-          self.mc_e_Eqz_ln_pi(idx_a, np_pi_samples, list_qz_samples[t],
-                              joint_a_p))
+          (np_q_z[t] @ np_bx_tilde) *
+          (np_pi_tilde[:, :, joint_a_p[idx_a]] @ np_q_z[t]))
 
     # t = 1:N-1
     for t in range(1, len(trajectory)):
@@ -176,13 +104,12 @@ class BTIL_Abstraction:
       with np.errstate(divide='ignore'):
         np_log_prob = np_log_forward[t_p][:, None]
 
+        tx_index = (slice(None), *joint_a_p, slice(None), slice(None))
         np_log_prob = np_log_prob + np.log(
-            self.mc_e_Eqz_ln_tx(idx_a, np_tx_samples, joint_a_p,
-                                list_qz_samples[t]))
+            np.tensordot(np_tx_tilde[tx_index], np_q_z[t], axes=(1, 0)))
 
         np_log_prob = np_log_prob + np.log(
-            self.mc_e_Eqz_ln_pi(idx_a, np_pi_samples, list_qz_samples[t],
-                                joint_a)[None, :])
+            np_pi_tilde[:, :, joint_a[idx_a]] @ np_q_z[t])[None, :]
 
       np_log_forward[t] = logsumexp(np_log_prob, axis=0)
 
@@ -206,13 +133,12 @@ class BTIL_Abstraction:
       with np.errstate(divide='ignore'):
         np_log_prob = np_log_backward[t_n][None, :]
 
+        tx_index = (slice(None), *joint_a, slice(None), slice(None))
         np_log_prob = np_log_prob + np.log(
-            self.mc_e_Eqz_ln_tx(idx_a, np_tx_samples, joint_a,
-                                list_qz_samples[t_n]))
+            np.tensordot(np_tx_tilde[tx_index], np_q_z[t_n], axes=(1, 0)))
 
         np_log_prob = np_log_prob + np.log(
-            self.mc_e_Eqz_ln_pi(idx_a, np_pi_samples, list_qz_samples[t_n],
-                                joint_a_n)[None, :])
+            np_pi_tilde[:, :, joint_a_n[idx_a]] @ np_q_z[t_n])[None, :]
 
       np_log_backward[t] = logsumexp(np_log_prob, axis=1)  # noqa: E501
 
@@ -233,79 +159,52 @@ class BTIL_Abstraction:
       with np.errstate(divide='ignore'):
         log_q_x_xn[t] = (np_log_forward[t][:, None] +
                          np_log_backward[t + 1][None, :])
+        tx_index = (slice(None), *joint_a, slice(None), slice(None))
+        log_q_x_xn[t] += np.log(
+            np.tensordot(np_tx_tilde[tx_index], np_q_z[t + 1], axes=(1, 0)))
 
         log_q_x_xn[t] += np.log(
-            self.mc_e_Eqz_ln_tx(idx_a, np_tx_samples, joint_a,
-                                list_qz_samples[t + 1]))
-
-        log_q_x_xn[t] += np.log(
-            self.mc_e_Eqz_ln_pi(idx_a, np_pi_samples, list_qz_samples[t + 1],
-                                joint_a_n)[None, :])
+            np_pi_tilde[:, :, joint_a_n[idx_a]] @ np_q_z[t + 1])[None, :]
 
     q_x_xn = softmax(log_q_x_xn, axis=(1, 2))
 
     return q_x, q_x_xn
 
-  def compute_q_z(self,
-                  idx_a,
-                  trajectory,
-                  np_p_sz,
-                  np_pi_samples,
-                  np_bx_samples,
-                  np_tx_samples,
-                  np_q_x,
-                  np_q_xx,
-                  num_mc=10):
+  def compute_q_z(self, idx_a, trajectory, np_abs_tilde, np_pi_tilde,
+                  np_tx_tilde, np_bx_tilde, np_q_x, np_q_xx):
     q_z = np.zeros((len(trajectory), self.num_abstates))
 
     t = 0
     stt_p, joint_a_p, _ = trajectory[t]
-    qx_samples = self.sample_1d(np_q_x[t], num_mc)
-    q_z[t] = (np_p_sz[stt_p] *
-              self.mc_e_Eqx_ln_bx(idx_a, np_bx_samples, qx_samples) *
-              self.mc_e_Eqx_ln_pi(idx_a, np_pi_samples, qx_samples, joint_a_p))
+    q_z[t] = (np_abs_tilde[stt_p] * (np_bx_tilde @ np_q_x[t]) *
+              (np_q_x[t] @ np_pi_tilde[:, :, joint_a_p[idx_a]]))
 
     for t in range(1, len(trajectory)):
       stt, joint_a, _ = trajectory[t]
 
-      qxx_samples = self.sample_2d(np_q_xx[t - 1], num_mc)
-      qx_samples = self.sample_1d(np_q_x[t], num_mc)
-      q_z[t] = (
-          np_p_sz[stt] *
-          self.mc_e_Eqx_ln_tx(idx_a, np_tx_samples, joint_a_p, qxx_samples) *
-          self.mc_e_Eqx_ln_pi(idx_a, np_pi_samples, qx_samples, joint_a))
+      tx_index = (slice(None), *joint_a_p, slice(None), slice(None))
+      q_z[t] = (np_abs_tilde[stt] * np.tensordot(
+          np_tx_tilde[tx_index], np_q_xx[t - 1], axes=((0, 2), (0, 1))) *
+                (np_q_x[t] @ np_pi_tilde[:, :, joint_a[idx_a]]))
+
       joint_a_p = joint_a
 
     q_z = q_z / np.sum(q_z, axis=1)[..., None]
 
     return q_z
 
-  def sample_dists(self, param: np.ndarray, num_samples: int):
-    samples = np.zeros((num_samples, *param.shape))
-
-    index_shape = param.shape[:-1]
-    for idx in range(np.prod(index_shape)):
-      index = np.unravel_index(idx, index_shape)
-      index_sample = (slice(None), *index, slice(None))
-      samples[index_sample] = np.random.dirichlet(param[index], num_samples)
-
-    return samples
-
   def compute_local_variables(self, idx_a, samples):
     list_q_z = []
     list_q_x = []
     list_q_x_xn = []
 
-    np_p_sz = self.get_prob_tilda_from_lambda(self.param_abs)
-    np_p_sz_norm = np_p_sz / np.sum(np_p_sz, axis=1)[..., None]
+    np_abs_tilde = self.get_prob_tilda_from_lambda(self.param_abs)
+    np_pi_tilde = self.get_prob_tilda_from_lambda(self.list_param_pi[idx_a])
+    np_bx_tilde = self.get_prob_tilda_from_lambda(self.list_param_bx[idx_a])
+    np_tx_tilde = self.get_prob_tilda_from_lambda(
+        self.list_Tx[idx_a].np_lambda_Tx)
 
-    NUM_DIST_SAMPLES = 50
-    np_tx_samples = self.sample_dists(self.list_Tx[idx_a].np_lambda_Tx,
-                                      NUM_DIST_SAMPLES)
-    np_pi_samples = self.sample_dists(self.list_param_pi[idx_a],
-                                      NUM_DIST_SAMPLES)
-    np_bx_samples = self.sample_dists(self.list_param_bx[idx_a],
-                                      NUM_DIST_SAMPLES)
+    np_p_sz_norm = np_abs_tilde / np.sum(np_abs_tilde, axis=1)[..., None]
 
     for m_th in range(len(samples)):
       trajectory = samples[m_th]
@@ -317,21 +216,16 @@ class BTIL_Abstraction:
         np_q_z[t] = np_p_sz_norm[stt]
 
       # run until convergence
-      for dummy_i in range(20):
+      for dummy_i in range(10):
         prev_np_q_z = np.copy(np_q_z)
 
         # compute q_x, q_xx
-        list_qz_samples = [
-            self.sample_1d(np_q_z[t], self.num_mc_4_qz) for t in range(len_traj)
-        ]
         np_q_x, np_q_xx = self.forward_backward_messaging(
-            idx_a, trajectory, list_qz_samples, np_pi_samples, np_bx_samples,
-            np_tx_samples)
+            idx_a, trajectory, np_q_z, np_pi_tilde, np_tx_tilde, np_bx_tilde)
 
         # compute q_z
-        np_q_z = self.compute_q_z(idx_a, trajectory, np_p_sz, np_pi_samples,
-                                  np_bx_samples, np_tx_samples, np_q_x, np_q_xx,
-                                  self.num_mc_4_qx)
+        np_q_z = self.compute_q_z(idx_a, trajectory, np_abs_tilde, np_pi_tilde,
+                                  np_tx_tilde, np_bx_tilde, np_q_x, np_q_xx)
 
         # check convergence
         delta = np.max(abs(np_q_z - prev_np_q_z))
@@ -350,7 +244,6 @@ class BTIL_Abstraction:
                               list_list_q_z: Sequence[Sequence[np.ndarray]]):
 
     batch_ratio = len(self.trajectories) / len(samples)
-    # param_abs_hat = np.ones_like(self.param_abs) * self.hyper_abs
     param_abs_hat = np.zeros_like(self.param_abs)
     for idx_a in range(self.num_agents):
       param_pi_hat = np.zeros_like(self.list_param_pi[idx_a])
@@ -502,19 +395,23 @@ class BTIL_Abstraction:
     # initialize
     self.initialize_param()
 
-    batch_iter = int(len(self.trajectories) / batch_size)
+    num_traj = len(self.trajectories)
+    batch_iter = int(num_traj / batch_size)
     count = 0
     progress_bar = tqdm(total=self.max_iteration)
     while count < self.max_iteration:
-      batch_idx = count % batch_iter
-      if batch_idx == 0:
-        perm_index = np.random.permutation(len(self.trajectories))
+      if batch_size >= num_traj:
+        samples = self.trajectories
+      else:
+        batch_idx = count % batch_iter
+        if batch_idx == 0:
+          perm_index = np.random.permutation(len(self.trajectories))
 
-      samples = [
-          self.trajectories[idx]
-          for idx in perm_index[batch_idx * batch_size:(batch_idx + 1) *
-                                batch_size]
-      ]
+        samples = [
+            self.trajectories[idx]
+            for idx in perm_index[batch_idx * batch_size:(batch_idx + 1) *
+                                  batch_size]
+        ]
 
       count += 1
 
@@ -587,9 +484,9 @@ class BTIL_Abstraction:
       latent_sums = np.sum(numerator, axis=-1)
       self.list_bx[i_a] = numerator / latent_sums[..., np.newaxis]
 
-      numerator = self.param_abs
-      abstract_sums = np.sum(numerator, axis=-1)
-      self.np_prob_abstate = self.param_abs / abstract_sums[..., np.newaxis]
+    numerator = self.param_abs
+    abstract_sums = np.sum(numerator, axis=-1)
+    self.np_prob_abstate = self.param_abs / abstract_sums[..., np.newaxis]
 
   def save_params(self, save_prefix):
 
