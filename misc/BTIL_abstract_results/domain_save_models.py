@@ -20,12 +20,13 @@ from ai_coach_core.model_learning.BTIL.btil_abstraction import BTIL_Abstraction
 @click.option("--num-abstract", type=int, default=30, help="")
 @click.option("--num-iteration", type=int, default=500, help="")
 @click.option("--batch-size", type=int, default=100, help="")
+@click.option("--load-param", type=bool, default=False, help="")
 @click.option("--tx-dependency", type=str, default="FTTT",
               help="sequence of T or F indicating dependency on cur_state, actions, and next_state")  # noqa: E501
 # yapf: enable
 def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
          abs_prior, num_x, num_abstract, tx_dependency, num_iteration,
-         batch_size):
+         batch_size, load_param):
   logging.info("domain: %s" % (domain, ))
   logging.info("num training data: %s" % (num_training_data, ))
   logging.info("Gen trainset: %s" % (gen_trainset, ))
@@ -37,6 +38,7 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
   logging.info("num abstract: %s" % (num_abstract, ))
   logging.info("num iteration: %s" % (num_iteration, ))
   logging.info("batch size: %s" % (batch_size, ))
+  logging.info("load param: %s" % (load_param, ))
   logging.info("Tx dependency: %s" % (tx_dependency, ))
 
   # define the domain where trajectories were generated
@@ -254,7 +256,12 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
                                  save_file_prefix=file_prefix)
   btil_models.set_prior(gem_prior, tx_prior, pi_prior, abs_prior)
 
-  btil_models.do_inference(batch_size=100)
+  if load_param:
+    btil_models.load_params()
+  else:
+    btil_models.initialize_param()
+
+  btil_models.do_inference(batch_size=batch_size)
 
   # save models
   save_prefix = os.path.join(DATA_DIR + "learned_models/", save_prefix)

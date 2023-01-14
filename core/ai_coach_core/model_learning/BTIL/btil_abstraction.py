@@ -392,9 +392,6 @@ class BTIL_Abstraction:
       self.list_Tx.append(var_param_tx)
 
   def do_inference(self, batch_size):
-    # initialize
-    self.initialize_param()
-
     num_traj = len(self.trajectories)
     batch_iter = int(num_traj / batch_size)
     count = 0
@@ -463,7 +460,7 @@ class BTIL_Abstraction:
 
       if count % 10 == 0:
         print("Save parameters...")
-        self.save_params(self.save_prefix)
+        self.save_params()
         print("Finished saving")
 
       progress_bar.update()
@@ -488,14 +485,25 @@ class BTIL_Abstraction:
     abstract_sums = np.sum(numerator, axis=-1)
     self.np_prob_abstate = self.param_abs / abstract_sums[..., np.newaxis]
 
-  def save_params(self, save_prefix):
+  def save_params(self):
 
     for idx in range(self.num_agents):
-      np.save(save_prefix + "_param_pi" + f"_a{idx + 1}",
+      np.save(self.save_prefix + "_param_pi" + f"_a{idx + 1}",
               self.list_param_pi[idx])
-      np.save(save_prefix + "_param_tx" + f"_a{idx + 1}",
+      np.save(self.save_prefix + "_param_tx" + f"_a{idx + 1}",
               self.list_Tx[idx].np_lambda_Tx)
-      np.save(save_prefix + "_param_bx" + f"_a{idx + 1}",
+      np.save(self.save_prefix + "_param_bx" + f"_a{idx + 1}",
               self.list_param_bx[idx])
+      np.save(self.save_prefix + "_param_beta" + f"_a{idx + 1}", self.list_param_beta[idx])
 
-    np.save(save_prefix + "_param_abs", self.param_abs)
+    np.save(self.save_prefix + "_param_abs", self.param_abs)
+  
+  def load_params(self):
+    self.initialize_param()
+    for idx in range(self.num_agents):
+      self.list_param_pi[idx] = np.load(self.save_prefix + "_param_pi" + f"_a{idx + 1}.npy")
+      self.list_Tx[idx].np_lambda_Tx = np.load(self.save_prefix + "_param_tx" + f"_a{idx + 1}.npy")
+      self.list_param_bx[idx] = np.load(self.save_prefix + "_param_bx" + f"_a{idx + 1}.npy")
+      self.list_param_beta[idx] = np.load(self.save_prefix + "_param_beta" + f"_a{idx + 1}.npy")
+
+    self.param_abs = np.load(self.save_prefix + "_param_abs.npy")
