@@ -230,7 +230,7 @@ class BTIL_Decen:
     # transition_x
     if self.cb_Tx is None and len(list_q_x_xn) > 0:
       for i_a in range(self.num_agents):
-        self.list_Tx[i_a].init_lambda_Tx(self.beta_Tx)
+        self.list_Tx[i_a].set_lambda_Tx_prior_param(self.beta_Tx)
 
       for m_th in range(len(self.trajectories)):
         q_x_xn_all = list_q_x_xn[m_th]
@@ -314,7 +314,7 @@ class BTIL_Decen:
             TransitionX(self.tuple_num_latents[i_a], num_s, tuple(list_num_a),
                         num_sn, self.tuple_num_latents[i_a]))
 
-        self.list_Tx[i_a].init_lambda_Tx(self.beta_Tx)
+        self.list_Tx[i_a].set_lambda_Tx_prior_param(self.beta_Tx)
 
     list_lambda_pi = []
     list_lambda_pi = [

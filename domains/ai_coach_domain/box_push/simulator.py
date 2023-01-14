@@ -101,19 +101,21 @@ class BoxPushSimulator(Simulator):
     if a2_action is None:
       a2_action = self.tuple_action_when_none[1]
 
+    TEST = True
     a1_lat = self.agent_1.get_current_latent()
-    if a1_lat is None:
-      a1_lat = ("NA", 0)
-    a1_lat_0 = a1_lat[0] if a1_lat[0] is not None else "NA"
-    a1_lat_1 = a1_lat[1] if a1_lat[1] is not None else 0
-    a1_lat = (a1_lat_0, a1_lat_1)
-
     a2_lat = self.agent_2.get_current_latent()
-    if a2_lat is None:
-      a2_lat = ("NA", 0)
-    a2_lat_0 = a2_lat[0] if a2_lat[0] is not None else "NA"
-    a2_lat_1 = a2_lat[1] if a2_lat[1] is not None else 0
-    a2_lat = (a2_lat_0, a2_lat_1)
+    if not TEST:
+      if a1_lat is None:
+        a1_lat = ("NA", 0)
+      a1_lat_0 = a1_lat[0] if a1_lat[0] is not None else "NA"
+      a1_lat_1 = a1_lat[1] if a1_lat[1] is not None else 0
+      a1_lat = (a1_lat_0, a1_lat_1)
+
+      if a2_lat is None:
+        a2_lat = ("NA", 0)
+      a2_lat_0 = a2_lat[0] if a2_lat[0] is not None else "NA"
+      a2_lat_1 = a2_lat[1] if a2_lat[1] is not None else 0
+      a2_lat = (a2_lat_0, a2_lat_1)
 
     a1_cur_state = tuple(self.get_state_for_each_agent(self.AGENT1))
     a2_cur_state = tuple(self.get_state_for_each_agent(self.AGENT2))

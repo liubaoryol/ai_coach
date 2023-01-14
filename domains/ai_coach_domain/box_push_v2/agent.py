@@ -182,16 +182,21 @@ class BoxPushAIAgent_BTIL(AIAgent_Abstract):
                np_tx: np.ndarray,
                mask_sas: Sequence[bool],
                policy_model: CachedPolicyInterface,
-               agent_idx: int = 0) -> None:
+               agent_idx: int = 0,
+               np_bx: np.ndarray = None) -> None:
     self.np_tx = np_tx
     self.mask_sas = mask_sas
+    self.np_bx = np_bx
     super().__init__(policy_model, True, agent_idx)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
 
     def init_latents(obstate_idx):
-      return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
-                                                 policy_model.mdp)
+      if self.np_bx is None:
+        return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
+                                                   policy_model.mdp)
+      else:
+        return self.np_bx[obstate_idx]
 
     return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
                                 policy_model)
