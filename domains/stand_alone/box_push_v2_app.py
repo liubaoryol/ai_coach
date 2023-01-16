@@ -6,11 +6,9 @@ from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Task,
                                              MDP_Cleanup_Agent)
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
-from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
-                                               BoxPushAIAgent_PO_Indv,
-                                               BoxPushAIAgent_BTIL,
-                                               BoxPushAIAgent_Team,
-                                               BoxPushAIAgent_Indv)
+from ai_coach_domain.box_push_v2.agent import (
+    BoxPushAIAgent_PO_Team, BoxPushAIAgent_PO_Indv, BoxPushAIAgent_BTIL,
+    BoxPushAIAgent_BTIL_ABS, BoxPushAIAgent_Team, BoxPushAIAgent_Indv)
 from ai_coach_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
@@ -21,7 +19,7 @@ from ai_coach_core.utils.mdp_utils import StateSpace
 TEST_BTIL_AGENT = True
 TEST_BTIL_USE_TRUE_TX = False
 IS_MOVERS = True
-DATA_DIR = "misc/BTIL_SVI_results/data"
+DATA_DIR = "misc/BTIL_abstract_results/data"
 V_VAL_FILE_NAME = None
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS
@@ -31,12 +29,13 @@ if IS_MOVERS:
   AGENT = BoxPushAIAgent_Team
   TEST_AGENT = BoxPushAIAgent_Team
   # V_VAL_FILE_NAME = "movers_500_0,30_500_merged_v_values_learned.pickle"
-  NP_POLICY_A1 = "movers_btil_svi_policy_unsup_FTTT_1000_f_a1.npy"
-  NP_POLICY_A2 = "movers_btil_svi_policy_unsup_FTTT_1000_f_a2.npy"
-  NP_TX_A1 = "movers_btil_svi_tx_unsup_FTTT_1000__a1.npy"
-  NP_TX_A2 = "movers_btil_svi_tx_unsup_FTTT_1000__a2.npy"
-  NP_BX_A1 = "movers_btil_svi_bx_unsup_FTTT_1000__a1.npy"
-  NP_BX_A2 = "movers_btil_svi_bx_unsup_FTTT_1000__a2.npy"
+  NP_ABS = "movers_btil_abs_FTTT_1000_abs.npy"
+  NP_POLICY_A1 = "movers_btil_abs_FTTT_1000_pi_a1.npy"
+  NP_POLICY_A2 = "movers_btil_abs_FTTT_1000_pi_a2.npy"
+  NP_TX_A1 = "movers_btil_abs_FTTT_1000_tx_a1.npy"
+  NP_TX_A2 = "movers_btil_abs_FTTT_1000_tx_a2.npy"
+  NP_BX_A1 = "movers_btil_abs_FTTT_1000_bx_a1.npy"
+  NP_BX_A2 = "movers_btil_abs_FTTT_1000_bx_a2.npy"
 else:
   GAME_MAP = MAP_CLEANUP
   POLICY = Policy_Cleanup
@@ -89,10 +88,10 @@ class BoxPushV2App(BoxPushApp):
       model_dir = DATA_DIR + "/learned_models/"  # noqa: E501
       np_policy_1 = np.load(model_dir + NP_POLICY_A1)
       test_policy_1 = BTILCachedPolicy(np_policy_1, mdp_task, 0,
-                                       StateSpace(np.arange(10)))
+                                       StateSpace(np.arange(5)))
       np_policy_2 = np.load(model_dir + NP_POLICY_A2)
       test_policy_2 = BTILCachedPolicy(np_policy_2, mdp_task, 1,
-                                       StateSpace(np.arange(10)))
+                                       StateSpace(np.arange(5)))
 
       if TEST_BTIL_USE_TRUE_TX:
         agent1 = TEST_AGENT(test_policy_1, agent_idx=0)
@@ -104,17 +103,21 @@ class BoxPushV2App(BoxPushApp):
         np_bx_1 = np.load(model_dir + NP_BX_A1)
         np_bx_2 = np.load(model_dir + NP_BX_A2)
 
+        np_abs = np.load(model_dir + NP_ABS)
+
         mask = (False, True, True, True)
-        agent1 = BoxPushAIAgent_BTIL(np_tx_1,
-                                     mask,
-                                     test_policy_1,
-                                     0,
-                                     np_bx=np_bx_1)
-        agent2 = BoxPushAIAgent_BTIL(np_tx_2,
-                                     mask,
-                                     test_policy_2,
-                                     1,
-                                     np_bx=np_bx_2)
+        agent1 = BoxPushAIAgent_BTIL_ABS(np_tx_1,
+                                         mask,
+                                         test_policy_1,
+                                         0,
+                                         np_bx=np_bx_1,
+                                         np_abs=np_abs)
+        agent2 = BoxPushAIAgent_BTIL_ABS(np_tx_2,
+                                         mask,
+                                         test_policy_2,
+                                         1,
+                                         np_bx=np_bx_2,
+                                         np_abs=np_abs)
 
     self.game.set_autonomous_agent(agent1, agent2)
 

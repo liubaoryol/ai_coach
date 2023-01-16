@@ -55,6 +55,7 @@ class PolicyInterface:
 
 
 class CachedPolicyInterface(PolicyInterface):
+
   def __init__(
       self,
       mdp: mdp_lib.LatentMDP,

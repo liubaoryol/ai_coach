@@ -50,7 +50,7 @@ class EnvFromMDP(gym.Env):
 
     if action_idx not in self.mdp.legal_actions(self.cur_state):
       info["invalid_transition"] = True
-      return self.cur_state, 0, False, info
+      return self.cur_state, -10000, False, info
 
     self.cur_state = self.mdp.transition(self.cur_state, action_idx)
 

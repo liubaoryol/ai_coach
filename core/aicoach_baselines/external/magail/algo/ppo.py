@@ -10,6 +10,7 @@ from ..model import Policy
 
 
 class PPO():
+
   def __init__(self,
                actor_critic: Policy,
                clip_param,
@@ -36,43 +37,43 @@ class PPO():
 
     self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr, eps=eps)
 
-  def pretrain(self, gail_train_loader, device):
-    all_loss = []
-    ENT_WEIGHT = 1e-3
-    L2_WEIGHT = 0.0
-    for expert_batch in gail_train_loader:
-      expert_state, expert_action = expert_batch
+  # def pretrain(self, gail_train_loader, device):
+  #   all_loss = []
+  #   ENT_WEIGHT = 1e-3
+  #   L2_WEIGHT = 0.0
+  #   for expert_batch in gail_train_loader:
+  #     expert_state, expert_action = expert_batch
 
-      expert_state = torch.as_tensor(expert_state, device=device)
-      expert_action = torch.as_tensor(expert_action, device=device)
-      # expert_action1 = torch.as_tensor(expert_action[:, 0].unsqueeze(1),
-      #                                  device=device)
-      # expert_action2 = torch.as_tensor(expert_action[:, 1].unsqueeze(1),
-      #                                  device=device)
+  #     expert_state = torch.as_tensor(expert_state, device=device)
+  #     expert_action = torch.as_tensor(expert_action, device=device)
+  #     # expert_action1 = torch.as_tensor(expert_action[:, 0].unsqueeze(1),
+  #     #                                  device=device)
+  #     # expert_action2 = torch.as_tensor(expert_action[:, 1].unsqueeze(1),
+  #     #                                  device=device)
 
-      _, log_prob, dist_entropy, _ = self.actor_critic.evaluate_actions(
-          expert_state, None, None, expert_action)
+  #     _, log_prob, dist_entropy, _ = self.actor_critic.evaluate_actions(
+  #         expert_state, None, None, expert_action)
 
-      log_prob = log_prob.mean()
-      dist_entropy = dist_entropy.mean()
+  #     log_prob = log_prob.mean()
+  #     dist_entropy = dist_entropy.mean()
 
-      l2_norms = [
-          torch.sum(torch.square(w)) for w in self.actor_critic.parameters()
-      ]
-      l2_norm = sum(l2_norms) / 2
+  #     l2_norms = [
+  #         torch.sum(torch.square(w)) for w in self.actor_critic.parameters()
+  #     ]
+  #     l2_norm = sum(l2_norms) / 2
 
-      ent_loss = -ENT_WEIGHT * dist_entropy
-      neglogp = -log_prob
-      l2_loss = L2_WEIGHT * l2_norm
-      loss = neglogp + ent_loss + l2_loss
+  #     ent_loss = -ENT_WEIGHT * dist_entropy
+  #     neglogp = -log_prob
+  #     l2_loss = L2_WEIGHT * l2_norm
+  #     loss = neglogp + ent_loss + l2_loss
 
-      all_loss.append(loss.item())
+  #     all_loss.append(loss.item())
 
-      self.optimizer.zero_grad()
-      loss.backward()
-      self.optimizer.step()
+  #     self.optimizer.zero_grad()
+  #     loss.backward()
+  #     self.optimizer.step()
 
-    return np.mean(all_loss)
+  #   return np.mean(all_loss)
 
   def update(self, rollouts):
     advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]

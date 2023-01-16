@@ -7,6 +7,7 @@ from ai_coach_core.utils.mdp_utils import StateSpace
 
 
 class BTILCachedPolicy(PolicyInterface):
+
   def __init__(self, np_policy: np.ndarray, task_mdp: LatentMDP, agent_idx: int,
                latent_space: StateSpace) -> None:
     super().__init__(task_mdp)
@@ -38,6 +39,7 @@ class BTILCachedPolicy(PolicyInterface):
 
 
 class BTILCachedAgentModel(AgentModel):
+
   def __init__(self,
                cb_bx: Callable,
                np_tx: np.ndarray,
@@ -68,3 +70,35 @@ class BTILCachedAgentModel(AgentModel):
 
   def initial_mental_distribution(self, obstate_idx: int) -> np.ndarray:
     return self.cb_bx(obstate_idx)
+
+
+class NoMindCachedPolicy(PolicyInterface):
+
+  def __init__(self, np_policy: np.ndarray, task_mdp: LatentMDP,
+               agent_idx: int) -> None:
+    super().__init__(task_mdp)
+    self.agent_idx = agent_idx
+    self.np_policy = np_policy
+    self.latent_space = StateSpace()
+
+  def policy(self, obstate_idx: int, latstate_idx: int) -> np.ndarray:
+    return self.np_policy[obstate_idx]
+
+  def conv_idx_to_action(self, tuple_aidx: Sequence[int]):
+    aidx = tuple_aidx[0]
+    return self.mdp.dict_factored_actionspace[
+        self.agent_idx].idx_to_action[aidx],
+
+  def conv_action_to_idx(self, tuple_actions: Sequence) -> Sequence[int]:
+    action = tuple_actions[0]
+    return self.mdp.dict_factored_actionspace[
+        self.agent_idx].action_to_idx[action],
+
+  def get_num_latent_states(self):
+    return self.latent_space.num_states
+
+  def conv_idx_to_latent(self, latent_idx: int):
+    return self.latent_space.idx_to_state[latent_idx]
+
+  def conv_latent_to_idx(self, latent_state):
+    return self.latent_space.state_to_idx[latent_state]
