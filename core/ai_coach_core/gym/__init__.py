@@ -13,3 +13,6 @@ register(id='envfromcallbacks-v0',
 register(id='envfromlatentmdp-v0',
          entry_point='ai_coach_core.gym.envs:EnvFromLatentMDP',
          max_episode_steps=200)
+register(id='envaicoaching-v0',
+         entry_point='ai_coach_core.gym.envs:EnvFromLearnedModels',
+         max_episode_steps=200)

@@ -126,6 +126,8 @@ def main(domain):
   ##################################################
   num_latent = 5
   num_abstate = 30
+  num_agents = len(AGENTS)
+  tup_num_latent = (num_latent, ) * num_agents
 
   traj_sa_joint = []
   for traj in opt_unlabeled_trajs:
@@ -140,9 +142,8 @@ def main(domain):
     list_predict = []
     for sa_traj in traj_sa_joint:
       list_predict.append(
-          smooth_inference(sa_traj, idx_a, num_latent, num_abstate, np_abs,
-                           list_np_pi[idx_a], list_np_tx[idx_a],
-                           list_np_bx[idx_a]))
+          smooth_inference(sa_traj, len(AGENTS), tup_num_latent, num_abstate,
+                           np_abs, list_np_pi, list_np_tx, list_np_bx))
     list_list_predictions.append(list_predict)
 
 

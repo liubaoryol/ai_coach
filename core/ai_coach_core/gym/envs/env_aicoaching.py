@@ -46,7 +46,10 @@ class EnvFromLearnedModels(gym.Env):
 
     self.each_2_joint = np.arange(np.prod(self.tup_num_mental)).reshape(
         self.tup_num_mental)
-    self.joint_2_each = {ind for ind in np.ndenumerate(self.each_2_joint)}
+    self.joint_2_each = {
+        ind: coord
+        for coord, ind in np.ndenumerate(self.each_2_joint)
+    }
 
     self.mdp = mdp
     self.possible_init_states = possible_init_states

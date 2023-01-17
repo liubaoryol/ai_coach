@@ -152,9 +152,11 @@ def forward_inference(state_seq: Sequence[int],
     return list_max_x, list_np_px
 
 
-def smooth_inference(sa_trajectory: Sequence[Tuple], agent_idx: int,
-                     num_latent: int, num_abstate: int, np_abs: np.ndarray,
-                     np_pi: np.ndarray, np_tx: np.ndarray, np_bx: np.ndarray):
+def smooth_inference(sa_trajectory: Sequence[Tuple], num_agents: int,
+                     tuple_num_latent: Sequence[int], num_abstate: int,
+                     np_abs: np.ndarray, list_np_pi: Sequence[np.ndarray],
+                     list_np_tx: Sequence[np.ndarray],
+                     list_np_bx: Sequence[np.ndarray]):
   '''
   cb_prev_px: takes agent_idx as input and
               returns the distribution of x at the previous step
@@ -166,15 +168,24 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], agent_idx: int,
 
   # Forward messaging
   with np.errstate(divide='ignore'):
-    np_log_forward = np.log(np.zeros((len_traj, num_abstate, num_latent)))
+    np_log_forward = np.log(np.zeros(
+        (len_traj, num_abstate, *tuple_num_latent)))
 
   t = 0
   state_p, joint_a_p = sa_trajectory[t]
 
+  all_one = (1, ) * num_agents
   with np.errstate(divide='ignore'):
     np_log_forward[t] = 0.0
-    np_log_forward[t] += (np.log(np_abs[state_p])[:, None] + np.log(np_bx) +
-                          np.log(np_pi[:, :, joint_a_p[agent_idx]]).transpose())
+    np_log_forward[t] += np.log(np_abs[state_p]).reshape(-1, *all_one)
+    for idx_a in range(num_agents):
+      shape_tmp = [1] * num_agents
+      shape_tmp[idx_a] = tuple_num_latent[idx_a]
+      shape_tmp = tuple(shape_tmp)
+      np_log_forward[t] += np.log(list_np_bx[idx_a]).reshape(-1, *shape_tmp)
+      np_log_forward[t] += np.log(
+          list_np_pi[idx_a][:, :, joint_a_p[idx_a]]).transpose().reshape(
+              -1, *shape_tmp)
 
   # t = 1:N-1
   for t in range(1, len_traj):
@@ -182,23 +193,30 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], agent_idx: int,
     state, joint_a = sa_trajectory[t]
 
     with np.errstate(divide='ignore'):
-      np_log_prob = np_log_forward[t_p].reshape(num_abstate, num_latent, 1, 1)
+      np_log_prob = np_log_forward[t_p].reshape(num_abstate, *tuple_num_latent,
+                                                1, *all_one)
+      np_log_prob = np_log_prob + np.log(np_abs[state]).reshape(
+          1, *all_one, -1, *all_one)
+      for idx_a in range(num_agents):
+        shape_tmp = [1] * num_agents
+        shape_tmp[idx_a] = tuple_num_latent[idx_a]
+        shape_tmp = tuple(shape_tmp)
+        tx_index = (slice(None), *joint_a_p, slice(None), slice(None))
+        np_log_prob = np_log_prob + np.log(list_np_tx[idx_a][tx_index]).reshape(
+            1, *shape_tmp, -1, *shape_tmp)
+        np_log_prob = np_log_prob + np.log(
+            list_np_pi[idx_a][:, :, joint_a[idx_a]]).transpose().reshape(
+                1, *all_one, -1, *shape_tmp)
 
-      tx_index = (slice(None), *joint_a_p, slice(None), slice(None))
-      np_log_prob = np_log_prob + np.log(np_abs[state]).reshape(1, 1, -1, 1)
-      np_log_prob = np_log_prob + np.log(np_tx[tx_index]).reshape(
-          1, num_latent, num_abstate, num_latent)
-      np_log_prob = np_log_prob + np.log(
-          np_pi[:, :, joint_a[agent_idx]]).transpose().reshape(
-              1, 1, num_abstate, num_latent)
-
-    np_log_forward[t] = logsumexp(np_log_prob, axis=(0, 1))
+    np_log_forward[t] = logsumexp(np_log_prob,
+                                  axis=tuple(range(num_agents + 1)))
 
     joint_a_p = joint_a
 
   # Backward messaging
   with np.errstate(divide='ignore'):
-    np_log_backward = np.log(np.zeros((len_traj, num_abstate, num_latent)))
+    np_log_backward = np.log(
+        np.zeros((len_traj, num_abstate, *tuple_num_latent)))
   # t = N-1
   t = len_traj - 1
 
@@ -212,23 +230,32 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], agent_idx: int,
     _, joint_a = sa_trajectory[t]
 
     with np.errstate(divide='ignore'):
-      np_log_prob = np_log_backward[t_n].reshape(1, 1, num_abstate, num_latent)
 
-      tx_index = (slice(None), *joint_a, slice(None), slice(None))
-      np_log_prob = np_log_prob + np.log(np_abs[state_n]).reshape(1, 1, -1, 1)
-      np_log_prob = np_log_prob + np.log(np_tx[tx_index]).reshape(
-          1, num_latent, num_abstate, num_latent)
-      np_log_prob = np_log_prob + np.log(
-          np_pi[:, :, joint_a_n[agent_idx]]).transpose().reshape(
-              1, 1, num_abstate, num_latent)
+      np_log_prob = np_log_backward[t_n].reshape(1, *all_one, num_abstate,
+                                                 *tuple_num_latent)
+      np_log_prob = np_log_prob + np.log(np_abs[state_n]).reshape(
+          1, *all_one, -1, *all_one)
+      for idx_a in range(num_agents):
+        shape_tmp = [1] * num_agents
+        shape_tmp[idx_a] = tuple_num_latent[idx_a]
+        shape_tmp = tuple(shape_tmp)
+        tx_index = (slice(None), *joint_a, slice(None), slice(None))
+        np_log_prob = np_log_prob + np.log(list_np_tx[idx_a][tx_index]).reshape(
+            1, *shape_tmp, -1, *shape_tmp)
+        np_log_prob = np_log_prob + np.log(
+            list_np_pi[idx_a][:, :, joint_a_n[idx_a]]).transpose().reshape(
+                1, *all_one, -1, *shape_tmp)
 
-    np_log_backward[t] = logsumexp(np_log_prob, axis=(2, 3))  # noqa: E501
+    np_log_backward[t] = logsumexp(np_log_prob,
+                                   axis=tuple(
+                                       range(num_agents + 1,
+                                             2 * num_agents + 2)))  # noqa: E501
 
     joint_a_n = joint_a
 
   # compute q_zx
   log_q_zx = np_log_forward + np_log_backward
 
-  q_zx = softmax(log_q_zx, axis=(1, 2))
+  q_zx = softmax(log_q_zx, axis=tuple(range(1, log_q_zx.ndim)))
 
   return q_zx
