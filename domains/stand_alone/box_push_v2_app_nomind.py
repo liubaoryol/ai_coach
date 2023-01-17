@@ -29,8 +29,8 @@ if IS_MOVERS:
   AGENT = BoxPushAIAgent_Team
   TEST_AGENT = BoxPushAIAgent_Team
   # V_VAL_FILE_NAME = "movers_500_0,30_500_merged_v_values_learned.pickle"
-  NP_POLICY_A1 = "movers_bc_1000_pi_a1_alldata.npy"
-  NP_POLICY_A2 = "movers_bc_1000_pi_a2_alldata.npy"
+  NP_POLICY_A1 = "movers_gail_1000_pi_a1.npy"
+  NP_POLICY_A2 = "movers_gail_1000_pi_a2.npy"
 else:
   GAME_MAP = MAP_CLEANUP
   POLICY = Policy_Cleanup

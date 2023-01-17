@@ -216,6 +216,7 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
     self.mask_sas = mask_sas
     self.np_bx = np_bx
     self.np_abs = np_abs
+    self.cur_abs = None
     super().__init__(policy_model, True, agent_idx)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
@@ -225,7 +226,7 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
         return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
                                                    policy_model.mdp)
       else:
-        return self.np_bx[self.conv_obstate_to_abstate(obstate_idx)]
+        return self.np_bx[obstate_idx]
 
     return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
                                 policy_model)
@@ -235,6 +236,7 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
     #                            p=self.np_abs[obstate_idx])
     ind = np.argpartition(self.np_abs[obstate_idx], -3)[-3:]
     np_new_dist = self.np_abs[obstate_idx][ind]
+    # print(np_new_dist)
     np_new_dist = np_new_dist / np.sum(np_new_dist)[..., None]
     abstate = np.random.choice(ind, p=np_new_dist)
     # abstate = np.argmax(self.np_abs[obstate_idx])
@@ -243,9 +245,8 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
   def init_latent(self, tup_states):
     mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
     sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
-
-    self.agent_model.set_init_mental_state_idx(
-        self.conv_obstate_to_abstate(sidx))
+    self.cur_abs = self.conv_obstate_to_abstate(sidx)
+    self.agent_model.set_init_mental_state_idx(self.cur_abs)
 
   def get_current_latent(self):
     if self.agent_model.is_current_latent_valid():
@@ -261,8 +262,8 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
 
     mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
     sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
-    tup_aidx = self.agent_model.get_action_idx(
-        self.conv_obstate_to_abstate(sidx))
+    # self.cur_abs = self.conv_obstate_to_abstate(sidx)
+    tup_aidx = self.agent_model.get_action_idx(self.cur_abs)
     return self.agent_model.policy_model.conv_idx_to_action(tup_aidx)[0]
 
   def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
@@ -279,9 +280,11 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
       else:
         list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
 
-    self.agent_model.update_mental_state_idx(
-        self.conv_obstate_to_abstate(sidx_cur), tuple(list_aidx),
-        self.conv_obstate_to_abstate(sidx_nxt))
+    prev_abs = self.cur_abs
+    self.cur_abs = self.conv_obstate_to_abstate(sidx_nxt)
+
+    self.agent_model.update_mental_state_idx(prev_abs, tuple(list_aidx),
+                                             self.cur_abs)
 
   def set_latent(self, latent):
     xidx = self.conv_latent_to_idx(latent)

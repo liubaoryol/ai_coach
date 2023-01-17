@@ -1,5 +1,6 @@
 from typing import Sequence, Tuple, Callable, Optional
 import numpy as np
+from scipy.special import logsumexp, softmax
 
 # type for a callback that takes the input: (agent_idx, latent_idx, state_idx,
 #                                            tuple of a team's action_idx,
@@ -149,3 +150,85 @@ def forward_inference(state_seq: Sequence[int],
       list_max_x.append(np.argmax(np_forward[-1, :]))
 
     return list_max_x, list_np_px
+
+
+def smooth_inference(sa_trajectory: Sequence[Tuple], agent_idx: int,
+                     num_latent: int, num_abstate: int, np_abs: np.ndarray,
+                     np_pi: np.ndarray, np_tx: np.ndarray, np_bx: np.ndarray):
+  '''
+  cb_prev_px: takes agent_idx as input and
+              returns the distribution of x at the previous step
+  '''
+
+  len_traj = len(sa_trajectory)
+  if sa_trajectory[-1][1] is None:
+    len_traj -= 1
+
+  # Forward messaging
+  with np.errstate(divide='ignore'):
+    np_log_forward = np.log(np.zeros((len_traj, num_abstate, num_latent)))
+
+  t = 0
+  state_p, joint_a_p = sa_trajectory[t]
+
+  with np.errstate(divide='ignore'):
+    np_log_forward[t] = 0.0
+    np_log_forward[t] += (np.log(np_abs[state_p])[:, None] + np.log(np_bx) +
+                          np.log(np_pi[:, :, joint_a_p[agent_idx]]).transpose())
+
+  # t = 1:N-1
+  for t in range(1, len_traj):
+    t_p = t - 1
+    state, joint_a = sa_trajectory[t]
+
+    with np.errstate(divide='ignore'):
+      np_log_prob = np_log_forward[t_p].reshape(num_abstate, num_latent, 1, 1)
+
+      tx_index = (slice(None), *joint_a_p, slice(None), slice(None))
+      np_log_prob = np_log_prob + np.log(np_abs[state]).reshape(1, 1, -1, 1)
+      np_log_prob = np_log_prob + np.log(np_tx[tx_index]).reshape(
+          1, num_latent, num_abstate, num_latent)
+      np_log_prob = np_log_prob + np.log(
+          np_pi[:, :, joint_a[agent_idx]]).transpose().reshape(
+              1, 1, num_abstate, num_latent)
+
+    np_log_forward[t] = logsumexp(np_log_prob, axis=(0, 1))
+
+    joint_a_p = joint_a
+
+  # Backward messaging
+  with np.errstate(divide='ignore'):
+    np_log_backward = np.log(np.zeros((len_traj, num_abstate, num_latent)))
+  # t = N-1
+  t = len_traj - 1
+
+  state_n, joint_a_n = sa_trajectory[t]
+
+  np_log_backward[t] = 0.0
+
+  # t = 0:N-2
+  for t in reversed(range(0, len_traj - 1)):
+    t_n = t + 1
+    _, joint_a = sa_trajectory[t]
+
+    with np.errstate(divide='ignore'):
+      np_log_prob = np_log_backward[t_n].reshape(1, 1, num_abstate, num_latent)
+
+      tx_index = (slice(None), *joint_a, slice(None), slice(None))
+      np_log_prob = np_log_prob + np.log(np_abs[state_n]).reshape(1, 1, -1, 1)
+      np_log_prob = np_log_prob + np.log(np_tx[tx_index]).reshape(
+          1, num_latent, num_abstate, num_latent)
+      np_log_prob = np_log_prob + np.log(
+          np_pi[:, :, joint_a_n[agent_idx]]).transpose().reshape(
+              1, 1, num_abstate, num_latent)
+
+    np_log_backward[t] = logsumexp(np_log_prob, axis=(2, 3))  # noqa: E501
+
+    joint_a_n = joint_a
+
+  # compute q_zx
+  log_q_zx = np_log_forward + np_log_backward
+
+  q_zx = softmax(log_q_zx, axis=(1, 2))
+
+  return q_zx
