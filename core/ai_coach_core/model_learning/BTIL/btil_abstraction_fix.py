@@ -289,12 +289,14 @@ class BTIL_Abstraction:
     for m_th in range(len(samples)):
       traj = samples[m_th]
       q_z = list_q_z[m_th]
+      list_q_x = list_list_q_x[m_th]
+      list_q_xx = list_list_q_xx[m_th]
 
       t = 0
       state, joint_a, _ = traj[t]
       param_abs_hat[state] += q_z[t]
       for idx_a in range(self.num_agents):
-        q_zx_tmp = q_z[t, :, None] * list_list_q_x[idx_a][m_th][t, None, :]
+        q_zx_tmp = q_z[t, :, None] * list_q_x[idx_a][t, None, :]
         list_param_bx_hat[idx_a] += q_zx_tmp
         list_param_pi_hat[idx_a][:, :, joint_a[idx_a]] += q_zx_tmp.transpose()
 
@@ -305,8 +307,8 @@ class BTIL_Abstraction:
         param_abs_hat[state] += q_z[t]
         tx_index = (slice(None), *joint_a_p, slice(None), slice(None))
         for idx_a in range(self.num_agents):
-          q_xx = list_list_q_xx[idx_a][m_th]
-          q_x = list_list_q_x[idx_a][m_th]
+          q_xx = list_q_xx[idx_a]
+          q_x = list_q_x[idx_a]
           list_param_tx_hat[idx_a][tx_index] += (q_xx[tp][:, None, :] *
                                                  q_z[t][None, :, None])
           list_param_pi_hat[idx_a][:, :, joint_a[idx_a]] += (q_x[t, :, None] *
@@ -368,9 +370,9 @@ class BTIL_Abstraction:
       reach[-1] = self.list_param_beta[idx_a][-1] / np.sum(grad_beta)
       max_reach = min(reach[reach > 0])
       search_reach = min(max_reach, grad_beta_norm)
-
+      beta_lr = 0.1 * lr  # we will update very slightly
       self.list_param_beta[idx_a][:-1] = (self.list_param_beta[idx_a][:-1] +
-                                          lr * search_reach * grad_beta)
+                                          beta_lr * search_reach * grad_beta)
       self.list_param_beta[idx_a][-1] = (
           1 - np.sum(self.list_param_beta[idx_a][:-1]))
 
@@ -395,27 +397,30 @@ class BTIL_Abstraction:
                                        high=INIT_RANGE[1],
                                        size=(self.num_ostates,
                                              self.num_abstates))
-
+    UNIFORM_BETA_PRIOR = False
     for idx_a in range(self.num_agents):
-      num_K = self.tuple_num_latents[idx_a] - 1
+      num_x = self.tuple_num_latents[idx_a]
       # init beta
-      tmp_np_v = np.random.beta(1, self.hyper_gem, num_K)
-      tmp_np_beta = np.zeros(num_K + 1)
-      for idx in range(num_K):
-        tmp_np_beta[idx] = tmp_np_v[idx]
-        for pidx in range(idx):
-          tmp_np_beta[idx] *= 1 - tmp_np_v[pidx]
-      tmp_np_beta[-1] = 1 - np.sum(tmp_np_beta[:-1])
-      self.list_param_beta.append(tmp_np_beta)
+      if UNIFORM_BETA_PRIOR:
+        self.list_param_beta.append(np.ones(num_x) / num_x)
+      else:
+        tmp_np_v = np.random.beta(1, self.hyper_gem, num_x - 1)
+        tmp_np_beta = np.zeros(num_x)
+        for idx in range(num_x - 1):
+          tmp_np_beta[idx] = tmp_np_v[idx]
+          for pidx in range(idx):
+            tmp_np_beta[idx] *= 1 - tmp_np_v[pidx]
+        tmp_np_beta[-1] = 1 - np.sum(tmp_np_beta[:-1])
+        self.list_param_beta.append(tmp_np_beta)
       # init bx param
       self.list_param_bx.append(
           np.random.uniform(low=INIT_RANGE[0],
                             high=INIT_RANGE[1],
-                            size=(self.num_abstates, num_K + 1)))
+                            size=(self.num_abstates, num_x)))
       self.list_param_pi.append(
           np.random.uniform(low=INIT_RANGE[0],
                             high=INIT_RANGE[1],
-                            size=(num_K + 1, self.num_abstates,
+                            size=(num_x, self.num_abstates,
                                   self.tuple_num_actions[idx_a])))
       # init tx param
       num_s = self.num_abstates if self.tx_dependency[0] else None
@@ -428,8 +433,7 @@ class BTIL_Abstraction:
 
       num_sn = self.num_abstates if self.tx_dependency[-1] else None
 
-      var_param_tx = TransitionX(num_K + 1, num_s, tuple(list_num_a), num_sn,
-                                 num_K + 1)
+      var_param_tx = TransitionX(num_x, num_s, tuple(list_num_a), num_sn, num_x)
       var_param_tx.init_lambda_Tx(*INIT_RANGE)
       self.list_Tx.append(var_param_tx)
 
@@ -460,7 +464,7 @@ class BTIL_Abstraction:
           np.copy(self.list_param_bx[idx_a]) for idx_a in range(self.num_agents)
       ]
       prev_list_param_pi = [
-          np.copy(self.list_param_bx[idx_a]) for idx_a in range(self.num_agents)
+          np.copy(self.list_param_pi[idx_a]) for idx_a in range(self.num_agents)
       ]
       prev_list_param_tx = [
           np.copy(self.list_Tx[idx_a].np_lambda_Tx)

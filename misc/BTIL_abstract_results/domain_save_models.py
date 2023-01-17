@@ -4,7 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_learning.BTIL.btil_abstraction import BTIL_Abstraction
+from ai_coach_core.model_learning.BTIL.btil_abstraction_fix import BTIL_Abstraction
 
 
 # yapf: disable
@@ -17,7 +17,7 @@ from ai_coach_core.model_learning.BTIL.btil_abstraction import BTIL_Abstraction
 @click.option("--pi-prior", type=float, default=1, help="")
 @click.option("--abs-prior", type=float, default=1, help="")
 @click.option("--num-x", type=int, default=5, help="")
-@click.option("--num-abstract", type=int, default=30, help="")
+@click.option("--num-abstract", type=int, default=10, help="")
 @click.option("--num-iteration", type=int, default=500, help="")
 @click.option("--batch-size", type=int, default=100, help="")
 @click.option("--load-param", type=bool, default=False, help="")
