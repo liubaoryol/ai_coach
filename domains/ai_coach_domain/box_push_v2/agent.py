@@ -236,7 +236,7 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
     #                            p=self.np_abs[obstate_idx])
     ind = np.argpartition(self.np_abs[obstate_idx], -3)[-3:]
     np_new_dist = self.np_abs[obstate_idx][ind]
-    # print(np_new_dist)
+    print(np_new_dist)
     np_new_dist = np_new_dist / np.sum(np_new_dist)[..., None]
     abstate = np.random.choice(ind, p=np_new_dist)
     # abstate = np.argmax(self.np_abs[obstate_idx])

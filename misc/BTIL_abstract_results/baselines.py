@@ -1,0 +1,143 @@
+import os
+import glob
+import logging
+import random
+import click
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3, gail_w_ppo
+from datetime import datetime
+
+
+@click.command()
+@click.option("--domain", type=str, default="movers", help="")
+def main(domain):
+
+  # define the domain where trajectories were generated
+  ##################################################
+  if domain == "movers":
+    from ai_coach_domain.box_push.utils import BoxPushTrajectories
+    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Team
+    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
+    from ai_coach_domain.box_push_v2.policy import Policy_Movers
+    from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Agent,
+                                                 MDP_Movers_Task)
+    sim = BoxPushSimulatorV2(0)
+    TEMPERATURE = 0.3
+    GAME_MAP = MAP_MOVERS
+    SAVE_PREFIX = GAME_MAP["name"]
+    MDP_TASK = MDP_Movers_Task(**GAME_MAP)
+    MDP_AGENT = MDP_Movers_Agent(**GAME_MAP)
+    POLICY_1 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
+    POLICY_2 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
+    # init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
+    #                GAME_MAP["a2_init"])
+    AGENT_1 = BoxPushAIAgent_Team(POLICY_1, agent_idx=sim.AGENT1)
+    AGENT_2 = BoxPushAIAgent_Team(POLICY_2, agent_idx=sim.AGENT2)
+    AGENTS = [AGENT_1, AGENT_2]
+    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
+  elif domain == "cleanup_v3":
+    from ai_coach_domain.box_push.utils import BoxPushTrajectories
+    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Indv
+    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
+    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
+    from ai_coach_domain.box_push_v2.mdp import (MDP_Cleanup_Agent,
+                                                 MDP_Cleanup_Task)
+    sim = BoxPushSimulatorV2(0)
+    TEMPERATURE = 0.3
+    GAME_MAP = MAP_CLEANUP_V3
+    SAVE_PREFIX = GAME_MAP["name"]
+    MDP_TASK = MDP_Cleanup_Task(**GAME_MAP)
+    MDP_AGENT = MDP_Cleanup_Agent(**GAME_MAP)
+    POLICY_1 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
+    POLICY_2 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
+    AGENT_1 = BoxPushAIAgent_Indv(POLICY_1, agent_idx=sim.AGENT1)
+    AGENT_2 = BoxPushAIAgent_Indv(POLICY_2, agent_idx=sim.AGENT2)
+    AGENTS = [AGENT_1, AGENT_2]
+    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
+
+  # load files
+  ##################################################
+  DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
+  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train')
+
+  file_names = glob.glob(os.path.join(TRAIN_DIR, '*.txt'))
+  random.shuffle(file_names)
+
+  train_data.load_from_files(file_names)
+  traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
+                                                 include_terminal=True)
+  traj_unlabel_ver = train_data.get_as_row_lists(no_latent_label=True,
+                                                 include_terminal=True)
+  num_traj = len(traj_labeled_ver)
+
+
+  # baselines
+  ##################################################
+  # all data
+  traj_trainset = traj_labeled_ver
+  num_agents = len(AGENTS)
+  traj_sa_each_agent = [[] for _ in range(num_agents)]
+  for idx_a in range(num_agents):
+    for traj in traj_trainset:
+      traj_sa = []
+      for s, a, x in traj:
+        act = None if a is None else a[idx_a]
+
+        traj_sa.append((s, act))
+
+      traj_sa_each_agent[idx_a].append(traj_sa)
+
+  traj_sa_joint = []
+  for traj in traj_trainset:
+    traj_sa = []
+    for s, a, x in traj:
+      traj_sa.append((s, a))
+
+    traj_sa_joint.append(traj_sa)
+
+  LOG_DIR = os.path.join(os.path.dirname(__file__), "logs/")
+  if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+  logpath = LOG_DIR + str(datetime.today())
+
+  BC = False
+  num_iterations = 5000000
+  list_policy = []
+  save_prefix = SAVE_PREFIX
+  if BC:
+    save_prefix += "_bc_"
+    for idx_a in range(num_agents):
+      policy = behavior_cloning_sb3(traj_sa_each_agent[idx_a],
+                                    MDP_TASK.num_states, MDP_AGENT.num_actions,
+                                    logpath + f"/bc_a{idx_a}", num_iterations)
+      list_policy.append(policy)
+  else:
+    save_prefix += "_gail_"
+    init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
+                   GAME_MAP["a2_init"])
+    init_sidx = MDP_TASK.conv_sim_states_to_mdp_sidx(init_states)
+    list_policy = gail_w_ppo(MDP_TASK, [init_sidx],
+                             traj_sa_joint,
+                             n_envs=1,
+                             logpath=logpath + "/gail",
+                             n_steps=128,
+                             total_timesteps=num_iterations)
+
+  temp_dir = DATA_DIR + "learned_models/"
+  if not os.path.exists(temp_dir):
+    os.makedirs(temp_dir)
+  save_prefix += ("%d" % (len(traj_trainset), ))
+
+  # save models
+  save_prefix = os.path.join(temp_dir, save_prefix)
+
+  for idx, policy in enumerate(list_policy):
+    np.save(save_prefix + "_pi" + f"_a{idx + 1}", policy)
+
+
+if __name__ == "__main__":
+  main()

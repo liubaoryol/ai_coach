@@ -23,8 +23,6 @@ class BTIL_Abstraction:
       lr: float = 0.1,
       decay: float = 0.01,
       num_abstates: int = 30,
-      num_mc_4_qz: int = 30,
-      num_mc_4_qx: int = 10,
       save_file_prefix: str = None) -> None:
     '''
       trajectories: list of list of (state, joint action)-tuples
@@ -397,7 +395,7 @@ class BTIL_Abstraction:
                                        high=INIT_RANGE[1],
                                        size=(self.num_ostates,
                                              self.num_abstates))
-    UNIFORM_BETA_PRIOR = False
+    UNIFORM_BETA_PRIOR = True
     for idx_a in range(self.num_agents):
       num_x = self.tuple_num_latents[idx_a]
       # init beta
@@ -500,7 +498,7 @@ class BTIL_Abstraction:
       if delta_team < self.epsilon_g:
         break
 
-      if count % 10 == 0:
+      if count % 100 == 0:
         print("Save parameters...")
         self.save_params()
         print("Finished saving")

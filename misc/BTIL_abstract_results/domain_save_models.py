@@ -10,15 +10,15 @@ from ai_coach_core.model_learning.BTIL.btil_abstraction_fix import BTIL_Abstract
 # yapf: disable
 @click.command()
 @click.option("--domain", type=str, default="movers", help="movers / cleanup_v3 / rescue_2 /rescue_3")  # noqa: E501
-@click.option("--num-training-data", type=int, default=1000, help="")
-@click.option("--gen-trainset", type=bool, default=False, help="")
-@click.option("--gem-prior", type=float, default=5, help="")
-@click.option("--tx-prior", type=float, default=5, help="")
+@click.option("--num-training-data", type=int, default=300, help="")
+@click.option("--gen-trainset", type=bool, default=True, help="")
+@click.option("--gem-prior", type=float, default=3, help="")
+@click.option("--tx-prior", type=float, default=1, help="")
 @click.option("--pi-prior", type=float, default=1, help="")
 @click.option("--abs-prior", type=float, default=1, help="")
-@click.option("--num-x", type=int, default=5, help="")
-@click.option("--num-abstract", type=int, default=10, help="")
-@click.option("--num-iteration", type=int, default=500, help="")
+@click.option("--num-x", type=int, default=4, help="")
+@click.option("--num-abstract", type=int, default=20, help="")
+@click.option("--num-iteration", type=int, default=1000, help="")
 @click.option("--batch-size", type=int, default=100, help="")
 @click.option("--load-param", type=bool, default=False, help="")
 @click.option("--tx-dependency", type=str, default="FTTT",
@@ -45,64 +45,54 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
   ##################################################
   if domain == "movers":
     from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Team
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
     from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v2.policy import Policy_Movers
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Agent,
-                                                 MDP_Movers_Task)
-    sim = BoxPushSimulatorV2(0)
+    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
+    from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
+                                                 MDP_MoversV3_Task)
+    sim = BoxPushSimulatorV3(0)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
     SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Movers_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Movers_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-    # init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
-    #                GAME_MAP["a2_init"])
-    AGENT_1 = BoxPushAIAgent_Team(POLICY_1, agent_idx=sim.AGENT1)
-    AGENT_2 = BoxPushAIAgent_Team(POLICY_2, agent_idx=sim.AGENT2)
-    AGENTS = [AGENT_1, AGENT_2]
-    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
-  elif domain == "cleanup_v2":
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Indv
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Cleanup_Agent,
-                                                 MDP_Cleanup_Task)
-    sim = BoxPushSimulatorV2(0)
-    TEMPERATURE = 0.3
-    GAME_MAP = MAP_CLEANUP_V2
-    SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Cleanup_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Cleanup_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-    AGENT_1 = BoxPushAIAgent_Indv(POLICY_1, agent_idx=sim.AGENT1)
-    AGENT_2 = BoxPushAIAgent_Indv(POLICY_2, agent_idx=sim.AGENT2)
+    MDP_TASK = MDP_MoversV3_Task(**GAME_MAP)
+    MDP_AGENT = MDP_MoversV3_Agent(**GAME_MAP)
+    POLICY_1 = Policy_MoversV3(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
+    POLICY_2 = Policy_MoversV3(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
+    init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
+                   GAME_MAP["a2_init"])
+    AGENT_1 = BoxPushAIAgent_PO_Team(init_states,
+                                     POLICY_1,
+                                     agent_idx=sim.AGENT1)
+    AGENT_2 = BoxPushAIAgent_PO_Team(init_states,
+                                     POLICY_2,
+                                     agent_idx=sim.AGENT2)
     AGENTS = [AGENT_1, AGENT_2]
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
   elif domain == "cleanup_v3":
     from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Indv
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
     from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Cleanup_Agent,
-                                                 MDP_Cleanup_Task)
-    sim = BoxPushSimulatorV2(0)
+    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from ai_coach_domain.box_push_v3.policy import Policy_CleanupV3
+    from ai_coach_domain.box_push_v3.mdp import (MDP_CleanupV3_Agent,
+                                                 MDP_CleanupV3_Task)
+    sim = BoxPushSimulatorV3(0)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_CLEANUP_V3
     SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Cleanup_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Cleanup_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-    AGENT_1 = BoxPushAIAgent_Indv(POLICY_1, agent_idx=sim.AGENT1)
-    AGENT_2 = BoxPushAIAgent_Indv(POLICY_2, agent_idx=sim.AGENT2)
+    MDP_TASK = MDP_CleanupV3_Task(**GAME_MAP)
+    MDP_AGENT = MDP_CleanupV3_Agent(**GAME_MAP)
+    POLICY_1 = Policy_CleanupV3(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
+    POLICY_2 = Policy_CleanupV3(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
+    init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
+                   GAME_MAP["a2_init"])
+    AGENT_1 = BoxPushAIAgent_PO_Indv(init_states,
+                                     POLICY_1,
+                                     agent_idx=sim.AGENT1)
+    AGENT_2 = BoxPushAIAgent_PO_Indv(init_states,
+                                     POLICY_2,
+                                     agent_idx=sim.AGENT2)
     AGENTS = [AGENT_1, AGENT_2]
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
   elif domain == "rescue_2":
@@ -236,7 +226,8 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
     os.makedirs(temp_dir)
   save_prefix = SAVE_PREFIX + "_btil_abs_"
   save_prefix += tx_dependency + "_"
-  save_prefix += ("%d" % (num_train, ))
+  save_prefix += ("%d_" % (num_train, ))
+  save_prefix += ("%d_%d" % (num_x, num_abstract))
   file_prefix = os.path.join(temp_dir, save_prefix)
 
   # learning models
@@ -251,8 +242,6 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
                                  lr=0.1,
                                  decay=0.01,
                                  num_abstates=num_abstract,
-                                 num_mc_4_qz=30,
-                                 num_mc_4_qx=10,
                                  save_file_prefix=file_prefix)
   btil_models.set_prior(gem_prior, tx_prior, pi_prior, abs_prior)
 

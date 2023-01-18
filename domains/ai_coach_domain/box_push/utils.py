@@ -1,10 +1,12 @@
 import numpy as np
 from ai_coach_domain.box_push.simulator import BoxPushSimulator
+from ai_coach_domain.box_push import AGENT_ACTIONSPACE
 from ai_coach_core.utils.data_utils import Trajectories
 from ai_coach_domain.box_push.mdp import BoxPushTeamMDP, BoxPushMDP
 
 
 class BoxPushTrajectories(Trajectories):
+
   def __init__(self, task_mdp: BoxPushTeamMDP, agent_mdp: BoxPushMDP) -> None:
     super().__init__(num_state_factors=1,
                      num_action_factors=2,
@@ -36,3 +38,26 @@ class BoxPushTrajectories(Trajectories):
         np_trj[tidx, :] = [sidx, aidx1, aidx2, xidx1, xidx2]
 
       self.list_np_trajectory.append(np_trj)
+
+  def add_trajectory(self, trajectory):
+    if len(trajectory) == 0:
+      return
+
+    np_trj = np.zeros((len(trajectory), self.get_width()), dtype=np.int32)
+    for tidx, vec_state_action in enumerate(trajectory):
+      bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = vec_state_action
+
+      sidx = self.task_mdp.conv_sim_states_to_mdp_sidx([bstt, a1pos, a2pos])
+      aidx1 = (AGENT_ACTIONSPACE.action_to_idx[a1act]
+               if a1act is not None else Trajectories.EPISODE_END)
+      aidx2 = (AGENT_ACTIONSPACE.action_to_idx[a2act]
+               if a2act is not None else Trajectories.EPISODE_END)
+
+      xidx1 = (self.agent_mdp.latent_space.state_to_idx[a1lat]
+               if a1lat is not None else Trajectories.EPISODE_END)
+      xidx2 = (self.agent_mdp.latent_space.state_to_idx[a2lat]
+               if a2lat is not None else Trajectories.EPISODE_END)
+
+      np_trj[tidx, :] = [sidx, aidx1, aidx2, xidx1, xidx2]
+
+    self.list_np_trajectory.append(np_trj)

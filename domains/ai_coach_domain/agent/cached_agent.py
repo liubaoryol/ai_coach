@@ -65,8 +65,8 @@ class BTILCachedAgentModel(AgentModel):
     for idx, masked in enumerate(self.mask_sas):
       if masked:
         list_input.append(tuple_idx[idx])
-    with np.printoptions(precision=3, suppress=True):
-      print(self.np_tx[tuple(list_input)])
+    # with np.printoptions(precision=3, suppress=True):
+    #   print(self.np_tx[tuple(list_input)])
     return self.np_tx[tuple(list_input)]
 
   def initial_mental_distribution(self, obstate_idx: int) -> np.ndarray:
