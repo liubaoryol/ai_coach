@@ -51,7 +51,7 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
     from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
     from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
                                                  MDP_MoversV3_Task)
-    sim = BoxPushSimulatorV3(0)
+    sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
     SAVE_PREFIX = GAME_MAP["name"]
@@ -77,7 +77,7 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
     from ai_coach_domain.box_push_v3.policy import Policy_CleanupV3
     from ai_coach_domain.box_push_v3.mdp import (MDP_CleanupV3_Agent,
                                                  MDP_CleanupV3_Task)
-    sim = BoxPushSimulatorV3(0)
+    sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_CLEANUP_V3
     SAVE_PREFIX = GAME_MAP["name"]

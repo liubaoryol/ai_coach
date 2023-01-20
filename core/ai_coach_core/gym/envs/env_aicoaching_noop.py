@@ -5,7 +5,7 @@ from ai_coach_core.models.mdp import MDP
 import numpy as np
 
 
-class EnvFromLearnedModels(gym.Env):
+class EnvFromLearnedModelsNoop(gym.Env):
   # uncomment below line if you need to render the environment
   # metadata = {'render.modes': ['console']}
 
@@ -38,14 +38,18 @@ class EnvFromLearnedModels(gym.Env):
     self.list_np_bx = list_np_bx
     self.use_central_action = use_central_action
 
+    num_joint_mental = np.prod(self.tup_num_mental)
+    self.noop_idx = num_joint_mental
+    self.prev_mental = [None] * self.num_agents
+    self.prev_raw_action = [None] * self.num_agents
+
     self.observation_space = spaces.Discrete(self.num_abs)
     if use_central_action:
-      self.action_space = spaces.Discrete(np.prod(self.tup_num_mental))
+      self.action_space = spaces.Discrete(num_joint_mental + 1)
     else:
       self.action_space = spaces.MultiDiscrete(self.tup_num_mental)
 
-    self.each_2_joint = np.arange(np.prod(self.tup_num_mental)).reshape(
-        self.tup_num_mental)
+    self.each_2_joint = np.arange(num_joint_mental).reshape(self.tup_num_mental)
     self.joint_2_each = {
         ind: coord
         for coord, ind in np.ndenumerate(self.each_2_joint)
@@ -66,10 +70,27 @@ class EnvFromLearnedModels(gym.Env):
 
   def step(self, joint_mental):
     info = {}
-    if self.use_central_action:
-      each_x = self.joint_2_each[joint_mental]
+    if joint_mental == self.noop_idx:
+      list_mental = []
+      for idx_a in range(self.num_agents):
+        if self.prev_mental[idx_a] is None:
+          dist = self.list_np_bx[idx_a][self.cur_abs]
+          cur_mental = np.random.sample(self.tup_num_mental[idx_a], p=dist)
+          list_mental.append(cur_mental)
+        else:
+          tx_index = (self.prev_mental[idx_a], *self.prev_raw_action,
+                      self.cur_abs)
+          dist = self.list_np_tx[idx_a][tx_index]
+          cur_mental = np.random.sample(self.tup_num_mental[idx_a], p=dist)
+          list_mental.append(cur_mental)
+      self.prev_mental = list_mental
+      each_x = tuple(list_mental)
     else:
-      each_x = joint_mental
+      self.prev_mental = joint_mental
+      if self.use_central_action:
+        each_x = self.joint_2_each[joint_mental]
+      else:
+        each_x = joint_mental
 
     real_action = []
     for idx_a in range(self.num_agents):
@@ -77,6 +98,7 @@ class EnvFromLearnedModels(gym.Env):
       num_act = len(act_dist)
       act = np.random.choice(num_act, p=act_dist)
       real_action.append(act)
+    self.prev_raw_action = real_action
 
     real_action_idx = self.mdp.conv_action_to_idx(tuple(real_action))
 

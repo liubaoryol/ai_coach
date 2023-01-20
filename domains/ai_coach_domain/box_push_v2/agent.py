@@ -211,11 +211,13 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
                policy_model: CachedPolicyInterface,
                agent_idx: int = 0,
                np_bx: np.ndarray = None,
-               np_abs: np.ndarray = None) -> None:
+               np_abs: np.ndarray = None,
+               np_coach: np.ndarray = None) -> None:
     self.np_tx = np_tx
     self.mask_sas = mask_sas
     self.np_bx = np_bx
     self.np_abs = np_abs
+    self.np_coach = np_coach
     self.cur_abs = None
     super().__init__(policy_model, True, agent_idx)
 
@@ -232,14 +234,19 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
                                 policy_model)
 
   def conv_obstate_to_abstate(self, obstate_idx):
-    # abstate = np.random.choice(self.np_abs.shape[-1],
-    #                            p=self.np_abs[obstate_idx])
-    ind = np.argpartition(self.np_abs[obstate_idx], -3)[-3:]
-    np_new_dist = self.np_abs[obstate_idx][ind]
-    print(np_new_dist)
-    np_new_dist = np_new_dist / np.sum(np_new_dist)[..., None]
-    abstate = np.random.choice(ind, p=np_new_dist)
-    # abstate = np.argmax(self.np_abs[obstate_idx])
+    TOP_1 = True
+    TOP_3 = False
+    if TOP_1:
+      abstate = np.argmax(self.np_abs[obstate_idx])
+    elif TOP_3:
+      ind = np.argpartition(self.np_abs[obstate_idx], -3)[-3:]
+      np_new_dist = self.np_abs[obstate_idx][ind]
+      print(np_new_dist)
+      np_new_dist = np_new_dist / np.sum(np_new_dist)[..., None]
+      abstate = np.random.choice(ind, p=np_new_dist)
+    else:
+      abstate = np.random.choice(self.np_abs.shape[-1],
+                                 p=self.np_abs[obstate_idx])
     return abstate
 
   def init_latent(self, tup_states):
@@ -260,8 +267,13 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
       self.manual_action = None
       return next_action
 
-    mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
-    sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
+    if self.np_coach is not None:
+      max_idx = self.np_coach[self.cur_abs].reshape(-1).argmax()
+      max_coords = np.unravel_index(max_idx, self.np_coach.shape[1:])
+      xidx = max_coords[self.agent_idx]
+      self.agent_model.set_init_mental_state_idx(None, xidx)
+    # mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
+    # sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
     # self.cur_abs = self.conv_obstate_to_abstate(sidx)
     tup_aidx = self.agent_model.get_action_idx(self.cur_abs)
     return self.agent_model.policy_model.conv_idx_to_action(tup_aidx)[0]
@@ -282,9 +294,9 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
 
     prev_abs = self.cur_abs
     self.cur_abs = self.conv_obstate_to_abstate(sidx_nxt)
-
-    self.agent_model.update_mental_state_idx(prev_abs, tuple(list_aidx),
-                                             self.cur_abs)
+    if self.np_coach is None:
+      self.agent_model.update_mental_state_idx(prev_abs, tuple(list_aidx),
+                                               self.cur_abs)
 
   def set_latent(self, latent):
     xidx = self.conv_latent_to_idx(latent)

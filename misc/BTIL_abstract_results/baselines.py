@@ -19,19 +19,19 @@ def main(domain):
   if domain == "movers":
     from ai_coach_domain.box_push.utils import BoxPushTrajectories
     from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Team
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
     from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v2.policy import Policy_Movers
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Agent,
-                                                 MDP_Movers_Task)
-    sim = BoxPushSimulatorV2(0)
+    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
+    from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
+                                                 MDP_MoversV3_Task)
+    sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
     SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Movers_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Movers_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
+    MDP_TASK = MDP_MoversV3_Task(**GAME_MAP)
+    MDP_AGENT = MDP_MoversV3_Agent(**GAME_MAP)
+    POLICY_1 = Policy_MoversV3(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
+    POLICY_2 = Policy_MoversV3(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
     # init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
     #                GAME_MAP["a2_init"])
     AGENT_1 = BoxPushAIAgent_Team(POLICY_1, agent_idx=sim.AGENT1)
@@ -74,7 +74,6 @@ def main(domain):
                                                  include_terminal=True)
   num_traj = len(traj_labeled_ver)
 
-
   # baselines
   ##################################################
   # all data
@@ -104,8 +103,8 @@ def main(domain):
     os.makedirs(LOG_DIR)
   logpath = LOG_DIR + str(datetime.today())
 
-  BC = False
-  num_iterations = 5000000
+  BC = True
+  num_iterations = 50000
   list_policy = []
   save_prefix = SAVE_PREFIX
   if BC:

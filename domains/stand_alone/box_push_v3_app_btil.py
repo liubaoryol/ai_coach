@@ -40,6 +40,7 @@ if IS_MOVERS:
   NP_TX_A2 = file_name + "_tx_a2.npy"
   NP_BX_A1 = file_name + "_bx_a1.npy"
   NP_BX_A2 = file_name + "_bx_a2.npy"
+  NP_COACH_POLICY = "movers_bc_abs_100_pi_z.npy"
 else:
   GAME_MAP = MAP_CLEANUP
   POLICY = Policy_CleanupV3
@@ -108,19 +109,25 @@ class BoxPushV2App(BoxPushApp):
 
       np_abs = np.load(model_dir + NP_ABS)
 
+      np_coach = None
+      if NP_COACH_POLICY is not None:
+        np_coach = np.load(model_dir + NP_COACH_POLICY)
+
       mask = (False, True, True, True)
       agent1 = BoxPushAIAgent_BTIL_ABS(np_tx_1,
                                        mask,
                                        test_policy_1,
                                        0,
                                        np_bx=np_bx_1,
-                                       np_abs=np_abs)
+                                       np_abs=np_abs,
+                                       np_coach=np_coach)
       agent2 = BoxPushAIAgent_BTIL_ABS(np_tx_2,
                                        mask,
                                        test_policy_2,
                                        1,
                                        np_bx=np_bx_2,
-                                       np_abs=np_abs)
+                                       np_abs=np_abs,
+                                       np_coach=np_coach)
 
     self.game.set_autonomous_agent(agent1, agent2)
     if manual_latent1 is not None:
@@ -130,6 +137,7 @@ class BoxPushV2App(BoxPushApp):
 
   def _update_canvas_scene(self):
     super()._update_canvas_scene()
+    self.label_score.config(text=str(-self.game.current_step))
     if manual_latent1 is not None:
       self.game.agent_1.set_latent(manual_latent1)
     if manual_latent2 is not None:
@@ -138,20 +146,14 @@ class BoxPushV2App(BoxPushApp):
     x_unit = int(self.canvas_width / self.x_grid)
     y_unit = int(self.canvas_height / self.y_grid)
 
+    self.create_text(6.5 * x_unit, 0.5 * y_unit, str(self.game.agent_1.cur_abs),
+                     'white')
     self.create_text((self.game.a1_pos[0] + 0.5) * x_unit,
                      (self.game.a1_pos[1] + 0.4) * y_unit,
                      str(self.game.agent_1.get_current_latent()))
     self.create_text((self.game.a2_pos[0] + 0.5) * x_unit,
                      (self.game.a2_pos[1] + 0.6) * y_unit,
                      str(self.game.agent_2.get_current_latent()))
-    if V_VAL_FILE_NAME is not None:
-      game = self.game  # type: BoxPushSimulatorV2
-      tup_state = tuple(game.get_state_for_each_agent(0))
-      oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
-      list_combos = get_combos_sorted_by_simulated_values(
-          self.np_v_values, oidx)
-      print("=================================================")
-      print(list_combos)
 
 
 if __name__ == "__main__":

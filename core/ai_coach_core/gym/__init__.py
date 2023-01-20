@@ -16,3 +16,6 @@ register(id='envfromlatentmdp-v0',
 register(id='envaicoaching-v0',
          entry_point='ai_coach_core.gym.envs:EnvFromLearnedModels',
          max_episode_steps=200)
+register(id='envaicoachingnoop-v0',
+         entry_point='ai_coach_core.gym.envs:EnvFromLearnedModelsNoop',
+         max_episode_steps=200)

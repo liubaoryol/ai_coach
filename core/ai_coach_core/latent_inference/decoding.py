@@ -259,3 +259,88 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], num_agents: int,
   q_zx = softmax(log_q_zx, axis=tuple(range(1, log_q_zx.ndim)))
 
   return q_zx
+
+
+def smooth_inference_max_z(sa_trajectory: Sequence[Tuple], num_agents: int,
+                           tuple_num_latent: Sequence[int], num_abstate: int,
+                           np_abs: np.ndarray, list_np_pi: Sequence[np.ndarray],
+                           list_np_tx: Sequence[np.ndarray],
+                           list_np_bx: Sequence[np.ndarray]):
+  '''
+  cb_prev_px: takes agent_idx as input and
+              returns the distribution of x at the previous step
+  '''
+
+  list_za = []
+  for s, a in sa_trajectory:
+    z = np.argmax(np_abs[s])
+    list_za.append((z, a))
+
+  len_traj = len(sa_trajectory)
+  if sa_trajectory[-1][1] is None:
+    len_traj -= 1
+
+  list_qzx = [list(zip(*list_za))[0]]
+  for idx_a in range(num_agents):
+    # Forward messaging
+    with np.errstate(divide='ignore'):
+      np_log_forward = np.log(np.zeros((len_traj, tuple_num_latent[idx_a])))
+
+    t = 0
+    state_p, joint_a_p = list_za[t]
+
+    with np.errstate(divide='ignore'):
+      np_log_forward[t] = 0.0
+      np_log_forward[t] += np.log(list_np_bx[idx_a][state_p])
+      np_log_forward[t] += np.log(list_np_pi[idx_a][:, state_p,
+                                                    joint_a_p[idx_a]])
+    # t = 1:N-1
+    for t in range(1, len_traj):
+      t_p = t - 1
+      state, joint_a = list_za[t]
+
+      with np.errstate(divide='ignore'):
+        np_log_prob = np_log_forward[t_p][:, None]
+
+        tx_index = (slice(None), *joint_a_p, state, slice(None))
+        np_log_prob = np_log_prob + np.log(list_np_tx[idx_a][tx_index])
+        np_log_prob = np_log_prob + np.log(
+            list_np_pi[idx_a][:, state, joint_a[idx_a]])[None, :]
+      np_log_forward[t] = logsumexp(np_log_prob, axis=0)
+
+      joint_a_p = joint_a
+
+    # Backward messaging
+    with np.errstate(divide='ignore'):
+      np_log_backward = np.log(np.zeros((len_traj, tuple_num_latent[idx_a])))
+    # t = N-1
+    t = len_traj - 1
+
+    state_n, joint_a_n = list_za[t]
+
+    np_log_backward[t] = 0.0
+
+    # t = 0:N-2
+    for t in reversed(range(0, len_traj - 1)):
+      t_n = t + 1
+      state, joint_a = list_za[t]
+
+      with np.errstate(divide='ignore'):
+
+        np_log_prob = np_log_backward[t_n][None, :]
+
+        tx_index = (slice(None), *joint_a, state_n, slice(None))
+        np_log_prob = np_log_prob + np.log(list_np_tx[idx_a][tx_index])
+        np_log_prob = np_log_prob + np.log(
+            list_np_pi[idx_a][:, state_n, joint_a_n[idx_a]])[None, :]
+      np_log_backward[t] = logsumexp(np_log_prob, axis=1)
+
+      joint_a_n = joint_a
+
+    # compute q_zx
+    log_q_x = np_log_forward + np_log_backward
+
+    q_x = softmax(log_q_x, axis=1)
+    list_qzx.append(q_x)
+
+  return list_qzx

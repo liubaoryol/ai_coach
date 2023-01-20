@@ -13,8 +13,8 @@ from datetime import datetime
 
 @click.command()
 @click.option("--domain", type=str, default="movers", help="")
-@click.option("--gen-data", type=bool, default=False, help="")
-@click.option("--num-data", type=int, default=30, help="")
+@click.option("--gen-data", type=bool, default=True, help="")
+@click.option("--num-data", type=int, default=100, help="")
 def main(domain, gen_data, num_data):
 
   # define the domain where trajectories were generated
@@ -27,7 +27,7 @@ def main(domain, gen_data, num_data):
     from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
     from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
                                                  MDP_MoversV3_Task)
-    sim = BoxPushSimulatorV3(True)
+    sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
     SAVE_PREFIX = GAME_MAP["name"]
@@ -68,16 +68,21 @@ def main(domain, gen_data, num_data):
   sim.set_autonomous_agent(*AGENTS)
 
   DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train_tmp')
+  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train_opt')
 
   train_prefix = "opt_train_"
   if gen_data:
-    count = 15
+    count = 0
     for _ in tqdm(range(num_data * 100)):
+      completed = True
       while not sim.is_finished():
         map_agent_2_action = sim.get_joint_action()
         sim.take_a_step(map_agent_2_action)
-      if sim.current_step < 50:
+        if sim.agent_1.get_current_latent() != sim.agent_2.get_current_latent():
+          completed = False
+          break
+
+      if completed:
         file_name = os.path.join(TRAIN_DIR, train_prefix) + "%d.txt" % (count, )
         sim.save_history(file_name, "header")
         count += 1

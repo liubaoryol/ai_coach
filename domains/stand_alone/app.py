@@ -6,6 +6,7 @@ from ai_coach_domain.simulator import Simulator
 
 # TODO: game configuration ui / logic
 class AppInterface():
+
   def __init__(self) -> None:
     self.main_window = None
     self.game = None  # type: Simulator
@@ -38,18 +39,21 @@ class AppInterface():
     self.btn_start = tk.Button(self.main_window,
                                text="Start",
                                command=self._on_start_btn_clicked)
-    self.btn_start.grid(row=0, column=0)
+    self.btn_start.grid(row=0, column=1)
 
     self.btn_reset = tk.Button(self.main_window,
                                text="Reset",
                                command=self._on_reset_btn_clicked)
-    self.btn_start.grid(row=0, column=1)
+    self.btn_reset.grid(row=1, column=1)
+
+    self.label_score = tk.Label(self.main_window, text="0")
+    self.label_score.grid(row=2, column=1)
 
     self.canvas = tk.Canvas(self.main_window,
                             width=self.canvas_width,
                             height=self.canvas_height,
                             highlightbackground="black")
-    self.canvas.grid(row=1, columnspan=1)
+    self.canvas.grid(row=1, rowspan=2)
     self.canvas.bind("<Key>", self._on_key_pressed)
     self.canvas.bind("<Button-1>", self._on_mouse_l_btn_clicked)
     self.canvas.bind("<Button-2>", self._on_mouse_r_btn_clicked)
@@ -227,8 +231,8 @@ class AppInterface():
                                    y_pos_ed,
                                    fill=color)
 
-  def create_text(self, x_center, y_center, txt):
-    return self.canvas.create_text(x_center, y_center, text=txt)
+  def create_text(self, x_center, y_center, txt, color='black'):
+    return self.canvas.create_text(x_center, y_center, text=txt, fill=color)
 
   def create_triangle(self, x_st, y_st, width, height, color):
     x_pos_1 = x_st
