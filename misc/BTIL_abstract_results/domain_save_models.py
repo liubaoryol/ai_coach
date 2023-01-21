@@ -11,7 +11,6 @@ from ai_coach_core.model_learning.BTIL.btil_abstraction_fix import BTIL_Abstract
 @click.command()
 @click.option("--domain", type=str, default="movers", help="movers / cleanup_v3 / rescue_2 /rescue_3")  # noqa: E501
 @click.option("--num-training-data", type=int, default=1000, help="")
-@click.option("--gen-trainset", type=bool, default=False, help="")
 @click.option("--supervision", type=float, default=0.2, help="")
 @click.option("--gem-prior", type=float, default=3, help="")
 @click.option("--tx-prior", type=float, default=3, help="")
@@ -25,12 +24,11 @@ from ai_coach_core.model_learning.BTIL.btil_abstraction_fix import BTIL_Abstract
 @click.option("--tx-dependency", type=str, default="FTTT",
               help="sequence of T or F indicating dependency on cur_state, actions, and next_state")  # noqa: E501
 # yapf: enable
-def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
-         abs_prior, num_x, num_abstract, tx_dependency, num_iteration,
-         batch_size, load_param, supervision):
+def main(domain, num_training_data, gem_prior, tx_prior, pi_prior, abs_prior,
+         num_x, num_abstract, tx_dependency, num_iteration, batch_size,
+         load_param, supervision):
   logging.info("domain: %s" % (domain, ))
   logging.info("num training data: %s" % (num_training_data, ))
-  logging.info("Gen trainset: %s" % (gen_trainset, ))
   logging.info("GEM prior: %s" % (gem_prior, ))
   logging.info("Tx prior: %s" % (tx_prior, ))
   logging.info("pi prior: %s" % (pi_prior, ))
@@ -183,14 +181,6 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
   ############################################################################
   DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
   TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train')
-
-  train_prefix = "train_"
-  if gen_trainset:
-    file_names = glob.glob(os.path.join(TRAIN_DIR, train_prefix + '*.txt'))
-    for fmn in file_names:
-      os.remove(fmn)
-    sim.run_simulation(num_training_data, os.path.join(TRAIN_DIR, train_prefix),
-                       "header")
 
   # load train set
   ##################################################
