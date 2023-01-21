@@ -23,7 +23,8 @@ class BTIL_Abstraction:
       lr: float = 0.1,
       decay: float = 0.01,
       num_abstates: int = 30,
-      save_file_prefix: str = None) -> None:
+      save_file_prefix: str = None,
+      no_gem: bool = False) -> None:
     '''
       trajectories: list of list of (state, joint action)-tuples
       tuple_num_latents: truncated stick-breaking number + 1
@@ -41,16 +42,15 @@ class BTIL_Abstraction:
 
     self.hyper_gem = HYPER_GEM
     self.hyper_tx = HYPER_TX
-    self.hyper_pi = HYPER_PI
-    self.hyper_abs = HYPER_ABS
+    self.list_hyper_pi = [HYPER_PI / n_a for n_a in tuple_num_actions]
+    self.hyper_abs = HYPER_ABS / num_abstates
+    self.no_gem = no_gem
 
     self.num_agents = len(tuple_num_actions)
     self.num_ostates = num_states
     self.tuple_num_latents = tuple_num_latents
     self.tuple_num_actions = tuple_num_actions
     self.num_abstates = num_abstates  # num abstract states
-    self.num_mc_4_qz = num_mc_4_qz
-    self.num_mc_4_qx = num_mc_4_qx
 
     self.list_np_policy = [None for dummy_i in range(self.num_agents)
                            ]  # type: list[np.ndarray]
@@ -75,8 +75,8 @@ class BTIL_Abstraction:
                 abs_prior: float):
     self.hyper_gem = gem_prior
     self.hyper_tx = tx_prior
-    self.hyper_pi = pi_prior
-    self.hyper_abs = abs_prior
+    self.list_hyper_pi = [pi_prior / n_a for n_a in self.tuple_num_actions]
+    self.hyper_abs = abs_prior / self.num_abstates
 
   def forward_backward_messaging(self, idx_a, trajectory, np_q_z, np_pi_tilde,
                                  np_tx_tilde, np_bx_tilde):
@@ -86,32 +86,50 @@ class BTIL_Abstraction:
       np_log_forward = np.log(np.zeros((len(trajectory), n_lat)))
 
     t = 0
-    _, joint_a_p, _ = trajectory[t]
+    _, joint_a_p, joint_x_p = trajectory[t]
+
+    idx_xp = joint_x_p[idx_a]
+    len_xp = 1
+    if joint_x_p[idx_a] is None:
+      idx_xp = slice(None)
+      len_xp = n_lat
 
     with np.errstate(divide='ignore'):
-      np_log_forward[t] = 0.0
-      np_log_forward[t] += np.log(
-          (np_q_z[t] @ np_bx_tilde) *
-          (np_pi_tilde[:, :, joint_a_p[idx_a]] @ np_q_z[t]))
+      np_log_forward[t][idx_xp] = 0.0
+      np_log_forward[t][idx_xp] += np.log(
+          (np_q_z[t] @ np_bx_tilde)[idx_xp] *
+          (np_pi_tilde[idx_xp, :, joint_a_p[idx_a]] @ np_q_z[t]))
 
     # t = 1:N-1
     for t in range(1, len(trajectory)):
       t_p = t - 1
-      _, joint_a, _ = trajectory[t]
+      _, joint_a, joint_x = trajectory[t]
+
+      idx_x = joint_x[idx_a]
+      len_x = 1
+      if joint_x[idx_a] is None:
+        idx_x = slice(None)
+        len_x = n_lat
 
       with np.errstate(divide='ignore'):
-        np_log_prob = np_log_forward[t_p][:, None]
+        np_log_prob = np_log_forward[t_p][idx_xp].reshape(len_xp, 1)
 
         tx_index = (slice(None), *joint_a_p, slice(None), slice(None))
         np_log_prob = np_log_prob + np.log(
-            np.tensordot(np_tx_tilde[tx_index], np_q_z[t], axes=(1, 0)))
+            np.tensordot(np_tx_tilde[tx_index][idx_xp, :, idx_x].reshape(
+                len_xp, -1, len_x),
+                         np_q_z[t],
+                         axes=(1, 0)))
 
         np_log_prob = np_log_prob + np.log(
-            np_pi_tilde[:, :, joint_a[idx_a]] @ np_q_z[t])[None, :]
+            np_pi_tilde[idx_x, :, joint_a[idx_a]] @ np_q_z[t]).reshape(
+                1, len_x)
 
       np_log_forward[t] = logsumexp(np_log_prob, axis=0)
 
       joint_a_p = joint_a
+      idx_xp = idx_x
+      len_xp = len_x
 
     # Backward messaging
     with np.errstate(divide='ignore'):
@@ -119,28 +137,46 @@ class BTIL_Abstraction:
     # t = N-1
     t = len(trajectory) - 1
 
-    _, joint_a_n, _ = trajectory[t]
+    _, joint_a_n, joint_x_n = trajectory[t]
 
-    np_log_backward[t] = 0.0
+    idx_xn = joint_x_n[idx_a]
+    len_xn = 1
+    if joint_x_n[idx_a] is None:
+      idx_xn = slice(None)
+      len_xn = n_lat
+
+    np_log_backward[t][idx_xn] = 0.0
 
     # t = 0:N-2
     for t in reversed(range(0, len(trajectory) - 1)):
       t_n = t + 1
-      _, joint_a, _ = trajectory[t]
+      _, joint_a, joint_x = trajectory[t]
+
+      idx_x = joint_x[idx_a]
+      len_x = 1
+      if joint_x[idx_a] is None:
+        idx_x = slice(None)
+        len_x = n_lat
 
       with np.errstate(divide='ignore'):
-        np_log_prob = np_log_backward[t_n][None, :]
+        np_log_prob = np_log_backward[t_n][idx_xn].reshape(1, len_xn)
 
         tx_index = (slice(None), *joint_a, slice(None), slice(None))
         np_log_prob = np_log_prob + np.log(
-            np.tensordot(np_tx_tilde[tx_index], np_q_z[t_n], axes=(1, 0)))
+            np.tensordot(np_tx_tilde[tx_index][idx_x, :, idx_xn].reshape(
+                len_x, -1, len_xn),
+                         np_q_z[t_n],
+                         axes=(1, 0)))
 
         np_log_prob = np_log_prob + np.log(
-            np_pi_tilde[:, :, joint_a_n[idx_a]] @ np_q_z[t_n])[None, :]
+            np_pi_tilde[idx_xn, :, joint_a_n[idx_a]] @ np_q_z[t_n]).reshape(
+                1, len_xn)
 
       np_log_backward[t] = logsumexp(np_log_prob, axis=1)  # noqa: E501
 
       joint_a_n = joint_a
+      idx_xn = idx_x
+      len_xn = len_x
 
     # compute q_x, q_x_xp
     log_q_x = np_log_forward + np_log_backward
@@ -316,7 +352,7 @@ class BTIL_Abstraction:
     for idx_a in range(self.num_agents):
       x_prior = self.hyper_tx * self.list_param_beta[idx_a]
       list_param_pi_hat[idx_a] = (batch_ratio * list_param_pi_hat[idx_a] +
-                                  self.hyper_pi)
+                                  self.list_hyper_pi[idx_a])
       list_param_bx_hat[idx_a] = (batch_ratio * list_param_bx_hat[idx_a] +
                                   x_prior)
       list_param_tx_hat[idx_a] = (batch_ratio * list_param_tx_hat[idx_a] +
@@ -330,49 +366,51 @@ class BTIL_Abstraction:
           (1 - lr) * self.list_Tx[idx_a].np_lambda_Tx +
           lr * list_param_tx_hat[idx_a])
 
-      # -- update beta.
-      # ref: https://people.eecs.berkeley.edu/~jordan/papers/liang-jordan-klein-haba.pdf
-      # ref: http://proceedings.mlr.press/v32/johnson14.pdf
-      num_K = len(self.list_param_beta[idx_a]) - 1
-      grad_ln_p_beta = (np.ones(num_K) * (1 - self.hyper_gem) /
-                        self.list_param_beta[idx_a][-1])
-      for k in range(num_K):
-        for i in range(k + 1, num_K):
-          sum_beta = np.sum(self.list_param_beta[idx_a][:i])
-          grad_ln_p_beta[k] += 1 / (1 - sum_beta)
+      if not self.no_gem:
+        # -- update beta.
+        # ref: https://people.eecs.berkeley.edu/~jordan/papers/liang-jordan-klein-haba.pdf
+        # ref: http://proceedings.mlr.press/v32/johnson14.pdf
+        num_K = len(self.list_param_beta[idx_a]) - 1
+        grad_ln_p_beta = (np.ones(num_K) * (1 - self.hyper_gem) /
+                          self.list_param_beta[idx_a][-1])
+        for k in range(num_K):
+          for i in range(k + 1, num_K):
+            sum_beta = np.sum(self.list_param_beta[idx_a][:i])
+            grad_ln_p_beta[k] += 1 / (1 - sum_beta)
 
-      const_tmp = -digamma(x_prior) + digamma(sum(x_prior))
-      param_tx = self.list_Tx[idx_a].np_lambda_Tx
-      param_bx = self.list_param_bx[idx_a]
-      sum_param_tx = np.sum(param_tx, axis=-1)
-      sum_param_bx = np.sum(param_bx, axis=-1)
-      grad_ln_E_p_tx = np.sum(digamma(param_tx) -
-                              digamma(sum_param_tx)[..., None],
-                              axis=tuple(range(param_tx.ndim - 1)))
-      grad_ln_E_p_tx += np.sum(digamma(param_bx) -
-                               digamma(sum_param_bx)[..., None],
-                               axis=tuple(range(param_bx.ndim - 1)))
-      num_x_dists = np.prod(param_tx.shape[:-1]) + np.prod(param_bx.shape[:-1])
-      grad_ln_E_p_tx = (self.hyper_tx * grad_ln_E_p_tx[:-1] +
-                        num_x_dists * const_tmp[:-1])
+        const_tmp = -digamma(x_prior) + digamma(sum(x_prior))
+        param_tx = self.list_Tx[idx_a].np_lambda_Tx
+        param_bx = self.list_param_bx[idx_a]
+        sum_param_tx = np.sum(param_tx, axis=-1)
+        sum_param_bx = np.sum(param_bx, axis=-1)
+        grad_ln_E_p_tx = np.sum(digamma(param_tx) -
+                                digamma(sum_param_tx)[..., None],
+                                axis=tuple(range(param_tx.ndim - 1)))
+        grad_ln_E_p_tx += np.sum(digamma(param_bx) -
+                                 digamma(sum_param_bx)[..., None],
+                                 axis=tuple(range(param_bx.ndim - 1)))
+        num_x_dists = np.prod(param_tx.shape[:-1]) + np.prod(
+            param_bx.shape[:-1])
+        grad_ln_E_p_tx = (self.hyper_tx * grad_ln_E_p_tx[:-1] +
+                          num_x_dists * const_tmp[:-1])
 
-      grad_beta = grad_ln_p_beta + grad_ln_E_p_tx
-      grad_beta_norm = np.linalg.norm(grad_beta)
-      grad_beta /= grad_beta_norm
+        grad_beta = grad_ln_p_beta + grad_ln_E_p_tx
+        grad_beta_norm = np.linalg.norm(grad_beta)
+        grad_beta /= grad_beta_norm
 
-      # line search
-      reach = np.zeros(num_K + 1)
-      # distance to each canonical hyperplane
-      reach[:-1] = -self.list_param_beta[idx_a][:-1] / grad_beta
-      # signed distance to all-one hyperplane
-      reach[-1] = self.list_param_beta[idx_a][-1] / np.sum(grad_beta)
-      max_reach = min(reach[reach > 0])
-      search_reach = min(max_reach, grad_beta_norm)
-      beta_lr = 0.1 * lr  # we will update very slightly
-      self.list_param_beta[idx_a][:-1] = (self.list_param_beta[idx_a][:-1] +
-                                          beta_lr * search_reach * grad_beta)
-      self.list_param_beta[idx_a][-1] = (
-          1 - np.sum(self.list_param_beta[idx_a][:-1]))
+        # line search
+        reach = np.zeros(num_K + 1)
+        # distance to each canonical hyperplane
+        reach[:-1] = -self.list_param_beta[idx_a][:-1] / grad_beta
+        # signed distance to all-one hyperplane
+        reach[-1] = self.list_param_beta[idx_a][-1] / np.sum(grad_beta)
+        max_reach = min(reach[reach > 0])
+        search_reach = min(max_reach, grad_beta_norm)
+        beta_lr = 0.1 * lr  # we will update very slightly
+        self.list_param_beta[idx_a][:-1] = (self.list_param_beta[idx_a][:-1] +
+                                            beta_lr * search_reach * grad_beta)
+        self.list_param_beta[idx_a][-1] = (
+            1 - np.sum(self.list_param_beta[idx_a][:-1]))
 
     # - update task-level global variables
     param_abs_hat = batch_ratio * param_abs_hat + self.hyper_abs
@@ -395,11 +433,10 @@ class BTIL_Abstraction:
                                        high=INIT_RANGE[1],
                                        size=(self.num_ostates,
                                              self.num_abstates))
-    UNIFORM_BETA_PRIOR = True
     for idx_a in range(self.num_agents):
       num_x = self.tuple_num_latents[idx_a]
       # init beta
-      if UNIFORM_BETA_PRIOR:
+      if self.no_gem:
         self.list_param_beta.append(np.ones(num_x) / num_x)
       else:
         tmp_np_v = np.random.beta(1, self.hyper_gem, num_x - 1)
@@ -498,7 +535,7 @@ class BTIL_Abstraction:
       if delta_team < self.epsilon_g:
         break
 
-      if count % 100 == 0:
+      if count % 10 == 0:
         print("Save parameters...")
         self.save_params()
         print("Finished saving")

@@ -10,14 +10,15 @@ from ai_coach_core.model_learning.BTIL.btil_abstraction_fix import BTIL_Abstract
 # yapf: disable
 @click.command()
 @click.option("--domain", type=str, default="movers", help="movers / cleanup_v3 / rescue_2 /rescue_3")  # noqa: E501
-@click.option("--num-training-data", type=int, default=300, help="")
-@click.option("--gen-trainset", type=bool, default=True, help="")
+@click.option("--num-training-data", type=int, default=1000, help="")
+@click.option("--gen-trainset", type=bool, default=False, help="")
+@click.option("--supervision", type=float, default=0.2, help="")
 @click.option("--gem-prior", type=float, default=3, help="")
-@click.option("--tx-prior", type=float, default=1, help="")
-@click.option("--pi-prior", type=float, default=1, help="")
-@click.option("--abs-prior", type=float, default=1, help="")
+@click.option("--tx-prior", type=float, default=3, help="")
+@click.option("--pi-prior", type=float, default=3, help="")
+@click.option("--abs-prior", type=float, default=3, help="")
 @click.option("--num-x", type=int, default=4, help="")
-@click.option("--num-abstract", type=int, default=20, help="")
+@click.option("--num-abstract", type=int, default=30, help="")
 @click.option("--num-iteration", type=int, default=1000, help="")
 @click.option("--batch-size", type=int, default=100, help="")
 @click.option("--load-param", type=bool, default=False, help="")
@@ -26,7 +27,7 @@ from ai_coach_core.model_learning.BTIL.btil_abstraction_fix import BTIL_Abstract
 # yapf: enable
 def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
          abs_prior, num_x, num_abstract, tx_dependency, num_iteration,
-         batch_size, load_param):
+         batch_size, load_param, supervision):
   logging.info("domain: %s" % (domain, ))
   logging.info("num training data: %s" % (num_training_data, ))
   logging.info("Gen trainset: %s" % (gen_trainset, ))
@@ -208,6 +209,7 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
                                                  include_terminal=False)
 
   logging.info(len(traj_labeled_ver))
+  labeled_idx = int(num_train * supervision)
 
   # learn policy and transition
   ##################################################
@@ -217,7 +219,8 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
   joint_action_num = tuple([MDP_AGENT.num_actions] * len(AGENTS))
 
   logging.info("#########")
-  logging.info("BTIL (Unlabeled: %d)" % (num_train, ))
+  logging.info("BTIL (Labeled: %d, Unlabeled: %d)" %
+               (labeled_idx, num_train - labeled_idx))
   logging.info("#########")
 
   # to backup params
@@ -231,7 +234,8 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
   file_prefix = os.path.join(temp_dir, save_prefix)
 
   # learning models
-  btil_models = BTIL_Abstraction(traj_unlabel_ver,
+  btil_models = BTIL_Abstraction(traj_labeled_ver[:labeled_idx] +
+                                 traj_unlabel_ver[labeled_idx:],
                                  MDP_TASK.num_states,
                                  tuple([num_x] * len(AGENTS)),
                                  joint_action_num,
@@ -242,7 +246,8 @@ def main(domain, num_training_data, gen_trainset, gem_prior, tx_prior, pi_prior,
                                  lr=0.1,
                                  decay=0.01,
                                  num_abstates=num_abstract,
-                                 save_file_prefix=file_prefix)
+                                 save_file_prefix=file_prefix,
+                                 no_gem=True)
   btil_models.set_prior(gem_prior, tx_prior, pi_prior, abs_prior)
 
   if load_param:
