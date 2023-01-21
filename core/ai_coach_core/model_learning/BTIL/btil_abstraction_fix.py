@@ -535,7 +535,7 @@ class BTIL_Abstraction:
       if delta_team < self.epsilon_g:
         break
 
-      if count % 10 == 0:
+      if count % 100 == 0:
         print("Save parameters...")
         self.save_params()
         print("Finished saving")
