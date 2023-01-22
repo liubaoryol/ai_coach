@@ -70,6 +70,7 @@ class BTIL_Abstraction:
     self.param_abs = None  # type: np.ndarray
     self.lr = lr
     self.decay = decay
+    self.dict_qz = {}
 
   def set_prior(self, gem_prior: float, tx_prior: float, pi_prior: float,
                 abs_prior: float):
@@ -261,13 +262,18 @@ class BTIL_Abstraction:
     np_p_sz_norm = np_abs_tilde / np.sum(np_abs_tilde, axis=1)[..., None]
 
     for m_th in range(len(samples)):
-      trajectory = samples[m_th]
+      sam_idx = samples[m_th][0]
+      trajectory = samples[m_th][1]
       len_traj = len(trajectory)
 
       # initialize q_z
-      np_q_z = np.zeros((len_traj, self.num_abstates))
-      for t, (stt, _, _) in enumerate(trajectory):
-        np_q_z[t] = np_p_sz_norm[stt]
+      if sam_idx not in self.dict_qz:
+        np_q_z = np.zeros((len_traj, self.num_abstates))
+        for t, (stt, _, _) in enumerate(trajectory):
+          np_q_z[t] = np_p_sz_norm[stt]
+        self.dict_qz[sam_idx] = np_q_z
+      else:
+        np_q_z = self.dict_qz[sam_idx]
 
       list_np_q_x = [None for _ in range(self.num_agents)]
       list_np_q_xx = [None for _ in range(self.num_agents)]
@@ -292,6 +298,8 @@ class BTIL_Abstraction:
         delta = np.max(abs(np_q_z - prev_np_q_z))
         if delta < self.epsilon_l:
           break
+
+      self.dict_qz[sam_idx] = np_q_z
 
       list_list_q_x.append(list_np_q_x)
       list_list_q_xx.append(list_np_q_xx)
@@ -321,7 +329,7 @@ class BTIL_Abstraction:
 
     # -- compute sufficient statistics
     for m_th in range(len(samples)):
-      traj = samples[m_th]
+      traj = samples[m_th][1]
       q_z = list_q_z[m_th]
       list_q_x = list_list_q_x[m_th]
       list_q_xx = list_list_q_xx[m_th]
@@ -474,19 +482,20 @@ class BTIL_Abstraction:
 
   def do_inference(self, batch_size):
     num_traj = len(self.trajectories)
+    traj_w_index = [(idx, traj) for idx, traj in enumerate(self.trajectories)]
     batch_iter = int(num_traj / batch_size)
     count = 0
     progress_bar = tqdm(total=self.max_iteration)
     while count < self.max_iteration:
       if batch_size >= num_traj:
-        samples = self.trajectories
+        samples = traj_w_index
       else:
         batch_idx = count % batch_iter
         if batch_idx == 0:
-          perm_index = np.random.permutation(len(self.trajectories))
+          perm_index = np.random.permutation(len(traj_w_index))
 
         samples = [
-            self.trajectories[idx]
+            traj_w_index[idx]
             for idx in perm_index[batch_idx * batch_size:(batch_idx + 1) *
                                   batch_size]
         ]
@@ -535,7 +544,7 @@ class BTIL_Abstraction:
       if delta_team < self.epsilon_g:
         break
 
-      if count % 100 == 0:
+      if count % 50 == 0:
         print("Save parameters...")
         self.save_params()
         print("Finished saving")
