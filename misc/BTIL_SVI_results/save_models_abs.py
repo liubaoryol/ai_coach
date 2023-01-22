@@ -110,7 +110,8 @@ def main(domain, num_training_data, supervision, gem_prior, tx_prior, pi_prior,
   labeled_data_idx = int(num_train * supervision)
 
   logging.info("#########")
-  logging.info("BTIL (Unlabeled: %d)" % (num_train, ))
+  logging.info("BTIL (Labeled: %d, Unlabeled: %d)" %
+               (labeled_data_idx, num_train - labeled_data_idx))
   logging.info("#########")
 
   # to backup params
@@ -136,7 +137,8 @@ def main(domain, num_training_data, supervision, gem_prior, tx_prior, pi_prior,
                                  lr=1,
                                  decay=0,
                                  num_abstates=num_abstract,
-                                 no_gem=True)
+                                 no_gem=True,
+                                 save_file_prefix=file_prefix)
   btil_models.set_prior(gem_prior, tx_prior, pi_prior, abs_prior)
 
   btil_models.initialize_param()

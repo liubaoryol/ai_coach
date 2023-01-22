@@ -105,7 +105,8 @@ def main(domain, num_training_data, supervision, gem_prior, tx_prior, pi_prior,
   labeled_data_idx = int(num_train * supervision)
 
   logging.info("#########")
-  logging.info("BTIL (Unlabeled: %d)" % (num_train, ))
+  logging.info("BTIL (Labeled: %d, Unlabeled: %d)" %
+               (labeled_data_idx, num_train - labeled_data_idx))
   logging.info("#########")
 
   # learning models
