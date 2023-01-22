@@ -4,7 +4,8 @@ import glob
 import click
 from tqdm import tqdm
 import random
-from ai_coach_core.latent_inference.decoding import smooth_inference_max_z
+from ai_coach_core.latent_inference.decoding import (smooth_inference_max_z,
+                                                     smooth_inference)
 from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3
 import numpy as np
 from datetime import datetime
@@ -67,7 +68,7 @@ def main(domain):
   # load files
   ##################################################
   DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train_opt')
+  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train_opt_sameinit')
 
   file_names = glob.glob(os.path.join(TRAIN_DIR, '*.txt'))
   random.shuffle(file_names)
@@ -132,23 +133,38 @@ def main(domain):
                              list_np_bx, [0],
                              use_central_action=True)
   list_predict = []
-  for i, sa_traj in tqdm(enumerate(traj_sa_joint)):
-    list_zx = smooth_inference_max_z(sa_traj, num_agents, tup_num_latent,
-                                     num_abs, np_abs, list_np_pi, list_np_tx,
-                                     list_np_bx)
-    predictions = []
-    traj_len = len(list_zx[1])
-    for t in range(traj_len):
-      x_tup = []
-      for aidx in range(1, len(list_zx)):
-        x_tup.append(np.argmax(list_zx[aidx][t]))
-      x_tup = tuple(x_tup)
-      predictions.append((list_zx[0][t], env.each_2_joint[x_tup]))
+  INFERENCE_MAX_Z = False
+  if INFERENCE_MAX_Z:
+    for i, sa_traj in tqdm(enumerate(traj_sa_joint)):
+      list_zx = smooth_inference_max_z(sa_traj, num_agents, tup_num_latent,
+                                       num_abs, np_abs, list_np_pi, list_np_tx,
+                                       list_np_bx)
+      predictions = []
+      traj_len = len(list_zx[1])
+      for t in range(traj_len):
+        x_tup = []
+        for aidx in range(1, len(list_zx)):
+          x_tup.append(np.argmax(list_zx[aidx][t]))
+        x_tup = tuple(x_tup)
+        predictions.append((list_zx[0][t], env.each_2_joint[x_tup]))
 
-    if len(list_zx[0]) > traj_len:
-      predictions.append((list_zx[0][traj_len], None))
+      if len(list_zx[0]) > traj_len:
+        predictions.append((list_zx[0][traj_len], None))
 
-    list_predict.append(predictions)
+      list_predict.append(predictions)
+  else:
+    for i, sa_traj in tqdm(enumerate(traj_sa_joint)):
+      tmp_infer_dist = smooth_inference(sa_traj, num_agents, tup_num_latent,
+                                        num_abs, np_abs, list_np_pi, list_np_tx,
+                                        list_np_bx)
+      max_idx = tmp_infer_dist.reshape(tmp_infer_dist.shape[0], -1).argmax(1)
+      max_coords = np.unravel_index(max_idx, tmp_infer_dist.shape[1:])
+      max_coords = list(zip(*max_coords))
+      # store z, and x's separately.
+      list_predict.append([(elem[0], env.each_2_joint[tuple(elem[1:])])
+                           for elem in max_coords])
+      if sa_traj[-1][1] is None:
+        list_predict[-1].append((np_abs[sa_traj[-1][0]].argmax(), None))
 
   LOG_DIR = os.path.join(os.path.dirname(__file__), "logs/")
   if not os.path.exists(LOG_DIR):
@@ -156,7 +172,7 @@ def main(domain):
   logpath = LOG_DIR + str(datetime.today())
 
   BC = True
-  num_iterations = 500
+  num_iterations = 1000
   save_prefix = SAVE_PREFIX
   policy = None
   if BC:

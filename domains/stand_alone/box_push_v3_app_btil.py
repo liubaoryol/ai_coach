@@ -40,7 +40,8 @@ if IS_MOVERS:
   NP_TX_A2 = file_name + "_tx_a2.npy"
   NP_BX_A1 = file_name + "_bx_a1.npy"
   NP_BX_A2 = file_name + "_bx_a2.npy"
-  NP_COACH_POLICY = "movers_bc_abs_100_pi_z.npy"
+  NP_COACH_POLICY = None
+  NP_COACH_POLICY = "movers_bc_abs_15_pi_z.npy"
 else:
   GAME_MAP = MAP_CLEANUP
   POLICY = Policy_CleanupV3
@@ -68,7 +69,7 @@ class BoxPushV2App(BoxPushApp):
     # game_map["a2_init"] = (1, 2)
     self.x_grid = GAME_MAP["x_grid"]
     self.y_grid = GAME_MAP["y_grid"]
-    self.game = BoxPushSimulatorV3(None)
+    self.game = BoxPushSimulatorV3(True)
     self.game.max_steps = 200
 
     self.game.init_game(**GAME_MAP)

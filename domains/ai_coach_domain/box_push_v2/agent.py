@@ -228,6 +228,14 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
         return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
                                                    policy_model.mdp)
       else:
+        if self.np_coach is not None:
+          max_idx = self.np_coach[self.cur_abs].reshape(-1).argmax()
+          max_coords = np.unravel_index(max_idx, self.np_coach.shape[1:])
+          xidx = max_coords[self.agent_idx]
+          np_bx = np.zeros(self.np_coach.shape[1 + self.agent_idx])
+          np_bx[xidx] = 1.0
+          return np_bx
+
         return self.np_bx[obstate_idx]
 
     return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
