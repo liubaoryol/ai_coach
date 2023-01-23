@@ -5,7 +5,7 @@ import click
 from tqdm import tqdm
 import random
 from ai_coach_core.latent_inference.decoding import (smooth_inference_max_z,
-                                                     smooth_inference)
+                                                     smooth_inference_zx)
 from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3
 import numpy as np
 from datetime import datetime
@@ -74,11 +74,12 @@ def main(domain):
   random.shuffle(file_names)
 
   train_data.load_from_files(file_names)
-  traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
-                                                 include_terminal=True)
-  traj_unlabel_ver = train_data.get_as_row_lists(no_latent_label=True,
-                                                 include_terminal=True)
-  num_traj = len(traj_labeled_ver)
+  # traj_labeled_ver = train_data.get_as_row_lists(no_latent_label=False,
+  #                                                include_terminal=True)
+  # traj_unlabel_ver = train_data.get_as_row_lists(no_latent_label=True,
+  #                                                include_terminal=True)
+  list_trajs = train_data.get_as_column_lists(include_terminal=True)
+  num_traj = len(list_trajs)
 
   # load models
   ##################################################
@@ -118,13 +119,13 @@ def main(domain):
   ##################################################
   tup_num_latent = (num_x, ) * num_agents
 
-  traj_sa_joint = []
-  for traj in traj_labeled_ver:
-    traj_sa = []
-    for s, a, x in traj:
-      traj_sa.append((s, a))
+  # traj_sa_joint = []
+  # for traj in traj_labeled_ver:
+  #   traj_sa = []
+  #   for s, a, x in traj:
+  #     traj_sa.append((s, a))
 
-    traj_sa_joint.append(traj_sa)
+  #   traj_sa_joint.append(traj_sa)
   from ai_coach_core.gym.envs.env_aicoaching import EnvFromLearnedModels
   env = EnvFromLearnedModels(MDP_TASK,
                              np_abs,
@@ -135,10 +136,11 @@ def main(domain):
   list_predict = []
   INFERENCE_MAX_Z = False
   if INFERENCE_MAX_Z:
-    for i, sa_traj in tqdm(enumerate(traj_sa_joint)):
-      list_zx = smooth_inference_max_z(sa_traj, num_agents, tup_num_latent,
-                                       num_abs, np_abs, list_np_pi, list_np_tx,
-                                       list_np_bx)
+    for i, traj in tqdm(enumerate(list_trajs)):
+      list_states, list_actions, list_latents = traj
+      list_zx = smooth_inference_max_z(list_states, list_actions, num_agents,
+                                       tup_num_latent, num_abs, np_abs,
+                                       list_np_pi, list_np_tx, list_np_bx)
       predictions = []
       traj_len = len(list_zx[1])
       for t in range(traj_len):
@@ -153,18 +155,20 @@ def main(domain):
 
       list_predict.append(predictions)
   else:
-    for i, sa_traj in tqdm(enumerate(traj_sa_joint)):
-      tmp_infer_dist = smooth_inference(sa_traj, num_agents, tup_num_latent,
-                                        num_abs, np_abs, list_np_pi, list_np_tx,
-                                        list_np_bx)
+    for i, traj in tqdm(enumerate(list_trajs)):
+      list_states, list_actions, list_latents = traj
+      tmp_infer_dist = smooth_inference_zx(list_states, list_actions,
+                                           num_agents, tup_num_latent, num_abs,
+                                           np_abs, list_np_pi, list_np_tx,
+                                           list_np_bx)
       max_idx = tmp_infer_dist.reshape(tmp_infer_dist.shape[0], -1).argmax(1)
       max_coords = np.unravel_index(max_idx, tmp_infer_dist.shape[1:])
       max_coords = list(zip(*max_coords))
       # store z, and x's separately.
       list_predict.append([(elem[0], env.each_2_joint[tuple(elem[1:])])
                            for elem in max_coords])
-      if sa_traj[-1][1] is None:
-        list_predict[-1].append((np_abs[sa_traj[-1][0]].argmax(), None))
+      if len(list_states) > len(list_actions):
+        list_predict[-1].append((np_abs[list_states[-1]].argmax(), None))
 
   LOG_DIR = os.path.join(os.path.dirname(__file__), "logs/")
   if not os.path.exists(LOG_DIR):

@@ -3,7 +3,9 @@ import glob
 import numpy as np
 import random
 import pandas as pd
+from tqdm import tqdm
 from ai_coach_core.latent_inference.decoding import (forward_inference,
+                                                     smooth_inference_zx,
                                                      smooth_inference_sa)
 
 
@@ -13,7 +15,9 @@ def prediction_result(domain_name: str,
                       alg: str,
                       gen_testset: bool = False,
                       num_testset: int = 100,
-                      fix_illegal: bool = False):
+                      fix_illegal: bool = False,
+                      num_x: int = 4,
+                      num_abs: int = 30):
   sup_txt = ("%.2f" % supervision).replace('.', ',')
   if domain_name == "rescue_3":
     tx_dependency = "FTTTT"
@@ -21,50 +25,45 @@ def prediction_result(domain_name: str,
     tx_dependency = "FTTT"
 
   if alg == "coord":
-    policy1_file = (
-        domain_name +
-        f"_btil_dec_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy"
-    )
-    policy2_file = (
-        domain_name +
-        f"_btil_dec_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a2.npy"
-    )
-    policy3_file = (
-        domain_name +
-        f"_btil_dec_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a3.npy"
-    )
+    mid_text = f"{tx_dependency}_{num_train}_{sup_txt}"
+    policy1_file = (domain_name +
+                    f"_btil_dec_policy_synth_woTx_{mid_text}_a1.npy")
+    policy2_file = (domain_name +
+                    f"_btil_dec_policy_synth_woTx_{mid_text}_a2.npy")
+    policy3_file = (domain_name +
+                    f"_btil_dec_policy_synth_woTx_{mid_text}_a3.npy")
 
-    tx1_file = (
-        domain_name +
-        f"_btil_dec_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
-    tx2_file = (
-        domain_name +
-        f"_btil_dec_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
-    tx3_file = (
-        domain_name +
-        f"_btil_dec_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
+    tx1_file = (domain_name + f"_btil_dec_tx_synth_{mid_text}_a1.npy")
+    tx2_file = (domain_name + f"_btil_dec_tx_synth_{mid_text}_a2.npy")
+    tx3_file = (domain_name + f"_btil_dec_tx_synth_{mid_text}_a3.npy")
     bx1_file = None
   elif alg == "svi":
-    policy1_file = (domain_name +
-                    f"_btil_svi_policy_{tx_dependency}_{num_train}_f_a1.npy")
-    policy2_file = (domain_name +
-                    f"_btil_svi_policy_{tx_dependency}_{num_train}_f_a2.npy")
-    policy3_file = (domain_name +
-                    f"_btil_svi_policy_{tx_dependency}_{num_train}_f_a3.npy")
+    mid_text = f"{tx_dependency}_{num_train}"
+    policy1_file = (domain_name + f"_btil_svi_policy_{mid_text}_f_a1.npy")
+    policy2_file = (domain_name + f"_btil_svi_policy_{mid_text}_f_a2.npy")
+    policy3_file = (domain_name + f"_btil_svi_policy_{mid_text}_f_a3.npy")
 
-    tx1_file = (domain_name +
-                f"_btil_svi_tx_{tx_dependency}_{num_train}__a1.npy")
-    tx2_file = (domain_name +
-                f"_btil_svi_tx_{tx_dependency}_{num_train}__a2.npy")
-    tx3_file = (domain_name +
-                f"_btil_svi_tx_{tx_dependency}_{num_train}__a3.npy")
+    tx1_file = (domain_name + f"_btil_svi_tx_{mid_text}__a1.npy")
+    tx2_file = (domain_name + f"_btil_svi_tx_{mid_text}__a2.npy")
+    tx3_file = (domain_name + f"_btil_svi_tx_{mid_text}__a3.npy")
 
-    bx1_file = (domain_name +
-                f"_btil_svi_bx_{tx_dependency}_{num_train}__a1.npy")
-    bx2_file = (domain_name +
-                f"_btil_svi_bx_{tx_dependency}_{num_train}__a2.npy")
-    bx3_file = (domain_name +
-                f"_btil_svi_bx_{tx_dependency}_{num_train}__a3.npy")
+    bx1_file = (domain_name + f"_btil_svi_bx_{mid_text}__a1.npy")
+    bx2_file = (domain_name + f"_btil_svi_bx_{mid_text}__a2.npy")
+    bx3_file = (domain_name + f"_btil_svi_bx_{mid_text}__a3.npy")
+  elif alg == "abs":
+    mid_text = f"{tx_dependency}_{num_train}_{num_x}_{num_abs}"
+    policy1_file = (domain_name + f"_btil_abs_{mid_text}_pi_a1.npy")
+    policy2_file = (domain_name + f"_btil_abs_{mid_text}_pi_a2.npy")
+    policy3_file = (domain_name + f"_btil_abs_{mid_text}_pi_a3.npy")
+
+    tx1_file = (domain_name + f"_btil_abs_{mid_text}_tx_a1.npy")
+    tx2_file = (domain_name + f"_btil_abs_{mid_text}_tx_a2.npy")
+    tx3_file = (domain_name + f"_btil_abs_{mid_text}_tx_a3.npy")
+
+    bx1_file = (domain_name + f"_btil_abs_{mid_text}_bx_a1.npy")
+    bx2_file = (domain_name + f"_btil_abs_{mid_text}_bx_a2.npy")
+    bx3_file = (domain_name + f"_btil_abs_{mid_text}_bx_a3.npy")
+    abs_file = (domain_name + f"_btil_abs_{mid_text}_abs.npy")
 
   # =========== LOAD ENV ============
   if domain_name == "movers":
@@ -116,6 +115,9 @@ def prediction_result(domain_name: str,
     np_bx2 = np.load(model_dir + bx2_file)
     list_bx = [np_bx1, np_bx2]
 
+  if alg == "abs":
+    np_abs = np.load(model_dir + abs_file)
+
   if game.get_num_agents() > 2:
     np_policy3 = np.load(model_dir + policy3_file)
     np_tx3 = np.load(model_dir + tx3_file)
@@ -141,42 +143,35 @@ def prediction_result(domain_name: str,
   list_trajs = test_data_handler.get_as_column_lists(include_terminal=True)
 
   # =========== INFERENCE ============
-  def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
-    return list_np_policy[nidx][xidx, sidx, tuple_aidx[nidx]]
-
-  def Tx_nxsasx(nidx, xidx, sidx, tuple_aidx, sidx_n, xidx_n):
-    np_idx = tuple([xidx, *tuple_aidx, sidx_n])
-    np_dist = list_np_tx[nidx][np_idx]
-
-    # NOTE: for illegal or unencountered states,
-    #       we assume mental model was maintained.
-    if fix_illegal:
-      if np.all(np_dist == np_dist[0]):
-        np_dist = np.zeros_like(np_dist)
-        np_dist[xidx] = 1
-
-    return np_dist[xidx_n]
-
-  def init_latent_nxs(nidx, xidx, sidx):
-    agent = agents[nidx]
-
-    num_latents = agent.agent_model.policy_model.get_num_latent_states()
-    return 1 / num_latents  # uniform
-
   prediction_results = []
-  for epi in list_trajs:
+  for epi in tqdm(list_trajs):
     list_states, list_actions, list_latents = epi
 
-    list_np_px = smooth_inference_sa(list_states, list_actions,
-                                     game.get_num_agents(), tup_num_latents,
-                                     list_np_policy, list_np_tx, list_bx)
-    np_result = np.zeros((len(list_np_px), list_np_px[0].shape[0]))
-    for idx, np_px in enumerate(list_np_px):
-      for t in range(np_px.shape[0]):
-        list_same_idx = np.argwhere(np_px[t] == np.max(np_px[t]))
-        xhat = random.choice(list_same_idx)[0]
-        np_result[idx, t] = int(xhat == list_latents[t][idx])
-    epi_accuracy = np.array(np_result, dtype=np.int32).mean()
+    if alg == "abs":
+      list_np_pzx = smooth_inference_zx(list_states, list_actions, num_agents,
+                                        tup_num_latents, num_abs, np_abs,
+                                        list_np_policy, list_np_tx, list_bx)
+
+      max_idx = list_np_pzx.reshape(list_np_pzx.shape[0], -1).argmax(1)
+      max_coords = np.unravel_index(max_idx, list_np_pzx.shape[1:])
+      max_coords = list(zip(*max_coords))
+      # store z, and x's separately.
+      np_result = np.zeros((num_agents, list_np_pzx.shape[0]))
+      for a_idx in range(num_agents):
+        for t, x_s in enumerate(max_coords):
+          np_result[a_idx, t] = int(x_s[a_idx] == list_latents[t][a_idx])
+      epi_accuracy = np.array(np_result, dtype=np.int32).mean()
+    else:
+      list_np_px = smooth_inference_sa(list_states, list_actions, num_agents,
+                                       tup_num_latents, list_np_policy,
+                                       list_np_tx, list_bx)
+      np_result = np.zeros((len(list_np_px), list_np_px[0].shape[0]))
+      for a_idx, np_px in enumerate(list_np_px):
+        for t in range(np_px.shape[0]):
+          list_same_idx = np.argwhere(np_px[t] == np.max(np_px[t]))
+          xhat = random.choice(list_same_idx)[0]
+          np_result[a_idx, t] = int(xhat == list_latents[t][a_idx])
+      epi_accuracy = np.array(np_result, dtype=np.int32).mean()
 
     prediction_results.append(epi_accuracy)
 
@@ -186,7 +181,7 @@ def prediction_result(domain_name: str,
 if __name__ == "__main__":
   DO_TEST = True
   if DO_TEST:
-    res = prediction_result("movers", 500, 0.3, 'svi', False, 100, False)
+    res = prediction_result("movers", 500, 0.3, 'abs', False, 100, False, 4, 30)
     print(np.array(res).mean())
 
     raise RuntimeError

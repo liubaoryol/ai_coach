@@ -227,19 +227,18 @@ def smooth_inference_sa(state_seq: Sequence[int],
   return list_np_px
 
 
-def smooth_inference(sa_trajectory: Sequence[Tuple], num_agents: int,
-                     tuple_num_latent: Sequence[int], num_abstate: int,
-                     np_abs: np.ndarray, list_np_pi: Sequence[np.ndarray],
-                     list_np_tx: Sequence[np.ndarray],
-                     list_np_bx: Sequence[np.ndarray]):
+def smooth_inference_zx(state_seq: Sequence[int],
+                        action_seq: Sequence[Tuple[int, ...]], num_agents: int,
+                        tuple_num_latent: Sequence[int], num_abstate: int,
+                        np_abs: np.ndarray, list_np_pi: Sequence[np.ndarray],
+                        list_np_tx: Sequence[np.ndarray],
+                        list_np_bx: Sequence[np.ndarray]):
   '''
   cb_prev_px: takes agent_idx as input and
               returns the distribution of x at the previous step
   '''
 
-  len_traj = len(sa_trajectory)
-  if sa_trajectory[-1][1] is None:
-    len_traj -= 1
+  len_traj = len(action_seq)
 
   # Forward messaging
   with np.errstate(divide='ignore'):
@@ -247,7 +246,7 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], num_agents: int,
         (len_traj, num_abstate, *tuple_num_latent)))
 
   t = 0
-  state_p, joint_a_p = sa_trajectory[t]
+  state_p, joint_a_p = state_seq[t], action_seq[t]
 
   all_one = (1, ) * num_agents
   with np.errstate(divide='ignore'):
@@ -265,7 +264,7 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], num_agents: int,
   # t = 1:N-1
   for t in range(1, len_traj):
     t_p = t - 1
-    state, joint_a = sa_trajectory[t]
+    state, joint_a = state_seq[t], action_seq[t]
 
     with np.errstate(divide='ignore'):
       np_log_prob = np_log_forward[t_p].reshape(num_abstate, *tuple_num_latent,
@@ -295,14 +294,14 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], num_agents: int,
   # t = N-1
   t = len_traj - 1
 
-  state_n, joint_a_n = sa_trajectory[t]
+  state_n, joint_a_n = state_seq[t], action_seq[t]
 
   np_log_backward[t] = 0.0
 
   # t = 0:N-2
   for t in reversed(range(0, len_traj - 1)):
     t_n = t + 1
-    _, joint_a = sa_trajectory[t]
+    _, joint_a = state_seq[t], action_seq[t]
 
     with np.errstate(divide='ignore'):
 
@@ -336,7 +335,9 @@ def smooth_inference(sa_trajectory: Sequence[Tuple], num_agents: int,
   return q_zx
 
 
-def smooth_inference_max_z(sa_trajectory: Sequence[Tuple], num_agents: int,
+def smooth_inference_max_z(state_seq: Sequence[int],
+                           action_seq: Sequence[Tuple[int,
+                                                      ...]], num_agents: int,
                            tuple_num_latent: Sequence[int], num_abstate: int,
                            np_abs: np.ndarray, list_np_pi: Sequence[np.ndarray],
                            list_np_tx: Sequence[np.ndarray],
@@ -346,23 +347,21 @@ def smooth_inference_max_z(sa_trajectory: Sequence[Tuple], num_agents: int,
               returns the distribution of x at the previous step
   '''
 
-  list_za = []
-  for s, a in sa_trajectory:
+  list_z = []
+  for s in state_seq:
     z = np.argmax(np_abs[s])
-    list_za.append((z, a))
+    list_z.append(z)
 
-  len_traj = len(sa_trajectory)
-  if sa_trajectory[-1][1] is None:
-    len_traj -= 1
+  len_traj = len(action_seq)
 
-  list_qzx = [list(zip(*list_za))[0]]
+  list_qzx = [list_z]
   for idx_a in range(num_agents):
     # Forward messaging
     with np.errstate(divide='ignore'):
       np_log_forward = np.log(np.zeros((len_traj, tuple_num_latent[idx_a])))
 
     t = 0
-    state_p, joint_a_p = list_za[t]
+    state_p, joint_a_p = list_z[t], action_seq[t]
 
     with np.errstate(divide='ignore'):
       np_log_forward[t] = 0.0
@@ -372,7 +371,7 @@ def smooth_inference_max_z(sa_trajectory: Sequence[Tuple], num_agents: int,
     # t = 1:N-1
     for t in range(1, len_traj):
       t_p = t - 1
-      state, joint_a = list_za[t]
+      state, joint_a = list_z[t], action_seq[t]
 
       with np.errstate(divide='ignore'):
         np_log_prob = np_log_forward[t_p][:, None]
@@ -391,14 +390,14 @@ def smooth_inference_max_z(sa_trajectory: Sequence[Tuple], num_agents: int,
     # t = N-1
     t = len_traj - 1
 
-    state_n, joint_a_n = list_za[t]
+    state_n, joint_a_n = list_z[t], action_seq[t]
 
     np_log_backward[t] = 0.0
 
     # t = 0:N-2
     for t in reversed(range(0, len_traj - 1)):
       t_n = t + 1
-      state, joint_a = list_za[t]
+      state, joint_a = list_z[t], action_seq[t]
 
       with np.errstate(divide='ignore'):
 
