@@ -4,7 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_learning.BTIL.btil_abstraction_fix import BTIL_Abstraction
+from ai_coach_core.model_learning.BTIL.btil_abstraction import BTIL_Abstraction
 from ai_coach_domain.helper import TrueModelConverter
 
 import helper
