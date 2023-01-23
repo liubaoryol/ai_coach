@@ -6,9 +6,21 @@ import pandas as pd
 from tqdm import tqdm
 from ai_coach_core.latent_inference.decoding import (forward_inference,
                                                      smooth_inference_zx,
+                                                     smooth_inference_max_z,
                                                      smooth_inference_sa)
+import click
 
 
+@click.command()
+@click.option("--domain-name", type=str, default="movers", help="")
+@click.option("--num-train", type=int, default=500, help="")
+@click.option("--supervision", type=float, default=0.3, help="")
+@click.option("--alg", type=str, default='abs', help="")
+@click.option("--gen-testset", type=bool, default=False, help="")
+@click.option("--num-testset", type=int, default=100, help="")
+@click.option("--fix-illegal", type=bool, default=False, help="")
+@click.option("--num-x", type=int, default=4, help="")
+@click.option("--num-abs", type=int, default=30, help="")
 def prediction_result(domain_name: str,
                       num_train: int,
                       supervision: float,
@@ -50,7 +62,7 @@ def prediction_result(domain_name: str,
     bx1_file = (domain_name + f"_btil_svi_bx_{mid_text}__a1.npy")
     bx2_file = (domain_name + f"_btil_svi_bx_{mid_text}__a2.npy")
     bx3_file = (domain_name + f"_btil_svi_bx_{mid_text}__a3.npy")
-  elif alg == "abs":
+  elif alg == "abs" or alg == "maxz":
     mid_text = f"{tx_dependency}_{num_train}_{num_x}_{num_abs}"
     policy1_file = (domain_name + f"_btil_abs_{mid_text}_pi_a1.npy")
     policy2_file = (domain_name + f"_btil_abs_{mid_text}_pi_a2.npy")
@@ -115,7 +127,7 @@ def prediction_result(domain_name: str,
     np_bx2 = np.load(model_dir + bx2_file)
     list_bx = [np_bx1, np_bx2]
 
-  if alg == "abs":
+  if alg == "abs" or alg == "maxz":
     np_abs = np.load(model_dir + abs_file)
 
   if game.get_num_agents() > 2:
@@ -137,7 +149,6 @@ def prediction_result(domain_name: str,
 
   # =========== LOAD DATA ============
   file_names = glob.glob(os.path.join(test_dir, "*.txt"))
-  random.shuffle(file_names)
 
   test_data_handler.load_from_files(file_names)
   list_trajs = test_data_handler.get_as_column_lists(include_terminal=True)
@@ -148,18 +159,42 @@ def prediction_result(domain_name: str,
     list_states, list_actions, list_latents = epi
 
     if alg == "abs":
-      list_np_pzx = smooth_inference_zx(list_states, list_actions, num_agents,
-                                        tup_num_latents, num_abs, np_abs,
-                                        list_np_policy, list_np_tx, list_bx)
+      np_pzx = smooth_inference_zx(list_states, list_actions, num_agents,
+                                   tup_num_latents, num_abs, np_abs,
+                                   list_np_policy, list_np_tx, list_bx)
 
-      max_idx = list_np_pzx.reshape(list_np_pzx.shape[0], -1).argmax(1)
-      max_coords = np.unravel_index(max_idx, list_np_pzx.shape[1:])
+      max_idx = np_pzx.reshape(np_pzx.shape[0], -1).argmax(1)
+      max_coords = np.unravel_index(max_idx, np_pzx.shape[1:])
       max_coords = list(zip(*max_coords))
-      # store z, and x's separately.
-      np_result = np.zeros((num_agents, list_np_pzx.shape[0]))
+      np_result = np.zeros((num_agents, np_pzx.shape[0]))
       for a_idx in range(num_agents):
-        for t, x_s in enumerate(max_coords):
-          np_result[a_idx, t] = int(x_s[a_idx] == list_latents[t][a_idx])
+        for t, z_x in enumerate(max_coords):
+          np_result[a_idx, t] = int(z_x[a_idx + 1] == list_latents[t][a_idx])
+
+      # for t in range(np_pzx.shape[0]):
+      #   np_zx_cur = np_pzx[t]
+      #   max_zx = np.max(np_zx_cur)
+      #   list_same_idx = np.argwhere(np_zx_cur.reshape(-1) == max_zx)
+      #   xhat = random.choice(list_same_idx)[0]
+      #   joint_idx = np.unravel_index(xhat, np_zx_cur.shape)
+      #   for a_idx in range(num_agents):
+      #     np_result[a_idx,
+      #               t] = int(joint_idx[a_idx + 1] == list_latents[t][a_idx])
+
+      epi_accuracy = np.array(np_result, dtype=np.int32).mean()
+    elif alg == "maxz":
+      list_zx = smooth_inference_max_z(list_states, list_actions, num_agents,
+                                       tup_num_latents, num_abs, np_abs,
+                                       list_np_policy, list_np_tx, list_bx)
+      traj_len = len(list_zx[1])
+      np_result = np.zeros((num_agents, traj_len))
+      for a_idx in range(num_agents):
+        for t in range(traj_len):
+          np_px = list_zx[a_idx + 1][t]
+          list_same_idx = np.argwhere(np_px == np.max(np_px))
+          xhat = random.choice(list_same_idx)[0]
+          np_result[a_idx, t] = int(xhat == list_latents[t][a_idx])
+
       epi_accuracy = np.array(np_result, dtype=np.int32).mean()
     else:
       list_np_px = smooth_inference_sa(list_states, list_actions, num_agents,
@@ -175,31 +210,9 @@ def prediction_result(domain_name: str,
 
     prediction_results.append(epi_accuracy)
 
+  print(np.array(prediction_results).mean())
   return prediction_results
 
 
 if __name__ == "__main__":
-  DO_TEST = True
-  if DO_TEST:
-    res = prediction_result("movers", 500, 0.3, 'abs', False, 100, False, 4, 30)
-    print(np.array(res).mean())
-
-    raise RuntimeError
-
-  domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
-  train_setup = [(150, 1), (500, 0.3), (500, 1)]
-
-  rows = []
-  for dom in domains:
-    for num_data, supervision in train_setup:
-      list_predictions = prediction_result(dom,
-                                           num_data,
-                                           supervision,
-                                           fix_illegal=False)
-      rows = rows + [(dom, "%d_%d%%" % (num_data, int(supervision * 100)), item)
-                     for item in list_predictions]
-
-  df = pd.DataFrame(rows, columns=['domain', 'train_setup', 'value'])
-
-  data_dir = os.path.join(os.path.dirname(__file__), "data/")
-  df.to_csv(data_dir + "eval_result3.csv", index=False)
+  res = prediction_result()
