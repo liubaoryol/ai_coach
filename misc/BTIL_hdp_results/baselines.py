@@ -6,7 +6,8 @@ import click
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3, gail_w_ppo
+from aicoach_baselines.sb3_algorithms import gail_w_ppo
+from aicoach_baselines.ikostrikov_gail import bc_dnn
 from datetime import datetime
 
 
@@ -85,15 +86,18 @@ def main(domain):
   logpath = LOG_DIR + str(datetime.today())
 
   BC = True
-  num_iterations = 1000
+  num_iterations = 500
   list_policy = []
   save_prefix = SAVE_PREFIX
   if BC:
     save_prefix += "_bc_"
     for idx_a in range(num_agents):
-      policy = behavior_cloning_sb3(traj_sa_each_agent[idx_a],
-                                    MDP_TASK.num_states, MDP_AGENT.num_actions,
-                                    logpath + f"/bc_a{idx_a}", num_iterations)
+      # policy = behavior_cloning_sb3(traj_sa_each_agent[idx_a],
+      #                               MDP_TASK.num_states, MDP_AGENT.num_actions,
+      #                               logpath + f"/bc_a{idx_a}", num_iterations)
+      policy = bc_dnn(MDP_TASK.num_states, MDP_AGENT.num_actions,
+                      traj_sa_each_agent[idx_a], logpath + f"/bc_a{idx_a}", 64,
+                      num_iterations)
       list_policy.append(policy)
   else:
     save_prefix += "_gail_"

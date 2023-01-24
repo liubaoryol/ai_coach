@@ -3,6 +3,7 @@ import tqdm
 import numpy as np
 import torch
 import aicoach_baselines.external.a2c_ppo_acktr.algo.gail as ikostrikov_gail
+import aicoach_baselines.external.a2c_ppo_acktr.algo.bc as ikostrikov_bc
 import aicoach_baselines.external.a2c_ppo_acktr.algo as ikostrikov_algo
 import aicoach_baselines.external.a2c_ppo_acktr.model as ikostrikov_model
 import aicoach_baselines.external.a2c_ppo_acktr.storage as ikostrikov_storage
@@ -11,37 +12,34 @@ import aicoach_baselines.external.gail_common_utils.envs as gail_env
 import ai_coach_core.gym  # noqa: F401
 import ai_coach_core.models.mdp as mdp_lib
 from gym import spaces
+from torch.utils.tensorboard import SummaryWriter
+import torch.utils.data
 
 
 def bc_dnn(num_states,
            num_actions,
-           sa_trajectories_no_terminal,
-           demo_batch_size=64,
-           ppo_batch_size=32,
+           sa_trajectories,
+           logpath,
+           batch_size,
            bc_pretrain_steps=100,
-           callback_loss=None):
+           use_confidence=False):
 
-  if len(sa_trajectories_no_terminal) == 0:
+  if len(sa_trajectories) == 0:
     return np.ones((num_states, num_actions)) / num_actions
 
   num_sa_pairs = 0
-  for traj in sa_trajectories_no_terminal:
+  for traj in sa_trajectories:
     num_sa_pairs += len(traj)
 
   args = SimpleNamespace()
   args.seed = 1  # random seed (default: 1)
   args.cuda = True
   args.cuda_deterministic = False  # sets flags for determinism when using CUDA (potentially slow!)  # noqa: E501
-  args.ppo_clip_param = 0.2  # ppo clip parameter (default: 0.2)
-  args.ppo_epoch = 4  # number of ppo epochs (default: 4)
-  args.ppo_num_mini_batch = ppo_batch_size  # number of batches for ppo (default: 32) # noqa: E501
-  args.ppo_value_loss_coef = 0.5  # value loss coefficient (default: 0.5)
-  args.ppo_entropy_coef = 0.01  # entropy term coefficient (default: 0.01)
+  args.ppo_entropy_coef = 1e-3  # entropy term coefficient (default: 0.01)
   args.ppo_lr = 7e-4  # learning rate (default: 7e-4)
   args.ppo_eps = 1e-5  # RMSprop optimizer epsilon (default: 1e-5)
-  args.ppo_max_grad_norm = 0.5  # max norm of gradients (default: 0.5)
-  args.gail_batch_size = demo_batch_size  # gail batch size (default: 128)
-  args.bc_pretrain_steps = bc_pretrain_steps
+
+  writer = SummaryWriter(logpath)
 
   # ---------- torch settings ----------
   torch.manual_seed(args.seed)
@@ -64,30 +62,23 @@ def bc_dnn(num_states,
   actor_critic.to(device)
 
   # ---------- policy learner ----------
-  agent = ikostrikov_algo.PPO(actor_critic,
-                              args.ppo_clip_param,
-                              args.ppo_epoch,
-                              args.ppo_num_mini_batch,
-                              args.ppo_value_loss_coef,
-                              args.ppo_entropy_coef,
-                              lr=args.ppo_lr,
-                              eps=args.ppo_eps,
-                              max_grad_norm=args.ppo_max_grad_norm)
+  agent = ikostrikov_bc.BC(actor_critic,
+                           args.ppo_entropy_coef,
+                           lr=args.ppo_lr,
+                           eps=args.ppo_eps)
 
   # ---------- set data loader ----------
-  expert_data = gail_utils.TorchDatasetConverter(sa_trajectories_no_terminal)
-  drop_last = len(expert_data) > args.gail_batch_size
-  gail_train_loader = torch.utils.data.DataLoader(
-      dataset=expert_data,
-      batch_size=args.gail_batch_size,
-      shuffle=True,
-      drop_last=drop_last)
+  expert_data = gail_utils.TorchDatasetConverter(sa_trajectories,
+                                                 use_confidence)
+  gail_train_loader = torch.utils.data.DataLoader(dataset=expert_data,
+                                                  batch_size=batch_size,
+                                                  drop_last=True,
+                                                  shuffle=True)
 
-  for j in tqdm.tqdm(range(args.bc_pretrain_steps)):
-    loss = agent.pretrain(gail_train_loader, device)
-    if callback_loss:
-      callback_loss(loss)
-      # print("Pretrain round {0}: loss {1}".format(j, loss))
+  for j in tqdm.tqdm(range(bc_pretrain_steps)):
+    loss = agent.train(gail_train_loader, device, use_confidence)
+    writer.add_scalar("iko_bc/loss", loss, j)
+    # print("Pretrain round {0}: loss {1}".format(j, loss))
 
   return get_np_policy(actor_critic, num_states, num_actions, device)
 

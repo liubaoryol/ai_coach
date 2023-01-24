@@ -6,7 +6,8 @@ from tqdm import tqdm
 import random
 from ai_coach_core.latent_inference.decoding import smooth_inference_sa
 
-from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3
+# from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3
+from aicoach_baselines.ikostrikov_gail import bc_dnn
 import numpy as np
 from datetime import datetime
 # rl algorithm
@@ -98,28 +99,48 @@ def main(domain):
   ##################################################
   tup_num_latent = (num_x, ) * num_agents
 
+  use_confidence = True
   list_traj_sx = []
-  for i, traj in tqdm(enumerate(list_trajs)):
-    list_states, list_actions, list_latents = traj
-    list_np_px = smooth_inference_sa(list_states, list_actions, num_agents,
-                                     tup_num_latent, list_np_pi, list_np_tx,
-                                     list_np_bx)
-    list_sx = []
-    str_print = ''
-    for t in range(len(list_actions)):
-      tmp_x = []
-      for np_px in list_np_px:
-        list_same_idx = np.argwhere(np_px[t] == np.max(np_px[t]))
-        xhat = random.choice(list_same_idx)[0]
-        tmp_x.append(xhat)
+  if not use_confidence:
+    for i, traj in tqdm(enumerate(list_trajs)):
+      list_states, list_actions, list_latents = traj
+      list_np_px = smooth_inference_sa(list_states, list_actions, num_agents,
+                                       tup_num_latent, list_np_pi, list_np_tx,
+                                       list_np_bx)
+      list_sx = []
+      for t in range(len(list_actions)):
+        tmp_x = []
+        for np_px in list_np_px:
+          list_same_idx = np.argwhere(np_px[t] == np.max(np_px[t]))
+          xhat = random.choice(list_same_idx)[0]
+          tmp_x.append(xhat)
 
-      str_print += f"{list_states[t]}_{tuple(tmp_x)}//"
-      xidx = conv_2_joint_index(tup_num_latent, tuple(tmp_x))
-      list_sx.append((list_states[t], xidx))
-    str_print += '\n'
-    # print(str_print)
+        xidx = conv_2_joint_index(tup_num_latent, tuple(tmp_x))
+        list_sx.append((list_states[t], xidx))
 
-    list_traj_sx.append(list_sx)
+      list_traj_sx.append(list_sx)
+  else:
+    for i, traj in tqdm(enumerate(list_trajs)):
+      list_states, list_actions, list_latents = traj
+      list_np_px = smooth_inference_sa(list_states, list_actions, num_agents,
+                                       tup_num_latent, list_np_pi, list_np_tx,
+                                       list_np_bx)
+      list_sx = []
+      for t in range(len(list_actions)):
+        tmp_x = []
+        np_px_all = np.ones(tup_num_latent)
+        for idx_a in range(num_agents):
+          index = [1] * num_agents
+          index[idx_a] = -1
+          index = tuple(index)
+          np_px_all = np_px_all * list_np_px[idx_a][t].reshape(index)
+        np_px_all_flat = np_px_all.reshape(-1)
+        ind = np.argpartition(np_px_all_flat, -3)[-3:]
+        np_conf = np_px_all_flat[ind]
+        for idx, xidx in enumerate(ind):
+          list_sx.append((list_states[t], xidx, np_conf[idx]))
+
+      list_traj_sx.append(list_sx)
 
   LOG_DIR = os.path.join(os.path.dirname(__file__), "logs/")
   if not os.path.exists(LOG_DIR):
@@ -132,9 +153,8 @@ def main(domain):
   policy = None
   if BC:
     save_prefix += "_bc_hdp_"
-    policy = behavior_cloning_sb3(list_traj_sx, MDP_TASK.num_states,
-                                  np.prod(tup_num_latent), logpath + "/bc_x",
-                                  num_iterations)
+    policy = bc_dnn(MDP_TASK.num_states, np.prod(tup_num_latent), list_traj_sx,
+                    logpath + "/bc_x", 64, num_iterations, use_confidence)
     policy = policy.reshape(MDP_TASK.num_states, *tup_num_latent)
 
   temp_dir = DATA_DIR + "learned_models/"
