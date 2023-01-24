@@ -20,6 +20,7 @@ class BTIL_SVI:
       max_iteration: int = 1000,
       epsilon: float = 0.001,
       lr: float = 0.1,
+      lr_beta: float = 0.001,
       decay: float = 0.01,
       no_gem: bool = False) -> None:
     '''
@@ -61,6 +62,7 @@ class BTIL_SVI:
     self.list_param_pi = None  # type: list[np.ndarray]
     self.lr = lr
     self.decay = decay
+    self.lr_beta = lr_beta
 
   def set_bx_and_Tx(self, cb_bx, cb_Tx=None):
     self.cb_bx = cb_bx
@@ -239,7 +241,7 @@ class BTIL_SVI:
 
     return list_list_q_x, list_list_q_x_xn
 
-  def update_global_variables(self, samples, lr,
+  def update_global_variables(self, samples, lr, lr_beta,
                               list_list_q_x: Sequence[Sequence[np.ndarray]],
                               list_list_q_x_xn: Sequence[Sequence[np.ndarray]]):
 
@@ -337,9 +339,8 @@ class BTIL_SVI:
         reach[-1] = self.list_param_beta[idx_a][-1] / np.sum(grad_beta)
         max_reach = min(reach[reach > 0])
         search_reach = min(max_reach, grad_beta_norm)
-        beta_lr = 0.1 * lr  # we will update very slightly
         self.list_param_beta[idx_a][:-1] = (self.list_param_beta[idx_a][:-1] +
-                                            beta_lr * search_reach * grad_beta)
+                                            lr_beta * search_reach * grad_beta)
         self.list_param_beta[idx_a][-1] = (
             1 - np.sum(self.list_param_beta[idx_a][:-1]))
 
@@ -431,8 +432,13 @@ class BTIL_SVI:
           samples)  # TODO: use batch
 
       # lr = (count + 1)**(-self.forgetting_rate)
-      lr = self.lr / (count * self.decay + 1)
-      self.update_global_variables(samples, lr, list_list_q_x, list_list_q_xx)
+      if self.lr == 1:
+        lr = self.lr
+      else:
+        lr = self.lr / (count * self.decay + 1)
+      lr_beta = self.lr_beta / (count * self.decay + 1)
+      self.update_global_variables(samples, lr, lr_beta, list_list_q_x,
+                                   list_list_q_xx)
 
       # compute delta
       for idx_a in range(self.num_agents):

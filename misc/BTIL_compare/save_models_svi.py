@@ -5,9 +5,6 @@ import logging
 import random
 import numpy as np
 from ai_coach_core.model_learning.BTIL.btil_svi import BTIL_SVI
-from ai_coach_domain.helper import TrueModelConverter
-
-import helper
 
 
 # yapf: disable

@@ -13,10 +13,6 @@ from ai_coach_domain.box_push_v2.agent import (
 from ai_coach_domain.agent.cached_agent import (BTILCachedPolicy,
                                                 NoMindCachedPolicy)
 from stand_alone.box_push_app import BoxPushApp
-import pickle
-from ai_coach_core.intervention.feedback_strategy import (
-    get_combos_sorted_by_simulated_values)
-from ai_coach_core.utils.mdp_utils import StateSpace
 
 TEST_LEARNED_AGENT = True
 IS_MOVERS = True

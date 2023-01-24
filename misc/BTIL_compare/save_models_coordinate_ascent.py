@@ -8,8 +8,6 @@ import numpy as np
 from ai_coach_core.model_learning.BTIL.btil_decentral import BTIL_Decen
 from ai_coach_domain.helper import TrueModelConverter
 
-import helper
-
 
 # yapf: disable
 @click.command()
@@ -147,10 +145,6 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
   logging.info("BTIL (Labeled: %d, Unlabeled: %d)" %
                (labeled_data_idx, num_train - labeled_data_idx))
   logging.info("#########")
-
-  def transition_s(sidx, tup_aidx, sidx_n=None):
-    return helper.cached_transition(DATA_DIR, SAVE_PREFIX, MDP_TASK, sidx,
-                                    tup_aidx, sidx_n)
 
   # learning models
   btil_models = BTIL_Decen(traj_labeled_ver[0:labeled_data_idx] +

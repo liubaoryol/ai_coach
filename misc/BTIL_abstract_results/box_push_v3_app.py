@@ -13,8 +13,6 @@ from ai_coach_domain.box_push_v2.agent import (
 from ai_coach_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
-from ai_coach_core.intervention.feedback_strategy import (
-    get_combos_sorted_by_simulated_values)
 from ai_coach_core.utils.mdp_utils import StateSpace
 
 num_train = 1000
@@ -24,7 +22,6 @@ file_name = f"movers_btil_abs_FTTT_{num_train}_{num_x}_{num_abs}"
 TEST_BTIL_AGENT = True
 IS_MOVERS = True
 DATA_DIR = "misc/BTIL_abstract_results/data"
-V_VAL_FILE_NAME = None
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS
   POLICY = Policy_MoversV3
@@ -32,7 +29,6 @@ if IS_MOVERS:
   MDP_AGENT = MDP_MoversV3_Agent
   AGENT = BoxPushAIAgent_PO_Team
   TEST_AGENT = BoxPushAIAgent_Team
-  # V_VAL_FILE_NAME = "movers_500_0,30_500_merged_v_values_learned.pickle"
   NP_ABS = file_name + "_abs.npy"
   NP_POLICY_A1 = file_name + "_pi_a1.npy"
   NP_POLICY_A2 = file_name + "_pi_a2.npy"
@@ -40,8 +36,6 @@ if IS_MOVERS:
   NP_TX_A2 = file_name + "_tx_a2.npy"
   NP_BX_A1 = file_name + "_bx_a1.npy"
   NP_BX_A2 = file_name + "_bx_a2.npy"
-  NP_COACH_POLICY = None
-  NP_COACH_POLICY = "movers_bc_abs_15_pi_z.npy"
 else:
   GAME_MAP = MAP_CLEANUP
   POLICY = Policy_CleanupV3
@@ -49,7 +43,6 @@ else:
   MDP_AGENT = MDP_CleanupV3_Agent
   AGENT = BoxPushAIAgent_PO_Indv
   TEST_AGENT = BoxPushAIAgent_Indv
-  # V_VAL_FILE_NAME = "cleanup_v3_500_0,30_500_merged_v_values_learned.pickle"
   NP_POLICY_A1 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
   NP_POLICY_A2 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
   NP_TX_A1 = "cleanup_v3_btil2_tx_synth_FTTT_500_0,30_a1.npy"
@@ -69,7 +62,7 @@ class BoxPushV2App(BoxPushApp):
     # game_map["a2_init"] = (1, 2)
     self.x_grid = GAME_MAP["x_grid"]
     self.y_grid = GAME_MAP["y_grid"]
-    self.game = BoxPushSimulatorV3(True)
+    self.game = BoxPushSimulatorV3(None)
     self.game.max_steps = 200
 
     self.game.init_game(**GAME_MAP)
@@ -77,10 +70,6 @@ class BoxPushV2App(BoxPushApp):
     mdp_task = MDP_TASK(**GAME_MAP)
     mdp_agent = MDP_AGENT(**GAME_MAP)
     self.mdp = mdp_task
-
-    if V_VAL_FILE_NAME is not None:
-      with open(DATA_DIR + V_VAL_FILE_NAME, 'rb') as handle:
-        self.np_v_values = pickle.load(handle)
 
     if not TEST_BTIL_AGENT:
       TEMPERATURE = 0.3
@@ -110,25 +99,19 @@ class BoxPushV2App(BoxPushApp):
 
       np_abs = np.load(model_dir + NP_ABS)
 
-      np_coach = None
-      if NP_COACH_POLICY is not None:
-        np_coach = np.load(model_dir + NP_COACH_POLICY)
-
       mask = (False, True, True, True)
       agent1 = BoxPushAIAgent_BTIL_ABS(np_tx_1,
                                        mask,
                                        test_policy_1,
                                        0,
                                        np_bx=np_bx_1,
-                                       np_abs=np_abs,
-                                       np_coach=np_coach)
+                                       np_abs=np_abs)
       agent2 = BoxPushAIAgent_BTIL_ABS(np_tx_2,
                                        mask,
                                        test_policy_2,
                                        1,
                                        np_bx=np_bx_2,
-                                       np_abs=np_abs,
-                                       np_coach=np_coach)
+                                       np_abs=np_abs)
 
     self.game.set_autonomous_agent(agent1, agent2)
     if manual_latent1 is not None:
@@ -138,7 +121,6 @@ class BoxPushV2App(BoxPushApp):
 
   def _update_canvas_scene(self):
     super()._update_canvas_scene()
-    self.label_score.config(text=str(-self.game.current_step))
     if manual_latent1 is not None:
       self.game.agent_1.set_latent(manual_latent1)
     if manual_latent2 is not None:
@@ -147,8 +129,6 @@ class BoxPushV2App(BoxPushApp):
     x_unit = int(self.canvas_width / self.x_grid)
     y_unit = int(self.canvas_height / self.y_grid)
 
-    self.create_text(6.5 * x_unit, 0.5 * y_unit, str(self.game.agent_1.cur_abs),
-                     'white')
     self.create_text((self.game.a1_pos[0] + 0.5) * x_unit,
                      (self.game.a1_pos[1] + 0.4) * y_unit,
                      str(self.game.agent_1.get_current_latent()))
