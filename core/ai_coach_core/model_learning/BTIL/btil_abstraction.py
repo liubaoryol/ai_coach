@@ -3,7 +3,6 @@ import numpy as np
 from tqdm import tqdm
 from scipy.special import digamma, logsumexp, softmax
 from ai_coach_core.model_learning.BTIL.transition_x import TransitionX
-import time
 
 T_SAXSeqence = Sequence[Tuple[int, Tuple[int, int], Tuple[int, int]]]
 
@@ -21,6 +20,7 @@ class BTIL_Abstraction:
       epsilon_g: float = 0.1,
       epsilon_l: float = 0.05,
       lr: float = 0.1,
+      lr_beta: float = 0.001,
       decay: float = 0.01,
       num_abstates: int = 30,
       save_file_prefix: str = None,
@@ -69,6 +69,7 @@ class BTIL_Abstraction:
     self.list_param_pi = None  # type: list[np.ndarray]
     self.param_abs = None  # type: np.ndarray
     self.lr = lr
+    self.lr_beta = lr_beta
     self.decay = decay
     self.dict_qz = {}
 
@@ -307,7 +308,7 @@ class BTIL_Abstraction:
 
     return list_list_q_x, list_list_q_xx, list_q_z
 
-  def update_global_variables(self, samples, lr,
+  def update_global_variables(self, samples, lr, lr_beta,
                               list_list_q_x: Sequence[Sequence[np.ndarray]],
                               list_list_q_xx: Sequence[Sequence[np.ndarray]],
                               list_q_z: Sequence[np.ndarray]):
@@ -414,9 +415,8 @@ class BTIL_Abstraction:
         reach[-1] = self.list_param_beta[idx_a][-1] / np.sum(grad_beta)
         max_reach = min(reach[reach > 0])
         search_reach = min(max_reach, grad_beta_norm)
-        beta_lr = 0.1 * lr  # we will update very slightly
         self.list_param_beta[idx_a][:-1] = (self.list_param_beta[idx_a][:-1] +
-                                            beta_lr * search_reach * grad_beta)
+                                            lr_beta * search_reach * grad_beta)
         self.list_param_beta[idx_a][-1] = (
             1 - np.sum(self.list_param_beta[idx_a][:-1]))
 
@@ -520,8 +520,9 @@ class BTIL_Abstraction:
 
       # lr = (count + 1)**(-self.forgetting_rate)
       lr = self.lr / (count * self.decay + 1)
-      self.update_global_variables(samples, lr, list_list_q_x, list_list_q_xx,
-                                   list_q_z)
+      lr_beta = self.lr_beta / (count * self.decay + 1)
+      self.update_global_variables(samples, lr, lr_beta, list_list_q_x,
+                                   list_list_q_xx, list_q_z)
 
       # compute delta
       for idx_a in range(self.num_agents):

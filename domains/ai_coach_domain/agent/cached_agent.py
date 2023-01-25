@@ -75,15 +75,23 @@ class BTILCachedAgentModel(AgentModel):
 
 class NoMindCachedPolicy(PolicyInterface):
 
-  def __init__(self, np_policy: np.ndarray, task_mdp: LatentMDP,
-               agent_idx: int) -> None:
+  def __init__(self,
+               np_policy: np.ndarray,
+               task_mdp: LatentMDP,
+               agent_idx: int,
+               np_abs: Optional[np.ndarray] = None) -> None:
     super().__init__(task_mdp)
     self.agent_idx = agent_idx
     self.np_policy = np_policy
     self.latent_space = StateSpace()
+    self.np_abs = np_abs
 
   def policy(self, obstate_idx: int, latstate_idx: int) -> np.ndarray:
-    return self.np_policy[obstate_idx]
+    obstate = obstate_idx
+    if self.np_abs is not None:
+      obstate = np.argmax(self.np_abs[obstate_idx])
+
+    return self.np_policy[obstate]
 
   def conv_idx_to_action(self, tuple_aidx: Sequence[int]):
     aidx = tuple_aidx[0]

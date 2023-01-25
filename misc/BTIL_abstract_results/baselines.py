@@ -6,13 +6,15 @@ import click
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3, gail_w_ppo
+from aicoach_baselines.sb3_algorithms import gail_w_ppo
+from aicoach_baselines.ikostrikov_gail import bc_dnn
 from datetime import datetime
 
 
 @click.command()
 @click.option("--domain", type=str, default="movers", help="")
-def main(domain):
+@click.option("--opt", type=bool, default=True, help="")
+def main(domain, opt):
 
   # define the domain where trajectories were generated
   ##################################################
@@ -62,7 +64,11 @@ def main(domain):
   # load files
   ##################################################
   DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
-  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train')
+  dir_postifx = "_train"
+  if opt:
+    dir_postifx += "_opt"
+
+  TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + dir_postifx)
 
   file_names = glob.glob(os.path.join(TRAIN_DIR, '*.txt'))
   random.shuffle(file_names)
@@ -104,15 +110,16 @@ def main(domain):
   logpath = LOG_DIR + str(datetime.today())
 
   BC = True
-  num_iterations = 50000
+  num_iterations = 500
   list_policy = []
   save_prefix = SAVE_PREFIX
+  save_prefix += "_opt" if opt else ""
   if BC:
     save_prefix += "_bc_"
     for idx_a in range(num_agents):
-      policy = behavior_cloning_sb3(traj_sa_each_agent[idx_a],
-                                    MDP_TASK.num_states, MDP_AGENT.num_actions,
-                                    logpath + f"/bc_a{idx_a}", num_iterations)
+      policy = bc_dnn(MDP_TASK.num_states, MDP_AGENT.num_actions,
+                      traj_sa_each_agent[idx_a], logpath + f"/bc_a{idx_a}", 64,
+                      num_iterations)
       list_policy.append(policy)
   else:
     save_prefix += "_gail_"
