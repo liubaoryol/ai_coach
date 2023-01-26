@@ -3,6 +3,7 @@ import numpy as np
 from ai_coach_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.agent import (AIAgent_PartialObs, AIAgent_Abstract,
                                    BTILCachedAgentModel)
+from ai_coach_domain.agent.cached_agent import NoMindCachedPolicy
 from ai_coach_domain.box_push_v2 import (conv_box_idx_2_state,
                                          conv_box_state_2_idx, BoxState)
 from ai_coach_domain.box_push_v2.mdp import MDP_BoxPushV2
@@ -182,16 +183,239 @@ class BoxPushAIAgent_BTIL(AIAgent_Abstract):
                np_tx: np.ndarray,
                mask_sas: Sequence[bool],
                policy_model: CachedPolicyInterface,
-               agent_idx: int = 0) -> None:
+               agent_idx: int = 0,
+               np_bx: np.ndarray = None,
+               np_coach: np.ndarray = None) -> None:
     self.np_tx = np_tx
     self.mask_sas = mask_sas
+    self.np_bx = np_bx
+    self.np_coach = np_coach
     super().__init__(policy_model, True, agent_idx)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
 
     def init_latents(obstate_idx):
-      return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
-                                                 policy_model.mdp)
+      if self.np_bx is None:
+        return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
+                                                   policy_model.mdp)
+      else:
+        if self.np_coach is not None:
+          xidx = self.get_coaching_x(obstate_idx)
+          np_bx = np.zeros(self.np_coach.shape[1 + self.agent_idx])
+          np_bx[xidx] = 1.0
+          return np_bx
+
+        return self.np_bx[obstate_idx]
 
     return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
                                 policy_model)
+
+  def get_coaching_x(self, obstate_idx):
+    max_idx = self.np_coach[obstate_idx].reshape(-1).argmax()
+    max_coords = np.unravel_index(max_idx, self.np_coach.shape[1:])
+    xidx = max_coords[self.agent_idx]
+    return xidx
+
+  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
+    'tup_actions: tuple of actions'
+
+    mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
+    sidx_cur = mdp.conv_sim_states_to_mdp_sidx(tup_cur_state)
+    sidx_nxt = mdp.conv_sim_states_to_mdp_sidx(tup_nxt_state)
+
+    list_aidx = []
+    for idx, act in enumerate(tup_actions):
+      if act is None:
+        list_aidx.append(None)
+      else:
+        list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
+
+    if self.np_coach is not None:
+      xidx = self.get_coaching_x(sidx_nxt)
+      self.agent_model.set_init_mental_state_idx(None, init_latent=xidx)
+    else:
+      self.agent_model.update_mental_state_idx(sidx_cur, tuple(list_aidx),
+                                               sidx_nxt)
+
+
+class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
+
+  def __init__(self,
+               np_tx: np.ndarray,
+               mask_sas: Sequence[bool],
+               policy_model: CachedPolicyInterface,
+               agent_idx: int = 0,
+               np_bx: np.ndarray = None,
+               np_abs: np.ndarray = None,
+               np_coach: np.ndarray = None) -> None:
+    self.np_tx = np_tx
+    self.mask_sas = mask_sas
+    self.np_bx = np_bx
+    self.np_abs = np_abs
+    self.np_coach = np_coach
+    self.cur_abs = None
+    super().__init__(policy_model, True, agent_idx)
+
+  def _create_agent_model(self, policy_model: CachedPolicyInterface):
+
+    def init_latents(obstate_idx):
+      if self.np_bx is None:
+        return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
+                                                   policy_model.mdp)
+      else:
+        if self.np_coach is not None:
+          max_idx = self.np_coach[self.cur_abs].reshape(-1).argmax()
+          max_coords = np.unravel_index(max_idx, self.np_coach.shape[1:])
+          xidx = max_coords[self.agent_idx]
+          np_bx = np.zeros(self.np_coach.shape[1 + self.agent_idx])
+          np_bx[xidx] = 1.0
+          return np_bx
+
+        return self.np_bx[obstate_idx]
+
+    return BTILCachedAgentModel(init_latents, self.np_tx, self.mask_sas,
+                                policy_model)
+
+  def conv_obstate_to_abstate(self, obstate_idx):
+    TOP_1 = True
+    TOP_3 = False
+    if TOP_1:
+      abstate = np.argmax(self.np_abs[obstate_idx])
+    elif TOP_3:
+      ind = np.argpartition(self.np_abs[obstate_idx], -3)[-3:]
+      np_new_dist = self.np_abs[obstate_idx][ind]
+      print(np_new_dist)
+      np_new_dist = np_new_dist / np.sum(np_new_dist)[..., None]
+      abstate = np.random.choice(ind, p=np_new_dist)
+    else:
+      abstate = np.random.choice(self.np_abs.shape[-1],
+                                 p=self.np_abs[obstate_idx])
+    return abstate
+
+  def init_latent(self, tup_states):
+    mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
+    sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
+    self.cur_abs = self.conv_obstate_to_abstate(sidx)
+    self.agent_model.set_init_mental_state_idx(self.cur_abs)
+
+  def get_current_latent(self):
+    if self.agent_model.is_current_latent_valid():
+      return self.conv_idx_to_latent(self.agent_model.current_latent)
+    else:
+      return None
+
+  def get_action(self, tup_states):
+    if self.manual_action is not None:
+      next_action = self.manual_action
+      self.manual_action = None
+      return next_action
+
+    if self.np_coach is not None:
+      max_idx = self.np_coach[self.cur_abs].reshape(-1).argmax()
+      max_coords = np.unravel_index(max_idx, self.np_coach.shape[1:])
+      xidx = max_coords[self.agent_idx]
+      self.agent_model.set_init_mental_state_idx(None, xidx)
+    # mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
+    # sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
+    # self.cur_abs = self.conv_obstate_to_abstate(sidx)
+    tup_aidx = self.agent_model.get_action_idx(self.cur_abs)
+    return self.agent_model.policy_model.conv_idx_to_action(tup_aidx)[0]
+
+  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
+    'tup_actions: tuple of actions'
+
+    mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
+    sidx_cur = mdp.conv_sim_states_to_mdp_sidx(tup_cur_state)
+    sidx_nxt = mdp.conv_sim_states_to_mdp_sidx(tup_nxt_state)
+
+    list_aidx = []
+    for idx, act in enumerate(tup_actions):
+      if act is None:
+        list_aidx.append(None)
+      else:
+        list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
+
+    prev_abs = self.cur_abs
+    self.cur_abs = self.conv_obstate_to_abstate(sidx_nxt)
+    if self.np_coach is None:
+      self.agent_model.update_mental_state_idx(prev_abs, tuple(list_aidx),
+                                               self.cur_abs)
+
+  def set_latent(self, latent):
+    xidx = self.conv_latent_to_idx(latent)
+    self.agent_model.set_init_mental_state_idx(None, xidx)
+
+  def set_action(self, action):
+    self.manual_action = action
+
+  def get_action_distribution(self, state_idx, latent_idx):
+    return self.agent_model.policy_model.policy(
+        self.conv_obstate_to_abstate(state_idx), latent_idx)
+
+  def get_next_latent_distribution(self, latent_idx, state_idx,
+                                   tuple_action_idx, next_state_idx):
+    return self.agent_model.transition_mental_state(
+        latent_idx, self.conv_obstate_to_abstate(state_idx), tuple_action_idx,
+        self.conv_obstate_to_abstate(next_state_idx))
+
+  def get_initial_latent_distribution(self, state_idx):
+    return self.agent_model.initial_mental_distribution(
+        self.conv_obstate_to_abstate(state_idx))
+
+  def conv_idx_to_latent(self, latent_idx):
+    return self.agent_model.policy_model.conv_idx_to_latent(latent_idx)
+
+  def conv_latent_to_idx(self, latent):
+    return self.agent_model.policy_model.conv_latent_to_idx(latent)
+
+
+class AIAgent_NoMind(AIAgent_Abstract):
+
+  def __init__(self,
+               policy_model: NoMindCachedPolicy,
+               agent_idx: int = 0) -> None:
+    super().__init__(policy_model, False, agent_idx)
+    self.policy_model = policy_model
+
+  def _create_agent_model(self, policy_model: CachedPolicyInterface):
+    return None
+
+  def init_latent(self, tup_states):
+    return
+
+  def get_current_latent(self):
+    return None
+
+  def get_action(self, tup_states):
+    if self.manual_action is not None:
+      next_action = self.manual_action
+      self.manual_action = None
+      return next_action
+
+    mdp = self.policy_model.mdp
+    sidx = mdp.conv_sim_states_to_mdp_sidx(tup_states)
+    tup_aidx = self.policy_model.get_action(sidx, None)
+    return self.policy_model.conv_idx_to_action(tup_aidx)[0]
+
+  def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
+    'tup_actions: tuple of actions'
+    pass
+
+  def set_latent(self, latent):
+    pass
+
+  def get_action_distribution(self, state_idx, latent_idx):
+    return self.agent_model.policy_model.policy(state_idx, latent_idx)
+
+  def get_next_latent_distribution(self, latent_idx, state_idx,
+                                   tuple_action_idx, next_state_idx):
+    return None
+
+  def get_initial_latent_distribution(self, state_idx):
+    return None
+
+  def conv_idx_to_latent(self, latent_idx):
+    return None
+
+  def conv_latent_to_idx(self, latent):
+    return None

@@ -34,6 +34,7 @@ def get_vec_normalize(venv):
 
 # Necessary for my KFAC implementation.
 class AddBias(nn.Module):
+
   def __init__(self, bias):
     super(AddBias, self).__init__()
     self._bias = nn.Parameter(bias.unsqueeze(1))
@@ -74,14 +75,26 @@ def conv_discrete_2_onehot(indices: torch.Tensor, num_classes):
 
 
 class TorchDatasetConverter(torch_data.Dataset):
-  def __init__(self, sa_trajectories_no_terminal) -> None:
+
+  def __init__(self, sa_trajectories, use_confidence=False) -> None:
     super().__init__()
+    self.use_confidence = use_confidence
+
+    self.confidences = []
     self.states = []
     self.actions = []
-    for traj in sa_trajectories_no_terminal:
-      for state, action in traj:
-        self.states.append(state)
-        self.actions.append(action)
+    for traj in sa_trajectories:
+      for elem in traj:
+        if use_confidence:
+          state, action, conf = elem
+        else:
+          state, action = elem
+
+        if action is not None:
+          self.states.append(state)
+          self.actions.append(action)
+          if use_confidence:
+            self.confidences.append(conf)
 
     self.length = len(self.states)
 
@@ -95,7 +108,14 @@ class TorchDatasetConverter(torch_data.Dataset):
     if not isinstance(action, collections.abc.Sequence):
       action = [action]
 
-    return (torch.Tensor(state).long(), torch.Tensor(action).long())
+    if self.use_confidence:
+      confidence = self.confidences[index]
+      if not isinstance(confidence, collections.abc.Sequence):
+        confidence = [confidence]
+      return (torch.Tensor(state).long(), torch.Tensor(action).long(),
+              torch.Tensor(confidence).float())
+    else:
+      return (torch.Tensor(state).long(), torch.Tensor(action).long())
     # return (torch.Tensor([self.states[index]]).long(),
     #         torch.Tensor([self.actions[index]]).long())
 
@@ -104,6 +124,7 @@ class TorchDatasetConverter(torch_data.Dataset):
 
 
 class TorchLatentDatasetConverter(torch_data.Dataset):
+
   def __init__(self, sax_trajectories_no_terminal) -> None:
     super().__init__()
     self.states = []

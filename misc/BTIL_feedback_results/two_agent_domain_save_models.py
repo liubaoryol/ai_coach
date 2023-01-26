@@ -288,7 +288,6 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
                            MDP_TASK.num_states,
                            tuple([MDP_AGENT.num_latents] * len(AGENTS)),
                            joint_action_num,
-                           transition_s,
                            trans_x_dependency=tuple_tx_dependency,
                            epsilon=0.01,
                            max_iteration=100)

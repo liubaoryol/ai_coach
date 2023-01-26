@@ -11,11 +11,13 @@ from ..gail_common_utils.utils import init, conv_discrete_2_onehot
 
 
 class Flatten(nn.Module):
+
   def forward(self, x):
     return x.view(x.size(0), -1)
 
 
 class Policy(nn.Module):
+
   def __init__(self,
                observation_space,
                action_space,
@@ -109,6 +111,7 @@ class Policy(nn.Module):
 
 
 class NNBase(nn.Module):
+
   def __init__(self, recurrent, recurrent_input_size, hidden_size):
     super(NNBase, self).__init__()
 
@@ -191,6 +194,7 @@ class NNBase(nn.Module):
 
 
 class CNNBase(NNBase):
+
   def __init__(self, num_inputs, recurrent=False, hidden_size=512):
     super(CNNBase, self).__init__(recurrent, hidden_size, hidden_size)
 
@@ -221,6 +225,7 @@ class CNNBase(NNBase):
 
 
 class MLPBase(NNBase):
+
   def __init__(self, num_inputs, recurrent=False, hidden_size=64):
     super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
 
@@ -243,17 +248,23 @@ class MLPBase(NNBase):
     # init2_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(
     #     x, 0), 1)
     # self.critic_linear = init2_(nn.Linear(hidden_size, 1))
-    self.actor = nn.Sequential(
-        init_(nn.Linear(num_inputs, hidden_size)), nn.ReLU(),
-        init_(nn.Linear(hidden_size, hidden_size * 2)), nn.ReLU(),
-        init_(nn.Linear(hidden_size * 2, hidden_size * 2)), nn.Tanh(),
-        init_(nn.Linear(hidden_size * 2, hidden_size)), nn.Tanh())
+    self.actor = nn.Sequential(init_(nn.Linear(num_inputs, hidden_size)),
+                               nn.ReLU(),
+                               init_(nn.Linear(hidden_size, hidden_size)),
+                               nn.ReLU(),
+                               init_(nn.Linear(hidden_size, hidden_size)),
+                               nn.Tanh(),
+                               init_(nn.Linear(hidden_size, hidden_size)),
+                               nn.Tanh())
 
-    self.critic = nn.Sequential(
-        init_(nn.Linear(num_inputs, hidden_size)), nn.ReLU(),
-        init_(nn.Linear(hidden_size, hidden_size * 2)), nn.ReLU(),
-        init_(nn.Linear(hidden_size * 2, hidden_size * 2)), nn.Tanh(),
-        init_(nn.Linear(hidden_size * 2, hidden_size)), nn.Tanh())
+    self.critic = nn.Sequential(init_(nn.Linear(num_inputs, hidden_size)),
+                                nn.ReLU(),
+                                init_(nn.Linear(hidden_size, hidden_size)),
+                                nn.ReLU(),
+                                init_(nn.Linear(hidden_size, hidden_size)),
+                                nn.Tanh(),
+                                init_(nn.Linear(hidden_size, hidden_size)),
+                                nn.Tanh())
 
     self.critic_linear = init_(nn.Linear(hidden_size, 1))
 

@@ -12,7 +12,8 @@ class EnvFromMDP(gym.Env):
   def __init__(self,
                mdp: MDP,
                possible_init_states: Optional[Sequence[int]] = None,
-               init_state_dist: Optional[np.ndarray] = None):
+               init_state_dist: Optional[np.ndarray] = None,
+               use_central_action=False):
     '''
     either possible_init_state or init_state_dist should not be None
     '''
@@ -22,8 +23,9 @@ class EnvFromMDP(gym.Env):
     # Define action and observation space
     # They must be gym.spaces objects
     # Example when using discrete actions:
+    self.use_central_action = use_central_action
 
-    if mdp.num_action_factors == 1:
+    if mdp.num_action_factors == 1 or use_central_action:
       self.action_space = spaces.Discrete(mdp.num_actions)
     else:
       self.action_space = spaces.MultiDiscrete(mdp.list_num_actions)
@@ -44,13 +46,16 @@ class EnvFromMDP(gym.Env):
 
   def step(self, action):
     info = {}
-
-    action_idx = (action if len(self.mdp.list_num_actions) == 1 else
-                  self.mdp.conv_action_to_idx(tuple(action)))
+    if self.use_central_action or len(self.mdp.list_num_actions) == 1:
+      action_idx = action
+    else:
+      action_idx = self.mdp.conv_action_to_idx(tuple(action))
+    # action_idx = (action if len(self.mdp.list_num_actions) == 1 else
+    #               self.mdp.conv_action_to_idx(tuple(action)))
 
     if action_idx not in self.mdp.legal_actions(self.cur_state):
       info["invalid_transition"] = True
-      return self.cur_state, 0, False, info
+      return self.cur_state, -10000, False, info
 
     self.cur_state = self.mdp.transition(self.cur_state, action_idx)
 

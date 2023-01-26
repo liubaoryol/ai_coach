@@ -101,6 +101,8 @@ class TransitionX:
 
 
 class BTILforTwo:
+  'deprecated - please use BTIL_Decen'
+
   def __init__(
       self,
       trajectories: Sequence[T_SAXSeqence],

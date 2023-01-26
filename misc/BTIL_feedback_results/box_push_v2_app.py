@@ -1,28 +1,26 @@
 import numpy as np
 from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V2
+from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
+from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
 from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
                                              MDP_Cleanup_Task,
                                              MDP_Cleanup_Agent)
 from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
-from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
-                                               BoxPushAIAgent_PO_Indv,
-                                               BoxPushAIAgent_BTIL,
-                                               BoxPushAIAgent_Team,
-                                               BoxPushAIAgent_Indv)
+from ai_coach_domain.box_push_v2.agent import (
+    BoxPushAIAgent_PO_Team, BoxPushAIAgent_PO_Indv, BoxPushAIAgent_BTIL,
+    BoxPushAIAgent_BTIL_ABS, BoxPushAIAgent_Team, BoxPushAIAgent_Indv)
 from ai_coach_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
 from ai_coach_core.intervention.feedback_strategy import (
     get_combos_sorted_by_simulated_values)
-from stand_alone.intervention_simulator import InterventionSimulator
-from ai_coach_core.intervention.feedback_strategy import (
-    InterventionValueBased, E_CertaintyHandling)
+from ai_coach_core.utils.mdp_utils import StateSpace
 
 TEST_BTIL_AGENT = False
 TEST_BTIL_USE_TRUE_TX = False
-IS_MOVERS = False
+IS_MOVERS = True
 DATA_DIR = "misc/BTIL_feedback_results/data/"
+V_VAL_FILE_NAME = None
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS
   POLICY = Policy_Movers
@@ -36,17 +34,17 @@ if IS_MOVERS:
   NP_TX_A1 = "movers_btil2_tx_synth_FTTT_500_0,30_a1.npy"
   NP_TX_A2 = "movers_btil2_tx_synth_FTTT_500_0,30_a2.npy"
 else:
-  GAME_MAP = MAP_CLEANUP_V2
+  GAME_MAP = MAP_CLEANUP
   POLICY = Policy_Cleanup
   MDP_TASK = MDP_Cleanup_Task
   MDP_AGENT = MDP_Cleanup_Agent
   AGENT = BoxPushAIAgent_PO_Indv
   TEST_AGENT = BoxPushAIAgent_Indv
-  V_VAL_FILE_NAME = "cleanup_v2_500_0,30_500_merged_v_values_learned.pickle"
-  NP_POLICY_A1 = "cleanup_v2_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
-  NP_POLICY_A2 = "cleanup_v2_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
-  NP_TX_A1 = "cleanup_v2_btil2_tx_synth_FTTT_500_0,30_a1.npy"
-  NP_TX_A2 = "cleanup_v2_btil2_tx_synth_FTTT_500_0,30_a2.npy"
+  # V_VAL_FILE_NAME = "cleanup_v3_500_0,30_500_merged_v_values_learned.pickle"
+  NP_POLICY_A1 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
+  NP_POLICY_A2 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
+  NP_TX_A1 = "cleanup_v3_btil2_tx_synth_FTTT_500_0,30_a1.npy"
+  NP_TX_A2 = "cleanup_v3_btil2_tx_synth_FTTT_500_0,30_a2.npy"
 
 
 class BoxPushV2App(BoxPushApp):
@@ -87,10 +85,10 @@ class BoxPushV2App(BoxPushApp):
       model_dir = DATA_DIR + "/learned_models/"  # noqa: E501
       np_policy_1 = np.load(model_dir + NP_POLICY_A1)
       test_policy_1 = BTILCachedPolicy(np_policy_1, mdp_task, 0,
-                                       mdp_agent.latent_space)
+                                       StateSpace(np.arange(5)))
       np_policy_2 = np.load(model_dir + NP_POLICY_A2)
       test_policy_2 = BTILCachedPolicy(np_policy_2, mdp_task, 1,
-                                       mdp_agent.latent_space)
+                                       StateSpace(np.arange(5)))
 
       if TEST_BTIL_USE_TRUE_TX:
         agent1 = TEST_AGENT(test_policy_1, agent_idx=0)
@@ -98,35 +96,12 @@ class BoxPushV2App(BoxPushApp):
       else:
         np_tx_1 = np.load(model_dir + NP_TX_A1)
         np_tx_2 = np.load(model_dir + NP_TX_A2)
+
         mask = (False, True, True, True)
         agent1 = BoxPushAIAgent_BTIL(np_tx_1, mask, test_policy_1, 0)
         agent2 = BoxPushAIAgent_BTIL(np_tx_2, mask, test_policy_2, 1)
 
-    model_dir = DATA_DIR + "/learned_models/"  # noqa: E501
-    np_policy_1 = np.load(model_dir + NP_POLICY_A1)
-    np_policy_2 = np.load(model_dir + NP_POLICY_A2)
-    np_tx_1 = np.load(model_dir + NP_TX_A1)
-    np_tx_2 = np.load(model_dir + NP_TX_A2)
-
-    intervention_strategy = InterventionValueBased(
-        self.np_v_values,
-        E_CertaintyHandling.Threshold,
-        inference_threshold=0,
-        intervention_threshold=0.02,
-        intervention_cost=0)
-
-    def get_state_action(history):
-      step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
-      return (bstt, a1pos, a2pos), (a1act, a2act)
-
     self.game.set_autonomous_agent(agent1, agent2)
-    self.interv_sim = InterventionSimulator(self.game,
-                                            [np_policy_1, np_policy_2],
-                                            [np_tx_1, np_tx_2],
-                                            intervention_strategy,
-                                            get_state_action,
-                                            fix_illegal=True)
-    self.interv_sim.reset_game()
 
   def _update_canvas_scene(self):
     super()._update_canvas_scene()
@@ -146,31 +121,8 @@ class BoxPushV2App(BoxPushApp):
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
       list_combos = get_combos_sorted_by_simulated_values(
           self.np_v_values, oidx)
-      print(list_combos[:6])
-      print(game.get_score())
-
-  def _on_key_pressed(self, key_event):
-    if not self._started:
-      return
-
-    agent, e_type, e_value = self._conv_key_to_agent_event(key_event.keysym)
-    self.game.event_input(agent, e_type, e_value)
-    if self._event_based:
-      action_map = self.game.get_joint_action()
-      self.game.take_a_step(action_map)
-      print("====")
-      print(action_map)
-      self.interv_sim.intervene()
-
-      if not self.game.is_finished():
-        # update canvas
-        self._update_canvas_scene()
-        self._update_canvas_overlay()
-        # pop-up for latent?
-      else:
-        self._on_game_end()
-    else:
-      pass
+      print("=================================================")
+      print(list_combos)
 
 
 if __name__ == "__main__":

@@ -133,17 +133,6 @@ def magail_w_ppo(mdp: mdp_lib.MDP,
   rollouts.obs[0].copy_(obs)
   rollouts.to(device)
 
-  if do_pretrain:
-    for j in tqdm.tqdm(range(args.bc_pretrain_steps)):
-      loss = agent.pretrain(gail_train_loader, device)
-      if only_pretrain and callback_loss:
-        callback_loss(loss, None, None, None)
-        # print("Pretrain round {0}: loss {1}".format(j, loss))
-
-    if only_pretrain:
-      return get_np_policy(actor_critic, mdp.num_states, tuple_num_actions,
-                           device)
-
   # episode_rewards = deque(maxlen=10)  # I think this is just for info
   # start = time.time()
   # ---------- training ----------
@@ -156,7 +145,7 @@ def magail_w_ppo(mdp: mdp_lib.MDP,
     # !!!!! collect rollouts by alternating policy and env !!!!!
     for step in range(args.num_steps):
       # Sample actions
-      # NOTE: recurrent_hidden_state, masks -- don't need for my domain.
+      # NOTE: recurrent_hidden_state -- don't need for my domain.
       with torch.no_grad():
         (value, action, action_log_prob,
          recurrent_hidden_states) = actor_critic.act(

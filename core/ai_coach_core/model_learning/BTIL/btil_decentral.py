@@ -15,7 +15,6 @@ class BTIL_Decen:
       num_states: int,
       tuple_num_latents: Tuple[int, ...],
       tuple_num_actions: Tuple[int, ...],
-      cb_transition_s,
       trans_x_dependency=(True, True, True, True, False),  # s, a1, a2, a3, sn
       max_iteration: int = 100,
       epsilon: float = 0.001) -> None:
@@ -34,7 +33,6 @@ class BTIL_Decen:
     self.num_ostates = num_states
     self.tuple_num_latents = tuple_num_latents
     self.tuple_num_actions = tuple_num_actions
-    self.cb_transition_s = cb_transition_s
     # num_agent x |X| x |S| x |A|
     self.list_np_policy = [None for dummy_i in range(self.num_agents)
                            ]  # type: list[np.ndarray]
@@ -230,7 +228,7 @@ class BTIL_Decen:
     # transition_x
     if self.cb_Tx is None and len(list_q_x_xn) > 0:
       for i_a in range(self.num_agents):
-        self.list_Tx[i_a].init_lambda_Tx(self.beta_Tx)
+        self.list_Tx[i_a].set_lambda_Tx_prior_param(self.beta_Tx)
 
       for m_th in range(len(self.trajectories)):
         q_x_xn_all = list_q_x_xn[m_th]
@@ -314,7 +312,7 @@ class BTIL_Decen:
             TransitionX(self.tuple_num_latents[i_a], num_s, tuple(list_num_a),
                         num_sn, self.tuple_num_latents[i_a]))
 
-        self.list_Tx[i_a].init_lambda_Tx(self.beta_Tx)
+        self.list_Tx[i_a].set_lambda_Tx_prior_param(self.beta_Tx)
 
     list_lambda_pi = []
     list_lambda_pi = [
@@ -324,12 +322,17 @@ class BTIL_Decen:
     ]
 
     list_lambda_pi_prev = None
+    list_lambda_tx_prev = None
 
     count = 0
     progress_bar = tqdm(total=self.max_iteration)
     while count < self.max_iteration:
       count += 1
       list_lambda_pi_prev = list_lambda_pi
+      list_lambda_tx_prev = [
+          np.copy(self.list_Tx[idx_a].np_lambda_Tx)
+          for idx_a in range(self.num_agents)
+      ]
 
       # Don't know which is better to do first between mstep and estep.
       list_lambda_pi = self.mstep_global_variables(list_q_x, list_q_x_xn)
@@ -349,6 +352,9 @@ class BTIL_Decen:
       for i_a in range(self.num_agents):
         delta = np.max(np.abs(list_lambda_pi[i_a] - list_lambda_pi_prev[i_a]))
         delta_team = max(delta_team, delta)
+        delta = np.max(
+            np.abs(self.list_Tx[i_a].np_lambda_Tx - list_lambda_tx_prev[i_a]))
+        delta_team = max(delta_team, delta)
 
       if delta_team < self.epsilon:
         break
@@ -357,7 +363,7 @@ class BTIL_Decen:
     progress_bar.close()
 
     for idx in range(self.num_agents):
-      numerator = list_lambda_pi[idx] - 1
+      numerator = list_lambda_pi[idx]
       action_sums = np.sum(numerator, axis=-1)
       self.list_np_policy[idx] = numerator / action_sums[:, :, np.newaxis]
 

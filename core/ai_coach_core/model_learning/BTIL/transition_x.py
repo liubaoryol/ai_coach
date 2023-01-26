@@ -45,7 +45,7 @@ class TransitionX:
 
     return self.np_Tx[tuple(index)]
 
-  def init_lambda_Tx(self, beta):
+  def set_lambda_Tx_prior_param(self, beta):
     self.np_lambda_Tx = np.full(self.shape, beta)
 
   def add_to_lambda_Tx(self, s, tup_a, sn, q_xxn):
@@ -78,6 +78,35 @@ class TransitionX:
     return self.np_Tx[tuple(index)]
 
   def conv_to_Tx(self):
-    numerator = self.np_lambda_Tx - 1
+    # following "Matthew J. Beal, 2003" and "MacKay, 1998", we don't subtract -1
+    numerator = self.np_lambda_Tx
     next_latent_sums = np.sum(numerator, axis=-1)
     self.np_Tx = numerator / next_latent_sums[..., np.newaxis]
+
+  def init_lambda_Tx(self, low, high):
+    self.np_lambda_Tx = np.random.uniform(low=low, high=high, size=self.shape)
+
+  def update_lambda_Tx(self, s, tup_a, sn, lambda_hat, lr):
+    index = [slice(None)]
+    if self.num_s:
+      index.append(s)
+    for idx, num_a in enumerate(self.tup_num_a):
+      if num_a:
+        index.append(tup_a[idx])
+    if self.num_sn:
+      index.append(sn)
+    index.append(slice(None))
+    self.np_lambda_Tx[tuple(index)] = (
+        (1 - lr) * self.np_lambda_Tx[tuple(index)] + lr * lambda_hat)
+
+  def get_lambda_Tx(self, s, tup_a, sn):
+    index = [slice(None)]
+    if self.num_s:
+      index.append(s)
+    for idx, num_a in enumerate(self.tup_num_a):
+      if num_a:
+        index.append(tup_a[idx])
+    if self.num_sn:
+      index.append(sn)
+    index.append(slice(None))
+    return self.np_lambda_Tx[tuple(index)]
