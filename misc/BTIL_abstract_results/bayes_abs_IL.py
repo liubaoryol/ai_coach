@@ -97,12 +97,17 @@ def main(domain, num_abstates):
     os.makedirs(LOG_DIR)
   logpath = LOG_DIR + str(datetime.today())
 
+  temp_dir = DATA_DIR + "learned_models/"
+  if not os.path.exists(temp_dir):
+    os.makedirs(temp_dir)
+  save_prefix += ("%d_%d" % (num_traj, num_abstates))
+
   BC = True
   num_iterations = 300
-  list_policy = []
   save_prefix = SAVE_PREFIX
   policy = None
   if BC:
+    list_policy = []
     save_prefix += "_bc_bayes_abs_"
     for idx_a in range(num_agents):
       policy = bc_dnn(num_abstates, MDP_AGENT.num_actions,
@@ -110,16 +115,11 @@ def main(domain, num_abstates):
                       num_iterations)
       list_policy.append(policy)
 
-  temp_dir = DATA_DIR + "learned_models/"
-  if not os.path.exists(temp_dir):
-    os.makedirs(temp_dir)
-  save_prefix += ("%d_%d" % (num_traj, num_abstates))
-
-  # save models
-  save_prefix = os.path.join(temp_dir, save_prefix)
-  for idx_a, policy in enumerate(list_policy):
-    if policy is not None:
-      np.save(save_prefix + f"_pi_a{idx_a + 1}", policy)
+    # save models
+    save_prefix = os.path.join(temp_dir, save_prefix)
+    for idx_a, policy in enumerate(list_policy):
+      if policy is not None:
+        np.save(save_prefix + f"_pi_a{idx_a + 1}", policy)
 
 
 if __name__ == "__main__":
