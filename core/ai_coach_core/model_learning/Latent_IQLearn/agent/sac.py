@@ -5,7 +5,8 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
-from ..utils.utils import soft_update, one_hot
+
+from ..utils.utils import soft_update
 
 
 class SAC(object):
@@ -13,9 +14,8 @@ class SAC(object):
   def __init__(self,
                obs_dim,
                action_dim,
+               action_range,
                batch_size,
-               discrete_obs,
-               discrete_act,
                device,
                gamma,
                critic_tau,
@@ -39,11 +39,7 @@ class SAC(object):
                log_std_bounds=[-5, 2]):
     self.gamma = gamma
     self.batch_size = batch_size
-    self.discrete_obs = discrete_obs
-    self.discrete_act = discrete_act
-    self.obs_dim = obs_dim
-    self.action_dim = action_dim
-
+    self.action_range = action_range
     self.device = torch.device(device)
 
     self.critic_tau = critic_tau
@@ -100,15 +96,7 @@ class SAC(object):
     return self.critic_target
 
   def choose_action(self, state, sample=False):
-    # --- convert state
-    if self.discrete_obs:
-      state = torch.FloatTensor([state]).to(self.device)
-      state = one_hot(state, self.obs_dim)
-      state = state.view(-1, self.obs_dim)
-    # ------
-    else:
-      state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-
+    state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
     dist = self.actor(state)
     action = dist.sample() if sample else dist.mean
     # assert action.ndim == 2 and action.shape[0] == 1

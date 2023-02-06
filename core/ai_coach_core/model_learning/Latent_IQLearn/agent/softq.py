@@ -6,9 +6,16 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
 from torch.distributions import Categorical
-from ..utils.utils import one_hot
 from ..utils.atari_wrapper import LazyFrames
 from ..dataset.memory import Memory
+
+# def conv_discrete_2_onehot(indices: torch.Tensor, num_classes):
+#   return F.one_hot(indices.squeeze(1), num_classes=num_classes).float()
+
+
+def one_hot(indices: torch.Tensor, num_classes):
+  return F.one_hot(indices.squeeze(-1).long(),
+                   num_classes=num_classes).to(dtype=torch.float)
 
 
 class SoftQ(object):

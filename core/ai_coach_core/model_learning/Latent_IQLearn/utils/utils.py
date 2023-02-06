@@ -12,35 +12,36 @@ from stable_baselines3.common.monitor import Monitor
 from .normalize_action_wrapper import (check_and_normalize_box_actions)
 
 
-def conv_trajectories_2_iql_format(sa_trajectories: Sequence,
+def conv_trajectories_2_iql_format(sax_trajectories: Sequence,
                                    cb_conv_action_to_idx: Callable[[Any], int],
                                    cb_get_reward: Callable[[Any, Any],
                                                            float], path: str):
   'sa_trajectories: okay to include the terminal state'
   expert_trajs = defaultdict(list)
 
-  for trajectory in sa_trajectories:
+  for trajectory in sax_trajectories:
     traj = []
     for t in range(len(trajectory) - 1):
       cur_tup = trajectory[t]
       next_tup = trajectory[t + 1]
 
-      state, action = cur_tup[0], cur_tup[1]
-      next_state, next_action = next_tup[0], next_tup[1]
+      state, action, latent = cur_tup
+      next_state, next_action, _ = next_tup
 
-      aidx = cb_conv_action_to_idx(action)
+      # aidx = cb_conv_action_to_idx(action)
       reward = cb_get_reward(state, action)
 
       done = next_action is None
-      traj.append((state, next_state, aidx, reward, done))
+      traj.append((state, next_state, action, reward, done, latent))
 
-    states, next_states, actions, rewards, dones = zip(*traj)
+    states, next_states, actions, rewards, dones, latents = zip(*traj)
 
     expert_trajs["states"].append(states)
     expert_trajs["next_states"].append(next_states)
     expert_trajs["actions"].append(actions)
     expert_trajs["rewards"].append(rewards)
     expert_trajs["dones"].append(dones)
+    expert_trajs["latent"].append(latents)
     expert_trajs["lengths"].append(len(traj))
 
   print('Final size of Replay Buffer: {}'.format(sum(expert_trajs["lengths"])))
@@ -58,11 +59,6 @@ def make_env(env_name, monitor=True, env_make_kwargs={}):
   # Normalize box actions to [-1, 1]
   env = check_and_normalize_box_actions(env)
   return env
-
-
-def one_hot(indices: torch.Tensor, num_classes):
-  return F.one_hot(indices.squeeze(-1).long(),
-                   num_classes=num_classes).to(dtype=torch.float)
 
 
 class eval_mode(object):
