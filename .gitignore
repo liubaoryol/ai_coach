@@ -20,6 +20,7 @@ aws_web_app/venv/
 
 core/ai_coach_core/tests/*_trajectories
 core/ai_coach_core/tests/*_data
+misc/IQL_test/output/
 
 *.png
 *.log

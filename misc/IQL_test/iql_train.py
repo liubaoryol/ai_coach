@@ -115,6 +115,7 @@ def main(domain, opt):
             eps_steps=200,
             eps_window=10,
             num_learn_steps=num_iterations,
+            agent_name='sacd',
             log_interval=100,
             eval_interval=1000)
 

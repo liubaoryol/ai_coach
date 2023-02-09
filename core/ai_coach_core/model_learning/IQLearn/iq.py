@@ -10,7 +10,7 @@ import torch.nn.functional as F
 # Full IQ-Learn objective with other divergences and options
 def iq_loss(agent, current_Q, current_v, next_v, batch):
   # args
-  method_div = ""
+  method_div = "kl"
   method_loss = "value"
   method_type = "iq"
   method_grad_pen = False
@@ -32,25 +32,38 @@ def iq_loss(agent, current_Q, current_v, next_v, batch):
   y = (1 - done) * gamma * next_v
   reward = (current_Q - y)[is_expert]
 
-  with torch.no_grad():
-    # Use different divergence functions (For χ2 divergence we instead add a third bellmann error-like term)
-    if method_div == "hellinger":
-      phi_grad = 1 / (1 + reward)**2
-    elif method_div == "kl":
-      # original dual form for kl divergence (sub optimal)
-      phi_grad = torch.exp(-reward - 1)
-    elif method_div == "kl2":
-      # biased dual form for kl divergence
-      phi_grad = F.softmax(-reward, dim=0) * reward.shape[0]
-    elif method_div == "kl_fix":
-      # our proposed unbiased form for fixing kl divergence
-      phi_grad = torch.exp(-reward)
-    elif method_div == "js":
-      # jensen–shannon
-      phi_grad = torch.exp(-reward) / (2 - torch.exp(-reward))
-    else:
-      phi_grad = 1
-  loss = -(phi_grad * reward).mean()
+  # with torch.no_grad():
+  #   # Use different divergence functions (For χ2 divergence we instead add a third bellmann error-like term)
+  #   if method_div == "hellinger":
+  #     phi_grad = 1 / (1 + reward)**2
+  #   elif method_div == "kl":
+  #     # original dual form for kl divergence (sub optimal)
+  #     phi_grad = torch.exp(-reward - 1)
+  #   elif method_div == "kl2":
+  #     # biased dual form for kl divergence
+  #     phi_grad = F.softmax(-reward, dim=0) * reward.shape[0]
+  #   elif method_div == "kl_fix":
+  #     # our proposed unbiased form for fixing kl divergence
+  #     phi_grad = torch.exp(-reward)
+  #   elif method_div == "js":
+  #     # jensen–shannon
+  #     phi_grad = torch.exp(-reward) / (2 - torch.exp(-reward))
+  #   else:
+  #     phi_grad = 1
+  # loss = -(phi_grad * reward).mean()
+
+  if method_div == "hellinger":
+    phi_reward = reward / (1 + reward)
+  elif method_div == "kl":
+    # original dual form for kl divergence
+    phi_reward = -torch.exp(-reward - 1)
+  elif method_div == "js":
+    # jensen–shannon
+    phi_reward = torch.log(2 - torch.exp(-reward))
+  else:
+    phi_reward = reward
+  loss = -phi_reward.mean()
+
   loss_dict['softq_loss'] = loss.item()
 
   # calculate 2nd term for IQ loss, we show different sampling strategies

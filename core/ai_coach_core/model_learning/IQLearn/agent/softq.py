@@ -31,10 +31,10 @@ class SoftQ(object):
     self.critic_target_update_frequency = critic_target_update_frequency
     self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
 
-    self.q_net = q_net_base(num_inputs, action_dim, device, gamma, double_q,
+    self.q_net = q_net_base(num_inputs, action_dim, gamma, double_q,
                             use_tanh).to(self.device)
-    self.target_net = q_net_base(num_inputs, action_dim, device, gamma,
-                                 double_q, use_tanh).to(self.device)
+    self.target_net = q_net_base(num_inputs, action_dim, gamma, double_q,
+                                 use_tanh).to(self.device)
 
     self.target_net.load_state_dict(self.q_net.state_dict())
     self.critic_optimizer = Adam(self.q_net.parameters(),
@@ -83,17 +83,6 @@ class SoftQ(object):
 
     return action.detach().cpu().numpy()[0]
 
-  def getV(self, obs):
-
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
-
-    q = self.q_net(obs)
-    v = self.alpha * torch.logsumexp(q / self.alpha, dim=1, keepdim=True)
-    return v
-
   def critic(self, obs, action, both=False):
 
     # --- convert state
@@ -109,6 +98,17 @@ class SoftQ(object):
       return critic1, critic2
 
     return q.gather(1, action.long())
+
+  def getV(self, obs):
+
+    # --- convert state
+    if self.discrete_obs:
+      obs = one_hot(obs, self.obs_dim)
+    # ------
+
+    q = self.q_net(obs)
+    v = self.alpha * torch.logsumexp(q / self.alpha, dim=1, keepdim=True)
+    return v
 
   def get_targetV(self, obs):
 

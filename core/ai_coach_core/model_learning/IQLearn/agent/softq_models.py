@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable, grad
+from ..utils.utils import mlp, weight_init
 
 
 class SoftQNetwork(nn.Module):
@@ -8,12 +9,10 @@ class SoftQNetwork(nn.Module):
   def __init__(self,
                obs_dim,
                action_dim,
-               device='cpu',
                gamma=0.99,
                double_q: bool = False,
                use_tanh: bool = False):
     super(SoftQNetwork, self).__init__()
-    self.device = device
     self.tanh = nn.Tanh()
     self.double_q = double_q
     self.use_tanh = use_tanh
@@ -89,12 +88,11 @@ class SimpleQNetwork(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
-               device='cpu',
                gamma=0.99,
                double_q: bool = False,
                use_tanh: bool = False):
-    super(SimpleQNetwork, self).__init__(obs_dim, action_dim, device, gamma,
-                                         double_q, use_tanh)
+    super(SimpleQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+                                         use_tanh)
     self.fc1 = nn.Linear(obs_dim, 64)
     self.relu = nn.ReLU()
     self.fc2 = nn.Linear(64, 128)
@@ -112,12 +110,11 @@ class OfflineQNetwork(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
-               device='cpu',
                gamma=0.99,
                double_q: bool = False,
                use_tanh: bool = False):
-    super(OfflineQNetwork, self).__init__(obs_dim, action_dim, device, gamma,
-                                          double_q, use_tanh)
+    super(OfflineQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+                                          use_tanh)
     self.fc1 = nn.Linear(obs_dim, 64)
     self.elu = nn.ELU()
     self.fc2 = nn.Linear(64, 64)
@@ -135,21 +132,18 @@ class DoubleQNetwork(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
-               device='cpu',
                gamma=0.99,
                double_q: bool = False,
                use_tanh: bool = False):
-    super(DoubleQNetwork, self).__init__(obs_dim, action_dim, device, gamma,
-                                         double_q, use_tanh)
+    super(DoubleQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+                                         use_tanh)
     self.net1 = AtariQNetwork(obs_dim,
                               action_dim,
-                              device,
                               gamma=gamma,
                               double_q=double_q,
                               use_tanh=use_tanh)
     self.net2 = AtariQNetwork(obs_dim,
                               action_dim,
-                              device,
                               gamma=gamma,
                               double_q=double_q,
                               use_tanh=use_tanh)
@@ -169,13 +163,12 @@ class AtariQNetwork(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
-               device='cpu',
                gamma=0.99,
                double_q: bool = False,
                use_tanh: bool = False,
                input_dim=(84, 84)):
-    super(AtariQNetwork, self).__init__(obs_dim, action_dim, device, gamma,
-                                        double_q, use_tanh)
+    super(AtariQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+                                        use_tanh)
     self.frames = 4
     self.n_outputs = action_dim
 
@@ -204,12 +197,11 @@ class SimpleVNetwork(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
-               device='cpu',
                gamma=0.99,
                double_q: bool = False,
                use_tanh: bool = False):
-    super(SimpleVNetwork, self).__init__(obs_dim, action_dim, device, gamma,
-                                         double_q, use_tanh)
+    super(SimpleVNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+                                         use_tanh)
     self.fc1 = nn.Linear(obs_dim, 128)
     self.relu = nn.ReLU()
     self.fc2 = nn.Linear(128, 128)
@@ -220,3 +212,64 @@ class SimpleVNetwork(SoftQNetwork):
     x = self.relu(self.fc2(x))
     x = self.fc3(x)
     return x
+
+  #   # Q1 architecture
+  #   self.Q1 = mlp(obs_dim, 256, action_dim, 2)
+
+  #   self.apply(weight_init)
+
+  # def _forward(self, x, *args):
+  #   x = self.Q1.forward(x)
+  #   return x
+
+
+class SingleQCriticDiscrete(SoftQNetwork):
+
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               hidden_dim,
+               hidden_depth,
+               gamma=0.99,
+               use_tanh: bool = False):
+    super(SingleQCriticDiscrete, self).__init__(obs_dim, action_dim, gamma,
+                                                False, use_tanh)
+
+    # Q1 architecture
+    self.Q1 = mlp(obs_dim, hidden_dim, action_dim, hidden_depth)
+
+    self.apply(weight_init)
+
+  def _forward(self, x, *args):
+    x = self.Q1.forward(x)
+    return x
+
+
+class DoubleQCriticDiscrete(SoftQNetwork):
+
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               hidden_dim,
+               hidden_depth,
+               gamma=0.99,
+               use_tanh: bool = False):
+    super(DoubleQCriticDiscrete, self).__init__(obs_dim, action_dim, gamma,
+                                                True, use_tanh)
+
+    # Q1 architecture
+    self.Q1 = mlp(obs_dim, hidden_dim, action_dim, hidden_depth)
+
+    # Q2 architecture
+    self.Q2 = mlp(obs_dim, hidden_dim, action_dim, hidden_depth)
+
+    self.apply(weight_init)
+
+  def _forward(self, x, both=False, *args):
+    q1 = self.Q1.forward(x)
+    q2 = self.Q2.forward(x)
+
+    if both:
+      return q1, q2
+    else:
+      return torch.minimum(q1, q2)

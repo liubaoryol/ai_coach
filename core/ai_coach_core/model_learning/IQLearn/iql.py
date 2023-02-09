@@ -10,8 +10,9 @@ from .utils.utils import (make_env, eval_mode, average_dicts,
                           get_concat_samples, evaluate, soft_update,
                           hard_update)
 
-from .agent import make_agent
-from .agent.softq_models import SimpleQNetwork
+from .agent import make_sac_agent, make_softq_agent, make_sacd_agent
+from .agent.softq_models import SimpleQNetwork, SingleQCriticDiscrete
+from .agent.sac_models import DoubleQCritic, SingleQCritic
 from .dataset.memory import Memory
 from torch.utils.tensorboard import SummaryWriter
 from .utils.logger import Logger
@@ -33,18 +34,18 @@ def run_iql(env_name,
             eps_steps,
             eps_window,
             num_learn_steps,
+            agent_name: str = "softq",
             output_suffix="",
             log_interval=1000,
             eval_interval=2000,
             load_path: Optional[str] = None):
+  'agent_name: softq / sac / sacd'
   # constants
   num_seed_steps = 0
   num_episodes = 10
   save_interval = 10
   is_sqil = False
   only_expert_states = False
-  use_target = False
-  agent_name = "softq"  # either softq or sac
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -73,8 +74,38 @@ def run_iql(env_name,
   EPISODE_WINDOW = int(eps_window)
   LEARN_STEPS = int(num_learn_steps)
 
-  q_net_base = SimpleQNetwork
-  agent = make_agent(env, batch_size, device_name, q_net_base)
+  if agent_name == "softq":
+    q_net_base = SimpleQNetwork
+    use_target = False
+    soft_update = False
+    agent = make_softq_agent(env,
+                             batch_size,
+                             device_name,
+                             q_net_base,
+                             critic_target_update_frequency=4,
+                             critic_tau=0.1)
+  elif agent_name == "sac":
+    critic_base = SingleQCritic
+    use_target = True
+    soft_update = True
+    agent = make_sac_agent(env,
+                           batch_size,
+                           device_name,
+                           critic_base,
+                           critic_target_update_frequency=1,
+                           critic_tau=0.005)
+  elif agent_name == "sacd":
+    critic_base = SingleQCriticDiscrete
+    use_target = True
+    soft_update = True
+    agent = make_sacd_agent(env,
+                            batch_size,
+                            device_name,
+                            critic_base,
+                            critic_target_update_frequency=1,
+                            critic_tau=0.005)
+  else:
+    raise NotImplementedError
 
   if load_path is not None:
     if os.path.isfile(load_path):
@@ -183,7 +214,7 @@ def run_iql(env_name,
         agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
         losses = agent.iq_update(online_memory_replay, expert_memory_replay,
                                  logger, learn_steps, only_expert_states,
-                                 is_sqil, use_target)
+                                 is_sqil, use_target, soft_update)
         ######
 
         if learn_steps % log_interval == 0:
@@ -311,7 +342,10 @@ def iq_update_critic(self,
   else:
     next_V = self.getV(next_obs)
 
-  if "DoubleQ" in self.__class__.__name__:
+  if ((("SAC" in self.__class__.__name__)
+       and "DoubleQ" in self.critic_target.__class__.__name__)
+      or (self.__class__.__name__ == "SoftQ"
+          and "DoubleQ" in self.target_net.__class__.__name__)):
     current_Q1, current_Q2 = self.critic(obs, action, both=True)
     q1_loss, loss_dict1 = iq_loss(agent, current_Q1, current_V, next_V, batch)
     q2_loss, loss_dict2 = iq_loss(agent, current_Q2, current_V, next_V, batch)
@@ -339,7 +373,8 @@ def iq_update(self,
               step,
               only_expert_states=False,
               is_sqil=False,
-              use_target=False):
+              use_target=False,
+              do_soft_update=False):
   policy_batch = policy_buffer.get_samples(self.batch_size, self.device)
   expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
 
@@ -350,7 +385,6 @@ def iq_update(self,
   vdice_actor = False
   offline = False
   num_actor_updates = 1
-  do_soft_update = False
 
   if self.actor and step % self.actor_update_frequency == 0:
     if not vdice_actor:

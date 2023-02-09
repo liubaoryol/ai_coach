@@ -5,17 +5,8 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from torch import distributions as pyd
 from torch.autograd import Variable, grad
-
-from ..utils.utils import mlp
-
-
-# Initialize Policy weights
-def orthogonal_init_(m):
-  """Custom weight init for Conv2D and Linear layers."""
-  if isinstance(m, nn.Linear):
-    nn.init.orthogonal_(m.weight.data)
-    if hasattr(m.bias, 'data'):
-      m.bias.data.fill_(0.0)
+from torch.distributions import Categorical, RelaxedOneHotCategorical
+from ..utils.utils import mlp, weight_init
 
 
 class DoubleQCritic(nn.Module):
@@ -39,7 +30,7 @@ class DoubleQCritic(nn.Module):
     # Q2 architecture
     self.Q2 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
   def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
@@ -104,7 +95,7 @@ class DoubleQCriticMax(nn.Module):
     # Q2 architecture
     self.Q2 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
   def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
@@ -141,7 +132,7 @@ class SingleQCritic(nn.Module):
     # Q architecture
     self.Q = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
   def forward(self, obs, action):
     assert obs.size(0) == action.size(0)
@@ -201,7 +192,7 @@ class DoubleQCriticState(nn.Module):
     # Q2 architecture
     self.Q2 = mlp(obs_dim, hidden_dim, 1, hidden_depth)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
   def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
@@ -292,18 +283,73 @@ class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
     return mu
 
 
-class DiagGaussianActor(nn.Module):
-  """torch.distributions implementation of an diagonal Gaussian policy."""
+class GumbelSoftmax(RelaxedOneHotCategorical):
+  '''
+    A differentiable Categorical distribution using reparametrization trick with Gumbel-Softmax
+    Explanation http://amid.fish/assets/gumbel.html
+    NOTE: use this in place PyTorch's RelaxedOneHotCategorical distribution since its log_prob is not working right (returns positive values)
+    Papers:
+    [1] The Concrete Distribution: A Continuous Relaxation of Discrete Random Variables (Maddison et al, 2017)
+    [2] Categorical Reparametrization with Gumbel-Softmax (Jang et al, 2017)
+    '''
+
+  def sample(self, sample_shape=torch.Size()):
+    '''Gumbel-softmax sampling. Note rsample is inherited from RelaxedOneHotCategorical'''
+    u = torch.empty(self.logits.size(),
+                    device=self.logits.device,
+                    dtype=self.logits.dtype).uniform_(0, 1)
+    noisy_logits = self.logits - torch.log(-torch.log(u))
+    return torch.argmax(noisy_logits, dim=-1)
+
+  def log_prob(self, value):
+    '''value is one-hot or relaxed'''
+    if value.shape != self.logits.shape:
+      value = F.one_hot(value.long(), self.logits.shape[-1]).float()
+      assert value.shape == self.logits.shape
+    return -torch.sum(-value * F.log_softmax(self.logits, -1), -1)
+
+
+class AbstractActor(nn.Module):
 
   def __init__(self, obs_dim, action_dim, hidden_dim, hidden_depth,
                log_std_bounds):
     super().__init__()
 
-    self.log_std_bounds = log_std_bounds
-    self.trunk = mlp(obs_dim, hidden_dim, 2 * action_dim, hidden_depth)
+    output_dim = action_dim
+    # if log_std_bounds is given, assume gaussian(continuous) action actor
+    if log_std_bounds is not None:
+      output_dim = 2 * action_dim
+
+    self.trunk = mlp(obs_dim, hidden_dim, output_dim, hidden_depth)
 
     self.outputs = dict()
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
+
+    self.log_std_bounds = log_std_bounds
+
+  def forward(self, obs):
+    raise NotImplementedError
+
+  def rsample(self, obs):
+    raise NotImplementedError
+
+  def sample(self, obs):
+    raise NotImplementedError
+
+  def exploit(self, obs):
+    raise NotImplementedError
+
+  def is_discrete(self):
+    return self.log_std_bounds is None
+
+
+class DiagGaussianActor(AbstractActor):
+  """torch.distributions implementation of an diagonal Gaussian policy."""
+
+  def __init__(self, obs_dim, action_dim, hidden_dim, hidden_depth,
+               log_std_bounds):
+    super().__init__(obs_dim, action_dim, hidden_dim, hidden_depth,
+                     log_std_bounds)
 
   def forward(self, obs):
     mu, log_std = self.trunk(obs).chunk(2, dim=-1)
@@ -321,9 +367,63 @@ class DiagGaussianActor(nn.Module):
     dist = SquashedNormal(mu, std)
     return dist
 
-  def sample(self, obs):
+  def rsample(self, obs):
     dist = self.forward(obs)
     action = dist.rsample()
     log_prob = dist.log_prob(action).sum(-1, keepdim=True)
 
-    return action, log_prob, dist.mean
+    return action, log_prob
+
+  def sample(self, obs):
+    return self.rsample(obs)
+
+  def exploit(self, obs):
+    return self.forward(obs).mean
+
+
+class DiscreteActor(AbstractActor):
+  'cf) https://github.com/openai/spinningup/issues/148 '
+
+  def __init__(self, obs_dim, action_dim, hidden_dim, hidden_depth,
+               temperature):
+    super().__init__(obs_dim,
+                     action_dim,
+                     hidden_dim,
+                     hidden_depth,
+                     log_std_bounds=None)
+    self.temperature = torch.tensor(temperature)
+
+  def forward(self, obs):
+    logits = self.trunk(obs)
+    dist = Categorical(logits=logits)
+    return dist
+
+  def action_probs(self, obs):
+    dist = self.forward(obs)
+    action_probs = dist.probs
+    # avoid numerical instability
+    z = (action_probs == 0.0).float() * 1e-10
+    log_action_probs = torch.log(action_probs + z)
+
+    return action_probs, log_action_probs
+
+  def exploit(self, obs):
+    logits = self.trunk(obs)
+    return logits.argmax(dim=-1)
+
+  def sample(self, obs):
+    dist = self.forward(obs)
+
+    samples = dist.sample()
+    action_log_probs = dist.log_prob(samples)
+
+    return samples, action_log_probs
+
+  def rsample(self, obs):
+    logits = self.trunk(obs)
+    dist = GumbelSoftmax(self.temperature, logits=logits)
+
+    action = dist.rsample()
+    log_prob = dist.log_prob(action).view(-1, 1)
+
+    return action, log_prob
