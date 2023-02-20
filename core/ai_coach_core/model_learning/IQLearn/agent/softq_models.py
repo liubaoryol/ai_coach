@@ -28,7 +28,13 @@ class SoftQNetwork(nn.Module):
       out = self._forward(x)
 
     if self.use_tanh:
-      return self.tanh(out) * 1 / (1 - self.gamma)
+      if isinstance(out, tuple):
+        out0 = self.tanh(out[0]) * 1 / (1 - self.gamma)
+        out1 = self.tanh(out[1]) * 1 / (1 - self.gamma)
+        out = (out0, out1)
+      else:
+        out = self.tanh(out) * 1 / (1 - self.gamma)
+
     return out
 
   def jacobian(self, outputs, inputs):
@@ -88,32 +94,36 @@ class SimpleQNetwork(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
+               list_hidden_dims,
                gamma=0.99,
-               double_q: bool = False,
                use_tanh: bool = False):
-    super(SimpleQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+    super(SimpleQNetwork, self).__init__(obs_dim, action_dim, gamma, False,
                                          use_tanh)
-    self.fc1 = nn.Linear(obs_dim, 64)
-    self.relu = nn.ReLU()
-    self.fc2 = nn.Linear(64, 128)
-    self.fc3 = nn.Linear(128, action_dim)
+    # self.fc1 = nn.Linear(obs_dim, 64)
+    # self.relu = nn.ReLU()
+    # self.fc2 = nn.Linear(64, 128)
+    # self.fc3 = nn.Linear(128, action_dim)
+
+    # Q1 architecture
+    self.Q1 = mlp(obs_dim, action_dim, list_hidden_dims)
+
+    self.apply(weight_init)
 
   def _forward(self, x, *args):
-    x = self.relu(self.fc1(x))
-    x = self.relu(self.fc2(x))
-    x = self.fc3(x)
+    x = self.Q1.forward(x)
     return x
+
+  # def _forward(self, x, *args):
+  #   x = self.relu(self.fc1(x))
+  #   x = self.relu(self.fc2(x))
+  #   x = self.fc3(x)
+  #   return x
 
 
 class OfflineQNetwork(SoftQNetwork):
 
-  def __init__(self,
-               obs_dim,
-               action_dim,
-               gamma=0.99,
-               double_q: bool = False,
-               use_tanh: bool = False):
-    super(OfflineQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+  def __init__(self, obs_dim, action_dim, gamma=0.99, use_tanh: bool = False):
+    super(OfflineQNetwork, self).__init__(obs_dim, action_dim, gamma, False,
                                           use_tanh)
     self.fc1 = nn.Linear(obs_dim, 64)
     self.elu = nn.ELU()
@@ -129,23 +139,16 @@ class OfflineQNetwork(SoftQNetwork):
 
 class DoubleQNetwork(SoftQNetwork):
 
-  def __init__(self,
-               obs_dim,
-               action_dim,
-               gamma=0.99,
-               double_q: bool = False,
-               use_tanh: bool = False):
-    super(DoubleQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+  def __init__(self, obs_dim, action_dim, gamma=0.99, use_tanh: bool = False):
+    super(DoubleQNetwork, self).__init__(obs_dim, action_dim, gamma, True,
                                          use_tanh)
     self.net1 = AtariQNetwork(obs_dim,
                               action_dim,
                               gamma=gamma,
-                              double_q=double_q,
                               use_tanh=use_tanh)
     self.net2 = AtariQNetwork(obs_dim,
                               action_dim,
                               gamma=gamma,
-                              double_q=double_q,
                               use_tanh=use_tanh)
 
   def _forward(self, x, both=False, *args):
@@ -164,10 +167,9 @@ class AtariQNetwork(SoftQNetwork):
                obs_dim,
                action_dim,
                gamma=0.99,
-               double_q: bool = False,
                use_tanh: bool = False,
                input_dim=(84, 84)):
-    super(AtariQNetwork, self).__init__(obs_dim, action_dim, gamma, double_q,
+    super(AtariQNetwork, self).__init__(obs_dim, action_dim, gamma, False,
                                         use_tanh)
     self.frames = 4
     self.n_outputs = action_dim
@@ -228,15 +230,14 @@ class SingleQCriticDiscrete(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
     super(SingleQCriticDiscrete, self).__init__(obs_dim, action_dim, gamma,
                                                 False, use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim, hidden_dim, action_dim, hidden_depth)
+    self.Q1 = mlp(obs_dim, action_dim, list_hidden_dims)
 
     self.apply(weight_init)
 
@@ -250,18 +251,17 @@ class DoubleQCriticDiscrete(SoftQNetwork):
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
     super(DoubleQCriticDiscrete, self).__init__(obs_dim, action_dim, gamma,
                                                 True, use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim, hidden_dim, action_dim, hidden_depth)
+    self.Q1 = mlp(obs_dim, action_dim, list_hidden_dims)
 
     # Q2 architecture
-    self.Q2 = mlp(obs_dim, hidden_dim, action_dim, hidden_depth)
+    self.Q2 = mlp(obs_dim, action_dim, list_hidden_dims)
 
     self.apply(weight_init)
 

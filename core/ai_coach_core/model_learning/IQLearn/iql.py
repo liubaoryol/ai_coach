@@ -38,6 +38,8 @@ def run_iql(env_name,
             output_suffix="",
             log_interval=1000,
             eval_interval=2000,
+            gumbel_temperature: float = 0.5,
+            list_hidden_dims=[256, 256],
             load_path: Optional[str] = None):
   'agent_name: softq / sac / sacd'
   # constants
@@ -77,33 +79,39 @@ def run_iql(env_name,
   if agent_name == "softq":
     q_net_base = SimpleQNetwork
     use_target = False
-    soft_update = False
+    do_soft_update = False
     agent = make_softq_agent(env,
                              batch_size,
                              device_name,
                              q_net_base,
                              critic_target_update_frequency=4,
-                             critic_tau=0.1)
+                             critic_tau=0.1,
+                             list_hidden_dims=list_hidden_dims)
   elif agent_name == "sac":
-    critic_base = SingleQCritic
+    critic_base = DoubleQCritic
     use_target = True
-    soft_update = True
+    do_soft_update = True
     agent = make_sac_agent(env,
                            batch_size,
                            device_name,
                            critic_base,
                            critic_target_update_frequency=1,
-                           critic_tau=0.005)
+                           critic_tau=0.005,
+                           gumbel_temperature=gumbel_temperature,
+                           list_critic_hidden_dims=list_hidden_dims,
+                           list_actor_hidden_dims=list_hidden_dims)
   elif agent_name == "sacd":
     critic_base = SingleQCriticDiscrete
     use_target = True
-    soft_update = True
+    do_soft_update = True
     agent = make_sacd_agent(env,
                             batch_size,
                             device_name,
                             critic_base,
                             critic_target_update_frequency=1,
-                            critic_tau=0.005)
+                            critic_tau=0.005,
+                            list_critic_hidden_dims=list_hidden_dims,
+                            list_actor_hidden_dims=list_hidden_dims)
   else:
     raise NotImplementedError
 
@@ -214,7 +222,7 @@ def run_iql(env_name,
         agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
         losses = agent.iq_update(online_memory_replay, expert_memory_replay,
                                  logger, learn_steps, only_expert_states,
-                                 is_sqil, use_target, soft_update)
+                                 is_sqil, use_target, do_soft_update)
         ######
 
         if learn_steps % log_interval == 0:
@@ -342,18 +350,14 @@ def iq_update_critic(self,
   else:
     next_V = self.getV(next_obs)
 
-  if ((("SAC" in self.__class__.__name__)
-       and "DoubleQ" in self.critic_target.__class__.__name__)
-      or (self.__class__.__name__ == "SoftQ"
-          and "DoubleQ" in self.target_net.__class__.__name__)):
-    current_Q1, current_Q2 = self.critic(obs, action, both=True)
-    q1_loss, loss_dict1 = iq_loss(agent, current_Q1, current_V, next_V, batch)
-    q2_loss, loss_dict2 = iq_loss(agent, current_Q2, current_V, next_V, batch)
+  current_Q = self.critic(obs, action, both=True)
+  if isinstance(current_Q, tuple):
+    q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], current_V, next_V, batch)
+    q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], current_V, next_V, batch)
     critic_loss = 1 / 2 * (q1_loss + q2_loss)
     # merge loss dicts
     loss_dict = average_dicts(loss_dict1, loss_dict2)
   else:
-    current_Q = self.critic(obs, action)
     critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V, batch)
 
   logger.log('train/critic_loss', critic_loss, step)

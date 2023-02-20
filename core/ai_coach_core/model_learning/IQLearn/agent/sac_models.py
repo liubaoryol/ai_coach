@@ -9,26 +9,39 @@ from torch.distributions import Categorical, RelaxedOneHotCategorical
 from ..utils.utils import mlp, weight_init
 
 
-class DoubleQCritic(nn.Module):
+class SACQCritic(nn.Module):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
+               double_q: bool = False,
                use_tanh: bool = False):
-    super(DoubleQCritic, self).__init__()
+    super().__init__()
     self.obs_dim = obs_dim
     self.action_dim = action_dim
     self.use_tanh = use_tanh
     self.gamma = gamma
+    self.double_q = double_q
+
+
+class DoubleQCritic(SACQCritic):
+
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               list_hidden_dims,
+               gamma=0.99,
+               use_tanh: bool = False):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, True,
+                     use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q1 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
     # Q2 architecture
-    self.Q2 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q2 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
     self.apply(weight_init)
 
@@ -74,26 +87,22 @@ class DoubleQCritic(nn.Module):
     return grad_pen
 
 
-class DoubleQCriticMax(nn.Module):
+class DoubleQCriticMax(SACQCritic):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
-    super(DoubleQCriticMax, self).__init__()
-    self.obs_dim = obs_dim
-    self.action_dim = action_dim
-    self.use_tanh = use_tanh
-    self.gamma = gamma
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, True,
+                     use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q1 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
     # Q2 architecture
-    self.Q2 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q2 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
     self.apply(weight_init)
 
@@ -114,27 +123,23 @@ class DoubleQCriticMax(nn.Module):
       return torch.max(q1, q2)
 
 
-class SingleQCritic(nn.Module):
+class SingleQCritic(SACQCritic):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
-    super(SingleQCritic, self).__init__()
-    self.obs_dim = obs_dim
-    self.action_dim = action_dim
-    self.use_tanh = use_tanh
-    self.gamma = gamma
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, False,
+                     use_tanh)
 
     # Q architecture
-    self.Q = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
     self.apply(weight_init)
 
-  def forward(self, obs, action):
+  def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
 
     obs_action = torch.cat([obs, action], dim=-1)
@@ -171,26 +176,22 @@ class SingleQCritic(nn.Module):
     return grad_pen
 
 
-class DoubleQCriticState(nn.Module):
+class DoubleQCriticState(SACQCritic):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
-    super(DoubleQCritic, self).__init__()
-    self.obs_dim = obs_dim
-    self.action_dim = action_dim
-    self.use_tanh = use_tanh
-    self.gamma = gamma
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, True,
+                     use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim, hidden_dim, 1, hidden_depth)
+    self.Q1 = mlp(obs_dim, 1, list_hidden_dims)
 
     # Q2 architecture
-    self.Q2 = mlp(obs_dim, hidden_dim, 1, hidden_depth)
+    self.Q2 = mlp(obs_dim, 1, list_hidden_dims)
 
     self.apply(weight_init)
 
@@ -301,6 +302,16 @@ class GumbelSoftmax(RelaxedOneHotCategorical):
     noisy_logits = self.logits - torch.log(-torch.log(u))
     return torch.argmax(noisy_logits, dim=-1)
 
+  def rsample(self, sample_shape=torch.Size()):
+    '''
+      ref: https://github.com/kengz/SLM-Lab/blob/master/slm_lab/lib/distribution.py
+      Gumbel-softmax resampling using the Straight-Through trick.
+      Credit to Ian Temple for bringing this to our attention. To see standalone code of how this works, refer to https://gist.github.com/yzh119/fd2146d2aeb329d067568a493b20172f
+      '''
+    rout = super().rsample(sample_shape)  # differentiable
+    out = F.one_hot(torch.argmax(rout, dim=-1), self.logits.shape[-1]).float()
+    return (out - rout).detach() + rout
+
   def log_prob(self, value):
     '''value is one-hot or relaxed'''
     if value.shape != self.logits.shape:
@@ -311,8 +322,7 @@ class GumbelSoftmax(RelaxedOneHotCategorical):
 
 class AbstractActor(nn.Module):
 
-  def __init__(self, obs_dim, action_dim, hidden_dim, hidden_depth,
-               log_std_bounds):
+  def __init__(self, obs_dim, action_dim, list_hidden_dims, log_std_bounds):
     super().__init__()
 
     output_dim = action_dim
@@ -320,7 +330,7 @@ class AbstractActor(nn.Module):
     if log_std_bounds is not None:
       output_dim = 2 * action_dim
 
-    self.trunk = mlp(obs_dim, hidden_dim, output_dim, hidden_depth)
+    self.trunk = mlp(obs_dim, output_dim, list_hidden_dims)
 
     self.outputs = dict()
     self.apply(weight_init)
@@ -346,10 +356,8 @@ class AbstractActor(nn.Module):
 class DiagGaussianActor(AbstractActor):
   """torch.distributions implementation of an diagonal Gaussian policy."""
 
-  def __init__(self, obs_dim, action_dim, hidden_dim, hidden_depth,
-               log_std_bounds):
-    super().__init__(obs_dim, action_dim, hidden_dim, hidden_depth,
-                     log_std_bounds)
+  def __init__(self, obs_dim, action_dim, list_hidden_dims, log_std_bounds):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds)
 
   def forward(self, obs):
     mu, log_std = self.trunk(obs).chunk(2, dim=-1)
@@ -384,14 +392,8 @@ class DiagGaussianActor(AbstractActor):
 class DiscreteActor(AbstractActor):
   'cf) https://github.com/openai/spinningup/issues/148 '
 
-  def __init__(self, obs_dim, action_dim, hidden_dim, hidden_depth,
-               temperature):
-    super().__init__(obs_dim,
-                     action_dim,
-                     hidden_dim,
-                     hidden_depth,
-                     log_std_bounds=None)
-    self.temperature = torch.tensor(temperature)
+  def __init__(self, obs_dim, action_dim, list_hidden_dims):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds=None)
 
   def forward(self, obs):
     logits = self.trunk(obs)
@@ -420,8 +422,36 @@ class DiscreteActor(AbstractActor):
     return samples, action_log_probs
 
   def rsample(self, obs):
+    'should not be used'
+    raise NotImplementedError
+
+
+class SoftDiscreteActor(AbstractActor):
+  'cf) https://github.com/openai/spinningup/issues/148 '
+
+  def __init__(self, obs_dim, action_dim, list_hidden_dims, temperature):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds=None)
+    self.temperature = torch.tensor(temperature)
+
+  def forward(self, obs):
     logits = self.trunk(obs)
     dist = GumbelSoftmax(self.temperature, logits=logits)
+    return dist
+
+  def exploit(self, obs):
+    logits = self.trunk(obs)
+    return logits.argmax(dim=-1)
+
+  def sample(self, obs):
+    dist = self.forward(obs)
+
+    samples = dist.sample()
+    action_log_probs = dist.log_prob(samples).view(-1, 1)
+
+    return samples, action_log_probs
+
+  def rsample(self, obs):
+    dist = self.forward(obs)
 
     action = dist.rsample()
     log_prob = dist.log_prob(action).view(-1, 1)

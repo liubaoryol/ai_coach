@@ -11,29 +11,12 @@ from ..utils.utils import soft_update, one_hot
 
 class SAC_Discrete(object):
 
-  def __init__(self,
-               obs_dim,
-               action_dim,
-               batch_size,
-               discrete_obs,
-               device,
-               gamma,
-               critic_tau,
-               critic_lr,
-               critic_target_update_frequency,
-               init_temp,
-               critic_betas,
-               use_tanh: bool,
-               critic_base: Type[nn.Module],
-               actor: DiscreteActor,
-               learn_temp,
-               actor_update_frequency,
-               actor_lr,
-               actor_betas,
-               alpha_lr,
-               alpha_betas,
-               critic_hidden_dim=256,
-               critic_hidden_depth=2):
+  def __init__(self, obs_dim, action_dim, batch_size, discrete_obs, device,
+               gamma, critic_tau, critic_lr, critic_target_update_frequency,
+               init_temp, critic_betas, use_tanh: bool,
+               critic_base: Type[nn.Module], actor: DiscreteActor, learn_temp,
+               actor_update_frequency, actor_lr, actor_betas, alpha_lr,
+               alpha_betas, list_critic_hidden_dims):
     self.gamma = gamma
     self.batch_size = batch_size
     self.discrete_obs = discrete_obs
@@ -47,12 +30,11 @@ class SAC_Discrete(object):
     self.actor_update_frequency = actor_update_frequency
     self.critic_target_update_frequency = critic_target_update_frequency
 
-    self._critic = critic_base(obs_dim, action_dim, critic_hidden_dim,
-                               critic_hidden_depth, gamma,
-                               use_tanh).to(self.device)
+    self._critic = critic_base(obs_dim, action_dim, list_critic_hidden_dims,
+                               gamma, use_tanh).to(self.device)
 
-    self.critic_target = critic_base(obs_dim, action_dim, critic_hidden_dim,
-                                     critic_hidden_depth, gamma,
+    self.critic_target = critic_base(obs_dim, action_dim,
+                                     list_critic_hidden_dims, gamma,
                                      use_tanh).to(self.device)
 
     self.critic_target.load_state_dict(self._critic.state_dict())
@@ -63,6 +45,8 @@ class SAC_Discrete(object):
     self.log_alpha.requires_grad = True
     # Target Entropy = −dim(A) (e.g. , -6 for HalfCheetah-v2) as given in the paper
     self.target_entropy = -action_dim
+
+    self.USE_EXACT_POLICY_FOR_V = False
 
     # optimizers
     self.actor_optimizer = Adam(self.actor.parameters(),
@@ -138,11 +122,14 @@ class SAC_Discrete(object):
     action_probs, log_action_probs = self.actor.action_probs(obs)
 
     current_Q = self._critic(obs)
-    # current_V = (action_probs *
-    #              (current_Q - self.alpha * log_action_probs)).sum(dim=1,
-    #                                                               keepdim=True)
-    current_V = self.alpha * torch.logsumexp(
-        current_Q / self.alpha, dim=1, keepdim=True)
+
+    if self.USE_EXACT_POLICY_FOR_V:
+      current_V = self.alpha * torch.logsumexp(
+          current_Q / self.alpha, dim=1, keepdim=True)
+    else:
+      current_V = (action_probs *
+                   (current_Q - self.alpha * log_action_probs)).sum(
+                       dim=1, keepdim=True)
     return current_V
 
   def get_targetV(self, obs):
@@ -155,10 +142,14 @@ class SAC_Discrete(object):
     action_probs, log_action_probs = self.actor.action_probs(obs)
 
     target_Q = self.critic_target(obs)
-    # target_V = (action_probs * (target_Q - self.alpha * log_action_probs)).sum(
-    #     dim=1, keepdim=True)
-    target_V = self.alpha * torch.logsumexp(
-        target_Q / self.alpha, dim=1, keepdim=True)
+
+    if self.USE_EXACT_POLICY_FOR_V:
+      target_V = self.alpha * torch.logsumexp(
+          target_Q / self.alpha, dim=1, keepdim=True)
+    else:
+      target_V = (action_probs *
+                  (target_Q - self.alpha * log_action_probs)).sum(dim=1,
+                                                                  keepdim=True)
     return target_V
 
   def update(self, replay_buffer, logger, step):
@@ -183,28 +174,23 @@ class SAC_Discrete(object):
       target_V = self.get_targetV(next_obs)
       target_Q = reward + (1 - done) * self.gamma * target_V
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
-
     # get current Q estimates
-    current_Q1, current_Q2 = self._critic(obs, both=True)
-    q1_loss = F.mse_loss(current_Q1, target_Q)
-    q2_loss = F.mse_loss(current_Q2, target_Q)
-    critic_loss = q1_loss + q2_loss
+    current_Q = self.critic(obs, action, both=True)
+    if isinstance(current_Q, tuple):
+      q1_loss = F.mse_loss(current_Q[0], target_Q)
+      q2_loss = F.mse_loss(current_Q[1], target_Q)
+      critic_loss = q1_loss + q2_loss
+    else:
+      critic_loss = F.mse_loss(current_Q, target_Q)
 
+    logger.log('train/critic_loss', critic_loss, step)
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
     self.critic_optimizer.step()
 
     # self.critic.log(logger, step)
-    return {
-        'critic_loss/critic_1': q1_loss.item(),
-        'critic_loss/critic_2': q2_loss.item(),
-        'loss/critic': critic_loss.item()
-    }
+    return {'loss/critic': critic_loss.item()}
 
   def update_actor_and_alpha(self, obs, logger, step):
 
@@ -241,7 +227,7 @@ class SAC_Discrete(object):
     # self.actor.log(logger, step)
     if self.learn_temp:
       self.log_alpha_optimizer.zero_grad()
-      alpha_loss = (self.alpha *
+      alpha_loss = (self.log_alpha *
                     (entropies - self.target_entropy).detach()).mean()
       logger.log('train/alpha_loss', alpha_loss, step)
       logger.log('train/alpha_value', self.alpha, step)

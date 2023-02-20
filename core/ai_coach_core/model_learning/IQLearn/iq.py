@@ -10,14 +10,16 @@ import torch.nn.functional as F
 # Full IQ-Learn objective with other divergences and options
 def iq_loss(agent, current_Q, current_v, next_v, batch):
   # args
-  method_div = "kl"
+  method_div = ""
   method_loss = "value"
   method_type = "iq"
   method_grad_pen = False
   method_lambda_gp = 10
-  method_chi = False
   method_alpha = 0.5
-  method_regularize = False
+  if "SAC" in agent.__class__.__name__:
+    method_regularize = True
+  else:
+    method_regularize = False
 
   gamma = agent.gamma
   obs, next_obs, action, env_reward, done, is_expert = batch
@@ -60,8 +62,12 @@ def iq_loss(agent, current_Q, current_v, next_v, batch):
   elif method_div == "js":
     # jensen–shannon
     phi_reward = torch.log(2 - torch.exp(-reward))
+  elif method_div == "chi":
+    phi_reward = reward - 1 / (4 * method_alpha) * reward**2
   else:
     phi_reward = reward
+
+  # phi_reward = torch.clamp(phi_reward, min=-1e20, max=1e20)
   loss = -phi_reward.mean()
 
   loss_dict['softq_loss'] = loss.item()
@@ -117,15 +123,6 @@ def iq_loss(agent, current_Q, current_v, next_v, batch):
                                                          ...], method_lambda_gp)
     loss_dict['gp_loss'] = gp_loss.item()
     loss += gp_loss
-
-  if method_div == "chi" or method_chi:  # TODO: Deprecate method.chi argument for method.div
-    # Use χ2 divergence (calculate the regularization term for IQ loss using expert states) (works offline)
-    y = (1 - done) * gamma * next_v
-
-    reward = current_Q - y
-    chi2_loss = 1 / (4 * method_alpha) * (reward**2)[is_expert].mean()
-    loss += chi2_loss
-    loss_dict['chi2_loss'] = chi2_loss.item()
 
   if method_regularize:
     # Use χ2 divergence (calculate the regularization term for IQ loss using expert and policy states) (works online)

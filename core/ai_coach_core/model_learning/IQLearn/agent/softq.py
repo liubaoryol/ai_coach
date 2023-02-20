@@ -16,7 +16,7 @@ class SoftQ(object):
   def __init__(self, num_inputs, action_dim, batch_size, discrete_obs, device,
                gamma, critic_tau, critic_lr, critic_target_update_frequency,
                init_temp, critic_betas, q_net_base: Type[nn.Module],
-               double_q: bool, use_tanh: bool):
+               list_hidden_dims, use_tanh: bool):
     self.gamma = gamma
     self.batch_size = batch_size
     self.device = torch.device(device)
@@ -31,10 +31,10 @@ class SoftQ(object):
     self.critic_target_update_frequency = critic_target_update_frequency
     self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
 
-    self.q_net = q_net_base(num_inputs, action_dim, gamma, double_q,
+    self.q_net = q_net_base(num_inputs, action_dim, list_hidden_dims, gamma,
                             use_tanh).to(self.device)
-    self.target_net = q_net_base(num_inputs, action_dim, gamma, double_q,
-                                 use_tanh).to(self.device)
+    self.target_net = q_net_base(num_inputs, action_dim, list_hidden_dims,
+                                 gamma, use_tanh).to(self.device)
 
     self.target_net.load_state_dict(self.q_net.state_dict())
     self.critic_optimizer = Adam(self.q_net.parameters(),

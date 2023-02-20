@@ -104,20 +104,23 @@ def main(domain, opt):
     run_iql('envfrommdp-v0',
             env_kwargs,
             0,
-            64,
+            128,
             path_iq_data,
             num_traj,
             LOG_DIR,
             output_dir,
             output_suffix="_opt100",
-            replay_mem=30000,
+            replay_mem=50000,
             initial_mem=1000,
             eps_steps=200,
             eps_window=10,
             num_learn_steps=num_iterations,
-            agent_name='sacd',
+            agent_name='sac',
             log_interval=100,
-            eval_interval=1000)
+            eval_interval=1000,
+            hidden_dim=128,
+            hidden_depth=2,
+            gumbel_temperature=1.0)
 
 
 if __name__ == "__main__":

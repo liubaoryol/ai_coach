@@ -32,8 +32,8 @@ class SAC(object):
                actor_betas,
                alpha_lr,
                alpha_betas,
-               critic_hidden_dim=256,
-               critic_hidden_depth=2):
+               list_critic_hidden_dims,
+               clip_grad_val=None):
     self.gamma = gamma
     self.batch_size = batch_size
     self.discrete_obs = discrete_obs
@@ -42,17 +42,17 @@ class SAC(object):
 
     self.device = torch.device(device)
 
+    self.clip_grad_val = clip_grad_val
     self.critic_tau = critic_tau
     self.learn_temp = learn_temp
     self.actor_update_frequency = actor_update_frequency
     self.critic_target_update_frequency = critic_target_update_frequency
 
-    self._critic = critic_base(obs_dim, action_dim, critic_hidden_dim,
-                               critic_hidden_depth, gamma,
-                               use_tanh).to(self.device)
+    self._critic = critic_base(obs_dim, action_dim, list_critic_hidden_dims,
+                               gamma, use_tanh).to(self.device)
 
-    self.critic_target = critic_base(obs_dim, action_dim, critic_hidden_dim,
-                                     critic_hidden_depth, gamma,
+    self.critic_target = critic_base(obs_dim, action_dim,
+                                     list_critic_hidden_dims, gamma,
                                      use_tanh).to(self.device)
 
     self.critic_target.load_state_dict(self._critic.state_dict())
@@ -133,7 +133,11 @@ class SAC(object):
       obs = one_hot(obs, self.obs_dim)
     # ------
 
-    action, log_prob = self.actor.rsample(obs)
+    action, log_prob = self.actor.sample(obs)
+    # --- convert discrete action
+    if self.actor.is_discrete():
+      action = one_hot(action, self.action_dim)
+    # ------
 
     current_Q = self._critic(obs, action)
     current_V = current_Q - self.alpha.detach() * log_prob
@@ -146,7 +150,12 @@ class SAC(object):
       obs = one_hot(obs, self.obs_dim)
     # ------
 
-    action, log_prob = self.actor.rsample(obs)
+    action, log_prob = self.actor.sample(obs)
+    # --- convert discrete action
+    if self.actor.is_discrete():
+      action = one_hot(action, self.action_dim)
+    # ------
+
     target_Q = self.critic_target(obs, action)
     target_V = target_Q - self.alpha.detach() * log_prob
     return target_V
@@ -176,7 +185,11 @@ class SAC(object):
     # ------
 
     with torch.no_grad():
-      next_action, log_prob = self.actor.rsample(next_obs)
+      next_action, log_prob = self.actor.sample(next_obs)
+      # --- convert discrete action
+      if self.actor.is_discrete():
+        next_action = one_hot(next_action, self.action_dim)
+      # ------
 
       target_Q = self.critic_target(next_obs, next_action)
       target_V = target_Q - self.alpha.detach() * log_prob
@@ -188,22 +201,25 @@ class SAC(object):
     # ------
 
     # get current Q estimates
-    current_Q1, current_Q2 = self._critic(obs, action, both=True)
-    q1_loss = F.mse_loss(current_Q1, target_Q)
-    q2_loss = F.mse_loss(current_Q2, target_Q)
-    critic_loss = q1_loss + q2_loss
+    current_Q = self._critic(obs, action, both=True)
+    if isinstance(current_Q, tuple):
+      q1_loss = F.mse_loss(current_Q[0], target_Q)
+      q2_loss = F.mse_loss(current_Q[1], target_Q)
+      critic_loss = q1_loss + q2_loss
+    else:
+      critic_loss = F.mse_loss(current_Q, target_Q)
+
+    logger.log('train/critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
+    if self.clip_grad_val is not None:
+      nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
     # self.critic.log(logger, step)
-    return {
-        'critic_loss/critic_1': q1_loss.item(),
-        'critic_loss/critic_2': q2_loss.item(),
-        'loss/critic': critic_loss.item()
-    }
+    return {'loss/critic': critic_loss.item()}
 
   def update_actor_and_alpha(self, obs, logger, step):
 
@@ -224,6 +240,8 @@ class SAC(object):
     # optimize the actor
     self.actor_optimizer.zero_grad()
     actor_loss.backward()
+    if self.clip_grad_val is not None:
+      nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
     self.actor_optimizer.step()
 
     losses = {
@@ -235,7 +253,7 @@ class SAC(object):
     # self.actor.log(logger, step)
     if self.learn_temp:
       self.log_alpha_optimizer.zero_grad()
-      alpha_loss = (self.alpha *
+      alpha_loss = (self.log_alpha *
                     (-log_prob - self.target_entropy).detach()).mean()
       logger.log('train/alpha_loss', alpha_loss, step)
       logger.log('train/alpha_value', self.alpha, step)
