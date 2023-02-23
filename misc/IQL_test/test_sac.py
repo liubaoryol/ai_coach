@@ -63,7 +63,7 @@ if __name__ == "__main__":
   num_iterations = 500000
   agent_name = "sac"
   log_interval = 500
-  eval_interval = 3000
+  eval_interval = 1000
 
   num_eval_episode = 10
   save_interval = 10
@@ -123,6 +123,9 @@ if __name__ == "__main__":
                            critic_tau=0.005,
                            gumbel_temperature=gumbel_temperature,
                            learn_temp=True,
+                           critic_lr=0.005,
+                           actor_lr=0.005,
+                           alpha_lr=0.005,
                            list_critic_hidden_dims=list_hidden_dims,
                            list_actor_hidden_dims=list_hidden_dims,
                            clip_grad_val=clip_grad_val)
@@ -170,12 +173,11 @@ if __name__ == "__main__":
     start_time = time.time()
     for episode_step in range(EPISODE_STEPS):
 
-      # if steps < args.num_seed_steps:
-      #   # Seed replay buffer with random actions
-      #   action = env.action_space.sample()
-      # else:
       with eval_mode(agent):
-        action = agent.choose_action(state, sample=True)
+        if not begin_learn:
+          action = env.action_space.sample()
+        else:
+          action = agent.choose_action(state, sample=True)
       next_state, reward, done, info = env.step(action)
       episode_reward += reward
 
@@ -186,7 +188,7 @@ if __name__ == "__main__":
         returns = np.mean(eval_returns)
         # learn_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode_reward', returns, learn_steps)
-        logger.log('eval/episode', epoch, learn_steps)
+        # logger.log('eval/episode', epoch, learn_steps)
         logger.dump(learn_steps, ty='eval')
         # print('EVAL\tEp {}\tAverage reward: {:.2f}\t'.format(epoch, returns))
 
@@ -208,13 +210,13 @@ if __name__ == "__main__":
         done_no_lim = 0
       online_memory_replay.add((state, next_state, action, reward, done_no_lim))
 
+      learn_steps += 1
       if online_memory_replay.size() > INITIAL_MEMORY:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        learn_steps += 1
         if learn_steps == LEARN_STEPS:
           print('Finished!')
           exit()
@@ -232,7 +234,8 @@ if __name__ == "__main__":
     rewards_window.append(episode_reward)
     logger.log('train/episode', epoch, learn_steps)
     logger.log('train/episode_reward', episode_reward, learn_steps)
-    logger.log('train/duration', time.time() - start_time, learn_steps)
+    logger.log('train/episode_step', episode_step, learn_steps)
+    # logger.log('train/duration', time.time() - start_time, learn_steps)
     logger.dump(learn_steps, save=begin_learn)
     save(agent,
          epoch,
