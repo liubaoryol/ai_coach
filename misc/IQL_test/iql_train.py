@@ -95,7 +95,12 @@ def main(domain, opt):
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-  num_iterations = 20000
+  num_iterations = 100000
+  seed = 0
+  batch_size = 256
+  learn_alpha = True
+  clip_grad_val = 0.5
+  learning_rate = 0.0003
   save_prefix = SAVE_PREFIX
   save_prefix += "_opt" if opt else ""
 
@@ -103,23 +108,24 @@ def main(domain, opt):
   if IQL:
     run_iql('envfrommdp-v0',
             env_kwargs,
-            0,
-            128,
+            seed,
+            batch_size,
             path_iq_data,
             num_traj,
             LOG_DIR,
             output_dir,
             output_suffix="_opt100",
-            replay_mem=50000,
-            initial_mem=1000,
+            replay_mem=30000,
             eps_steps=200,
             eps_window=10,
             num_learn_steps=num_iterations,
-            agent_name='sac',
+            agent_name='sacd',
             log_interval=100,
             eval_interval=1000,
-            hidden_dim=128,
-            hidden_depth=2,
+            list_hidden_dims=[128, 128],
+            clip_grad_val=clip_grad_val,
+            learn_alpha=learn_alpha,
+            learning_rate=learning_rate,
             gumbel_temperature=1.0)
 
 

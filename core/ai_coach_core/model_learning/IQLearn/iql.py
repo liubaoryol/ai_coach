@@ -15,6 +15,7 @@ from .agent.softq_models import SimpleQNetwork, SingleQCriticDiscrete
 from .agent.sac_models import DoubleQCritic, SingleQCritic
 from .dataset.memory import Memory
 from torch.utils.tensorboard import SummaryWriter
+import torch.nn as nn
 from .utils.logger import Logger
 from itertools import count
 import types
@@ -30,24 +31,28 @@ def run_iql(env_name,
             log_dir,
             output_dir,
             replay_mem,
-            initial_mem,
             eps_steps,
             eps_window,
             num_learn_steps,
+            initial_mem=None,
             agent_name: str = "softq",
             output_suffix="",
-            log_interval=1000,
+            log_interval=500,
             eval_interval=2000,
-            gumbel_temperature: float = 0.5,
+            gumbel_temperature: float = 1.0,
             list_hidden_dims=[256, 256],
+            clip_grad_val=None,
+            learn_alpha=False,
+            learning_rate=0.005,
             load_path: Optional[str] = None):
   'agent_name: softq / sac / sacd'
   # constants
-  num_seed_steps = 0
   num_episodes = 10
   save_interval = 10
   is_sqil = False
   only_expert_states = False
+  if initial_mem is None:
+    initial_mem = batch_size
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -86,6 +91,7 @@ def run_iql(env_name,
                              q_net_base,
                              critic_target_update_frequency=4,
                              critic_tau=0.1,
+                             critic_lr=learning_rate,
                              list_hidden_dims=list_hidden_dims)
   elif agent_name == "sac":
     critic_base = DoubleQCritic
@@ -98,8 +104,13 @@ def run_iql(env_name,
                            critic_target_update_frequency=1,
                            critic_tau=0.005,
                            gumbel_temperature=gumbel_temperature,
+                           learn_temp=learn_alpha,
+                           critic_lr=learning_rate,
+                           actor_lr=learning_rate,
+                           alpha_lr=learning_rate,
                            list_critic_hidden_dims=list_hidden_dims,
-                           list_actor_hidden_dims=list_hidden_dims)
+                           list_actor_hidden_dims=list_hidden_dims,
+                           clip_grad_val=clip_grad_val)
   elif agent_name == "sacd":
     critic_base = SingleQCriticDiscrete
     use_target = True
@@ -110,8 +121,13 @@ def run_iql(env_name,
                             critic_base,
                             critic_target_update_frequency=1,
                             critic_tau=0.005,
+                            critic_lr=learning_rate,
+                            actor_lr=learning_rate,
+                            alpha_lr=learning_rate,
+                            learn_temp=learn_alpha,
                             list_critic_hidden_dims=list_hidden_dims,
-                            list_actor_hidden_dims=list_hidden_dims)
+                            list_actor_hidden_dims=list_hidden_dims,
+                            clip_grad_val=clip_grad_val)
   else:
     raise NotImplementedError
 
@@ -136,7 +152,7 @@ def run_iql(env_name,
   # Setup logging
   ts_str = datetime.datetime.fromtimestamp(
       time.time()).strftime("%Y-%m-%d_%H-%M-%S")
-  log_dir = os.path.join(log_dir, env_name, ts_str)
+  log_dir = os.path.join(log_dir, env_name, agent_name, ts_str)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
@@ -145,10 +161,7 @@ def run_iql(env_name,
                   save_tb=True,
                   agent=agent_name)
 
-  steps = 0
-
   # track mean reward and scores
-  scores_window = deque(maxlen=EPISODE_WINDOW)  # last N scores
   rewards_window = deque(maxlen=EPISODE_WINDOW)  # last N rewards
   best_eval_returns = -np.inf
 
@@ -161,18 +174,15 @@ def run_iql(env_name,
     episode_reward = 0
     done = False
 
-    start_time = time.time()
     for episode_step in range(EPISODE_STEPS):
 
-      # if steps < args.num_seed_steps:
-      #   # Seed replay buffer with random actions
-      #   action = env.action_space.sample()
-      # else:
       with eval_mode(agent):
+        # if not begin_learn:
+        #   action = env.action_space.sample()
+        # else:
         action = agent.choose_action(state, sample=True)
-      next_state, reward, done, _ = env.step(action)
+      next_state, reward, done, info = env.step(action)
       episode_reward += reward
-      steps += 1
 
       if learn_steps % eval_interval == 0 and begin_learn:
         eval_returns, eval_timesteps = evaluate(agent,
@@ -181,9 +191,7 @@ def run_iql(env_name,
         returns = np.mean(eval_returns)
         # learn_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode_reward', returns, learn_steps)
-        logger.log('eval/episode', epoch, learn_steps)
         logger.dump(learn_steps, ty='eval')
-        # print('EVAL\tEp {}\tAverage reward: {:.2f}\t'.format(epoch, returns))
 
         if returns > best_eval_returns:
           # Store best eval returns
@@ -199,21 +207,19 @@ def run_iql(env_name,
 
       # only store done true when episode finishes without hitting timelimit (allow infinite bootstrap)
       done_no_lim = done
-      if str(env.__class__.__name__).find(
-          'TimeLimit') >= 0 and episode_step + 1 == env._max_episode_steps:
+      if info.get('TimeLimit.truncated', False):
         done_no_lim = 0
       online_memory_replay.add((state, next_state, action, reward, done_no_lim))
 
+      learn_steps += 1
       if online_memory_replay.size() > INITIAL_MEMORY:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        learn_steps += 1
         if learn_steps == LEARN_STEPS:
           print('Finished!')
-          # wandb.finish()
           return
 
         ######
@@ -236,7 +242,7 @@ def run_iql(env_name,
     rewards_window.append(episode_reward)
     logger.log('train/episode', epoch, learn_steps)
     logger.log('train/episode_reward', episode_reward, learn_steps)
-    logger.log('train/duration', time.time() - start_time, learn_steps)
+    logger.log('train/episode_step', episode_step, learn_steps)
     logger.dump(learn_steps, save=begin_learn)
     save(agent,
          epoch,
@@ -365,6 +371,8 @@ def iq_update_critic(self,
   # Optimize the critic
   self.critic_optimizer.zero_grad()
   critic_loss.backward()
+  if hasattr(self, 'clip_grad_val') and self.clip_grad_val is not None:
+    nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
   # step critic
   self.critic_optimizer.step()
   return loss_dict

@@ -114,7 +114,8 @@ def make_sacd_agent(env: gym.Env,
                     alpha_lr: float = 3e-4,
                     alpha_betas=[0.9, 0.999],
                     list_critic_hidden_dims=[256, 256],
-                    list_actor_hidden_dims=[256, 256]):
+                    list_actor_hidden_dims=[256, 256],
+                    clip_grad_val=None):
   'discrete observation may not work well'
 
   if isinstance(env.observation_space, Discrete):
@@ -136,6 +137,6 @@ def make_sacd_agent(env: gym.Env,
                        critic_target_update_frequency, init_temp, critic_betas,
                        use_tanh, critic_base, actor, learn_temp,
                        actor_update_frequency, actor_lr, actor_betas, alpha_lr,
-                       alpha_betas, list_critic_hidden_dims)
+                       alpha_betas, list_critic_hidden_dims, clip_grad_val)
 
   return agent

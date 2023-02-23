@@ -11,12 +11,29 @@ from ..utils.utils import soft_update, one_hot
 
 class SAC_Discrete(object):
 
-  def __init__(self, obs_dim, action_dim, batch_size, discrete_obs, device,
-               gamma, critic_tau, critic_lr, critic_target_update_frequency,
-               init_temp, critic_betas, use_tanh: bool,
-               critic_base: Type[nn.Module], actor: DiscreteActor, learn_temp,
-               actor_update_frequency, actor_lr, actor_betas, alpha_lr,
-               alpha_betas, list_critic_hidden_dims):
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               batch_size,
+               discrete_obs,
+               device,
+               gamma,
+               critic_tau,
+               critic_lr,
+               critic_target_update_frequency,
+               init_temp,
+               critic_betas,
+               use_tanh: bool,
+               critic_base: Type[nn.Module],
+               actor: DiscreteActor,
+               learn_temp,
+               actor_update_frequency,
+               actor_lr,
+               actor_betas,
+               alpha_lr,
+               alpha_betas,
+               list_critic_hidden_dims,
+               clip_grad_val=None):
     self.gamma = gamma
     self.batch_size = batch_size
     self.discrete_obs = discrete_obs
@@ -25,6 +42,7 @@ class SAC_Discrete(object):
 
     self.device = torch.device(device)
 
+    self.clip_grad_val = clip_grad_val
     self.critic_tau = critic_tau
     self.learn_temp = learn_temp
     self.actor_update_frequency = actor_update_frequency
@@ -187,6 +205,8 @@ class SAC_Discrete(object):
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
+    if self.clip_grad_val is not None:
+      nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
     # self.critic.log(logger, step)
@@ -216,6 +236,8 @@ class SAC_Discrete(object):
     # optimize the actor
     self.actor_optimizer.zero_grad()
     actor_loss.backward()
+    if self.clip_grad_val is not None:
+      nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
     self.actor_optimizer.step()
 
     losses = {

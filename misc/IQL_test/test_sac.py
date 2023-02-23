@@ -71,6 +71,7 @@ if __name__ == "__main__":
   gumbel_temperature = 1.0
   list_hidden_dims = [64, 64, 32]
   clip_grad_val = 0.5
+  start_with_random_sample = False
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -174,7 +175,7 @@ if __name__ == "__main__":
     for episode_step in range(EPISODE_STEPS):
 
       with eval_mode(agent):
-        if not begin_learn:
+        if not begin_learn and start_with_random_sample:
           action = env.action_space.sample()
         else:
           action = agent.choose_action(state, sample=True)
@@ -188,7 +189,6 @@ if __name__ == "__main__":
         returns = np.mean(eval_returns)
         # learn_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode_reward', returns, learn_steps)
-        # logger.log('eval/episode', epoch, learn_steps)
         logger.dump(learn_steps, ty='eval')
         # print('EVAL\tEp {}\tAverage reward: {:.2f}\t'.format(epoch, returns))
 
