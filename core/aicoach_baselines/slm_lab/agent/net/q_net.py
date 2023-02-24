@@ -1,7 +1,7 @@
 # special module for Q-networks, Q(s, a) -> q
 from .base import Net
 from .mlp import MLPNet
-from ai_coach_core.slm_lab_test.agent.net import net_util
+from ..net import net_util
 import torch
 import torch.nn as nn
 

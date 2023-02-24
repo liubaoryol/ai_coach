@@ -2,11 +2,11 @@ import os
 import torch
 import gym
 from gym import spaces
-from ai_coach_core.slm_lab_test.agent.net.mlp import MLPNet
-from ai_coach_core.slm_lab_test.agent.net.q_net import QMLPNet
-from ai_coach_core.slm_lab_test.agent.algorithm.sac import SoftActorCritic
-from ai_coach_core.slm_lab_test.agent.memory.replay import Replay
-from ai_coach_core.slm_lab_test.agent.algorithm import policy_util
+from aicoach_baselines.slm_lab.agent.net.mlp import MLPNet
+from aicoach_baselines.slm_lab.agent.net.q_net import QMLPNet
+from aicoach_baselines.slm_lab.agent.algorithm.sac import SoftActorCritic
+from aicoach_baselines.slm_lab.agent.memory.replay import Replay
+from aicoach_baselines.slm_lab.agent.algorithm import policy_util
 from ai_coach_core.model_learning.IQLearn.utils.utils import make_env
 import numpy as np
 import random

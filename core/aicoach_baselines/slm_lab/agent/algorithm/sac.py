@@ -1,4 +1,4 @@
-from ai_coach_core.slm_lab_test.agent.algorithm import policy_util
+from ..algorithm import policy_util
 from .base import Algorithm
 from ..net import net_util
 from ...lib import util

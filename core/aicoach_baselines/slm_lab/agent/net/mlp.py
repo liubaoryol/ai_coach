@@ -1,4 +1,4 @@
-from ai_coach_core.slm_lab_test.agent.net import net_util
+from ..net import net_util
 from .base import Net
 import torch.nn as nn
 
