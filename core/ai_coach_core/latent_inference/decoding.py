@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Callable, Optional
+from typing import Sequence, Tuple, Callable, Optional, Union, Any
 import numpy as np
 from scipy.special import logsumexp, softmax
 
@@ -11,6 +11,12 @@ T_CallbackLatentTransition = Callable[
 # type for a policy that takes the input: (agent_idx, latent_idx, state_idx,
 #                                          tuple of a team's action_idx)
 T_CallbackPolicy = Callable[[int, int, int, Tuple[int, ...]], float]
+
+T_State = Any
+T_Action = Any
+T_LatentLogPrior = Callable[[int, T_State], float]
+T_GatherLatentTransition = Callable[[int, T_State, T_Action, T_State], float]
+T_EvalAction = Callable[[int, T_State, T_Action], float]
 
 
 def most_probable_sequence(state_seq: Sequence[int],
@@ -86,6 +92,58 @@ def most_probable_sequence(state_seq: Sequence[int],
     log_sequences.append(log_trackers[idx][track_idx_log])
 
   return log_sequences
+
+
+def most_probable_sequence_v2(state_seq: Sequence[T_State],
+                              action_seq: Sequence[T_Action], num_agents: int,
+                              num_latent: int, cb_eval_action: T_EvalAction,
+                              cb_gather_trans_x: T_GatherLatentTransition,
+                              cb_prior: T_LatentLogPrior):
+  '''
+  state_seq: trajectory of the state
+  action_seq: trajectory of joint actions.
+  num_agents: the number of agents that can individually have a mental state
+  '''
+  num_step = len(action_seq)
+
+  list_sequence = []
+  # list_log_probs = []  # type: list[np.ndarray]
+  # list_log_trackers = []  # type: list[list[list[int]]]
+  for agent_idx in range(num_agents):
+    np_log_probs = np.zeros((num_step, num_latent))
+    log_tracker = [[x_i] for x_i in range(num_latent)]
+
+    s_0 = state_seq[0]
+    tuple_action = action_seq[0]
+
+    log_p_act = cb_eval_action(agent_idx, s_0, tuple_action)
+    log_p_x = cb_prior(agent_idx, s_0)
+
+    np_log_probs[0, :] = log_p_act + log_p_x
+
+    for step in range(1, num_step):
+      s_i = state_seq[step]
+      tuple_action_i = action_seq[step]
+      s_j = state_seq[step - 1]
+      tuple_action_j = action_seq[step - 1]
+
+      log_p_act = cb_eval_action(agent_idx, s_i, tuple_action_i)
+      log_trans_x = cb_gather_trans_x(agent_idx, s_j, tuple_action_j, s_i)
+      interim_log_p = np_log_probs[step - 1][:, None] + log_trans_x
+      argmax_x_i = np.argmax(interim_log_p, axis=0)
+      new_log_tracker = [
+          log_tracker[argmax_x_i[x_i]] + [x_i] for x_i in range(num_latent)
+      ]
+      log_tracker = new_log_tracker
+
+      np_log_probs[step, :] = (
+          log_p_act +
+          interim_log_p[argmax_x_i, np.arange(num_latent)])
+
+    track_idx = np.argmax(np_log_probs[-1, :])
+    list_sequence.append(log_tracker[track_idx])
+
+  return list_sequence
 
 
 def forward_inference(state_seq: Sequence[int],

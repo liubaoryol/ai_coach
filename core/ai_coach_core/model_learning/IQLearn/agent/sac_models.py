@@ -332,7 +332,6 @@ class AbstractActor(nn.Module):
 
     self.trunk = mlp(obs_dim, output_dim, list_hidden_dims)
 
-    self.outputs = dict()
     self.apply(weight_init)
 
     self.log_std_bounds = log_std_bounds
@@ -368,9 +367,6 @@ class DiagGaussianActor(AbstractActor):
     log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
 
     std = log_std.exp()
-
-    # self.outputs['mu'] = mu
-    # self.outputs['std'] = std
 
     dist = SquashedNormal(mu, std)
     return dist
@@ -410,8 +406,8 @@ class DiscreteActor(AbstractActor):
     return action_probs, log_action_probs
 
   def exploit(self, obs):
-    logits = self.trunk(obs)
-    return logits.argmax(dim=-1)
+    dist = self.forward(obs)
+    return dist.logits.argmax(dim=-1)
 
   def sample(self, obs):
     dist = self.forward(obs)
@@ -439,8 +435,8 @@ class SoftDiscreteActor(AbstractActor):
     return dist
 
   def exploit(self, obs):
-    logits = self.trunk(obs)
-    return logits.argmax(dim=-1)
+    dist = self.forward(obs)
+    return dist.logits.argmax(dim=-1)
 
   def sample(self, obs):
     dist = self.forward(obs)

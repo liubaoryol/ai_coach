@@ -3,11 +3,10 @@ import numpy as np
 import random
 import torch
 
-from ..utils.atari_wrapper import LazyFrames
-from .expert_dataset import ExpertDataset
+from ai_coach_core.model_learning.IQLearn.utils.atari_wrapper import LazyFrames
 
 
-class Memory(object):
+class MentalMemory(object):
 
   def __init__(self, memory_size: int, seed: int = 0) -> None:
     random.seed(seed)
@@ -15,6 +14,7 @@ class Memory(object):
     self.buffer = deque(maxlen=self.memory_size)
 
   def add(self, experience) -> None:
+    'experience: obs, prev_lat, prev_act, next_obs, latent, action'
     self.buffer.append(experience)
 
   def size(self):
@@ -40,44 +40,46 @@ class Memory(object):
     print(b.shape)
     np.save(path, b)
 
-  def load(self, path, num_trajs, sample_freq, seed):
-    # If path has no extension add npy
-    if not path.endswith("pkl"):
-      path += '.npy'
-    data = ExpertDataset(path, num_trajs, sample_freq, seed)
-    # data = np.load(path, allow_pickle=True)
-    for i in range(len(data)):
-      self.add(data[i])
-
   def get_samples(self, batch_size, device):
     batch = self.sample(batch_size, False)
 
-    batch_state, batch_next_state, batch_action, batch_reward, batch_done = zip(
-        *batch)
+    (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs, batch_latent,
+     batch_action, batch_reward, batch_done) = zip(*batch)
 
     # Scale obs for atari. TODO: Use flags
-    if isinstance(batch_state[0], LazyFrames):
+    if isinstance(batch_obs[0], LazyFrames):
       # Use lazyframes for improved memory storage (same as original DQN)
-      batch_state = np.array(batch_state) / 255.0
-    if isinstance(batch_next_state[0], LazyFrames):
-      batch_next_state = np.array(batch_next_state) / 255.0
-    batch_state = np.array(batch_state)
-    batch_next_state = np.array(batch_next_state)
+      batch_obs = np.array(batch_obs) / 255.0
+    if isinstance(batch_next_obs[0], LazyFrames):
+      batch_next_obs = np.array(batch_next_obs) / 255.0
+    batch_obs = np.array(batch_obs)
+    batch_next_obs = np.array(batch_next_obs)
     batch_action = np.array(batch_action)
+    batch_prev_lat = np.array(batch_prev_lat)
+    batch_prev_act = np.array(batch_prev_act)
+    batch_latent = np.array(batch_latent)
 
-    batch_state = torch.as_tensor(batch_state, dtype=torch.float, device=device)
-    batch_next_state = torch.as_tensor(batch_next_state,
-                                       dtype=torch.float,
-                                       device=device)
+    batch_obs = torch.as_tensor(batch_obs, dtype=torch.float, device=device)
+    batch_next_obs = torch.as_tensor(batch_next_obs,
+                                     dtype=torch.float,
+                                     device=device)
     batch_action = torch.as_tensor(batch_action,
                                    dtype=torch.float,
                                    device=device)
-    if batch_action.ndim == 1:
-      batch_action = batch_action.unsqueeze(1)
+    batch_prev_lat = torch.as_tensor(batch_prev_lat,
+                                     dtype=torch.float,
+                                     device=device)
+    batch_prev_act = torch.as_tensor(batch_prev_act,
+                                     dtype=torch.float,
+                                     device=device)
+    batch_latent = torch.as_tensor(batch_latent,
+                                   dtype=torch.float,
+                                   device=device)
     batch_reward = torch.as_tensor(batch_reward,
                                    dtype=torch.float,
                                    device=device).unsqueeze(1)
     batch_done = torch.as_tensor(batch_done, dtype=torch.float,
                                  device=device).unsqueeze(1)
 
-    return batch_state, batch_next_state, batch_action, batch_reward, batch_done
+    return (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs,
+            batch_latent, batch_action, batch_reward, batch_done)

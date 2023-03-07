@@ -6,9 +6,7 @@ import time
 import datetime
 import torch
 from collections import deque
-from ai_coach_core.model_learning.IQLearn.utils.utils import (
-    make_env, eval_mode, average_dicts, get_concat_samples, evaluate,
-    soft_update, hard_update)
+from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, eval_mode
 
 from ai_coach_core.model_learning.IQLearn.agent import (make_softq_agent,
                                                         make_sac_agent,
@@ -123,7 +121,7 @@ if __name__ == "__main__":
                            critic_target_update_frequency=1,
                            critic_tau=0.005,
                            gumbel_temperature=gumbel_temperature,
-                           learn_temp=True,
+                           learn_temp=False,
                            critic_lr=0.005,
                            actor_lr=0.005,
                            alpha_lr=0.005,
