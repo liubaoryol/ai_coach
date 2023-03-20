@@ -43,7 +43,7 @@ def get_possible_latent_states(num_boxes, num_drops, num_goals):
   return latent_states
 
 
-def conv_box_idx_2_state(state_idx, num_drops, num_goals):
+def conv_box_idx_2_state(state_idx, num_drops, num_goals=None):
   if state_idx >= 0 and state_idx < 4:
     return (BoxState(state_idx), None)
   elif state_idx >= 4 and state_idx < 4 + num_drops:

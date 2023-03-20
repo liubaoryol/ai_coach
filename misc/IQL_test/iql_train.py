@@ -1,16 +1,10 @@
 import os
 import glob
-import logging
 import random
 import click
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from ai_coach_core.model_learning.IQLearn.iql import run_iql
 from ai_coach_core.model_learning.IQLearn.utils.utils import (
     conv_trajectories_2_iql_format)
-from datetime import datetime
-import ai_coach_core.gym
 
 
 @click.command()
