@@ -108,7 +108,7 @@ class RescueTutorialActions(RescueTutorialBase):
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
         "During the task, you control the police car. You can move the " +
-        "police car by clicking the move buttons on the right. Please " +
+        "police car by clicking the move buttons. Please " +
         "investigate how each move buttons work. You will see the direction " +
         "of the move button changes according to your location. Once you " +
         "get familiar with them, please click on the \"Next\" button.")
@@ -184,10 +184,9 @@ class RescueTutorialOverallGoal(RescueTutorialPlain):
 class RescueTutorialOnlyHuman(RescueTutorialPlain):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return (
-        "While the success of the task depends on both you (police car) " +
-        "and the fire engine, you cannot control the fire engine. You can " +
-        "only control the police car. The fire engine moves autonomously.")
+    return ("While the success of the task depends on both you (police car) " +
+            "and the fire truck, you cannot control the fire truck. You can " +
+            "only control the police car. The fire truck moves autonomously.")
 
 
 class RescueTutorialSimpleTarget(RescueTutorialBase):
@@ -227,9 +226,10 @@ class RescueTutorialSimpleTarget(RescueTutorialBase):
 class RescueTutorialResolvedAlone(RescueTutorialPlain):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("Well done! You will see the \"yellow sign\" at City Hall" +
-            " is now disappeared and one person is rescued. Similarly, " +
-            "people at the Campsite can also be rescued by just one player.")
+    return (
+        "Well done! You may notice that the yellow sign at the City Hall" +
+        " has disappeared and one person has been rescued. People at " +
+        "the Campsite and City Hall can be rescued by just one team member.")
 
 
 class RescueTutorialComplexTarget(RescueTutorialBase):
@@ -249,9 +249,9 @@ class RescueTutorialComplexTarget(RescueTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
-        "To rescue people in the mall, you should repair one of the bridges. " +
-        "However, to repair the bridge, both you (police car) and the fire " +
-        "engine should work together. Please move to the bridge circled in " +
+        "To rescue people in the mall, at least one bridge needs to be " +
+        "repaired. This requires both you and the fire truck to work together. "
+        + "Please move to the bridge circled in " +
         "red and click \"Rescue\" button. You will see you can't resolve it " +
         "on your own.")
 
@@ -307,8 +307,8 @@ class RescueTutorialComplexTargetTogether(RescueTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("Please move to the red circle and try to resolve it again. " +
-            "This time the fire engine will also come to there. Wait for the" +
-            " fire engine at the circled location and rescue people together.")
+            "This time the fire truck will also come there. Wait for the" +
+            " fire truck at the circled location and rescue people together.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -358,11 +358,12 @@ class RescueTutorialScore(RescueTutorialPlain):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("You might have noticed that whenever you rescue people, the " +
-            "\"Score\" (shown below) was increasing. Your goal is to receive " +
-            "points as many as possible in " + MAX_STEP + " steps. Please " +
-            "note that people rescued by your teammate (fire engine) " +
-            "will also be counted as the same points and added to your score.")
+    return (
+        "You may notice that when you or the fire truck rescue people, the " +
+        "\"People Rescued\" counter shown below increases. " +
+        "The goal of your team is to rescue as many people as possible.  " +
+        "Each rescue place has different number of people " +
+        "(Mall: 4, Campsite: 2, City Hall: 1).")
 
 
 class RescueTutorialPartialObs(RescueTutorialBase):
@@ -384,11 +385,11 @@ class RescueTutorialPartialObs(RescueTutorialBase):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
-        "During the TASK sessions, You cannot " +
-        "observe the fire engine unless it is at each landmark or at the " +
+        "During the TASK sessions, You cannot observe the fire truck " +
+        "unless it is at one of the landmark or at the " +
         "same location as you (police car). Therefore, to do the task " +
-        "efficiently you will need to guess where the fire engine will go. " +
-        "Similarly, the fire engine CANNOT always observe you.")
+        "efficiently you will need to guess where the fire truck will go. " +
+        "Similarly, the fire truck CANNOT always observe you.")
 
 
 class RescueTutorialDestination(RescueTutorialBase):

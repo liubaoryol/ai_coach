@@ -92,6 +92,7 @@ PAGE_LIST_MOVERS_TUTORIAL = [
     pgt.CanvasPageInstruction(EDomainType.Movers),
     pgt.CanvasPageTutorialGameStart(EDomainType.Movers),
     pgt.CanvasPageJoystick(EDomainType.Movers),
+    pgt.CanvsPageWaitBtn(EDomainType.Movers),
     pgt.CanvasPageInvalidAction(EDomainType.Movers),
     pgt.CanvasPageOnlyHuman(EDomainType.Movers),
     pgt.CanvasPageGoToTarget(EDomainType.Movers),
@@ -104,8 +105,11 @@ PAGE_LIST_MOVERS_TUTORIAL = [
     pgt.CanvasPageTarget(EDomainType.Movers),
     pgt.CanvasPageLatent(EDomainType.Movers),
     pgt.CanvasPageSelResult(EDomainType.Movers, False),
+    pgt.CanvasPageImportance(EDomainType.Movers),
     pgt.CanvasPageSelPrompt(EDomainType.Movers),
     pgt.CanvasPageSelResult(EDomainType.Movers, True),
+    pgt.CanvasPageExpGoal(EDomainType.Movers),
+    pgt.CanvasPageImportance(EDomainType.Movers),
     pgt.CanvasPageMiniGame(EDomainType.Movers)
 ]
 PAGE_LIST_CLEANUP_TUTORIAL = [

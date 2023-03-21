@@ -194,6 +194,9 @@ def canvas_button_clicked(sid, name_space, button, page: CanvasPageBase,
                              drawing_order=drawing_order,
                              animations=animations)
 
+  str_emit = 'update_slider'
+  emit(str_emit, user_data.data[UserDataReplay.TRAJ_IDX])
+
 
 def update_latent_state(domain_type: EDomainType, mode: EMode,
                         user_data: UserDataReplay):

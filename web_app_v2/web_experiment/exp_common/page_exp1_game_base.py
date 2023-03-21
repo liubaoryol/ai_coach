@@ -167,7 +167,7 @@ class BoxPushGamePageBase(ExperimentPageBase):
     else:
       return (
           "Please choose your next action. If your destination has changed, " +
-          "please update it using the select destination button.")
+          "please update it using the \"Select Destination\" button.")
 
   def _get_drawing_order(self, user_game_data: Exp1UserData):
     dict_game = user_game_data.get_game_ref().get_env_info()

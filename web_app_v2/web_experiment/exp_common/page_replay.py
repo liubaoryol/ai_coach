@@ -22,31 +22,20 @@ class UserDataReplay(Exp1UserData):
     self.data[self.LATENT_PREDICTED] = None
 
 
-class BoxPushReplayPage(BoxPushGamePageBase):
+class MixinCanvasPageReplay:
+  '''
+  this mixin is intentionally implemented to hiject some virtual methods 
+                                                        (init_user_data, ...)
+  do not define __init__ so that this mixin does not hiject __init__ method
+  '''
 
-  def __init__(self, domain_type, partial_obs, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False, 0)
+  def set_partial_obs(self, partial_obs):
     self._PARTIAL_OBS = partial_obs
 
   def init_user_data(self, user_data: UserDataReplay):
     user_data.data[UserDataReplay.SELECT] = False
     user_data.data[UserDataReplay.PARTIAL_OBS] = self._PARTIAL_OBS
     user_data.data[UserDataReplay.SHOW_LATENT] = True
-
-  def _get_game_env(self, user_data: UserDataReplay):
-    traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
-    dict_game = user_data.data[UserDataReplay.TRAJECTORY][traj_idx]
-    game_env = copy.copy(dict_game)
-
-    game_env['x_grid'] = self._GAME_MAP['x_grid']
-    game_env['y_grid'] = self._GAME_MAP['y_grid']
-    game_env['boxes'] = self._GAME_MAP['boxes']
-    game_env['goals'] = self._GAME_MAP['goals']
-    game_env['drops'] = self._GAME_MAP['drops']
-    game_env['walls'] = self._GAME_MAP['walls']
-    game_env['wall_dir'] = self._GAME_MAP['wall_dir']
-    game_env['box_types'] = self._GAME_MAP['box_types']
-    return game_env
 
   def get_updated_drawing_info(self,
                                user_data: UserDataReplay,
@@ -59,13 +48,6 @@ class BoxPushReplayPage(BoxPushGamePageBase):
     dict_init_commands = {"clear": None}
 
     return dict_init_commands, dict_objs, drawing_order, None
-
-  def _get_score_text(self, user_data):
-    max_len = len(user_data.data[UserDataReplay.TRAJECTORY]) - 1
-    dict_game = self._get_game_env(user_data)
-    score = dict_game["current_step"]
-    text = "Time Step: " + str(score) + " / " + str(max_len)
-    return text
 
   def canvas_objects(self, dict_game, user_data):
     dict_objs = {}
@@ -102,38 +84,66 @@ class BoxPushReplayPage(BoxPushGamePageBase):
     return drawing_order
 
   def button_clicked(self, user_data: UserDataReplay, clicked_btn: str):
-    return super().button_clicked(user_data, clicked_btn)
+    return
 
 
-class BoxPushReviewPage(BoxPushReplayPage):
+class MixinCanvasPageReview(MixinCanvasPageReplay):
+  '''
+  this mixin is intentionally implemented to hiject some virtual methods 
+                                                        (canvas_objects, ...)
+  do not define __init__ so that this mixin does not hiject __init__ method
+  '''
 
-  def _get_fix_destination(self, disable):
-    ctrl_btn_w = int(self.GAME_WIDTH / 12)
-    x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
-    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.65)
+  def _get_fix_destination(self, disable_fix, disable_left, disable_right):
     font_size = 20
-    btn_select = co.ButtonRect(co.BTN_SELECT,
-                               (x_ctrl_cen, y_ctrl_cen + ctrl_btn_w * 2),
-                               (ctrl_btn_w * 4, ctrl_btn_w),
+
+    x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
+    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.8)
+    ctrl_btn_h = int(self.GAME_HEIGHT / 12)
+
+    btn_select = co.ButtonRect(co.BTN_SELECT, (x_ctrl_cen, y_ctrl_cen),
+                               (ctrl_btn_h * 4, ctrl_btn_h),
                                font_size,
                                "Fix Destination",
-                               disable=disable)
-    return btn_select
+                               disable=disable_fix)
+
+    y_ctrl_cen_arrow = int(co.CANVAS_HEIGHT * 0.6)
+    arrow_btn_width = ctrl_btn_h * 2
+    x_offset = int((arrow_btn_width + self.GAME_WIDTH / 30) / 2)
+
+    btn_left = co.ButtonRect(co.BTN_LEFT,
+                             (x_ctrl_cen - x_offset, y_ctrl_cen_arrow),
+                             (arrow_btn_width, ctrl_btn_h),
+                             font_size,
+                             "LEFT",
+                             disable=disable_left)
+    btn_right = co.ButtonRect(co.BTN_RIGHT,
+                              (x_ctrl_cen + x_offset, y_ctrl_cen_arrow),
+                              (arrow_btn_width, ctrl_btn_h),
+                              font_size,
+                              "RIGHT",
+                              disable=disable_right)
+    return btn_select, btn_left, btn_right
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("Please fix your destination in case you selected incorrect one " +
-            "or did not update it timely during the task.\n You can use " +
-            "either LEFT and RIGHT arrow keys or above SCROLL BAR to " +
-            "navigate to the step you want to fix.")
+    return ("You can use the LEFT and RIGHT buttons below to view your " +
+            "task progress and marked destinations. " +
+            "You can also use the SCROLL BAR above. " +
+            "If you marked your destination incorrectly, please fix it using " +
+            "the \"Fix Destination\" button below.")
 
   def canvas_objects(self, dict_game, user_data: UserDataReplay):
     dict_objs = super().canvas_objects(dict_game, user_data)
 
     max_idx = len(user_data.data[UserDataReplay.TRAJECTORY])
     fix_disable = (user_data.data[UserDataReplay.TRAJ_IDX] == max_idx - 1)
+    disable_left = (user_data.data[UserDataReplay.TRAJ_IDX] == 0)
 
-    obj = self._get_fix_destination(fix_disable)
-    dict_objs[obj.name] = obj
+    btn_select, btn_left, btn_right = self._get_fix_destination(
+        fix_disable, disable_left, fix_disable)
+    dict_objs[btn_select.name] = btn_select
+    dict_objs[btn_left.name] = btn_left
+    dict_objs[btn_right.name] = btn_right
 
     return dict_objs
 
@@ -150,6 +160,8 @@ class BoxPushReviewPage(BoxPushReplayPage):
 
     drawing_order.append(self.TEXT_INSTRUCTION)
     drawing_order.append(co.BTN_SELECT)
+    drawing_order.append(co.BTN_LEFT)
+    drawing_order.append(co.BTN_RIGHT)
     return drawing_order
 
   def button_clicked(self, user_data: UserDataReplay, clicked_btn: str):
@@ -166,20 +178,43 @@ class BoxPushReviewPage(BoxPushReplayPage):
         dict_game["a1_latent"] = latent
         user_data.data[UserDataReplay.USER_FIX][traj_idx] = latent
         return
+    elif clicked_btn == co.BTN_LEFT:
+      new_idx = max(user_data.data[UserDataReplay.TRAJ_IDX] - 1, 0)
+      user_data.data[UserDataReplay.TRAJ_IDX] = new_idx
+      return
+    elif clicked_btn == co.BTN_RIGHT:
+      max_idx = len(user_data.data[UserDataReplay.TRAJECTORY])
+      new_idx = min(user_data.data[UserDataReplay.TRAJ_IDX] + 1, max_idx - 1)
+      user_data.data[UserDataReplay.TRAJ_IDX] = new_idx
+      return
 
-    return super().button_clicked(user_data, clicked_btn)
+
+class MixinBoxPushGameEnv:
+
+  def _get_game_env(self, user_data: UserDataReplay):
+    traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
+    dict_game = user_data.data[UserDataReplay.TRAJECTORY][traj_idx]
+    game_env = copy.copy(dict_game)
+
+    game_env['x_grid'] = self._GAME_MAP['x_grid']
+    game_env['y_grid'] = self._GAME_MAP['y_grid']
+    game_env['boxes'] = self._GAME_MAP['boxes']
+    game_env['goals'] = self._GAME_MAP['goals']
+    game_env['drops'] = self._GAME_MAP['drops']
+    game_env['walls'] = self._GAME_MAP['walls']
+    game_env['wall_dir'] = self._GAME_MAP['wall_dir']
+    game_env['box_types'] = self._GAME_MAP['box_types']
+    return game_env
+
+  def _get_score_text(self, user_data):
+    max_len = len(user_data.data[UserDataReplay.TRAJECTORY]) - 1
+    dict_game = self._get_game_env(user_data)
+    score = dict_game["current_step"]
+    text = "Time Step: " + str(score) + " / " + str(max_len)
+    return text
 
 
-class RescueReplayPage(RescueGamePageBase):
-
-  def __init__(self, partial_obs, game_map) -> None:
-    super().__init__(False, game_map, False, False, 0)
-    self._PARTIAL_OBS = partial_obs
-
-  def init_user_data(self, user_data: UserDataReplay):
-    user_data.data[UserDataReplay.SELECT] = False
-    user_data.data[UserDataReplay.PARTIAL_OBS] = self._PARTIAL_OBS
-    user_data.data[UserDataReplay.SHOW_LATENT] = True
+class MixinRescueGameEnv:
 
   def _get_game_env(self, user_data: UserDataReplay):
     traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
@@ -193,19 +228,6 @@ class RescueReplayPage(RescueGamePageBase):
     game_env['work_info'] = self._GAME_MAP['work_info']
     return game_env
 
-  def get_updated_drawing_info(self,
-                               user_data: UserDataReplay,
-                               clicked_button: str = None,
-                               data_to_compare: Mapping[str, Any] = None):
-
-    dict_game = self._get_game_env(user_data)
-
-    dict_objs = self.canvas_objects(dict_game, user_data)
-    drawing_order = self.get_drawing_order(dict_game, user_data)
-    dict_init_commands = {"clear": None}
-
-    return dict_init_commands, dict_objs, drawing_order, None
-
   def _get_score_text(self, user_data):
     max_len = len(user_data.data[UserDataReplay.TRAJECTORY]) - 1
     dict_game = self._get_game_env(user_data)
@@ -218,103 +240,38 @@ class RescueReplayPage(RescueGamePageBase):
 
     return text
 
-  def canvas_objects(self, dict_game, user_data):
-    dict_objs = {}
-    dict_objs[self.GAME_BORDER] = co.LineSegment(
-        self.GAME_BORDER, (self.GAME_RIGHT, self.GAME_TOP),
-        (self.GAME_RIGHT, self.GAME_BOTTOM))
 
-    obj = self._get_instruction_objs(user_data)
-    dict_objs[obj.name] = obj
+# inheritance order matters
+class BoxPushReplayPage(MixinCanvasPageReplay, MixinBoxPushGameEnv,
+                        BoxPushGamePageBase):
 
-    obj = self._get_score_obj(user_data)
-    dict_objs[obj.name] = obj
-
-    for obj in self._game_scene(dict_game, user_data, True):
-      dict_objs[obj.name] = obj
-
-    for obj in self._game_overlay(dict_game, user_data):
-      dict_objs[obj.name] = obj
-
-    return dict_objs
-
-  def get_drawing_order(self, dict_game, user_data):
-    drawing_order = []
-    drawing_order.append(self.GAME_BORDER)
-
-    drawing_order = (drawing_order +
-                     self._game_scene_names(dict_game, user_data))
-    drawing_order = (drawing_order +
-                     self._game_overlay_names(dict_game, user_data))
-
-    drawing_order.append(self.TEXT_SCORE)
-
-    drawing_order.append(self.TEXT_INSTRUCTION)
-    return drawing_order
-
-  def button_clicked(self, user_data: UserDataReplay, clicked_btn: str):
-    return super().button_clicked(user_data, clicked_btn)
+  def __init__(self, domain_type, partial_obs, game_map) -> None:
+    super().__init__(domain_type, False, game_map, False, False, 0)
+    self.set_partial_obs(partial_obs)
 
 
-class RescueReviewPage(RescueReplayPage):
+# inheritance order matters
+class BoxPushReviewPage(MixinCanvasPageReview, MixinBoxPushGameEnv,
+                        BoxPushGamePageBase):
 
-  def _get_fix_destination(self, disable):
-    ctrl_btn_w = int(self.GAME_WIDTH / 12)
-    x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
-    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.65)
-    font_size = 20
-    btn_select = co.ButtonRect(co.BTN_SELECT,
-                               (x_ctrl_cen, y_ctrl_cen + ctrl_btn_w * 2),
-                               (ctrl_btn_w * 4, ctrl_btn_w),
-                               font_size,
-                               "Fix Destination",
-                               disable=disable)
-    return btn_select
+  def __init__(self, domain_type, partial_obs, game_map) -> None:
+    super().__init__(domain_type, False, game_map, False, False, 0)
+    self.set_partial_obs(partial_obs)
 
-  def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("Please fix your destination in case you selected incorrect one " +
-            "or did not update it timely during the task.\n You can use " +
-            "either LEFT and RIGHT arrow keys or above SCROLL BAR to " +
-            "navigate to the step you want to fix.")
 
-  def canvas_objects(self, dict_game, user_data: UserDataReplay):
-    dict_objs = super().canvas_objects(dict_game, user_data)
+# inheritance order matters
+class RescueReplayPage(MixinCanvasPageReplay, MixinRescueGameEnv,
+                       RescueGamePageBase):
 
-    max_idx = len(user_data.data[UserDataReplay.TRAJECTORY])
-    fix_disable = (user_data.data[UserDataReplay.TRAJ_IDX] == max_idx - 1)
-    obj = self._get_fix_destination(fix_disable)
-    dict_objs[obj.name] = obj
+  def __init__(self, partial_obs, game_map) -> None:
+    super().__init__(False, game_map, False, False, 0)
+    self.set_partial_obs(partial_obs)
 
-    return dict_objs
 
-  def get_drawing_order(self, dict_game, user_data):
-    drawing_order = []
-    drawing_order.append(self.GAME_BORDER)
+# inheritance order matters
+class RescueReviewPage(MixinCanvasPageReview, MixinRescueGameEnv,
+                       RescueGamePageBase):
 
-    drawing_order = (drawing_order +
-                     self._game_scene_names(dict_game, user_data))
-    drawing_order = (drawing_order +
-                     self._game_overlay_names(dict_game, user_data))
-
-    drawing_order.append(self.TEXT_SCORE)
-
-    drawing_order.append(self.TEXT_INSTRUCTION)
-    drawing_order.append(co.BTN_SELECT)
-    return drawing_order
-
-  def button_clicked(self, user_data: UserDataReplay, clicked_btn: str):
-    if clicked_btn == co.BTN_SELECT:
-      user_data.data[Exp1UserData.SELECT] = (
-          not user_data.data[Exp1UserData.SELECT])
-      return
-    elif self.is_sel_latent_btn(clicked_btn):
-      latent = self.selbtn2latent(clicked_btn)
-      if latent is not None:
-        user_data.data[Exp1UserData.SELECT] = False
-        traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
-        dict_game = user_data.data[UserDataReplay.TRAJECTORY][traj_idx]
-        dict_game["a1_latent"] = latent
-        user_data.data[UserDataReplay.USER_FIX][traj_idx] = latent
-        return
-
-    return super().button_clicked(user_data, clicked_btn)
+  def __init__(self, partial_obs, game_map) -> None:
+    super().__init__(False, game_map, False, False, 0)
+    self.set_partial_obs(partial_obs)

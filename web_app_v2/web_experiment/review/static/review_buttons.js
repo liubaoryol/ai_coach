@@ -20,20 +20,25 @@ $(document).ready(function () {
     slider.max = parseInt(msg.max_index);
   });
 
-  const cnvs = document.getElementById("myCanvas");
-  cnvs.addEventListener("keydown", onKeyDown, true);
-  function onKeyDown(event) {
-    let val = parseInt(slider.value);
-    if (event.key == "ArrowLeft") {
-      if (val - 1 >= parseInt(slider.min)) {
-        slider.value = val - 1;
-        onSliderInput();
-      }
-    } else if (event.key == "ArrowRight") {
-      if (val + 1 <= parseInt(slider.max)) {
-        slider.value = val + 1;
-        onSliderInput();
-      }
-    }
-  }
+  // update
+  socket.on("update_slider", function (idx) {
+    slider.value = idx;
+  });
+
+  // const cnvs = document.getElementById("myCanvas");
+  // cnvs.addEventListener("keydown", onKeyDown, true);
+  // function onKeyDown(event) {
+  //   let val = parseInt(slider.value);
+  //   if (event.key == "ArrowLeft") {
+  //     if (val - 1 >= parseInt(slider.min)) {
+  //       slider.value = val - 1;
+  //       onSliderInput();
+  //     }
+  //   } else if (event.key == "ArrowRight") {
+  //     if (val + 1 <= parseInt(slider.max)) {
+  //       slider.value = val + 1;
+  //       onSliderInput();
+  //     }
+  //   }
+  // }
 });

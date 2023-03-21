@@ -78,7 +78,7 @@ class RescueGamePage(RescueGamePageBase):
     best_score = user_data.data[Exp1UserData.USER].best_c
 
     text_score = "Time Taken: " + str(time_taken) + "\n"
-    text_score += "Score: " + str(score) + "\n"
+    text_score += "People Rescued: " + str(score) + "\n"
     text_score += "(Your Best: " + str(best_score) + ")"
 
     return text_score
