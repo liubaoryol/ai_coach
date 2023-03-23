@@ -166,7 +166,9 @@ class BoxPushGamePageBase(ExperimentPageBase):
           "It can be the same destination as you had previously selected.")
     else:
       return (
-          "Please choose your next action. If your destination has changed, " +
+          "Please choose your next action. "+
+          "You can only pick up or drop a box at the place circled in red. "+
+          "If your destination has changed, " +
           "please update it using the \"Select Destination\" button.")
 
   def _get_drawing_order(self, user_game_data: Exp1UserData):

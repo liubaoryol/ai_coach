@@ -620,9 +620,9 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
     object_type = ("box"
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
 
-    return ("After picking up the " + object_type +
-            ", you need to drop it at the truck. " + "Please carry the " +
-            object_type + " to the truck and drop it there.")
+    return ("After picking up the " + object_type + ", you need to drop it " +
+            "at the truck. " + "Please carry the " + object_type +
+            " to the truck and drop it there.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -769,10 +769,11 @@ class CanvasPageTarget(CanvasPageTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("In the TASK sessions, you will have to select your next target" +
-            " using the \"Select Destination\" button. " +
-            "Let's see how to do this! Please click on " +
-            "the \"Next\" button to continue.")
+    return (
+        "In the TASK sessions, you will have to select your next destination" +
+        " using the \"Select Destination\" button. " +
+        "Let's see how to do this! Please click on " +
+        "the \"Next\" button to continue.")
 
 
 class CanvasPageLatent(CanvasPageTutorialBase):
@@ -918,9 +919,9 @@ class CanvasPageExpGoal(CanvasPageTutorialPlain):
     return (
         "We are almost at the end of the TUTORIAL. " +
         "Remember that in the TASK session, " +
-        "your goal is to move all the boxes to the truck as soon as possible. "
-        + "You cannot pick up a box alone. " +
-        "Also, you can only pick the box circled in red.")
+        "your goal is to move all the boxes to the truck as soon as possible." +
+        " You cannot pick up a box alone. Also, you can only pick up or " +
+        "drop a box at the place circled in red.")
 
 
 class CanvasPageMiniGame(CanvasPageTutorialBase):

@@ -420,10 +420,11 @@ class RescueTutorialDestination(RescueTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("In the TASK sessions, you will have to select your next target" +
-            " using the \"Select Destination\" button. Again, it is very " +
-            "important to provide your destination instantly whenever you " +
-            "change your target in your mind.")
+    return (
+        "In the TASK sessions, you will have to select your next destination" +
+        " using the \"Select Destination\" button. Again, it is very " +
+        "important to provide your destination instantly whenever you " +
+        "change your destination in your mind.")
 
 
 class RescueTutorialLatent(RescueTutorialBase):
@@ -453,10 +454,11 @@ class RescueTutorialLatent(RescueTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("In the TASK sessions, you will have to select your next target" +
-            " using the \"Select Destination\" button. Again, it is very " +
-            "important to provide your destination instantly whenever you " +
-            "change your target in your mind.")
+    return (
+        "In the TASK sessions, you will have to select your next destination" +
+        " using the \"Select Destination\" button. Again, it is very " +
+        "important to provide your destination instantly whenever you " +
+        "change your destination in your mind.")
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn == co.BTN_SELECT:
