@@ -70,6 +70,21 @@ def description_review():
   return render_template('description_review.html', cur_endpoint=cur_endpoint)
 
 
+def description_select_destination():
+  cur_user = g.user
+  group_id = session["groupid"]
+  exp_type = session["exp_type"]
+  cur_endpoint = inst_bp.name + "." + PageKey.Description_Select_Destination
+  if request.method == "POST":
+    return redirect(get_next_url(cur_endpoint, None, group_id, exp_type))
+
+  logging.info('User %s accesses to the description of select destination.' %
+               (cur_user, ))
+
+  return render_template('description_select_destination.html',
+                         cur_endpoint=cur_endpoint)
+
+
 inst_bp.add_url_rule("/" + url_name(PageKey.Overview),
                      PageKey.Overview,
                      login_required(overview),
@@ -89,4 +104,8 @@ inst_bp.add_url_rule("/" + url_name(PageKey.Rescue),
 inst_bp.add_url_rule("/" + url_name(PageKey.Description_Review),
                      PageKey.Description_Review,
                      login_required(description_review),
+                     methods=("GET", "POST"))
+inst_bp.add_url_rule("/" + url_name(PageKey.Description_Select_Destination),
+                     PageKey.Description_Select_Destination,
+                     login_required(description_select_destination),
                      methods=("GET", "POST"))

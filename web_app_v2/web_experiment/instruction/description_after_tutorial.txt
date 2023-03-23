@@ -1,0 +1,5 @@
+The purpose of this study is to collect data of actions and the destinations that
+you had in your mind when taking each action.
+The true actions that you took to complete the task are easy to collect.
+On the other hand, the true destinations cannot be easily collected because they exist only in your mind.
+Hence, we would really appreciate it if you could faithfully use the Select Destination button, whenever you change your destination.
