@@ -173,10 +173,10 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
                                       PageKey.Movers_and_packers):
       return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_T1))
     elif current_endpoint == endpoint(BPName.Exp_datacol, PageKey.DataCol_T1):
-      return url_for(
-          endpoint(BPName.Instruction, PageKey.Description_Select_Destination))
-    elif current_endpoint == endpoint(BPName.Instruction,
-                                      PageKey.Description_Select_Destination):
+      #   return url_for(
+      #       endpoint(BPName.Instruction, PageKey.Description_Select_Destination))
+      # elif current_endpoint == endpoint(BPName.Instruction,
+      #                                   PageKey.Description_Select_Destination):
       return url_for(endpoint(BPName.Exp_datacol, PageKey.DataCol_A1))
     elif current_endpoint == endpoint(BPName.Exp_datacol, PageKey.DataCol_A1):
       return url_for(endpoint(BPName.Instruction, PageKey.Description_Review))
