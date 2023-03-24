@@ -84,6 +84,9 @@ class RescueGameUserRandom(RescueGamePage):
     super().__init__(True, True, True, 5)
     self._PARTIAL_OBS = partial_obs
     self._LATENT_COLLECTION = latent_collection
+    if not self._LATENT_COLLECTION:
+      self._AUTO_PROMPT = False
+      self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
