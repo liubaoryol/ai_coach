@@ -65,16 +65,23 @@ def task_intervention(game_history, game: BoxPushSimulator,
 
   feedback = intervention.get_intervention(list_np_x_dist, sidx_n)
 
-  if feedback is not None:
+  require_intervention = feedback is not None
+  cur_inference = feedback[0] if feedback is not None else None\
+
+  objs = {}
+  if require_intervention:
     # hardcode intervention to happen every time
-    objs = {}
+
     objs["latent_human_predicted"] = feedback[0]
     objs["latent_robot"] = "Non"
     objs["prob"] = random.random()
     objs_json = json.dumps(objs)
     emit("intervention", objs_json)
+  else:
+    objs_json = json.dumps(objs)
+    emit("no_intervention", objs_json)
 
-  return prev_inference
+  return prev_inference, cur_inference, require_intervention
 
   # if check_misalignment(current_box_states, latent, latent_robot, domain_type):
   #   objs = {}

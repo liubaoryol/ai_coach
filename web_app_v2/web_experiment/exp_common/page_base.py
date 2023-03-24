@@ -139,6 +139,8 @@ class Exp1UserData(UserData):
   SHOW_LATENT = "show_latent"
   COLLECT_LATENT = "collect_latent"
   PREV_INFERENCE = "prev_inference"
+  CUR_INFERENCE = "cur_inference"
+  DURING_INTERVENTION = "during_intervention"
 
   def __init__(self, user) -> None:
     super().__init__(user)
@@ -152,6 +154,8 @@ class Exp1UserData(UserData):
     self.data[Exp1UserData.SHOW_LATENT] = False
     self.data[Exp1UserData.COLLECT_LATENT] = True
     self.data[Exp1UserData.PREV_INFERENCE] = None
+    self.data[Exp1UserData.CUR_INFERENCE] = None
+    self.data[Exp1UserData.DURING_INTERVENTION] = False
 
   def get_game_ref(self) -> Simulator:
     return self.data[Exp1UserData.GAME]

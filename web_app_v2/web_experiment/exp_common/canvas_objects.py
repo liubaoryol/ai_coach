@@ -15,6 +15,7 @@ BTN_NEXT = "Next"
 BTN_PREV = "Prev"
 BTN_SELECT = "Select Destination"
 BTN_START = "Start"
+BTN_CONFIRM = "Confirm Intervention"
 
 ACTION_BUTTONS = [
     BTN_UP, BTN_DOWN, BTN_LEFT, BTN_RIGHT, BTN_STAY, BTN_PICK_UP, BTN_DROP

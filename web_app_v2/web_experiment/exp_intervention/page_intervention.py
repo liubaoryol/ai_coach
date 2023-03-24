@@ -25,8 +25,8 @@ class BoxPushV2Intervention(BoxPushV2UserRandom):
     tx1_file = "movers_btil2_tx_synth_FTTT_500_0,30_a1.npy"
     tx2_file = "movers_btil2_tx_synth_FTTT_500_0,30_a2.npy"
 
-    policy1_file = "movers_btil_policy_synth_woTx_FTTT_500_0,30_a1.npy"
-    policy2_file = "movers_btil_policy_synth_woTx_FTTT_500_0,30_a2.npy"
+    policy1_file = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
+    policy2_file = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
 
     with open(data_dir + v_value_movers_file, 'rb') as handle:
       np_v_values_movers = pickle.load(handle)
@@ -65,7 +65,14 @@ class BoxPushV2Intervention(BoxPushV2UserRandom):
 
     game = user_game_data.get_game_ref()
     prev_inference = user_game_data.data[Exp1UserData.PREV_INFERENCE]
-    inf_res = task_intervention(game.history, game, self._DOMAIN_TYPE,
-                                self.intervention_strategy, prev_inference,
-                                policy_nxsa, Tx_nxsasx)
+    inf_res, cur_inference, require_intervention = task_intervention(
+        game.history, game, self._DOMAIN_TYPE, self.intervention_strategy,
+        prev_inference, policy_nxsa, Tx_nxsasx)
+    if require_intervention:
+      user_game_data.data[Exp1UserData.DURING_INTERVENTION] = True
+      user_game_data.data[Exp1UserData.CUR_INFERENCE] = cur_inference
+    else:
+      user_game_data.data[Exp1UserData.DURING_INTERVENTION] = False
+      user_game_data.data[Exp1UserData.CUR_INFERENCE] = None
+
     user_game_data.data[Exp1UserData.PREV_INFERENCE] = inf_res

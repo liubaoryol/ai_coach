@@ -23,7 +23,6 @@
   // intervention
   socket.on("intervention", function (json_msg) {
     const env = JSON.parse(json_msg);
-    console.log("hello");
     let msg = "I found some inefficiency in your teamwork\n";
     msg += "I recommend you move Box " + env.latent_human_predicted + "\n";
     var text_box = document.getElementById('intervention_text');
@@ -31,10 +30,15 @@
       text_box.innerText = msg;
     }
     // alert(msg);
-
-
-
   });
+
+  socket.on("no_intervention", function (json_msg) {
+    var text_box = document.getElementById('intervention_text');
+    var msg = "Keep up the good work. ";
+    if (text_box != null && text_box.innerText != msg) {
+      text_box.innerText = msg;
+    }
+  })
 
   // block default key event handler (block scroll bar movement by key)
   window.addEventListener(
