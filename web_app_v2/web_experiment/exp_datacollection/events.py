@@ -57,9 +57,9 @@ for socket_type in SocketType:
       button = msg["name"]
       env_id = request.sid
       user_data = g_id_2_user_data[env_id]
-      logging.info(
-          f"{user_data.data[Exp1UserData.USER].userid}({env_id}) clicked " +
-          f"{button} button at {name_space}")
+      # logging.info(
+      #     f"{user_data.data[Exp1UserData.USER].userid}({env_id}) clicked " +
+      #     f"{button} button at {name_space}")
       event_impl.button_clicked(env_id, name_space, button, user_data,
                                 GAMEPAGES[socket_type])
 
