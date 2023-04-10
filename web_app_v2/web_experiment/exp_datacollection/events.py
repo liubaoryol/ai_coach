@@ -39,7 +39,7 @@ for socket_type in SocketType:
 
     return initial_canvas
 
-  def make_disconnected():
+  def make_disconnected(name_space=name_space):
 
     def disconnected():
       global g_id_2_user_data
