@@ -100,7 +100,7 @@ def transition_single_agent(box_states: list, agent_pos: Coord,
   # both do not hold anything
   if hold == "None":
     if agent_act == EventType.HOLD:
-      bidx = get_box_idx(agent_pos)
+      bidx = get_box_idx(agent_pos, box_states)
       if bidx >= 0:
         state1 = (BoxState.WithAgent1, None)
         box_states_new = list(box_states)
@@ -122,7 +122,7 @@ def transition_single_agent(box_states: list, agent_pos: Coord,
     a1_dropped = False
     agent_pos_dist = [(1.0, agent_pos)]
     if agent_act == EventType.UNHOLD:
-      bidx = get_box_idx(agent_pos)
+      bidx = get_box_idx(agent_pos, box_states)
       assert bidx >= 0
       a1_dropped, bstate = update_dropped_box_state(bidx, agent_pos,
                                                     box_states_new)

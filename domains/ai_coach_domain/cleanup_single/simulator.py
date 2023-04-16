@@ -11,6 +11,7 @@ Coord = Tuple[int, int]
 
 
 class CleanupSingleSimulator(Simulator):
+  AGENT_ID = 0
 
   def __init__(self) -> None:
     #  input1: agent idx
@@ -60,7 +61,9 @@ class CleanupSingleSimulator(Simulator):
   def get_score(self):
     return -self.get_current_step()
 
-  def take_a_step(self, agent_action: Hashable) -> None:
+  def take_a_step(self, map_agent_2_action: Mapping[Hashable,
+                                                    Hashable]) -> None:
+    agent_action = map_agent_2_action[self.AGENT_ID]
 
     if agent_action is None:
       return
@@ -80,9 +83,17 @@ class CleanupSingleSimulator(Simulator):
     self._transition(agent_action)
     self.current_step += 1
     self.changed_state.add("current_step")
+    tuple_actions = (agent_action, )
+
+    TEST_CODE = False
+    if TEST_CODE:
+      mdp = self.agent.agent_model.get_reference_mdp()
+      sidx = mdp.conv_sim_states_to_mdp_sidx(cur_state)
+      aidx = mdp.conv_sim_actions_to_mdp_aidx(tuple_actions)
+      xidx = self.agent.conv_latent_to_idx(agent_lat)
+      print(mdp.reward(xidx, sidx, aidx))
 
     # update mental model
-    tuple_actions = (agent_action, )
     self.agent.update_mental_state(cur_state, tuple_actions, self.get_state())
     self.changed_state.add("agent_latent")
 
@@ -110,7 +121,7 @@ class CleanupSingleSimulator(Simulator):
   def get_num_agents(self):
     return 1
 
-  def event_input(self, event_type: Hashable, value):
+  def event_input(self, agent: Hashable, event_type: Hashable, value):
     if event_type is None:
       return
 
@@ -121,7 +132,9 @@ class CleanupSingleSimulator(Simulator):
       self.changed_state.add("agent_latent")
 
   def get_joint_action(self) -> Mapping[Hashable, Hashable]:
-    return self.agent.get_action(self.get_state())
+    map_a2a = {}
+    map_a2a[self.AGENT_ID] = self.agent.get_action(self.get_state())
+    return map_a2a
 
   def get_env_info(self):
     return {

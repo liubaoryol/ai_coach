@@ -39,7 +39,6 @@ def main(domain, opt):
 
   # gym env
   ##################################################
-  sim = BoxPushSimulatorV3(False)
   sim.init_game(**GAME_MAP)
   possible_init_states = []
   init_bstate = [0] * len(GAME_MAP["boxes"])

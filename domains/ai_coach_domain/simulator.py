@@ -84,6 +84,10 @@ class Simulator():
   def get_current_step(self):
     return self.current_step
 
+  @abc.abstractmethod
+  def get_score(self):
+    raise NotImplementedError
+
   # def __del__(self):
   #   self.stop_game()
 
