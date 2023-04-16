@@ -12,7 +12,8 @@ from web_experiment.models import db, User
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.page_exp1_game_base import BoxPushGamePageBase
-from web_experiment.exp_common.helper import get_file_name
+from web_experiment.exp_common.helper import (get_file_name,
+                                              store_user_label_locally)
 
 TEMPERATURE = 0.3
 MOVERS_TEAMMATE_POLICY = Policy_Movers(MDP_Movers_Task(**MAP_MOVERS),
@@ -55,6 +56,7 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
 
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
+    user_game_data.data[Exp1UserData.USER_LABELS] = []
 
   def _on_game_finished(self, user_game_data: Exp1UserData):
     '''
@@ -74,6 +76,11 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
     header += "User ID: %s\n" % (str(user_id), )
     header += str(self._GAME_MAP)
     game.save_history(file_name, header)
+
+    user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
+    user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
+    store_user_label_locally(user_label_path, user_id, session_name,
+                             user_labels)
 
     # update score
     if self._DOMAIN_TYPE == EDomainType.Movers:

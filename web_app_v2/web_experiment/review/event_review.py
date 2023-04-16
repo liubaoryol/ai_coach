@@ -8,17 +8,18 @@ from web_experiment.define import (PageKey, get_domain_type,
 from web_experiment.exp_common.page_replay import UserDataReplay
 from web_experiment.review.define import REVIEW_CANVAS_PAGELIST, get_socket_name
 from web_experiment.review.util import (update_canvas, canvas_button_clicked,
-                                        SessionData, load_trajectory,
-                                        latent_state_from_traj,
-                                        no_trajectory_page)
-from web_experiment.feedback.helper import store_latent_locally
+                                        load_trajectory, latent_state_from_traj,
+                                        no_trajectory_page, get_init_user_data)
+from web_experiment.feedback.helper import (store_latent_locally,
+                                            store_user_fix_locally)
 
-g_id_2_session_data = {}  # type: Mapping[Any, SessionData]
+g_id_2_session_data = {}  # type: Mapping[Any, UserDataReplay]
 
 for domain_type in REVIEW_CANVAS_PAGELIST:
   name_space = '/' + get_socket_name(PageKey.Review, domain_type)
 
   def make_init_canvas(domain_type, name_space=name_space):
+
     def init_canvas():
       global g_id_2_session_data
       sid = request.sid
@@ -38,8 +39,10 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
         emit('complete')
         return
 
-      g_id_2_session_data[sid] = SessionData(cur_user, UserDataReplay(),
-                                             session_name, trajectory, 0)
+      user_data = get_init_user_data(cur_user, session_name, trajectory)
+
+      g_id_2_session_data[sid] = user_data
+
       max_idx = len(trajectory) - 1
 
       update_canvas(sid,
@@ -53,56 +56,64 @@ for domain_type in REVIEW_CANVAS_PAGELIST:
     return init_canvas
 
   def make_goto_index(domain_type, name_space=name_space):
+
     def goto_index(msg):
       global g_id_2_session_data
       sid = request.sid
       if sid not in g_id_2_session_data:
         return
 
-      session_data = g_id_2_session_data[sid]
+      user_data = g_id_2_session_data[sid]
 
       idx = int(msg['index'])
-      max_index = len(session_data.trajectory) - 1
+      max_index = len(user_data.data[UserDataReplay.TRAJECTORY]) - 1
       if (idx <= max_index and idx >= 0):
-        session_data.index = idx
+        user_data.data[UserDataReplay.TRAJ_IDX] = idx
         update_canvas(sid,
                       name_space,
                       REVIEW_CANVAS_PAGELIST[domain_type][0],
-                      session_data,
+                      user_data,
                       init_imgs=False)
-        if session_data.index == max_index:
+        if user_data.data[UserDataReplay.TRAJ_IDX] == max_index:
           emit('complete')
 
     return goto_index
 
   def make_button_clicked(domain_type, name_space=name_space):
+
     def button_clicked(msg):
       global g_id_2_session_data
       sid = request.sid
       if sid not in g_id_2_session_data:
         return
 
-      session_data = g_id_2_session_data[sid]
+      user_data = g_id_2_session_data[sid]
 
       button = msg["name"]
       page = REVIEW_CANVAS_PAGELIST[domain_type][0]
-      canvas_button_clicked(sid, name_space, button, page, session_data)
+      canvas_button_clicked(sid, name_space, button, page, user_data)
 
     return button_clicked
 
   def make_disconnected():
+
     def disconnected():
       global g_id_2_session_data
       sid = request.sid
 
       if sid in g_id_2_session_data:
-        session_data = g_id_2_session_data[sid]
+        user_data = g_id_2_session_data[sid]
         latents = latent_state_from_traj(
-            session_data.trajectory, get_domain_type(session_data.session_name))
+            user_data.data[UserDataReplay.TRAJECTORY],
+            get_domain_type(user_data.data[UserDataReplay.SESSION_NAME]))
 
         # save latent
-        store_latent_locally(session_data.user_id, session_data.session_name,
+        store_latent_locally(user_data.data[UserDataReplay.USER],
+                             user_data.data[UserDataReplay.SESSION_NAME],
                              latents)
+        store_user_fix_locally(user_data.data[UserDataReplay.USER],
+                               user_data.data[UserDataReplay.SESSION_NAME],
+                               user_data.data[UserDataReplay.USER_FIX])
         # delete session_data
         del g_id_2_session_data[sid]
 

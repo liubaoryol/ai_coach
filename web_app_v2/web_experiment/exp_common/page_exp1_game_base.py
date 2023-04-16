@@ -78,6 +78,7 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
 # canvas page game
 ###############################################################################
 class BoxPushGamePageBase(ExperimentPageBase):
+
   def __init__(self,
                domain_type: EDomainType,
                manual_latent_selection,
@@ -152,6 +153,8 @@ class BoxPushGamePageBase(ExperimentPageBase):
         game.event_input(self._AGENT1, EventType.SET_LATENT, latent)
         user_game_data.data[Exp1UserData.SELECT] = False
         user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+        user_game_data.data[Exp1UserData.USER_LABELS].append(
+            (game.current_step, latent))
         return
 
     return super().button_clicked(user_game_data, clicked_btn)
@@ -163,8 +166,10 @@ class BoxPushGamePageBase(ExperimentPageBase):
           "It can be the same destination as you had previously selected.")
     else:
       return (
-          "Please choose your next action. If your destination has changed, " +
-          "please update it using the select destination button.")
+          "Please choose your next action. "+
+          "You can only pick up or drop a box at the place circled in red. "+
+          "If your destination has changed, " +
+          "please update it using the \"Select Destination\" button.")
 
   def _get_drawing_order(self, user_game_data: Exp1UserData):
     dict_game = user_game_data.get_game_ref().get_env_info()

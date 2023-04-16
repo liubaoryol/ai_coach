@@ -14,10 +14,10 @@ SESSION_TITLE = {
     PageKey.DataCol_A2: 'A2',
     PageKey.DataCol_A3: 'A3',
     PageKey.DataCol_A4: 'A4',
-    PageKey.DataCol_C1: 'C1',
-    PageKey.DataCol_C2: 'C2',
-    PageKey.DataCol_C3: 'C3',
-    PageKey.DataCol_C4: 'C4',
+    PageKey.DataCol_C1: 'B1',
+    PageKey.DataCol_C2: 'B2',
+    PageKey.DataCol_C3: 'B3',
+    PageKey.DataCol_C4: 'B4',
     PageKey.DataCol_T1: 'Interactive Tutorial',
     PageKey.DataCol_T3: 'Interactive Tutorial',
 }
@@ -92,6 +92,7 @@ PAGE_LIST_MOVERS_TUTORIAL = [
     pgt.CanvasPageInstruction(EDomainType.Movers),
     pgt.CanvasPageTutorialGameStart(EDomainType.Movers),
     pgt.CanvasPageJoystick(EDomainType.Movers),
+    pgt.CanvsPageWaitBtn(EDomainType.Movers),
     pgt.CanvasPageInvalidAction(EDomainType.Movers),
     pgt.CanvasPageOnlyHuman(EDomainType.Movers),
     pgt.CanvasPageGoToTarget(EDomainType.Movers),
@@ -104,8 +105,11 @@ PAGE_LIST_MOVERS_TUTORIAL = [
     pgt.CanvasPageTarget(EDomainType.Movers),
     pgt.CanvasPageLatent(EDomainType.Movers),
     pgt.CanvasPageSelResult(EDomainType.Movers, False),
+    pgt.CanvasPageImportance(EDomainType.Movers),
     pgt.CanvasPageSelPrompt(EDomainType.Movers),
     pgt.CanvasPageSelResult(EDomainType.Movers, True),
+    pgt.CanvasPageExpGoal(EDomainType.Movers),
+    pgt.CanvasPageImportance(EDomainType.Movers),
     pgt.CanvasPageMiniGame(EDomainType.Movers)
 ]
 PAGE_LIST_CLEANUP_TUTORIAL = [

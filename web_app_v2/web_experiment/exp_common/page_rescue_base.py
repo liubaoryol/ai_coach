@@ -78,6 +78,7 @@ class RescueGamePageBase(ExperimentPageBase):
     game.set_autonomous_agent()
 
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+    user_game_data.data[Exp1UserData.USER_LABELS] = []
 
   def get_updated_drawing_info(self,
                                user_data: Exp1UserData,
@@ -128,6 +129,8 @@ class RescueGamePageBase(ExperimentPageBase):
         game.event_input(self._AGENT1, E_EventType.Set_Latent, latent)
         user_game_data.data[Exp1UserData.SELECT] = False
         user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+        user_game_data.data[Exp1UserData.USER_LABELS].append(
+            (game.current_step, latent))
         return
 
     return super().button_clicked(user_game_data, clicked_btn)
@@ -474,6 +477,7 @@ class RescueGamePageBase(ExperimentPageBase):
 
   def _game_overlay(self, game_env,
                     user_data: Exp1UserData) -> List[co.DrawingObject]:
+
     def coord_2_canvas(coord_x, coord_y):
       x = int(self.GAME_LEFT + coord_x * self.GAME_WIDTH)
       y = int(self.GAME_TOP + coord_y * self.GAME_HEIGHT)
@@ -579,6 +583,7 @@ class RescueGamePageBase(ExperimentPageBase):
     return rescue_game_scene(game_env, game_ltwh, include_background)
 
   def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
+
     def is_visible(img_name):
       if user_data.data[Exp1UserData.PARTIAL_OBS]:
         if img_name == co.IMG_FIRE_ENGINE:
