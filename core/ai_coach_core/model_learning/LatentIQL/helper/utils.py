@@ -107,7 +107,7 @@ def get_concat_samples(policy_batch, expert_batch, is_sqil: bool):
           batch_latent, batch_action, batch_reward, batch_done, is_expert)
 
 
-def evaluate(agent: MentalSAC, env: Env, num_latent, num_episodes=10, vis=True):
+def evaluate(agent: MentalSAC, env: Env, num_episodes=10, vis=True):
   """Evaluates the policy.
     Args:
       actor: A policy to evaluate.
