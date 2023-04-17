@@ -77,7 +77,7 @@ class CleanupSingleSimulator(Simulator):
 
     cur_state = tuple(self.get_state())
 
-    state = [self.current_step, *cur_state]
+    state = [self.current_step, *cur_state, agent_action, agent_lat]
     self.history.append(state)
 
     self._transition(agent_action)

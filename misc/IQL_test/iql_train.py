@@ -5,6 +5,7 @@ import click
 from ai_coach_core.model_learning.IQLearn.iql import run_iql
 from ai_coach_core.model_learning.IQLearn.utils.utils import (
     conv_trajectories_2_iql_format)
+import ai_coach_core.gym  # noqa: F401
 
 
 @click.command()

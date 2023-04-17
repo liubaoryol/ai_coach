@@ -66,15 +66,17 @@ def one_hot(indices: torch.Tensor, num_classes):
 
 
 def one_hot_w_nan(indices: torch.Tensor, num_classes):
-  len_ind = len(indices)
-  one_hot_tensor = torch.zeros((len_ind, num_classes), dtype=torch.float)
+  indices_flat = indices.reshape(-1)
 
-  mask_non_nan = ~indices.isnan()
-  valid_indices = indices[mask_non_nan]
+  len_ind = len(indices_flat)
+  one_hot_tensor = torch.zeros((len_ind, num_classes),
+                               dtype=torch.float).to(device=indices.device)
+
+  mask_non_nan = ~indices_flat.isnan()
+  valid_indices = indices_flat[mask_non_nan]
   if len(valid_indices) != 0:
     one_hot_tensor[mask_non_nan] = F.one_hot(
-        valid_indices.squeeze(-1).long(),
-        num_classes=num_classes).to(dtype=torch.float)
+        valid_indices.long(), num_classes=num_classes).to(dtype=torch.float)
 
   return one_hot_tensor
 

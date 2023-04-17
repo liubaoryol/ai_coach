@@ -300,12 +300,12 @@ class SoftDiscreteMentalThinker(AbstractMentalThinker):
 
   def mental_probs(self, obs, prev_lat, prev_act):
     dist = self.forward(obs, prev_lat, prev_act)
-    mental_probs = dist.probs
+    probs = dist.probs
     # avoid numerical instability
-    z = (mental_probs == 0.0).float() * 1e-10
-    log_probs = torch.log(mental_probs + z)
+    z = (probs == 0.0).float() * 1e-10
+    log_probs = torch.log(probs + z)
 
-    return mental_probs, log_probs
+    return probs, log_probs
 
   def is_discrete(self):
     return True

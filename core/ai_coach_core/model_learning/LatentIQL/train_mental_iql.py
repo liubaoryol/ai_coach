@@ -41,7 +41,7 @@ def train_mental_iql(env_name,
                      learn_alpha=False,
                      learning_rate=0.005,
                      load_path: Optional[str] = None):
-  agent_name = "miql",
+  agent_name = "miql"
   # constants
   num_episodes = 10
   save_interval = 10
@@ -127,12 +127,12 @@ def train_mental_iql(env_name,
   begin_learn = False
   episode_reward = 0
   learn_steps = 0
-  INIT_VAL = -1
+  NAN = float("nan")
 
   for epoch in count():
     state = env.reset()
-    prev_lat = INIT_VAL
-    prev_act = INIT_VAL
+    prev_lat = NAN
+    prev_act = NAN
     episode_reward = 0
     done = False
 
@@ -142,7 +142,10 @@ def train_mental_iql(env_name,
         # if not begin_learn:
         #   action = env.action_space.sample()
         # else:
-        latent, action = agent.choose_action(state, sample=True)
+        latent, action = agent.choose_action(state,
+                                             prev_lat,
+                                             prev_act,
+                                             sample=True)
       next_state, reward, done, info = env.step(action)
       episode_reward += reward
 

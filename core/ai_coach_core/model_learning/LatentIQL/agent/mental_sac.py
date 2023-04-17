@@ -85,7 +85,8 @@ class MentalSAC(object):
   def gather_mental_probs(self, state, prev_latent, prev_action):
     # --- convert state
     if self.discrete_obs:
-      state = torch.FloatTensor([state]).to(self.device)
+      state = np.array(state).reshape(-1)
+      state = torch.FloatTensor(state).to(self.device)
       state = one_hot(state, self.obs_dim)
       state = state.view(-1, self.obs_dim)
     # ------
@@ -93,14 +94,16 @@ class MentalSAC(object):
       state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
 
     if self.thinker.is_discrete():
-      prev_latent = torch.FloatTensor([prev_latent]).to(self.device)
+      prev_latent = np.array(prev_latent).reshape(-1)
+      prev_latent = torch.FloatTensor(prev_latent).to(self.device)
       prev_latent = one_hot(prev_latent, self.lat_dim)
       prev_latent = prev_latent.view(-1, self.lat_dim)
     else:
       prev_latent = torch.FloatTensor(prev_latent).to(self.device).unsqueeze(0)
 
     if self.actor.is_discrete():
-      prev_action = torch.FloatTensor([prev_action]).to(self.device)
+      prev_action = np.array(prev_action).reshape(-1)
+      prev_action = torch.FloatTensor(prev_action).to(self.device)
       prev_action = one_hot(prev_action, self.action_dim)
       prev_action = prev_action.view(-1, self.action_dim)
     else:
@@ -110,12 +113,13 @@ class MentalSAC(object):
       probs, log_probs = self.thinker.mental_probs(state, prev_latent,
                                                    prev_action)
 
-    return probs, log_probs
+    return probs.cpu().detach().numpy(), log_probs.cpu().detach().numpy()
 
   def evaluate_action(self, state, latent, action):
     # --- convert state
     if self.discrete_obs:
-      state = torch.FloatTensor([state]).to(self.device)
+      state = np.array(state).reshape(-1)
+      state = torch.FloatTensor(state).to(self.device)
       state = one_hot(state, self.obs_dim)
       state = state.view(-1, self.obs_dim)
     # ------
@@ -123,14 +127,16 @@ class MentalSAC(object):
       state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
 
     if self.thinker.is_discrete():
-      latent = torch.FloatTensor([latent]).to(self.device)
+      latent = np.array(latent).reshape(-1)
+      latent = torch.FloatTensor(latent).to(self.device)
       latent = one_hot(latent, self.lat_dim)
       latent = latent.view(-1, self.lat_dim)
     else:
       latent = torch.FloatTensor(latent).to(self.device).unsqueeze(0)
 
     if self.actor.is_discrete():
-      action = torch.FloatTensor([action]).to(self.device)
+      action = np.array(action).reshape(-1)
+      action = torch.FloatTensor(action).to(self.device)
       action = one_hot(action, self.action_dim)
       action = action.view(-1, self.action_dim)
     else:
@@ -138,12 +144,13 @@ class MentalSAC(object):
 
     with torch.no_grad():
       log_prob = self.actor.evaluate_action(state, latent, action)
-    return log_prob
+    return log_prob.cpu().detach().numpy()
 
   def choose_action(self, state, prev_latent, prev_action, sample=False):
     # --- convert state
     if self.discrete_obs:
-      state = torch.FloatTensor([state]).to(self.device)
+      state = np.array(state).reshape(-1)
+      state = torch.FloatTensor(state).to(self.device)
       state = one_hot(state, self.obs_dim)
       state = state.view(-1, self.obs_dim)
     # ------
@@ -151,14 +158,16 @@ class MentalSAC(object):
       state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
 
     if self.thinker.is_discrete():
-      prev_latent = torch.FloatTensor([prev_latent]).to(self.device)
+      prev_latent = np.array(prev_latent).reshape(-1)
+      prev_latent = torch.FloatTensor(prev_latent).to(self.device)
       prev_latent = one_hot(prev_latent, self.lat_dim)
       prev_latent = prev_latent.view(-1, self.lat_dim)
     else:
       prev_latent = torch.FloatTensor(prev_latent).to(self.device).unsqueeze(0)
 
     if self.actor.is_discrete():
-      prev_action = torch.FloatTensor([prev_action]).to(self.device)
+      prev_action = np.array(prev_action).reshape(-1)
+      prev_action = torch.FloatTensor(prev_action).to(self.device)
       prev_action = one_hot(prev_action, self.action_dim)
       prev_action = prev_action.view(-1, self.action_dim)
     else:

@@ -1,5 +1,8 @@
+from typing import Callable, Any, Sequence
+from collections import defaultdict
 import os
 import torch
+import pickle
 import numpy as np
 from gym import Env
 from ai_coach_core.latent_inference.decoding import most_probable_sequence_v2
@@ -7,6 +10,45 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import eval_mode
 from ..agent.mental_sac import MentalSAC
 
 NAN = float("nan")
+
+
+def conv_trajectories_2_iql_format(sax_trajectories: Sequence,
+                                   cb_conv_action_to_idx: Callable[[Any], int],
+                                   cb_get_reward: Callable[[Any, Any],
+                                                           float], path: str):
+  'sa_trajectories: okay to include the terminal state'
+  expert_trajs = defaultdict(list)
+
+  for trajectory in sax_trajectories:
+    traj = []
+    for t in range(len(trajectory) - 1):
+      cur_tup = trajectory[t]
+      next_tup = trajectory[t + 1]
+
+      state, action, latent = cur_tup[0], cur_tup[1], cur_tup[2]
+      nxt_state, nxt_action, _ = next_tup[0], next_tup[1], next_tup[2]
+
+      aidx = cb_conv_action_to_idx(action)
+      reward = cb_get_reward(state, action)
+
+      done = nxt_action is None
+      traj.append((state, nxt_state, aidx, latent, reward, done))
+
+    unzipped_traj = zip(*traj)
+    states, next_states, actions, latents, rewards, dones = map(
+        list, unzipped_traj)
+
+    expert_trajs["states"].append(states)
+    expert_trajs["next_states"].append(next_states)
+    expert_trajs["actions"].append(actions)
+    expert_trajs["rewards"].append(rewards)
+    expert_trajs["dones"].append(dones)
+    expert_trajs["lengths"].append(len(traj))
+    expert_trajs["latents"].append(latents)
+
+  print('Final size of Replay Buffer: {}'.format(sum(expert_trajs["lengths"])))
+  with open(path, 'wb') as f:
+    pickle.dump(expert_trajs, f)
 
 
 def save(agent: MentalSAC,
@@ -116,7 +158,7 @@ def infer_mental_states(agent: MentalSAC, expert_traj, num_latent):
 
     obs = fit_shape_2_latent(obs)
     act = fit_shape_2_latent(act)
-    return agent.evaluate_action(obs, lat, act)
+    return agent.evaluate_action(obs, lat, act).reshape(-1)
 
   def gather_trans_x(agent_idx, obs, act, next_obs):
     lat = np.arange(num_latent)
