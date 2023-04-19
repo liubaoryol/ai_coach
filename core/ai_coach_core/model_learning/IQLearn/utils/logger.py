@@ -13,7 +13,8 @@ COMMON_TRAIN_FORMAT = [('episode', 'E', 'int'), ('step', 'S', 'int'),
                        ('episode_reward', 'R', 'float'),
                        ('episode_step', 'D', 'int')]
 
-COMMON_EVAL_FORMAT = [('step', 'S', 'int'), ('episode_reward', 'R', 'float')]
+COMMON_EVAL_FORMAT = [('episode', 'E', 'none'), ('step', 'S', 'int'),
+                      ('episode_reward', 'R', 'float')]
 
 AGENT_TRAIN_FORMAT = {
     'sac': [
@@ -99,6 +100,10 @@ class MetersGroup(object):
       return f'{key}: {value:.04f}'
     elif ty == 'time':
       return f'{key}: {value:04.1f} s'
+    elif ty == 'none':
+      ndigits = int(np.log10(value) + 1)
+      filler = '-' * ndigits
+      return f'{key}: {filler}'
     else:
       raise f'invalid format type: {ty}'
 

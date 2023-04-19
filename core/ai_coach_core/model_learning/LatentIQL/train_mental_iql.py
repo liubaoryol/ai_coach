@@ -155,6 +155,7 @@ def train_mental_iql(env_name,
                                                 num_episodes=num_episodes)
         returns = np.mean(eval_returns)
         # learn_steps += 1  # To prevent repeated eval at timestep 0
+        logger.log('eval/episode', epoch, learn_steps)
         logger.log('eval/episode_reward', returns, learn_steps)
         logger.dump(learn_steps, ty='eval')
 
