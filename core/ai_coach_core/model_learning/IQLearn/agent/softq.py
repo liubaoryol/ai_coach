@@ -6,16 +6,9 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
 from torch.distributions import Categorical
+from ..utils.utils import one_hot
 from ..utils.atari_wrapper import LazyFrames
 from ..dataset.memory import Memory
-
-# def conv_discrete_2_onehot(indices: torch.Tensor, num_classes):
-#   return F.one_hot(indices.squeeze(1), num_classes=num_classes).float()
-
-
-def one_hot(indices: torch.Tensor, num_classes):
-  return F.one_hot(indices.squeeze(-1).long(),
-                   num_classes=num_classes).to(dtype=torch.float)
 
 
 class SoftQ(object):
@@ -23,7 +16,7 @@ class SoftQ(object):
   def __init__(self, num_inputs, action_dim, batch_size, discrete_obs, device,
                gamma, critic_tau, critic_lr, critic_target_update_frequency,
                init_temp, critic_betas, q_net_base: Type[nn.Module],
-               double_q: bool, use_tanh: bool):
+               list_hidden_dims, use_tanh: bool):
     self.gamma = gamma
     self.batch_size = batch_size
     self.device = torch.device(device)
@@ -38,10 +31,10 @@ class SoftQ(object):
     self.critic_target_update_frequency = critic_target_update_frequency
     self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
 
-    self.q_net = q_net_base(num_inputs, action_dim, device, gamma, double_q,
+    self.q_net = q_net_base(num_inputs, action_dim, list_hidden_dims, gamma,
                             use_tanh).to(self.device)
-    self.target_net = q_net_base(num_inputs, action_dim, device, gamma,
-                                 double_q, use_tanh).to(self.device)
+    self.target_net = q_net_base(num_inputs, action_dim, list_hidden_dims,
+                                 gamma, use_tanh).to(self.device)
 
     self.target_net.load_state_dict(self.q_net.state_dict())
     self.critic_optimizer = Adam(self.q_net.parameters(),
@@ -90,17 +83,6 @@ class SoftQ(object):
 
     return action.detach().cpu().numpy()[0]
 
-  def getV(self, obs):
-
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
-
-    q = self.q_net(obs)
-    v = self.alpha * torch.logsumexp(q / self.alpha, dim=1, keepdim=True)
-    return v
-
   def critic(self, obs, action, both=False):
 
     # --- convert state
@@ -116,6 +98,17 @@ class SoftQ(object):
       return critic1, critic2
 
     return q.gather(1, action.long())
+
+  def getV(self, obs):
+
+    # --- convert state
+    if self.discrete_obs:
+      obs = one_hot(obs, self.obs_dim)
+    # ------
+
+    q = self.q_net(obs)
+    v = self.alpha * torch.logsumexp(q / self.alpha, dim=1, keepdim=True)
+    return v
 
   def get_targetV(self, obs):
 

@@ -1,16 +1,11 @@
 import os
 import glob
-import logging
 import random
 import click
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from ai_coach_core.model_learning.IQLearn.iql import run_iql
 from ai_coach_core.model_learning.IQLearn.utils.utils import (
     conv_trajectories_2_iql_format)
-from datetime import datetime
-import ai_coach_core.gym
+import ai_coach_core.gym  # noqa: F401
 
 
 @click.command()
@@ -45,7 +40,6 @@ def main(domain, opt):
 
   # gym env
   ##################################################
-  sim = BoxPushSimulatorV3(False)
   sim.init_game(**GAME_MAP)
   possible_init_states = []
   init_bstate = [0] * len(GAME_MAP["boxes"])
@@ -95,7 +89,12 @@ def main(domain, opt):
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
-  num_iterations = 20000
+  num_iterations = 100000
+  seed = 0
+  batch_size = 256
+  learn_alpha = True
+  clip_grad_val = 0.5
+  learning_rate = 0.0003
   save_prefix = SAVE_PREFIX
   save_prefix += "_opt" if opt else ""
 
@@ -103,20 +102,25 @@ def main(domain, opt):
   if IQL:
     run_iql('envfrommdp-v0',
             env_kwargs,
-            0,
-            64,
+            seed,
+            batch_size,
             path_iq_data,
             num_traj,
             LOG_DIR,
             output_dir,
             output_suffix="_opt100",
             replay_mem=30000,
-            initial_mem=1000,
             eps_steps=200,
             eps_window=10,
             num_learn_steps=num_iterations,
+            agent_name='sacd',
             log_interval=100,
-            eval_interval=1000)
+            eval_interval=1000,
+            list_hidden_dims=[128, 128],
+            clip_grad_val=clip_grad_val,
+            learn_alpha=learn_alpha,
+            learning_rate=learning_rate,
+            gumbel_temperature=1.0)
 
 
 if __name__ == "__main__":

@@ -129,7 +129,6 @@ class BoxPushV2App(BoxPushApp):
 
   def _update_canvas_scene(self):
     super()._update_canvas_scene()
-    self.label_score.config(text=str(-self.game.current_step))
     if manual_latent1 is not None:
       self.game.agent_1.set_latent(manual_latent1)
     if manual_latent2 is not None:

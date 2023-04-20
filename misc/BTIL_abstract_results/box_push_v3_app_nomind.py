@@ -80,7 +80,6 @@ class BoxPushV2App(BoxPushApp):
 
   def _update_canvas_scene(self):
     super()._update_canvas_scene()
-    self.label_score.config(text=str(self.game.get_score()))
 
     x_unit = int(self.canvas_width / self.x_grid)
     y_unit = int(self.canvas_height / self.y_grid)

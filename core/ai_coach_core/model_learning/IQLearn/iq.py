@@ -15,9 +15,11 @@ def iq_loss(agent, current_Q, current_v, next_v, batch):
   method_type = "iq"
   method_grad_pen = False
   method_lambda_gp = 10
-  method_chi = False
   method_alpha = 0.5
-  method_regularize = False
+  if "SAC" in agent.__class__.__name__:
+    method_regularize = True
+  else:
+    method_regularize = False
 
   gamma = agent.gamma
   obs, next_obs, action, env_reward, done, is_expert = batch
@@ -32,25 +34,42 @@ def iq_loss(agent, current_Q, current_v, next_v, batch):
   y = (1 - done) * gamma * next_v
   reward = (current_Q - y)[is_expert]
 
-  with torch.no_grad():
-    # Use different divergence functions (For χ2 divergence we instead add a third bellmann error-like term)
-    if method_div == "hellinger":
-      phi_grad = 1 / (1 + reward)**2
-    elif method_div == "kl":
-      # original dual form for kl divergence (sub optimal)
-      phi_grad = torch.exp(-reward - 1)
-    elif method_div == "kl2":
-      # biased dual form for kl divergence
-      phi_grad = F.softmax(-reward, dim=0) * reward.shape[0]
-    elif method_div == "kl_fix":
-      # our proposed unbiased form for fixing kl divergence
-      phi_grad = torch.exp(-reward)
-    elif method_div == "js":
-      # jensen–shannon
-      phi_grad = torch.exp(-reward) / (2 - torch.exp(-reward))
-    else:
-      phi_grad = 1
-  loss = -(phi_grad * reward).mean()
+  # with torch.no_grad():
+  #   # Use different divergence functions (For χ2 divergence we instead add a third bellmann error-like term)
+  #   if method_div == "hellinger":
+  #     phi_grad = 1 / (1 + reward)**2
+  #   elif method_div == "kl":
+  #     # original dual form for kl divergence (sub optimal)
+  #     phi_grad = torch.exp(-reward - 1)
+  #   elif method_div == "kl2":
+  #     # biased dual form for kl divergence
+  #     phi_grad = F.softmax(-reward, dim=0) * reward.shape[0]
+  #   elif method_div == "kl_fix":
+  #     # our proposed unbiased form for fixing kl divergence
+  #     phi_grad = torch.exp(-reward)
+  #   elif method_div == "js":
+  #     # jensen–shannon
+  #     phi_grad = torch.exp(-reward) / (2 - torch.exp(-reward))
+  #   else:
+  #     phi_grad = 1
+  # loss = -(phi_grad * reward).mean()
+
+  if method_div == "hellinger":
+    phi_reward = reward / (1 + reward)
+  elif method_div == "kl":
+    # original dual form for kl divergence
+    phi_reward = -torch.exp(-reward - 1)
+  elif method_div == "js":
+    # jensen–shannon
+    phi_reward = torch.log(2 - torch.exp(-reward))
+  elif method_div == "chi":
+    phi_reward = reward - 1 / (4 * method_alpha) * reward**2
+  else:
+    phi_reward = reward
+
+  # phi_reward = torch.clamp(phi_reward, min=-1e20, max=1e20)
+  loss = -phi_reward.mean()
+
   loss_dict['softq_loss'] = loss.item()
 
   # calculate 2nd term for IQ loss, we show different sampling strategies
@@ -104,15 +123,6 @@ def iq_loss(agent, current_Q, current_v, next_v, batch):
                                                          ...], method_lambda_gp)
     loss_dict['gp_loss'] = gp_loss.item()
     loss += gp_loss
-
-  if method_div == "chi" or method_chi:  # TODO: Deprecate method.chi argument for method.div
-    # Use χ2 divergence (calculate the regularization term for IQ loss using expert states) (works offline)
-    y = (1 - done) * gamma * next_v
-
-    reward = current_Q - y
-    chi2_loss = 1 / (4 * method_alpha) * (reward**2)[is_expert].mean()
-    loss += chi2_loss
-    loss_dict['chi2_loss'] = chi2_loss.item()
 
   if method_regularize:
     # Use χ2 divergence (calculate the regularization term for IQ loss using expert and policy states) (works online)

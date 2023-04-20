@@ -5,41 +5,45 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from torch import distributions as pyd
 from torch.autograd import Variable, grad
-
-from ..utils.utils import mlp
-
-
-# Initialize Policy weights
-def orthogonal_init_(m):
-  """Custom weight init for Conv2D and Linear layers."""
-  if isinstance(m, nn.Linear):
-    nn.init.orthogonal_(m.weight.data)
-    if hasattr(m.bias, 'data'):
-      m.bias.data.fill_(0.0)
+from torch.distributions import Categorical, RelaxedOneHotCategorical
+from ..utils.utils import mlp, weight_init
 
 
-class DoubleQCritic(nn.Module):
+class SACQCritic(nn.Module):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
+               double_q: bool = False,
                use_tanh: bool = False):
-    super(DoubleQCritic, self).__init__()
+    super().__init__()
     self.obs_dim = obs_dim
     self.action_dim = action_dim
     self.use_tanh = use_tanh
     self.gamma = gamma
+    self.double_q = double_q
+
+
+class DoubleQCritic(SACQCritic):
+
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               list_hidden_dims,
+               gamma=0.99,
+               use_tanh: bool = False):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, True,
+                     use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q1 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
     # Q2 architecture
-    self.Q2 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q2 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
   def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
@@ -83,28 +87,24 @@ class DoubleQCritic(nn.Module):
     return grad_pen
 
 
-class DoubleQCriticMax(nn.Module):
+class DoubleQCriticMax(SACQCritic):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
-    super(DoubleQCriticMax, self).__init__()
-    self.obs_dim = obs_dim
-    self.action_dim = action_dim
-    self.use_tanh = use_tanh
-    self.gamma = gamma
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, True,
+                     use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q1 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
     # Q2 architecture
-    self.Q2 = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q2 = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
   def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
@@ -123,27 +123,23 @@ class DoubleQCriticMax(nn.Module):
       return torch.max(q1, q2)
 
 
-class SingleQCritic(nn.Module):
+class SingleQCritic(SACQCritic):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
-    super(SingleQCritic, self).__init__()
-    self.obs_dim = obs_dim
-    self.action_dim = action_dim
-    self.use_tanh = use_tanh
-    self.gamma = gamma
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, False,
+                     use_tanh)
 
     # Q architecture
-    self.Q = mlp(obs_dim + action_dim, hidden_dim, 1, hidden_depth)
+    self.Q = mlp(obs_dim + action_dim, 1, list_hidden_dims)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
-  def forward(self, obs, action):
+  def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
 
     obs_action = torch.cat([obs, action], dim=-1)
@@ -180,28 +176,24 @@ class SingleQCritic(nn.Module):
     return grad_pen
 
 
-class DoubleQCriticState(nn.Module):
+class DoubleQCriticState(SACQCritic):
 
   def __init__(self,
                obs_dim,
                action_dim,
-               hidden_dim,
-               hidden_depth,
+               list_hidden_dims,
                gamma=0.99,
                use_tanh: bool = False):
-    super(DoubleQCritic, self).__init__()
-    self.obs_dim = obs_dim
-    self.action_dim = action_dim
-    self.use_tanh = use_tanh
-    self.gamma = gamma
+    super().__init__(obs_dim, action_dim, list_hidden_dims, gamma, True,
+                     use_tanh)
 
     # Q1 architecture
-    self.Q1 = mlp(obs_dim, hidden_dim, 1, hidden_depth)
+    self.Q1 = mlp(obs_dim, 1, list_hidden_dims)
 
     # Q2 architecture
-    self.Q2 = mlp(obs_dim, hidden_dim, 1, hidden_depth)
+    self.Q2 = mlp(obs_dim, 1, list_hidden_dims)
 
-    self.apply(orthogonal_init_)
+    self.apply(weight_init)
 
   def forward(self, obs, action, both=False):
     assert obs.size(0) == action.size(0)
@@ -292,18 +284,79 @@ class SquashedNormal(pyd.transformed_distribution.TransformedDistribution):
     return mu
 
 
-class DiagGaussianActor(nn.Module):
-  """torch.distributions implementation of an diagonal Gaussian policy."""
+class GumbelSoftmax(RelaxedOneHotCategorical):
+  '''
+    A differentiable Categorical distribution using reparametrization trick with Gumbel-Softmax
+    Explanation http://amid.fish/assets/gumbel.html
+    NOTE: use this in place PyTorch's RelaxedOneHotCategorical distribution since its log_prob is not working right (returns positive values)
+    Papers:
+    [1] The Concrete Distribution: A Continuous Relaxation of Discrete Random Variables (Maddison et al, 2017)
+    [2] Categorical Reparametrization with Gumbel-Softmax (Jang et al, 2017)
+    '''
 
-  def __init__(self, obs_dim, action_dim, hidden_dim, hidden_depth,
-               log_std_bounds):
+  def sample(self, sample_shape=torch.Size()):
+    '''Gumbel-softmax sampling. Note rsample is inherited from RelaxedOneHotCategorical'''
+    u = torch.empty(self.logits.size(),
+                    device=self.logits.device,
+                    dtype=self.logits.dtype).uniform_(0, 1)
+    noisy_logits = self.logits - torch.log(-torch.log(u))
+    return torch.argmax(noisy_logits, dim=-1)
+
+  def rsample(self, sample_shape=torch.Size()):
+    '''
+      ref: https://github.com/kengz/SLM-Lab/blob/master/slm_lab/lib/distribution.py
+      Gumbel-softmax resampling using the Straight-Through trick.
+      Credit to Ian Temple for bringing this to our attention. To see standalone code of how this works, refer to https://gist.github.com/yzh119/fd2146d2aeb329d067568a493b20172f
+      '''
+    rout = super().rsample(sample_shape)  # differentiable
+    out = F.one_hot(torch.argmax(rout, dim=-1), self.logits.shape[-1]).float()
+    return (out - rout).detach() + rout
+
+  def log_prob(self, value):
+    '''value is one-hot or relaxed'''
+    if value.shape != self.logits.shape:
+      value = F.one_hot(value.long(), self.logits.shape[-1]).float()
+      assert value.shape == self.logits.shape
+    return -torch.sum(-value * F.log_softmax(self.logits, -1), -1)
+
+
+class AbstractActor(nn.Module):
+
+  def __init__(self, obs_dim, action_dim, list_hidden_dims, log_std_bounds):
     super().__init__()
 
-    self.log_std_bounds = log_std_bounds
-    self.trunk = mlp(obs_dim, hidden_dim, 2 * action_dim, hidden_depth)
+    output_dim = action_dim
+    # if log_std_bounds is given, assume gaussian(continuous) action actor
+    if log_std_bounds is not None:
+      output_dim = 2 * action_dim
 
-    self.outputs = dict()
-    self.apply(orthogonal_init_)
+    self.trunk = mlp(obs_dim, output_dim, list_hidden_dims)
+
+    self.apply(weight_init)
+
+    self.log_std_bounds = log_std_bounds
+
+  def forward(self, obs):
+    raise NotImplementedError
+
+  def rsample(self, obs):
+    raise NotImplementedError
+
+  def sample(self, obs):
+    raise NotImplementedError
+
+  def exploit(self, obs):
+    raise NotImplementedError
+
+  def is_discrete(self):
+    return self.log_std_bounds is None
+
+
+class DiagGaussianActor(AbstractActor):
+  """torch.distributions implementation of an diagonal Gaussian policy."""
+
+  def __init__(self, obs_dim, action_dim, list_hidden_dims, log_std_bounds):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds)
 
   def forward(self, obs):
     mu, log_std = self.trunk(obs).chunk(2, dim=-1)
@@ -315,15 +368,88 @@ class DiagGaussianActor(nn.Module):
 
     std = log_std.exp()
 
-    # self.outputs['mu'] = mu
-    # self.outputs['std'] = std
-
     dist = SquashedNormal(mu, std)
     return dist
 
-  def sample(self, obs):
+  def rsample(self, obs):
     dist = self.forward(obs)
     action = dist.rsample()
     log_prob = dist.log_prob(action).sum(-1, keepdim=True)
 
-    return action, log_prob, dist.mean
+    return action, log_prob
+
+  def sample(self, obs):
+    return self.rsample(obs)
+
+  def exploit(self, obs):
+    return self.forward(obs).mean
+
+
+class DiscreteActor(AbstractActor):
+  'cf) https://github.com/openai/spinningup/issues/148 '
+
+  def __init__(self, obs_dim, action_dim, list_hidden_dims):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds=None)
+
+  def forward(self, obs):
+    logits = self.trunk(obs)
+    dist = Categorical(logits=logits)
+    return dist
+
+  def action_probs(self, obs):
+    dist = self.forward(obs)
+    action_probs = dist.probs
+    # avoid numerical instability
+    z = (action_probs == 0.0).float() * 1e-10
+    log_action_probs = torch.log(action_probs + z)
+
+    return action_probs, log_action_probs
+
+  def exploit(self, obs):
+    dist = self.forward(obs)
+    return dist.logits.argmax(dim=-1)
+
+  def sample(self, obs):
+    dist = self.forward(obs)
+
+    samples = dist.sample()
+    action_log_probs = dist.log_prob(samples)
+
+    return samples, action_log_probs
+
+  def rsample(self, obs):
+    'should not be used'
+    raise NotImplementedError
+
+
+class SoftDiscreteActor(AbstractActor):
+  'cf) https://github.com/openai/spinningup/issues/148 '
+
+  def __init__(self, obs_dim, action_dim, list_hidden_dims, temperature):
+    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds=None)
+    self.temperature = torch.tensor(temperature)
+
+  def forward(self, obs):
+    logits = self.trunk(obs)
+    dist = GumbelSoftmax(self.temperature, logits=logits)
+    return dist
+
+  def exploit(self, obs):
+    dist = self.forward(obs)
+    return dist.logits.argmax(dim=-1)
+
+  def sample(self, obs):
+    dist = self.forward(obs)
+
+    samples = dist.sample()
+    action_log_probs = dist.log_prob(samples).view(-1, 1)
+
+    return samples, action_log_probs
+
+  def rsample(self, obs):
+    dist = self.forward(obs)
+
+    action = dist.rsample()
+    log_prob = dist.log_prob(action).view(-1, 1)
+
+    return action, log_prob

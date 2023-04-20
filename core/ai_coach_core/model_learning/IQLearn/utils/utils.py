@@ -60,6 +60,27 @@ def make_env(env_name, monitor=True, env_make_kwargs={}):
   return env
 
 
+def one_hot(indices: torch.Tensor, num_classes):
+  return F.one_hot(indices.squeeze(-1).long(),
+                   num_classes=num_classes).to(dtype=torch.float)
+
+
+def one_hot_w_nan(indices: torch.Tensor, num_classes):
+  indices_flat = indices.reshape(-1)
+
+  len_ind = len(indices_flat)
+  one_hot_tensor = torch.zeros((len_ind, num_classes),
+                               dtype=torch.float).to(device=indices.device)
+
+  mask_non_nan = ~indices_flat.isnan()
+  valid_indices = indices_flat[mask_non_nan]
+  if len(valid_indices) != 0:
+    one_hot_tensor[mask_non_nan] = F.one_hot(
+        valid_indices.long(), num_classes=num_classes).to(dtype=torch.float)
+
+  return one_hot_tensor
+
+
 class eval_mode(object):
 
   def __init__(self, *models):
@@ -130,31 +151,17 @@ def weight_init(m):
       m.bias.data.fill_(0.0)
 
 
-class MLP(nn.Module):
-
-  def __init__(self,
-               input_dim,
-               hidden_dim,
-               output_dim,
-               hidden_depth,
-               output_mod=None):
-    super().__init__()
-    self.trunk = mlp(input_dim, hidden_dim, output_dim, hidden_depth,
-                     output_mod)
-    self.apply(weight_init)
-
-  def forward(self, x):
-    return self.trunk(x)
-
-
-def mlp(input_dim, hidden_dim, output_dim, hidden_depth, output_mod=None):
-  if hidden_depth == 0:
+def mlp(input_dim, output_dim, list_hidden_dims, output_mod=None):
+  if len(list_hidden_dims) == 0:
     mods = [nn.Linear(input_dim, output_dim)]
   else:
-    mods = [nn.Linear(input_dim, hidden_dim), nn.ReLU(inplace=True)]
-    for i in range(hidden_depth - 1):
-      mods += [nn.Linear(hidden_dim, hidden_dim), nn.ReLU(inplace=True)]
-    mods.append(nn.Linear(hidden_dim, output_dim))
+    mods = [nn.Linear(input_dim, list_hidden_dims[0]), nn.ReLU(inplace=True)]
+    for i in range(len(list_hidden_dims) - 1):
+      mods += [
+          nn.Linear(list_hidden_dims[i], list_hidden_dims[i + 1]),
+          nn.ReLU(inplace=True)
+      ]
+    mods.append(nn.Linear(list_hidden_dims[-1], output_dim))
   if output_mod is not None:
     mods.append(output_mod)
   trunk = nn.Sequential(*mods)

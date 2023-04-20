@@ -93,6 +93,18 @@ class ExpertDataset(Dataset):
             self.trajectories["rewards"][traj_idx][i],
             self.trajectories["dones"][traj_idx][i])
 
+  def num_episodes(self):
+    return len(self.trajectories["states"])
+
+  def sample_episodes(self, num_samples):
+    n_epi = self.num_episodes()
+    indices = np.random.choice(n_epi, num_samples)
+    sampled_trajectories = {}
+    for key, data in self.trajectories.items():
+      sampled_trajectories[key] = [data[i] for i in indices]
+
+    return sampled_trajectories
+
 
 def load_trajectories(expert_location: str,
                       num_trajectories: int = 10,

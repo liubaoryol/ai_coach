@@ -97,6 +97,7 @@ class AppInterface():
       pass
     else:
       self.game.reset_game()
+      self._update_ctrl_ui()
       self._update_canvas_scene()
       self._update_canvas_overlay()
 
@@ -117,6 +118,7 @@ class AppInterface():
     if self._event_based:
       if self._started:
         # ready for inputs
+        self._update_ctrl_ui()
         self._update_canvas_scene()
         self._update_canvas_overlay()
         pass
@@ -160,6 +162,7 @@ class AppInterface():
 
       if not self.game.is_finished():
         # update canvas
+        self._update_ctrl_ui()
         self._update_canvas_scene()
         self._update_canvas_overlay()
         # pop-up for latent?
@@ -185,6 +188,9 @@ class AppInterface():
     agent, e_type, e_value = self._conv_mouse_to_agent_event(
         RIGHT_CLICK, (event.x, event.y))
     self.game.event_input(agent, e_type, e_value)
+
+  def _update_ctrl_ui(self):
+    self.label_score.config(text=str(self.game.get_score()))
 
   def _update_canvas_scene(self):
     pass

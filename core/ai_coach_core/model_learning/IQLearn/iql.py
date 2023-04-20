@@ -10,10 +10,12 @@ from .utils.utils import (make_env, eval_mode, average_dicts,
                           get_concat_samples, evaluate, soft_update,
                           hard_update)
 
-from .agent import make_agent
-from .agent.softq_models import SimpleQNetwork
+from .agent import make_sac_agent, make_softq_agent, make_sacd_agent
+from .agent.softq_models import SimpleQNetwork, SingleQCriticDiscrete
+from .agent.sac_models import DoubleQCritic, SingleQCritic
 from .dataset.memory import Memory
 from torch.utils.tensorboard import SummaryWriter
+import torch.nn as nn
 from .utils.logger import Logger
 from itertools import count
 import types
@@ -29,22 +31,28 @@ def run_iql(env_name,
             log_dir,
             output_dir,
             replay_mem,
-            initial_mem,
             eps_steps,
             eps_window,
             num_learn_steps,
+            initial_mem=None,
+            agent_name: str = "softq",
             output_suffix="",
-            log_interval=1000,
+            log_interval=500,
             eval_interval=2000,
+            gumbel_temperature: float = 1.0,
+            list_hidden_dims=[256, 256],
+            clip_grad_val=None,
+            learn_alpha=False,
+            learning_rate=0.005,
             load_path: Optional[str] = None):
+  'agent_name: softq / sac / sacd'
   # constants
-  num_seed_steps = 0
   num_episodes = 10
   save_interval = 10
   is_sqil = False
   only_expert_states = False
-  use_target = False
-  agent_name = "softq"  # either softq or sac
+  if initial_mem is None:
+    initial_mem = batch_size
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -73,8 +81,55 @@ def run_iql(env_name,
   EPISODE_WINDOW = int(eps_window)
   LEARN_STEPS = int(num_learn_steps)
 
-  q_net_base = SimpleQNetwork
-  agent = make_agent(env, batch_size, device_name, q_net_base)
+  if agent_name == "softq":
+    q_net_base = SimpleQNetwork
+    use_target = False
+    do_soft_update = False
+    agent = make_softq_agent(env,
+                             batch_size,
+                             device_name,
+                             q_net_base,
+                             critic_target_update_frequency=4,
+                             critic_tau=0.1,
+                             critic_lr=learning_rate,
+                             list_hidden_dims=list_hidden_dims)
+  elif agent_name == "sac":
+    critic_base = DoubleQCritic
+    use_target = True
+    do_soft_update = True
+    agent = make_sac_agent(env,
+                           batch_size,
+                           device_name,
+                           critic_base,
+                           critic_target_update_frequency=1,
+                           critic_tau=0.005,
+                           gumbel_temperature=gumbel_temperature,
+                           learn_temp=learn_alpha,
+                           critic_lr=learning_rate,
+                           actor_lr=learning_rate,
+                           alpha_lr=learning_rate,
+                           list_critic_hidden_dims=list_hidden_dims,
+                           list_actor_hidden_dims=list_hidden_dims,
+                           clip_grad_val=clip_grad_val)
+  elif agent_name == "sacd":
+    critic_base = SingleQCriticDiscrete
+    use_target = True
+    do_soft_update = True
+    agent = make_sacd_agent(env,
+                            batch_size,
+                            device_name,
+                            critic_base,
+                            critic_target_update_frequency=1,
+                            critic_tau=0.005,
+                            critic_lr=learning_rate,
+                            actor_lr=learning_rate,
+                            alpha_lr=learning_rate,
+                            learn_temp=learn_alpha,
+                            list_critic_hidden_dims=list_hidden_dims,
+                            list_actor_hidden_dims=list_hidden_dims,
+                            clip_grad_val=clip_grad_val)
+  else:
+    raise NotImplementedError
 
   if load_path is not None:
     if os.path.isfile(load_path):
@@ -97,7 +152,7 @@ def run_iql(env_name,
   # Setup logging
   ts_str = datetime.datetime.fromtimestamp(
       time.time()).strftime("%Y-%m-%d_%H-%M-%S")
-  log_dir = os.path.join(log_dir, env_name, ts_str)
+  log_dir = os.path.join(log_dir, env_name, agent_name, ts_str)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
@@ -106,10 +161,7 @@ def run_iql(env_name,
                   save_tb=True,
                   agent=agent_name)
 
-  steps = 0
-
   # track mean reward and scores
-  scores_window = deque(maxlen=EPISODE_WINDOW)  # last N scores
   rewards_window = deque(maxlen=EPISODE_WINDOW)  # last N rewards
   best_eval_returns = -np.inf
 
@@ -122,18 +174,15 @@ def run_iql(env_name,
     episode_reward = 0
     done = False
 
-    start_time = time.time()
     for episode_step in range(EPISODE_STEPS):
 
-      # if steps < args.num_seed_steps:
-      #   # Seed replay buffer with random actions
-      #   action = env.action_space.sample()
-      # else:
       with eval_mode(agent):
+        # if not begin_learn:
+        #   action = env.action_space.sample()
+        # else:
         action = agent.choose_action(state, sample=True)
-      next_state, reward, done, _ = env.step(action)
+      next_state, reward, done, info = env.step(action)
       episode_reward += reward
-      steps += 1
 
       if learn_steps % eval_interval == 0 and begin_learn:
         eval_returns, eval_timesteps = evaluate(agent,
@@ -142,9 +191,7 @@ def run_iql(env_name,
         returns = np.mean(eval_returns)
         # learn_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode_reward', returns, learn_steps)
-        logger.log('eval/episode', epoch, learn_steps)
         logger.dump(learn_steps, ty='eval')
-        # print('EVAL\tEp {}\tAverage reward: {:.2f}\t'.format(epoch, returns))
 
         if returns > best_eval_returns:
           # Store best eval returns
@@ -160,21 +207,19 @@ def run_iql(env_name,
 
       # only store done true when episode finishes without hitting timelimit (allow infinite bootstrap)
       done_no_lim = done
-      if str(env.__class__.__name__).find(
-          'TimeLimit') >= 0 and episode_step + 1 == env._max_episode_steps:
+      if info.get('TimeLimit.truncated', False):
         done_no_lim = 0
       online_memory_replay.add((state, next_state, action, reward, done_no_lim))
 
+      learn_steps += 1
       if online_memory_replay.size() > INITIAL_MEMORY:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        learn_steps += 1
         if learn_steps == LEARN_STEPS:
           print('Finished!')
-          # wandb.finish()
           return
 
         ######
@@ -183,7 +228,7 @@ def run_iql(env_name,
         agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
         losses = agent.iq_update(online_memory_replay, expert_memory_replay,
                                  logger, learn_steps, only_expert_states,
-                                 is_sqil, use_target)
+                                 is_sqil, use_target, do_soft_update)
         ######
 
         if learn_steps % log_interval == 0:
@@ -197,7 +242,7 @@ def run_iql(env_name,
     rewards_window.append(episode_reward)
     logger.log('train/episode', epoch, learn_steps)
     logger.log('train/episode_reward', episode_reward, learn_steps)
-    logger.log('train/duration', time.time() - start_time, learn_steps)
+    logger.log('train/episode_step', episode_step, learn_steps)
     logger.dump(learn_steps, save=begin_learn)
     save(agent,
          epoch,
@@ -311,15 +356,14 @@ def iq_update_critic(self,
   else:
     next_V = self.getV(next_obs)
 
-  if "DoubleQ" in self.__class__.__name__:
-    current_Q1, current_Q2 = self.critic(obs, action, both=True)
-    q1_loss, loss_dict1 = iq_loss(agent, current_Q1, current_V, next_V, batch)
-    q2_loss, loss_dict2 = iq_loss(agent, current_Q2, current_V, next_V, batch)
+  current_Q = self.critic(obs, action, both=True)
+  if isinstance(current_Q, tuple):
+    q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], current_V, next_V, batch)
+    q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], current_V, next_V, batch)
     critic_loss = 1 / 2 * (q1_loss + q2_loss)
     # merge loss dicts
     loss_dict = average_dicts(loss_dict1, loss_dict2)
   else:
-    current_Q = self.critic(obs, action)
     critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V, batch)
 
   logger.log('train/critic_loss', critic_loss, step)
@@ -327,6 +371,8 @@ def iq_update_critic(self,
   # Optimize the critic
   self.critic_optimizer.zero_grad()
   critic_loss.backward()
+  if hasattr(self, 'clip_grad_val') and self.clip_grad_val is not None:
+    nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
   # step critic
   self.critic_optimizer.step()
   return loss_dict
@@ -339,7 +385,8 @@ def iq_update(self,
               step,
               only_expert_states=False,
               is_sqil=False,
-              use_target=False):
+              use_target=False,
+              do_soft_update=False):
   policy_batch = policy_buffer.get_samples(self.batch_size, self.device)
   expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
 
@@ -350,7 +397,6 @@ def iq_update(self,
   vdice_actor = False
   offline = False
   num_actor_updates = 1
-  do_soft_update = False
 
   if self.actor and step % self.actor_update_frequency == 0:
     if not vdice_actor:

@@ -5,8 +5,8 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
-
-from ..utils.utils import soft_update
+from .sac_models import AbstractActor
+from ..utils.utils import soft_update, one_hot
 
 
 class SAC(object):
@@ -14,8 +14,8 @@ class SAC(object):
   def __init__(self,
                obs_dim,
                action_dim,
-               action_range,
                batch_size,
+               discrete_obs,
                device,
                gamma,
                critic_tau,
@@ -25,40 +25,39 @@ class SAC(object):
                critic_betas,
                use_tanh: bool,
                critic_base: Type[nn.Module],
-               actor_base: Type[nn.Module],
+               actor: AbstractActor,
                learn_temp,
                actor_update_frequency,
                actor_lr,
                actor_betas,
                alpha_lr,
                alpha_betas,
-               critic_hidden_dim=256,
-               critic_hidden_depth=2,
-               actor_hidden_dim=256,
-               actor_hidden_depth=2,
-               log_std_bounds=[-5, 2]):
+               list_critic_hidden_dims,
+               clip_grad_val=None):
     self.gamma = gamma
     self.batch_size = batch_size
-    self.action_range = action_range
+    self.discrete_obs = discrete_obs
+    self.obs_dim = obs_dim
+    self.action_dim = action_dim
+
     self.device = torch.device(device)
 
+    self.clip_grad_val = clip_grad_val
     self.critic_tau = critic_tau
     self.learn_temp = learn_temp
     self.actor_update_frequency = actor_update_frequency
     self.critic_target_update_frequency = critic_target_update_frequency
 
-    self.critic = critic_base(obs_dim, action_dim, critic_hidden_dim,
-                              critic_hidden_depth, gamma,
-                              use_tanh).to(self.device)
+    self._critic = critic_base(obs_dim, action_dim, list_critic_hidden_dims,
+                               gamma, use_tanh).to(self.device)
 
-    self.critic_target = critic_base(obs_dim, action_dim, critic_hidden_dim,
-                                     critic_hidden_depth, gamma,
+    self.critic_target = critic_base(obs_dim, action_dim,
+                                     list_critic_hidden_dims, gamma,
                                      use_tanh).to(self.device)
 
-    self.critic_target.load_state_dict(self.critic.state_dict())
+    self.critic_target.load_state_dict(self._critic.state_dict())
 
-    self.actor = actor_base(obs_dim, action_dim, actor_hidden_dim,
-                            actor_hidden_depth, log_std_bounds).to(self.device)
+    self.actor = actor.to(self.device)
 
     self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
     self.log_alpha.requires_grad = True
@@ -69,7 +68,7 @@ class SAC(object):
     self.actor_optimizer = Adam(self.actor.parameters(),
                                 lr=actor_lr,
                                 betas=actor_betas)
-    self.critic_optimizer = Adam(self.critic.parameters(),
+    self.critic_optimizer = Adam(self._critic.parameters(),
                                  lr=critic_lr,
                                  betas=critic_betas)
     self.log_alpha_optimizer = Adam([self.log_alpha],
@@ -81,7 +80,7 @@ class SAC(object):
   def train(self, training=True):
     self.training = training
     self.actor.train(training)
-    self.critic.train(training)
+    self._critic.train(training)
 
   @property
   def alpha(self):
@@ -89,27 +88,74 @@ class SAC(object):
 
   @property
   def critic_net(self):
-    return self.critic
+    return self._critic
 
   @property
   def critic_target_net(self):
     return self.critic_target
 
   def choose_action(self, state, sample=False):
-    state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-    dist = self.actor(state)
-    action = dist.sample() if sample else dist.mean
-    # assert action.ndim == 2 and action.shape[0] == 1
+    # --- convert state
+    if self.discrete_obs:
+      state = torch.FloatTensor([state]).to(self.device)
+      state = one_hot(state, self.obs_dim)
+      state = state.view(-1, self.obs_dim)
+    # ------
+    else:
+      state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+
+    with torch.no_grad():
+      if sample:
+        action, _ = self.actor.sample(state)
+      else:
+        action = self.actor.exploit(state)
+
     return action.detach().cpu().numpy()[0]
 
+  def critic(self, obs, action, both=False):
+
+    # --- convert state
+    if self.discrete_obs:
+      obs = one_hot(obs, self.obs_dim)
+    # ------
+
+    # --- convert discrete action
+    if self.actor.is_discrete():
+      action = one_hot(action, self.action_dim)
+    # ------
+
+    return self._critic(obs, action, both)
+
   def getV(self, obs):
-    action, log_prob, _ = self.actor.sample(obs)
-    current_Q = self.critic(obs, action)
+
+    # --- convert state
+    if self.discrete_obs:
+      obs = one_hot(obs, self.obs_dim)
+    # ------
+
+    action, log_prob = self.actor.sample(obs)
+    # --- convert discrete action
+    if self.actor.is_discrete():
+      action = one_hot(action, self.action_dim)
+    # ------
+
+    current_Q = self._critic(obs, action)
     current_V = current_Q - self.alpha.detach() * log_prob
     return current_V
 
   def get_targetV(self, obs):
-    action, log_prob, _ = self.actor.sample(obs)
+
+    # --- convert state
+    if self.discrete_obs:
+      obs = one_hot(obs, self.obs_dim)
+    # ------
+
+    action, log_prob = self.actor.sample(obs)
+    # --- convert discrete action
+    if self.actor.is_discrete():
+      action = one_hot(action, self.action_dim)
+    # ------
+
     target_Q = self.critic_target(obs, action)
     target_V = target_Q - self.alpha.detach() * log_prob
     return target_V
@@ -126,40 +172,64 @@ class SAC(object):
       losses.update(actor_alpha_losses)
 
     if step % self.critic_target_update_frequency == 0:
-      soft_update(self.critic, self.critic_target, self.critic_tau)
+      soft_update(self._critic, self.critic_target, self.critic_tau)
 
     return losses
 
   def update_critic(self, obs, action, reward, next_obs, done, logger, step):
 
+    # --- convert state
+    if self.discrete_obs:
+      obs = one_hot(obs, self.obs_dim)
+      next_obs = one_hot(next_obs, self.obs_dim)
+    # ------
+
     with torch.no_grad():
-      next_action, log_prob, _ = self.actor.sample(next_obs)
+      next_action, log_prob = self.actor.sample(next_obs)
+      # --- convert discrete action
+      if self.actor.is_discrete():
+        next_action = one_hot(next_action, self.action_dim)
+      # ------
 
       target_Q = self.critic_target(next_obs, next_action)
       target_V = target_Q - self.alpha.detach() * log_prob
       target_Q = reward + (1 - done) * self.gamma * target_V
 
+    # --- convert discrete action
+    if self.actor.is_discrete():
+      action = one_hot(action, self.action_dim)
+    # ------
+
     # get current Q estimates
-    current_Q1, current_Q2 = self.critic(obs, action, both=True)
-    q1_loss = F.mse_loss(current_Q1, target_Q)
-    q2_loss = F.mse_loss(current_Q2, target_Q)
-    critic_loss = q1_loss + q2_loss
+    current_Q = self._critic(obs, action, both=True)
+    if isinstance(current_Q, tuple):
+      q1_loss = F.mse_loss(current_Q[0], target_Q)
+      q2_loss = F.mse_loss(current_Q[1], target_Q)
+      critic_loss = q1_loss + q2_loss
+    else:
+      critic_loss = F.mse_loss(current_Q, target_Q)
+
+    logger.log('train/critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
+    if self.clip_grad_val is not None:
+      nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
     # self.critic.log(logger, step)
-    return {
-        'critic_loss/critic_1': q1_loss.item(),
-        'critic_loss/critic_2': q2_loss.item(),
-        'loss/critic': critic_loss.item()
-    }
+    return {'loss/critic': critic_loss.item()}
 
   def update_actor_and_alpha(self, obs, logger, step):
-    action, log_prob, _ = self.actor.sample(obs)
-    actor_Q = self.critic(obs, action)
+
+    # --- convert state
+    if self.discrete_obs:
+      obs = one_hot(obs, self.obs_dim)
+    # ------
+
+    action, log_prob = self.actor.rsample(obs)
+    actor_Q = self._critic(obs, action)
 
     actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
 
@@ -170,6 +240,8 @@ class SAC(object):
     # optimize the actor
     self.actor_optimizer.zero_grad()
     actor_loss.backward()
+    if self.clip_grad_val is not None:
+      nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
     self.actor_optimizer.step()
 
     losses = {
@@ -181,7 +253,7 @@ class SAC(object):
     # self.actor.log(logger, step)
     if self.learn_temp:
       self.log_alpha_optimizer.zero_grad()
-      alpha_loss = (self.alpha *
+      alpha_loss = (self.log_alpha *
                     (-log_prob - self.target_entropy).detach()).mean()
       logger.log('train/alpha_loss', alpha_loss, step)
       logger.log('train/alpha_value', self.alpha, step)
@@ -202,7 +274,7 @@ class SAC(object):
 
     # print('Saving models to {} and {}'.format(actor_path, critic_path))
     torch.save(self.actor.state_dict(), actor_path)
-    torch.save(self.critic.state_dict(), critic_path)
+    torch.save(self._critic.state_dict(), critic_path)
 
   # Load model parameters
   def load(self, path):
@@ -213,15 +285,31 @@ class SAC(object):
       self.actor.load_state_dict(
           torch.load(actor_path, map_location=self.device))
     if critic_path is not None:
-      self.critic.load_state_dict(
+      self._critic.load_state_dict(
           torch.load(critic_path, map_location=self.device))
 
   def infer_q(self, state, action):
-    state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-    action = torch.FloatTensor(action).unsqueeze(0).to(self.device)
+
+    # --- convert state
+    if self.discrete_obs:
+      state = torch.FloatTensor([state]).to(self.device)
+      state = one_hot(state, self.obs_dim)
+      state = state.view(-1, self.obs_dim)
+    # ------
+    else:
+      state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+
+    # --- convert action
+    if self.actor.is_discrete():
+      action = torch.FloatTensor([action]).to(self.device)
+      action = one_hot(action, self.action_dim)
+      action = action.view(-1, self.action_dim)
+    # ------
+    else:
+      action = torch.FloatTensor(action).unsqueeze(0).to(self.device)
 
     with torch.no_grad():
-      q = self.critic(state, action)
+      q = self._critic(state, action)
     return q.squeeze(0).cpu().numpy()
 
   def infer_v(self, state):
@@ -229,43 +317,3 @@ class SAC(object):
     with torch.no_grad():
       v = self.getV(state).squeeze()
     return v.cpu().numpy()
-
-  def sample_actions(self, obs, num_actions):
-    """For CQL style training."""
-    obs_temp = obs.unsqueeze(1).repeat(1, num_actions,
-                                       1).view(obs.shape[0] * num_actions,
-                                               obs.shape[1])
-    action, log_prob, _ = self.actor.sample(obs_temp)
-    return action, log_prob.view(obs.shape[0], num_actions, 1)
-
-  def _get_tensor_values(self, obs, actions, network=None):
-    """For CQL style training."""
-    action_shape = actions.shape[0]
-    obs_shape = obs.shape[0]
-    num_repeat = int(action_shape / obs_shape)
-    obs_temp = obs.unsqueeze(1).repeat(1, num_repeat,
-                                       1).view(obs.shape[0] * num_repeat,
-                                               obs.shape[1])
-    preds = network(obs_temp, actions)
-    preds = preds.view(obs.shape[0], num_repeat, 1)
-    return preds
-
-  def cqlV(self, obs, network, num_random=10):
-    """For CQL style training."""
-    # importance sampled version
-    action, log_prob = self.sample_actions(obs, num_random)
-    current_Q = self._get_tensor_values(obs, action, network)
-
-    random_action = torch.FloatTensor(obs.shape[0] * num_random,
-                                      action.shape[-1]).uniform_(-1, 1).to(
-                                          self.device)
-
-    random_density = np.log(0.5**action.shape[-1])
-    rand_Q = self._get_tensor_values(obs, random_action, network)
-    alpha = self.alpha.detach()
-
-    cat_Q = torch.cat([
-        rand_Q - alpha * random_density, current_Q - alpha * log_prob.detach()
-    ], 1)
-    cql_V = torch.logsumexp(cat_Q / alpha, dim=1).mean() * alpha
-    return cql_V
