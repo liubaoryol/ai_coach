@@ -44,7 +44,8 @@ def run_iql(env_name,
             clip_grad_val=None,
             learn_alpha=False,
             learning_rate=0.005,
-            load_path: Optional[str] = None):
+            load_path: Optional[str] = None,
+            bounded_actor=True):
   'agent_name: softq / sac / sacd'
   # constants
   num_episodes = 10
@@ -110,7 +111,8 @@ def run_iql(env_name,
                            alpha_lr=learning_rate,
                            list_critic_hidden_dims=list_hidden_dims,
                            list_actor_hidden_dims=list_hidden_dims,
-                           clip_grad_val=clip_grad_val)
+                           clip_grad_val=clip_grad_val,
+                           bounded_actor=bounded_actor)
   elif agent_name == "sacd":
     critic_base = SingleQCriticDiscrete
     use_target = True

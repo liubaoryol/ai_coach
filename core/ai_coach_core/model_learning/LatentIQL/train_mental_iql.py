@@ -28,7 +28,6 @@ def train_mental_iql(env_name,
                      log_dir,
                      output_dir,
                      replay_mem,
-                     eps_steps,
                      eps_window,
                      num_learn_steps,
                      initial_mem=None,
@@ -40,7 +39,8 @@ def train_mental_iql(env_name,
                      clip_grad_val=None,
                      learn_alpha=False,
                      learning_rate=0.005,
-                     load_path: Optional[str] = None):
+                     load_path: Optional[str] = None,
+                     bounded_actor=True):
   agent_name = "miql"
   # constants
   num_episodes = 10
@@ -70,11 +70,10 @@ def train_mental_iql(env_name,
   env.seed(seed)
   eval_env.seed(seed + 10)
 
-  REPLAY_MEMORY = int(replay_mem)
-  INITIAL_MEMORY = int(initial_mem)
-  EPISODE_STEPS = int(eps_steps)
-  EPISODE_WINDOW = int(eps_window)
-  LEARN_STEPS = int(num_learn_steps)
+  replay_mem = int(replay_mem)
+  initial_mem = int(initial_mem)
+  eps_window = int(eps_window)
+  num_learn_steps = int(num_learn_steps)
 
   use_target = True
   do_soft_update = True
@@ -93,7 +92,8 @@ def train_mental_iql(env_name,
                           list_critic_hidden_dims=list_hidden_dims,
                           list_actor_hidden_dims=list_hidden_dims,
                           list_thinker_hidden_dims=list_hidden_dims,
-                          clip_grad_val=clip_grad_val)
+                          clip_grad_val=clip_grad_val,
+                          bounded_actor=bounded_actor)
 
   if load_path is not None:
     if os.path.isfile(load_path):
@@ -106,7 +106,7 @@ def train_mental_iql(env_name,
   expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
   print(f'--> Expert memory size: {len(expert_dataset)}')
 
-  online_memory_replay = MentalMemory(REPLAY_MEMORY, seed + 1)
+  online_memory_replay = MentalMemory(replay_mem, seed + 1)
 
   # Setup logging
   ts_str = datetime.datetime.fromtimestamp(
@@ -121,7 +121,7 @@ def train_mental_iql(env_name,
                   agent=agent_name)
 
   # track mean reward and scores
-  rewards_window = deque(maxlen=EPISODE_WINDOW)  # last N rewards
+  rewards_window = deque(maxlen=eps_window)  # last N rewards
   best_eval_returns = -np.inf
 
   begin_learn = False
@@ -132,12 +132,12 @@ def train_mental_iql(env_name,
   for epoch in count():
     state = env.reset()
     prev_lat = NAN
-    prev_act = NAN
+    prev_act = (NAN if agent.actor.is_discrete() else np.zeros(
+        env.action_space.shape))
     episode_reward = 0
     done = False
 
-    for episode_step in range(EPISODE_STEPS):
-
+    for episode_step in count():
       with eval_mode(agent):
         # if not begin_learn:
         #   action = env.action_space.sample()
@@ -179,13 +179,13 @@ def train_mental_iql(env_name,
                                 action, reward, done_no_lim))
 
       learn_steps += 1
-      if online_memory_replay.size() > INITIAL_MEMORY:
+      if online_memory_replay.size() >= initial_mem:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        if learn_steps == LEARN_STEPS:
+        if learn_steps == num_learn_steps:
           print('Finished!')
           return
 

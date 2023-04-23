@@ -355,8 +355,14 @@ class AbstractActor(nn.Module):
 class DiagGaussianActor(AbstractActor):
   """torch.distributions implementation of an diagonal Gaussian policy."""
 
-  def __init__(self, obs_dim, action_dim, list_hidden_dims, log_std_bounds):
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               list_hidden_dims,
+               log_std_bounds,
+               bounded=True):
     super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds)
+    self.bounded = bounded
 
   def forward(self, obs):
     mu, log_std = self.trunk(obs).chunk(2, dim=-1)
@@ -368,7 +374,7 @@ class DiagGaussianActor(AbstractActor):
 
     std = log_std.exp()
 
-    dist = SquashedNormal(mu, std)
+    dist = SquashedNormal(mu, std) if self.bounded else pyd.Normal(mu, std)
     return dist
 
   def rsample(self, obs):
