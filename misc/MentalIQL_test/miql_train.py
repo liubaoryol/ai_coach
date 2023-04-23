@@ -99,7 +99,6 @@ def main(domain, num_data):
                      LOG_DIR,
                      output_dir,
                      replay_mem=3000,
-                     eps_steps=200,
                      eps_window=10,
                      num_learn_steps=num_iterations,
                      log_interval=100,

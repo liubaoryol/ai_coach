@@ -30,7 +30,8 @@ def make_miql_agent(env: gym.Env,
                     list_thinker_hidden_dims=[256, 256],
                     log_std_bounds=[-5, 2],
                     gumbel_temperature=0.5,
-                    clip_grad_val=None):
+                    clip_grad_val=None,
+                    bounded_actor=True):
   'discrete observation may not work well'
 
   if isinstance(env.observation_space, Discrete):
@@ -52,7 +53,8 @@ def make_miql_agent(env: gym.Env,
   else:
     action_dim = env.action_space.shape[0]
     actor = DiagGaussianMentalActor(obs_dim, action_dim, lat_dim,
-                                    list_actor_hidden_dims, log_std_bounds)
+                                    list_actor_hidden_dims, log_std_bounds,
+                                    bounded_actor)
 
   thinker = SoftDiscreteMentalThinker(obs_dim, action_dim, lat_dim,
                                       list_thinker_hidden_dims,

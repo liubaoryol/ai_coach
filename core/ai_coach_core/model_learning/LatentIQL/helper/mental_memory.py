@@ -46,6 +46,8 @@ class MentalMemory(object):
     (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs, batch_latent,
      batch_action, batch_reward, batch_done) = zip(*batch)
 
+    n_batch = len(batch_obs)
+
     # Scale obs for atari. TODO: Use flags
     if isinstance(batch_obs[0], LazyFrames):
       # Use lazyframes for improved memory storage (same as original DQN)
@@ -59,27 +61,28 @@ class MentalMemory(object):
     batch_prev_act = np.array(batch_prev_act)
     batch_latent = np.array(batch_latent)
 
-    batch_obs = torch.as_tensor(batch_obs, dtype=torch.float, device=device)
+    batch_obs = torch.as_tensor(batch_obs, dtype=torch.float,
+                                device=device).reshape(n_batch, -1)
     batch_next_obs = torch.as_tensor(batch_next_obs,
                                      dtype=torch.float,
-                                     device=device)
+                                     device=device).reshape(n_batch, -1)
     batch_action = torch.as_tensor(batch_action,
                                    dtype=torch.float,
-                                   device=device)
+                                   device=device).reshape(n_batch, -1)
     batch_prev_lat = torch.as_tensor(batch_prev_lat,
                                      dtype=torch.float,
-                                     device=device)
+                                     device=device).reshape(n_batch, -1)
     batch_prev_act = torch.as_tensor(batch_prev_act,
                                      dtype=torch.float,
-                                     device=device)
+                                     device=device).reshape(n_batch, -1)
     batch_latent = torch.as_tensor(batch_latent,
                                    dtype=torch.float,
-                                   device=device)
+                                   device=device).reshape(n_batch, -1)
     batch_reward = torch.as_tensor(batch_reward,
                                    dtype=torch.float,
-                                   device=device).unsqueeze(1)
+                                   device=device).reshape(n_batch, -1)
     batch_done = torch.as_tensor(batch_done, dtype=torch.float,
-                                 device=device).unsqueeze(1)
+                                 device=device).reshape(n_batch, -1)
 
     return (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs,
             batch_latent, batch_action, batch_reward, batch_done)

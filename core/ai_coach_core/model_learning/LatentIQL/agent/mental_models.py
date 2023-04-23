@@ -1,6 +1,7 @@
 import ai_coach_core.model_learning.IQLearn.agent.sac_models as iqlm
 import torch
 import torch.nn as nn
+from torch.distributions import Normal
 from torch.autograd import Variable, grad
 from ai_coach_core.model_learning.IQLearn.utils.utils import mlp, weight_init
 
@@ -192,10 +193,16 @@ class SoftDiscreteMentalActor(AbstractMentalActor):
 
 class DiagGaussianMentalActor(AbstractMentalActor):
 
-  def __init__(self, obs_dim, action_dim, lat_dim, list_hidden_dims,
-               log_std_bounds):
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               lat_dim,
+               list_hidden_dims,
+               log_std_bounds,
+               bounded=True):
     super().__init__(obs_dim, action_dim, lat_dim, list_hidden_dims)
     self.log_std_bounds = log_std_bounds
+    self.bounded = bounded
 
   def _get_output_dim(self):
     return 2 * self.action_dim
@@ -209,7 +216,7 @@ class DiagGaussianMentalActor(AbstractMentalActor):
 
     std = log_std.exp()
 
-    dist = iqlm.SquashedNormal(mu, std)
+    dist = iqlm.SquashedNormal(mu, std) if self.bounded else Normal(mu, std)
     return dist
 
   def rsample(self, obs, lat):

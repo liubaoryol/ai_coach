@@ -63,7 +63,8 @@ def make_sac_agent(env: gym.Env,
                    list_actor_hidden_dims=[256, 256],
                    log_std_bounds=[-5, 2],
                    gumbel_temperature=0.5,
-                   clip_grad_val=None):
+                   clip_grad_val=None,
+                   bounded_actor=True):
   'discrete observation may not work well'
 
   if isinstance(env.observation_space, Discrete):
@@ -85,7 +86,7 @@ def make_sac_agent(env: gym.Env,
   else:
     action_dim = env.action_space.shape[0]
     actor = DiagGaussianActor(obs_dim, action_dim, list_actor_hidden_dims,
-                              log_std_bounds)
+                              log_std_bounds, bounded_actor)
 
   agent = SAC(obs_dim, action_dim, batch_size, discrete_obs, device_name, gamma,
               critic_tau, critic_lr, critic_target_update_frequency, init_temp,

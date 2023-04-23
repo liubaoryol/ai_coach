@@ -34,17 +34,19 @@ def conv_trajectories_2_iql_format(sax_trajectories: Sequence,
       done = nxt_action is None
       traj.append((state, nxt_state, aidx, latent, reward, done))
 
+    len_traj = len(traj)
+
     unzipped_traj = zip(*traj)
     states, next_states, actions, latents, rewards, dones = map(
-        list, unzipped_traj)
+        np.array, unzipped_traj)
 
-    expert_trajs["states"].append(states)
-    expert_trajs["next_states"].append(next_states)
-    expert_trajs["actions"].append(actions)
+    expert_trajs["states"].append(states.reshape(len_traj, -1))
+    expert_trajs["next_states"].append(next_states.reshape(len_traj, -1))
+    expert_trajs["actions"].append(actions.reshape(len_traj, -1))
     expert_trajs["rewards"].append(rewards)
     expert_trajs["dones"].append(dones)
     expert_trajs["lengths"].append(len(traj))
-    expert_trajs["latents"].append(latents)
+    expert_trajs["latents"].append(latents.reshape(len_traj, -1))
 
   print('Final size of Replay Buffer: {}'.format(sum(expert_trajs["lengths"])))
   with open(path, 'wb') as f:
@@ -122,19 +124,20 @@ def evaluate(agent: MentalSAC, env: Env, num_episodes=10, vis=True):
   while len(total_returns) < num_episodes:
     state = env.reset()
     prev_latent = NAN
-    prev_action = NAN
+    prev_act = (NAN if agent.actor.is_discrete() else np.zeros(
+        env.action_space.shape))
     done = False
 
     with eval_mode(agent):
       while not done:
         latent, action = agent.choose_action(state,
                                              prev_latent,
-                                             prev_action,
+                                             prev_act,
                                              sample=False)
         next_state, reward, done, info = env.step(action)
         state = next_state
         prev_latent = latent
-        prev_action = action
+        prev_act = action
 
         if 'episode' in info.keys():
           total_returns.append(info['episode']['r'])
@@ -189,6 +192,9 @@ def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
   mental_states = infer_mental_states(agent, expert_traj, num_latent)
   num_samples = len(expert_traj["states"])
 
+  prev_latent = NAN
+  prev_action = (NAN if agent.actor.is_discrete() else np.zeros_like(
+      expert_traj["actions"][0][0]))
   batch_obs = []
   batch_prev_lat = []
   batch_prev_act = []
@@ -197,15 +203,30 @@ def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
   batch_action = []
   batch_reward = []
   batch_done = []
+
   for i_e in range(num_samples):
-    batch_obs = batch_obs + expert_traj["states"][i_e]
-    batch_prev_lat = batch_prev_lat + [NAN] + mental_states[i_e][:-1]
-    batch_prev_act = batch_prev_act + [NAN] + expert_traj["actions"][i_e][:-1]
-    batch_next_obs = batch_next_obs + expert_traj["next_states"][i_e]
-    batch_latent = batch_latent + mental_states[i_e]
-    batch_action = batch_action + expert_traj["actions"][i_e]
-    batch_reward = batch_reward + expert_traj["rewards"][i_e]
-    batch_done = batch_done + expert_traj["dones"][i_e]
+    batch_obs.append(np.array(expert_traj["states"][i_e]))
+
+    batch_prev_lat.append(np.array(prev_latent).reshape(-1))
+    batch_prev_lat.append(np.array(mental_states[i_e][:-1]).reshape(-1, 1))
+
+    batch_prev_act.append(np.array(prev_action).reshape(-1))
+    batch_prev_act.append(np.array(expert_traj["actions"][i_e][:-1]))
+
+    batch_next_obs.append(np.array(expert_traj["next_states"][i_e]))
+    batch_latent.append(np.array(mental_states[i_e]).reshape(-1, 1))
+    batch_action.append(np.array(expert_traj["actions"][i_e]))
+    batch_reward.append(np.array(expert_traj["rewards"][i_e]).reshape(-1, 1))
+    batch_done.append(np.array(expert_traj["dones"][i_e]).reshape(-1, 1))
+
+  batch_obs = np.vstack(batch_obs)
+  batch_prev_lat = np.vstack(batch_prev_lat)
+  batch_prev_act = np.vstack(batch_prev_act)
+  batch_next_obs = np.vstack(batch_next_obs)
+  batch_latent = np.vstack(batch_latent)
+  batch_action = np.vstack(batch_action)
+  batch_reward = np.vstack(batch_reward)
+  batch_done = np.vstack(batch_done)
 
   batch_obs = torch.as_tensor(batch_obs, dtype=torch.float, device=device)
   batch_prev_lat = torch.as_tensor(batch_prev_lat,
@@ -219,10 +240,8 @@ def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
                                    device=device)
   batch_latent = torch.as_tensor(batch_latent, dtype=torch.float, device=device)
   batch_action = torch.as_tensor(batch_action, dtype=torch.float, device=device)
-  batch_reward = torch.as_tensor(batch_reward, dtype=torch.float,
-                                 device=device).unsqueeze(1)
-  batch_done = torch.as_tensor(batch_done, dtype=torch.float,
-                               device=device).unsqueeze(1)
+  batch_reward = torch.as_tensor(batch_reward, dtype=torch.float, device=device)
+  batch_done = torch.as_tensor(batch_done, dtype=torch.float, device=device)
 
   return (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs,
           batch_latent, batch_action, batch_reward, batch_done)
