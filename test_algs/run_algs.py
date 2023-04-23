@@ -22,6 +22,9 @@ def run_alg(config):
   elif alg_name == "miql":
     from miql_train import learn
     learn(config)
+  elif alg_name == "iql":
+    from iql_train import learn
+    learn(config)
   else:
     raise ValueError("Invalid alg_name")
 

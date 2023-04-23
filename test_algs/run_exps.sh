@@ -18,7 +18,11 @@
 #         --n_demo 1000 --device "cuda:0" --use_state_filter False --tag hbc-1k
 
 # Mental-IQL:
-python3 test_algs/run_algs.py --alg_name miql --env_type mujoco \
+# python3 test_algs/run_algs.py --alg_name miql --env_type mujoco \
+#         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
+#         --bounded_actor False --tag miql-1k
+
+# IQL:
+python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
         --bounded_actor False --tag miql-1k
-

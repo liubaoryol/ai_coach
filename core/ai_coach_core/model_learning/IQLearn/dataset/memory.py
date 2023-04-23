@@ -55,6 +55,8 @@ class Memory(object):
     batch_state, batch_next_state, batch_action, batch_reward, batch_done = zip(
         *batch)
 
+    n_batch = len(batch_state)
+
     # Scale obs for atari. TODO: Use flags
     if isinstance(batch_state[0], LazyFrames):
       # Use lazyframes for improved memory storage (same as original DQN)
@@ -65,19 +67,17 @@ class Memory(object):
     batch_next_state = np.array(batch_next_state)
     batch_action = np.array(batch_action)
 
-    batch_state = torch.as_tensor(batch_state, dtype=torch.float, device=device)
+    batch_state = torch.as_tensor(batch_state, dtype=torch.float, device=device).reshape(n_batch, -1)
     batch_next_state = torch.as_tensor(batch_next_state,
                                        dtype=torch.float,
-                                       device=device)
+                                       device=device).reshape(n_batch, -1)
     batch_action = torch.as_tensor(batch_action,
                                    dtype=torch.float,
-                                   device=device)
-    if batch_action.ndim == 1:
-      batch_action = batch_action.unsqueeze(1)
+                                   device=device).reshape(n_batch, -1)
     batch_reward = torch.as_tensor(batch_reward,
                                    dtype=torch.float,
-                                   device=device).unsqueeze(1)
+                                   device=device).reshape(n_batch, -1)
     batch_done = torch.as_tensor(batch_done, dtype=torch.float,
-                                 device=device).unsqueeze(1)
+                                 device=device).reshape(n_batch, -1)
 
     return batch_state, batch_next_state, batch_action, batch_reward, batch_done

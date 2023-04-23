@@ -31,7 +31,6 @@ def run_iql(env_name,
             log_dir,
             output_dir,
             replay_mem,
-            eps_steps,
             eps_window,
             num_learn_steps,
             initial_mem=None,
@@ -76,11 +75,10 @@ def run_iql(env_name,
   env.seed(seed)
   eval_env.seed(seed + 10)
 
-  REPLAY_MEMORY = int(replay_mem)
-  INITIAL_MEMORY = int(initial_mem)
-  EPISODE_STEPS = int(eps_steps)
-  EPISODE_WINDOW = int(eps_window)
-  LEARN_STEPS = int(num_learn_steps)
+  replay_mem = int(replay_mem)
+  initial_mem = int(initial_mem)
+  eps_window = int(eps_window)
+  num_learn_steps = int(num_learn_steps)
 
   if agent_name == "softq":
     q_net_base = SimpleQNetwork
@@ -142,14 +140,14 @@ def run_iql(env_name,
 
   # Load expert data
   subsample_freq = 1
-  expert_memory_replay = Memory(REPLAY_MEMORY // 2, seed)
+  expert_memory_replay = Memory(replay_mem // 2, seed)
   expert_memory_replay.load(demo_path,
                             num_trajs=num_trajs,
                             sample_freq=subsample_freq,
                             seed=seed + 42)
   print(f'--> Expert memory size: {expert_memory_replay.size()}')
 
-  online_memory_replay = Memory(REPLAY_MEMORY // 2, seed + 1)
+  online_memory_replay = Memory(replay_mem // 2, seed + 1)
 
   # Setup logging
   ts_str = datetime.datetime.fromtimestamp(
@@ -164,7 +162,7 @@ def run_iql(env_name,
                   agent=agent_name)
 
   # track mean reward and scores
-  rewards_window = deque(maxlen=EPISODE_WINDOW)  # last N rewards
+  rewards_window = deque(maxlen=eps_window)  # last N rewards
   best_eval_returns = -np.inf
 
   begin_learn = False
@@ -176,7 +174,7 @@ def run_iql(env_name,
     episode_reward = 0
     done = False
 
-    for episode_step in range(EPISODE_STEPS):
+    for episode_step in count():
 
       with eval_mode(agent):
         # if not begin_learn:
@@ -192,6 +190,7 @@ def run_iql(env_name,
                                                 num_episodes=num_episodes)
         returns = np.mean(eval_returns)
         # learn_steps += 1  # To prevent repeated eval at timestep 0
+        logger.log('eval/episode', epoch, learn_steps)
         logger.log('eval/episode_reward', returns, learn_steps)
         logger.dump(learn_steps, ty='eval')
 
@@ -214,13 +213,13 @@ def run_iql(env_name,
       online_memory_replay.add((state, next_state, action, reward, done_no_lim))
 
       learn_steps += 1
-      if online_memory_replay.size() > INITIAL_MEMORY:
+      if online_memory_replay.size() > initial_mem:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        if learn_steps == LEARN_STEPS:
+        if learn_steps == num_learn_steps:
           print('Finished!')
           return
 
