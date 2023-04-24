@@ -18,11 +18,11 @@
 #         --n_demo 1000 --device "cuda:0" --use_state_filter False --tag hbc-1k
 
 # Mental-IQL:
-# python3 test_algs/run_algs.py --alg_name miql --env_type mujoco \
-#         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
-#         --bounded_actor False --tag miql-1k
+python3 test_algs/run_algs.py --alg_name miql --env_type mujoco \
+        --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
+        --bounded_actor True --tag iql-1k --data_path "experts/Hopper-v2_25.pkl"
 
 # IQL:
-python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
-        --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
-        --bounded_actor False --tag miql-1k
+# python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
+#         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
+#         --bounded_actor True --tag iql-1k --data_path "experts/Hopper-v2_25.pkl"

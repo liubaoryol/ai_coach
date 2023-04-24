@@ -61,6 +61,7 @@ if __name__ == "__main__":
               "Train master policy or not (only false when using D-info-GAIL)")
   arg.add_arg("use_state_filter", True, "Use state filter")
   arg.add_arg("bounded_actor", True, "use bounded actor")
+  arg.add_arg("data_path", "", "data path")
   arg.parser()
 
   if arg.env_type == "rlbench":

@@ -8,10 +8,14 @@ from ..agent.mental_sac import MentalSAC
 
 
 # Full IQ-Learn objective with other divergences and options
-def iq_loss(agent: MentalSAC, current_Q, current_v, next_v, batch):
+def iq_loss(agent: MentalSAC,
+            current_Q,
+            current_v,
+            next_v,
+            batch,
+            method_loss="value"):
   # args
   method_div = ""
-  method_loss = "value"
   method_type = "iq"
   method_grad_pen = False
   method_lambda_gp = 10

@@ -18,10 +18,10 @@ default_config = Config({
 
     # global policy config
     "activation": "relu",
-    "hidden_policy": (64, 64),
+    "hidden_policy": (256, 256),
     "shared_policy": False,
     "log_clamp_policy": (-20., 0.),
-    "optimizer_lr_policy": 3.e-4,
+    "optimizer_lr_policy": 3.e-5,
     "dim_c": 4,
     "use_option": True,
     "hidden_option": (64, 64),
@@ -37,7 +37,7 @@ default_config = Config({
     "gamma": 0.99,
     "gae_tau": 0.95,
     "clip_eps": 0.2,
-    "mini_batch_size": 64,
+    "mini_batch_size": 256,
     "lambda_entropy_policy": 0.,
     "lambda_entropy_option": 1.e-2,
 
@@ -56,6 +56,8 @@ default_config = Config({
 
     # miql config
     "bounded_actor": True,
+    "method_loss": "v0",
+    "n_traj": 1,
 })
 
 mujoco_config = default_config.copy()

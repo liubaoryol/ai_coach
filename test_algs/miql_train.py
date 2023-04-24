@@ -11,12 +11,17 @@ def learn(config: ARGConfig):
   log_dir, output_dir, sample_name = get_dirs(config.seed, config.base_dir,
                                               "miql", config.env_type,
                                               config.env_name)
-  trajs, _ = load_demo(sample_name, config.n_demo)
-  data_dir = os.path.dirname(sample_name)
-  num_traj = len(trajs)
 
-  path_iq_data = os.path.join(data_dir, f"{config.env_name}_{num_traj}.pkl")
-  conv_torch_trajs_2_iql_format(trajs, path_iq_data)
+  if config.data_path == "":
+    trajs, _ = load_demo(sample_name, config.n_demo)
+    data_dir = os.path.dirname(sample_name)
+    num_traj = len(trajs)
+
+    path_iq_data = os.path.join(data_dir, f"{config.env_name}_{num_traj}.pkl")
+    conv_torch_trajs_2_iql_format(trajs, path_iq_data)
+  else:
+    path_iq_data = os.path.join(config.base_dir, config.data_path)
+    num_traj = config.n_traj
 
   n_sample = config.n_sample
   n_step = 10
@@ -48,4 +53,5 @@ def learn(config: ARGConfig):
                    learn_alpha=learn_alpha,
                    learning_rate=config.optimizer_lr_policy,
                    gumbel_temperature=1.0,
-                   bounded_actor=config.bounded_actor)
+                   bounded_actor=config.bounded_actor,
+                   method_loss=config.method_loss)

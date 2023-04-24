@@ -54,7 +54,8 @@ class MentalIQL(MentalSAC):
                        logger,
                        step,
                        is_sqil=False,
-                       use_target=False):
+                       use_target=False,
+                       method_loss="value"):
     batch = get_concat_samples(policy_batch, expert_batch, is_sqil)
     obs, prev_lat, prev_act, next_obs, latent, action = batch[0:6]
 
@@ -69,15 +70,15 @@ class MentalIQL(MentalSAC):
     current_Q = self.critic(obs, prev_lat, prev_act, latent, action, both=True)
     if isinstance(current_Q, tuple):
       q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], current_V, next_V,
-                                    batch)
+                                    batch, method_loss)
       q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], current_V, next_V,
-                                    batch)
+                                    batch, method_loss)
       critic_loss = 1 / 2 * (q1_loss + q2_loss)
       # merge loss dicts
       loss_dict = average_dicts(loss_dict1, loss_dict2)
     else:
       critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V,
-                                       batch)
+                                       batch, method_loss)
 
     logger.log('train/critic_loss', critic_loss, step)
 
@@ -97,12 +98,13 @@ class MentalIQL(MentalSAC):
                 step,
                 is_sqil=False,
                 use_target=False,
-                do_soft_update=False):
+                do_soft_update=False,
+                method_loss="value"):
     batch_size = len(expert_batch[0])
     policy_batch = policy_buffer.get_samples(batch_size, self.device)
 
     losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
-                                   is_sqil, use_target)
+                                   is_sqil, use_target, method_loss)
 
     # args
     vdice_actor = False

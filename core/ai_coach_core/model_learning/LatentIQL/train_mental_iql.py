@@ -40,7 +40,8 @@ def train_mental_iql(env_name,
                      learn_alpha=False,
                      learning_rate=0.005,
                      load_path: Optional[str] = None,
-                     bounded_actor=True):
+                     bounded_actor=True,
+                     method_loss="value"):
   agent_name = "miql"
   # constants
   num_episodes = 10
@@ -200,7 +201,7 @@ def train_mental_iql(env_name,
         # IQ-Learn Modification
         losses = agent.iq_update(online_memory_replay, expert_batch, logger,
                                  learn_steps, is_sqil, use_target,
-                                 do_soft_update)
+                                 do_soft_update, method_loss)
         ######
 
         if learn_steps % log_interval == 0:
