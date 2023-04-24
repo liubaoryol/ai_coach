@@ -2,7 +2,7 @@ from typing import Type
 import gym
 from gym.spaces import Discrete, Box
 from .mental_models import (SoftDiscreteMentalActor, DiagGaussianMentalActor,
-                            SoftDiscreteMentalThinker, MentalSACQCritic)
+                            SoftDiscreteMentalThinker, MentalDoubleQCritic)
 from .mental_iql import MentalIQL
 
 
@@ -60,9 +60,9 @@ def make_miql_agent(env: gym.Env,
   thinker = SoftDiscreteMentalThinker(obs_dim, action_dim, lat_dim,
                                       list_thinker_hidden_dims,
                                       gumbel_temperature, use_prev_action)
-  critic = MentalSACQCritic(obs_dim, action_dim, lat_dim,
-                            list_critic_hidden_dims, gamma, use_tanh,
-                            use_prev_action)
+  critic = MentalDoubleQCritic(obs_dim, action_dim, lat_dim,
+                               list_critic_hidden_dims, gamma, use_tanh,
+                               use_prev_action)
 
   agent = MentalIQL(obs_dim, action_dim, lat_dim, batch_size, discrete_obs,
                     device_name, gamma, critic_tau, critic_lr,
