@@ -19,6 +19,7 @@ setup(name="ai_coach_core",
           'scipy',
           'sparse',
           'torch',
+          'termcolor',
           'tensorboard',
           "stable-baselines3>=1.1.0",
       ])
