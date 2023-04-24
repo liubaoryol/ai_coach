@@ -14,15 +14,23 @@ class MentalSACQCritic(nn.Module):
                lat_dim,
                list_hidden_dims,
                gamma=0.99,
-               double_q: bool = False,
-               use_tanh: bool = False):
+               use_tanh: bool = False,
+               use_prev_action: bool = True):
     super().__init__()
     self.obs_dim = obs_dim
     self.action_dim = action_dim
     self.lat_dim = lat_dim
     self.use_tanh = use_tanh
     self.gamma = gamma
-    self.double_q = double_q
+    self.use_prev_action = use_prev_action
+
+  def _get_input(self, obs, prev_lat, prev_act, lat, act):
+    if self.use_prev_action:
+      input = [obs, prev_lat, prev_act, lat, act]
+    else:
+      input = [obs, prev_lat, lat, act]
+
+    return input
 
 
 class MentalDoubleQCritic(MentalSACQCritic):
@@ -33,12 +41,14 @@ class MentalDoubleQCritic(MentalSACQCritic):
                lat_dim,
                list_hidden_dims,
                gamma=0.99,
-               double_q: bool = False,
-               use_tanh: bool = False):
+               use_tanh: bool = False,
+               use_prev_action: bool = False):
     super().__init__(obs_dim, action_dim, lat_dim, list_hidden_dims, gamma,
-                     double_q, use_tanh)
+                     use_tanh, use_prev_action)
 
-    input_dim = obs_dim + lat_dim + action_dim + lat_dim + action_dim
+    input_dim = obs_dim + lat_dim + lat_dim + action_dim
+    if self.use_prev_action:
+      input_dim += action_dim
 
     # Q1 architecture
     self.Q1 = mlp(input_dim, 1, list_hidden_dims)
@@ -50,7 +60,8 @@ class MentalDoubleQCritic(MentalSACQCritic):
 
   def forward(self, obs, prev_lat, prev_act, lat, act, both=False):
 
-    q_input = torch.cat([obs, prev_lat, prev_act, lat, act], dim=-1)
+    q_input = torch.cat(self._get_input(obs, prev_lat, prev_act, lat, act),
+                        dim=-1)
     q1 = self.Q1(q_input)
     q2 = self.Q2(q_input)
 
@@ -75,8 +86,10 @@ class MentalDoubleQCritic(MentalSACQCritic):
                lat2,
                act2,
                lambda_=1):
-    expert_data = torch.cat([obs1, prev_lat1, prev_act1, lat1, act1], 1)
-    policy_data = torch.cat([obs2, prev_lat2, prev_act2, lat2, act2], 1)
+    expert_data = torch.cat(
+        self._get_input(obs1, prev_lat1, prev_act1, lat1, act1), 1)
+    policy_data = torch.cat(
+        self._get_input(obs2, prev_lat2, prev_act2, lat2, act2), 1)
 
     alpha = torch.rand(expert_data.size()[0], 1)
     alpha = alpha.expand_as(expert_data).to(expert_data.device)
@@ -84,18 +97,13 @@ class MentalDoubleQCritic(MentalSACQCritic):
     interpolated = alpha * expert_data + (1 - alpha) * policy_data
     interpolated = Variable(interpolated, requires_grad=True)
 
-    int_obs, int_prev_lat, int_prev_act, int_lat, int_act = torch.split(
-        interpolated, [
-            self.obs_dim, self.lat_dim, self.action_dim, self.lat_dim,
-            self.action_dim
-        ],
-        dim=1)
-    q = self.forward(int_obs,
-                     int_prev_lat,
-                     int_prev_act,
-                     int_lat,
-                     int_act,
-                     both=True)
+    prev_act_dim = self.action_dim if self.use_prev_action else 0
+    split_dim = [
+        self.obs_dim, self.lat_dim, prev_act_dim, self.lat_dim, self.action_dim
+    ]
+
+    tup_int_input = torch.split(interpolated, split_dim, dim=1)
+    q = self.forward(*tup_int_input, both=True)
     ones = torch.ones(q[0].size()).to(policy_data.device)
     gradient = grad(
         outputs=q,
@@ -244,14 +252,23 @@ class DiagGaussianMentalActor(AbstractMentalActor):
 
 class AbstractMentalThinker(nn.Module):
 
-  def __init__(self, obs_dim, action_dim, lat_dim, list_hidden_dims):
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               lat_dim,
+               list_hidden_dims,
+               use_prev_action: bool = True):
     super().__init__()
 
     self.obs_dim = obs_dim
     self.action_dim = action_dim
     self.lat_dim = lat_dim
+    self.use_prev_action = use_prev_action
 
-    input_dim = self.obs_dim + self.action_dim + self.lat_dim
+    input_dim = self.obs_dim + self.lat_dim
+    if self.use_prev_action:
+      input_dim += self.action_dim
+
     output_dim = self.lat_dim
 
     self.trunk = mlp(input_dim, output_dim, list_hidden_dims)
@@ -277,13 +294,24 @@ class AbstractMentalThinker(nn.Module):
 
 class SoftDiscreteMentalThinker(AbstractMentalThinker):
 
-  def __init__(self, obs_dim, action_dim, lat_dim, list_hidden_dims,
-               temperature):
-    super().__init__(obs_dim, action_dim, lat_dim, list_hidden_dims)
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               lat_dim,
+               list_hidden_dims,
+               temperature,
+               use_prev_action: bool = True):
+    super().__init__(obs_dim, action_dim, lat_dim, list_hidden_dims,
+                     use_prev_action)
     self.temperature = temperature
 
   def forward(self, obs, prev_lat, prev_act):
-    logits = self.trunk(torch.cat((obs, prev_lat, prev_act), dim=-1))
+    if self.use_prev_action:
+      input = (obs, prev_lat, prev_act)
+    else:
+      input = (obs, prev_lat)
+
+    logits = self.trunk(torch.cat(input, dim=-1))
     dist = iqlm.GumbelSoftmax(self.temperature, logits=logits)
     return dist
 

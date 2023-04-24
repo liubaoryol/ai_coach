@@ -45,7 +45,8 @@ def run_iql(env_name,
             learning_rate=0.005,
             load_path: Optional[str] = None,
             bounded_actor=True,
-            method_loss="value"):
+            method_loss="value",
+            method_regularize=True):
   'agent_name: softq / sac / sacd'
   # constants
   num_episodes = 10
@@ -231,7 +232,7 @@ def run_iql(env_name,
         losses = agent.iq_update(online_memory_replay, expert_memory_replay,
                                  logger, learn_steps, only_expert_states,
                                  is_sqil, use_target, do_soft_update,
-                                 method_loss)
+                                 method_loss, method_regularize)
         ######
 
         if learn_steps % log_interval == 0:
@@ -338,7 +339,8 @@ def iq_update_critic(self,
                      only_expert_states=False,
                      is_sqil=False,
                      use_target=False,
-                     method_loss="value"):
+                     method_loss="value",
+                     method_regularize=True):
   (policy_obs, policy_next_obs, policy_action, policy_reward,
    policy_done) = policy_batch
   (expert_obs, expert_next_obs, expert_action, expert_reward,
@@ -363,15 +365,15 @@ def iq_update_critic(self,
   current_Q = self.critic(obs, action, both=True)
   if isinstance(current_Q, tuple):
     q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], current_V, next_V, batch,
-                                  method_loss)
+                                  method_loss, method_regularize)
     q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], current_V, next_V, batch,
-                                  method_loss)
+                                  method_loss, method_regularize)
     critic_loss = 1 / 2 * (q1_loss + q2_loss)
     # merge loss dicts
     loss_dict = average_dicts(loss_dict1, loss_dict2)
   else:
     critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V, batch,
-                                     method_loss)
+                                     method_loss, method_regularize)
 
   logger.log('train/critic_loss', critic_loss, step)
 
@@ -394,13 +396,14 @@ def iq_update(self,
               is_sqil=False,
               use_target=False,
               do_soft_update=False,
-              method_loss="value"):
+              method_loss="value",
+              method_regularize=True):
   policy_batch = policy_buffer.get_samples(self.batch_size, self.device)
   expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
 
   losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
                                  only_expert_states, is_sqil, use_target,
-                                 method_loss)
+                                 method_loss, method_regularize)
 
   # args
   vdice_actor = False

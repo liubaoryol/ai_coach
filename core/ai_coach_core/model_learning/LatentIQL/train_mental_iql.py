@@ -13,7 +13,6 @@ from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     ExpertDataset)
 from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
 from .agent import make_miql_agent
-from .agent.mental_models import MentalDoubleQCritic
 from .helper.mental_memory import MentalMemory
 from .helper.utils import get_expert_batch, evaluate, save
 
@@ -41,7 +40,9 @@ def train_mental_iql(env_name,
                      learning_rate=0.005,
                      load_path: Optional[str] = None,
                      bounded_actor=True,
-                     method_loss="value"):
+                     method_loss="value",
+                     method_regularize=True,
+                     use_prev_action=True):
   agent_name = "miql"
   # constants
   num_episodes = 10
@@ -82,7 +83,6 @@ def train_mental_iql(env_name,
                           batch_size,
                           device_name,
                           num_latent,
-                          MentalDoubleQCritic,
                           critic_tau=0.005,
                           gumbel_temperature=gumbel_temperature,
                           learn_temp=learn_alpha,
@@ -94,7 +94,8 @@ def train_mental_iql(env_name,
                           list_actor_hidden_dims=list_hidden_dims,
                           list_thinker_hidden_dims=list_hidden_dims,
                           clip_grad_val=clip_grad_val,
-                          bounded_actor=bounded_actor)
+                          bounded_actor=bounded_actor,
+                          use_prev_action=use_prev_action)
 
   if load_path is not None:
     if os.path.isfile(load_path):
@@ -201,7 +202,7 @@ def train_mental_iql(env_name,
         # IQ-Learn Modification
         losses = agent.iq_update(online_memory_replay, expert_batch, logger,
                                  learn_steps, is_sqil, use_target,
-                                 do_soft_update, method_loss)
+                                 do_soft_update, method_loss, method_regularize)
         ######
 
         if learn_steps % log_interval == 0:

@@ -54,4 +54,6 @@ def learn(config: ARGConfig):
                    learning_rate=config.optimizer_lr_policy,
                    gumbel_temperature=1.0,
                    bounded_actor=config.bounded_actor,
-                   method_loss=config.method_loss)
+                   method_loss=config.method_loss,
+                   method_regularize=config.method_regularize,
+                   use_prev_action=config.use_prev_action)

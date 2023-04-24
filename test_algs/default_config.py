@@ -58,6 +58,8 @@ default_config = Config({
     "bounded_actor": True,
     "method_loss": "v0",
     "n_traj": 1,
+    "method_regularize": True,
+    "use_prev_action": True,
 })
 
 mujoco_config = default_config.copy()

@@ -10,7 +10,13 @@ g_method_info_printed = False
 
 
 # Full IQ-Learn objective with other divergences and options
-def iq_loss(agent, current_Q, current_v, next_v, batch, method_loss="value"):
+def iq_loss(agent,
+            current_Q,
+            current_v,
+            next_v,
+            batch,
+            method_loss="value",
+            method_regularize=True):
   # args
   method_div = ""
   # method_loss = "value"
@@ -18,10 +24,6 @@ def iq_loss(agent, current_Q, current_v, next_v, batch, method_loss="value"):
   method_grad_pen = False
   method_lambda_gp = 10
   method_alpha = 0.5
-  if "SAC" in agent.__class__.__name__:
-    method_regularize = True
-  else:
-    method_regularize = False
 
   global g_method_info_printed
   if not g_method_info_printed:
