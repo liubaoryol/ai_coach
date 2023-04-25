@@ -62,6 +62,7 @@ if __name__ == "__main__":
   arg.add_arg("use_state_filter", True, "Use state filter")
   arg.add_arg("bounded_actor", True, "use bounded actor")
   arg.add_arg("data_path", "", "data path")
+  arg.add_arg("use_prev_action", True, "use prev action in trans")
   arg.parser()
 
   if arg.env_type == "rlbench":
