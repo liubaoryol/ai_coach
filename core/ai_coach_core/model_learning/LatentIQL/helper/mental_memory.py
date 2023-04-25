@@ -40,8 +40,14 @@ class MentalMemory(object):
     print(b.shape)
     np.save(path, b)
 
+  def get_all_samples(self, device):
+    return self.get_samples(None, device=device)
+
   def get_samples(self, batch_size, device):
-    batch = self.sample(batch_size, False)
+    if batch_size is None:
+      batch = self.buffer
+    else:
+      batch = self.sample(batch_size, False)
 
     (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs, batch_latent,
      batch_action, batch_reward, batch_done) = zip(*batch)

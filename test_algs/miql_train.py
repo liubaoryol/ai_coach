@@ -1,7 +1,7 @@
 import os
 from aicoach_baselines.option_gail.utils.config import ARGConfig
-from ai_coach_core.model_learning.LatentIQL.train_mental_iql import (
-    train_mental_iql)
+from ai_coach_core.model_learning.LatentIQL.train_mental_iql_pond import (
+    train_mental_iql_pond)
 from aicoach_baselines.option_gail.utils.mujoco_env import load_demo
 from iql_helper import get_dirs, conv_torch_trajs_2_iql_format
 
@@ -32,28 +32,27 @@ def learn(config: ARGConfig):
   update_per_epoch = int(n_sample / batch_size) * n_step
   num_iter = config.n_epoch * update_per_epoch
   log_interval = update_per_epoch
-  eval_interval = 20 * update_per_epoch
+  eval_interval = 5
 
-  train_mental_iql(config.env_name, {},
-                   config.seed,
-                   batch_size,
-                   config.dim_c,
-                   path_iq_data,
-                   num_traj,
-                   log_dir,
-                   output_dir,
-                   replay_mem=n_sample,
-                   initial_mem=n_sample,
-                   eps_window=10,
-                   num_learn_steps=num_iter,
-                   log_interval=log_interval,
-                   eval_interval=eval_interval,
-                   list_hidden_dims=config.hidden_policy,
-                   clip_grad_val=clip_grad_val,
-                   learn_alpha=learn_alpha,
-                   learning_rate=config.optimizer_lr_policy,
-                   gumbel_temperature=1.0,
-                   bounded_actor=config.bounded_actor,
-                   method_loss=config.method_loss,
-                   method_regularize=config.method_regularize,
-                   use_prev_action=config.use_prev_action)
+  train_mental_iql_pond(config.env_name, {},
+                        config.seed,
+                        batch_size,
+                        config.dim_c,
+                        path_iq_data,
+                        num_traj,
+                        log_dir,
+                        output_dir,
+                        replay_mem=n_sample,
+                        initial_mem=n_sample,
+                        n_max_epoch=config.n_epoch,
+                        log_interval=log_interval,
+                        eval_epoch_interval=eval_interval,
+                        list_hidden_dims=config.hidden_policy,
+                        clip_grad_val=clip_grad_val,
+                        learn_alpha=learn_alpha,
+                        learning_rate=config.optimizer_lr_policy,
+                        gumbel_temperature=1.0,
+                        bounded_actor=config.bounded_actor,
+                        method_loss=config.method_loss,
+                        method_regularize=config.method_regularize,
+                        use_prev_action=config.use_prev_action)

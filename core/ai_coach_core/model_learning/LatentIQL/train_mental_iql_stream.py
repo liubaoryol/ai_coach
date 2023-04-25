@@ -17,32 +17,32 @@ from .helper.mental_memory import MentalMemory
 from .helper.utils import get_expert_batch, evaluate, save
 
 
-def train_mental_iql(env_name,
-                     env_kwargs,
-                     seed,
-                     batch_size,
-                     num_latent,
-                     demo_path,
-                     num_trajs,
-                     log_dir,
-                     output_dir,
-                     replay_mem,
-                     eps_window,
-                     num_learn_steps,
-                     initial_mem=None,
-                     output_suffix="",
-                     log_interval=500,
-                     eval_interval=2000,
-                     gumbel_temperature: float = 1.0,
-                     list_hidden_dims=[256, 256],
-                     clip_grad_val=None,
-                     learn_alpha=False,
-                     learning_rate=0.005,
-                     load_path: Optional[str] = None,
-                     bounded_actor=True,
-                     method_loss="value",
-                     method_regularize=True,
-                     use_prev_action=True):
+def train_mental_iql_stream(env_name,
+                            env_kwargs,
+                            seed,
+                            batch_size,
+                            num_latent,
+                            demo_path,
+                            num_trajs,
+                            log_dir,
+                            output_dir,
+                            replay_mem,
+                            eps_window,
+                            num_learn_steps,
+                            initial_mem=None,
+                            output_suffix="",
+                            log_interval=500,
+                            eval_interval=2000,
+                            gumbel_temperature: float = 1.0,
+                            list_hidden_dims=[256, 256],
+                            clip_grad_val=None,
+                            learn_alpha=False,
+                            learning_rate=0.005,
+                            load_path: Optional[str] = None,
+                            bounded_actor=True,
+                            method_loss="value",
+                            method_regularize=True,
+                            use_prev_action=True):
   agent_name = "miql"
   # constants
   num_episodes = 10
@@ -191,16 +191,20 @@ def train_mental_iql(env_name,
           print('Finished!')
           return
 
-        ######
+        # ##### sample batch
         # infer mental states of expert data
         num_samples = 1
         expert_traj = expert_dataset.sample_episodes(num_samples)
         expert_batch = get_expert_batch(agent, expert_traj, num_latent,
                                         agent.device)
 
+        batch_size = len(expert_batch[0])
+        policy_batch = online_memory_replay.get_samples(batch_size,
+                                                        agent.device)
+
         ######
         # IQ-Learn Modification
-        losses = agent.iq_update(online_memory_replay, expert_batch, logger,
+        losses = agent.iq_update(policy_batch, expert_batch, logger,
                                  learn_steps, is_sqil, use_target,
                                  do_soft_update, method_loss, method_regularize)
         ######

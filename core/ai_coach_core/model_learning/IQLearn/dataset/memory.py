@@ -67,7 +67,8 @@ class Memory(object):
     batch_next_state = np.array(batch_next_state)
     batch_action = np.array(batch_action)
 
-    batch_state = torch.as_tensor(batch_state, dtype=torch.float, device=device).reshape(n_batch, -1)
+    batch_state = torch.as_tensor(batch_state, dtype=torch.float,
+                                  device=device).reshape(n_batch, -1)
     batch_next_state = torch.as_tensor(batch_next_state,
                                        dtype=torch.float,
                                        device=device).reshape(n_batch, -1)

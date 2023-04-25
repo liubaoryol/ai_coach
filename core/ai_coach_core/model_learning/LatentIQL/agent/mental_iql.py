@@ -93,7 +93,7 @@ class MentalIQL(MentalSAC):
     return loss_dict
 
   def iq_update(self,
-                policy_buffer,
+                policy_batch,
                 expert_batch,
                 logger,
                 step,
@@ -102,8 +102,6 @@ class MentalIQL(MentalSAC):
                 do_soft_update=False,
                 method_loss="value",
                 method_regularize=True):
-    batch_size = len(expert_batch[0])
-    policy_batch = policy_buffer.get_samples(batch_size, self.device)
 
     losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
                                    is_sqil, use_target, method_loss,

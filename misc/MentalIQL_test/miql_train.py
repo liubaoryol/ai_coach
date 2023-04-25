@@ -2,7 +2,7 @@ import os
 import glob
 import random
 import click
-from ai_coach_core.model_learning.LatentIQL.train_mental_iql import (
+from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
     train_mental_iql)
 from ai_coach_core.model_learning.LatentIQL.helper.utils import (
     conv_trajectories_2_iql_format)
