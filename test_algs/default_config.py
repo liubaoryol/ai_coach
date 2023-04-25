@@ -54,7 +54,7 @@ default_config = Config({
     "optimizer_lr_discriminator": 3.e-4,
     "use_d_info_gail": False,
 
-    # miql config
+    # miql/iql config
     "bounded_actor": True,
     "method_loss": "v0",
     "n_traj": 1,
