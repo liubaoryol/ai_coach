@@ -348,6 +348,7 @@ class MentalSAC(object):
         'actor_loss/thinker_entropy': -lat_log_prob.mean().item()
     }
 
+    # TODO: implement learn alpha
     # if self.learn_temp:
     #   self.log_alpha_optimizer.zero_grad()
     #   alpha_loss = (self.log_alpha *

@@ -218,6 +218,7 @@ class DiagGaussianMentalActor(AbstractMentalActor):
   def forward(self, obs, lat):
     mu, log_std = self.trunk(torch.cat((obs, lat), dim=-1)).chunk(2, dim=-1)
 
+    # restrict the range of log_std for numerical stability
     log_std = torch.tanh(log_std)
     log_std_min, log_std_max = self.log_std_bounds
     log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
