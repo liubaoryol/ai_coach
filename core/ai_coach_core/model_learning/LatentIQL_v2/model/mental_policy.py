@@ -62,7 +62,7 @@ class MentalPolicy(torch.nn.Module):
     self.to(self.device)
 
   def action_forward(self, st, ct=None):
-    # ct: None or long(N x 1)
+    # ct: None or long(N x 1) or float(N x dim_c)
     # ct: None for all c, return (N x dim_c x dim_a); else return (N x dim_a)
     # s: N x dim_s, c: N x 1, c should always < dim_c
     if self.is_shared:
@@ -73,10 +73,15 @@ class MentalPolicy(torch.nn.Module):
       logstd = torch.stack([m.expand_as(mean[:, 0, :]) for m in self.a_log_std],
                            dim=-2)
     if ct is not None:
-      # TODO: backward pass not propagate
-      ind = ct.view(-1, 1, 1).expand(-1, 1, self.dim_a)
-      mean = mean.gather(dim=-2, index=ind).squeeze(dim=-2)
-      logstd = logstd.gather(dim=-2, index=ind).squeeze(dim=-2)
+      # to make backward pass propagate with reparameterized ct
+      if ct.shape[-1] > 1 or (self.dim_c == 1 and ct[0][0] != 0):
+        ct = ct.view(-1, self.dim_c, 1)
+        mean = (mean * ct).sum(dim=-2)
+        logstd = (logstd * ct).sum(dim=-2)
+      else:
+        ind = ct.view(-1, 1, 1).expand(-1, 1, self.dim_a)
+        mean = mean.gather(dim=-2, index=ind).squeeze(dim=-2)
+        logstd = logstd.gather(dim=-2, index=ind).squeeze(dim=-2)
 
     # clamp mean and logstd
     mean = mean.clamp(-10, 10)

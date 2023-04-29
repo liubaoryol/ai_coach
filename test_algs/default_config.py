@@ -18,21 +18,21 @@ default_config = Config({
 
     # global policy config
     "activation": "relu",
-    "hidden_policy": (256, 256),
+    "hidden_policy": (64, 64),
     "shared_policy": False,
-    "log_clamp_policy": (-20., 0.),
+    "log_clamp_policy": (-5., 2.),
     "optimizer_lr_policy": 3.e-5,
     "dim_c": 4,
     "use_option": True,
     "hidden_option": (64, 64),
-    "optimizer_lr_option": 3.e-4,
+    "optimizer_lr_option": 3.e-5,
 
     # ppo config
     "hidden_critic": (64, 64),
     "shared_critic": False,
     "train_policy": True,
     "train_option": True,
-    "optimizer_lr_critic": 3.e-4,
+    "optimizer_lr_critic": 3.e-5,
     "use_gae": True,
     "gamma": 0.99,
     "gae_tau": 0.95,

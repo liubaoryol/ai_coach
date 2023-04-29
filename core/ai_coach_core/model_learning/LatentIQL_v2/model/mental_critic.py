@@ -58,12 +58,17 @@ class MentalCritic(torch.nn.Module):
       q2 = torch.stack([m(q_input) for m in self.Q2], dim=-2)
 
     ind_ct_1 = ct_1.view(-1, 1, 1).expand(-1, 1, self.dim_c)
-    ind_ct = ct.view(-1, 1)
-    q1 = q1.gather(dim=-2, index=ind_ct_1).squeeze(dim=-2)
-    q1 = q1.gather(dim=-1, index=ind_ct)
 
+    q1 = q1.gather(dim=-2, index=ind_ct_1).squeeze(dim=-2)
     q2 = q2.gather(dim=-2, index=ind_ct_1).squeeze(dim=-2)
-    q2 = q2.gather(dim=-1, index=ind_ct)
+
+    if ct.shape[-1] > 1 or (self.dim_c == 1 and ct[0][0] != 0):
+      q1 = (q1 * ct).sum(dim=-1, keepdim=True)
+      q2 = (q2 * ct).sum(dim=-1, keepdim=True)
+    else:
+      ind_ct = ct.view(-1, 1)
+      q1 = q1.gather(dim=-1, index=ind_ct)
+      q2 = q2.gather(dim=-1, index=ind_ct)
 
     if self.use_tanh:
       q1 = torch.tanh(q1) * 1 / (1 - self.gamma)
