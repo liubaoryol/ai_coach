@@ -22,6 +22,10 @@ def run_alg(config):
   elif alg_name == "miql":
     from miql_train import learn
     learn(config)
+  elif alg_name == "miql_v2":
+    from ai_coach_core.model_learning.LatentIQL_v2.train_mental_iql_v2 import (
+        learn)
+    learn(config, msg)
   elif alg_name == "iql":
     from iql_train import learn
     learn(config)

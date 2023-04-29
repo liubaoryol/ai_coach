@@ -85,6 +85,3 @@ class MentalCritic(torch.nn.Module):
   #     return vs
   #   else:
   #     return vs.gather(dim=-1, index=c)
-
-  def get_param(self):
-    return list(self.parameters())

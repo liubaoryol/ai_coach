@@ -14,16 +14,16 @@ one_hot = one_hot_w_nan  # alias
 
 class MentalSAC_V2(nn.Module):
 
-  def __init__(self, dim_a, dim_s, dim_c, batch_size, gamma, device, critic_tau,
-               critic_lr, critic_target_update_frequency, init_temp,
-               critic_betas, learn_temp, policy_update_frequency, policy_lr,
-               policy_betas, alpha_lr, alpha_betas, clip_grad_val,
-               policy: MentalPolicy, critic: MentalCritic) -> None:
+  def __init__(self, obs_dim, action_dim, lat_dim, batch_size, device, gamma,
+               critic_tau, critic_lr, critic_target_update_frequency, init_temp,
+               critic_betas, critic: MentalCritic, policy: MentalPolicy,
+               learn_temp, policy_update_frequency, policy_lr, policy_betas,
+               alpha_lr, alpha_betas, clip_grad_val) -> None:
     super().__init__()
 
-    self.dim_a = dim_a
-    self.dim_s = dim_s
-    self.dim_c = dim_c
+    self.action_dim = action_dim
+    self.obs_dim = obs_dim
+    self.lat_dim = lat_dim
     self.batch_size = batch_size
 
     self.device = device
@@ -44,15 +44,15 @@ class MentalSAC_V2(nn.Module):
     self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
     self.log_alpha.requires_grad = True
 
-    self.target_entropy = -dim_a
+    self.target_entropy = -action_dim
 
-    self.policy_optimizer = Adam(self.policy.get_param(),
+    self.policy_optimizer = Adam(self.policy.parameters(),
                                  lr=policy_lr,
                                  betas=policy_betas)
-    self.critic_optimizer = Adam(self._critic.get_param(),
+    self.critic_optimizer = Adam(self._critic.parameters(),
                                  lr=critic_lr,
                                  betas=critic_betas)
-    self.log_alpha_optimizer = Adam(self.log_alpha,
+    self.log_alpha_optimizer = Adam([self.log_alpha],
                                     lr=alpha_lr,
                                     betas=alpha_betas)
 
@@ -92,9 +92,9 @@ class MentalSAC_V2(nn.Module):
 
   def choose_action(self, state, prev_latent, prev_action, sample=False):
     # --- convert inputs
-    state = self._conv_input(state, False, self.dim_s)
-    prev_latent = self._conv_input(prev_latent, False, self.dim_c)
-    prev_action = self._conv_input(prev_action, False, self.dim_a)
+    state = self._conv_input(state, False, self.obs_dim)
+    prev_latent = self._conv_input(prev_latent, False, self.lat_dim)
+    prev_action = self._conv_input(prev_action, False, self.action_dim)
 
     with torch.no_grad():
       latent = self.policy.sample_option(state, prev_latent, fixed=False)
@@ -104,6 +104,9 @@ class MentalSAC_V2(nn.Module):
       action_item = action.detach().cpu().numpy()[0]
 
     return latent_item, action_item
+
+  def critic(self, obs, prev_latent, prev_action, latent, action, both=False):
+    return self._critic(obs, prev_latent, prev_action, latent, action, both)
 
   def getV(self, obs, prev_latent, prev_action):
 
@@ -174,7 +177,7 @@ class MentalSAC_V2(nn.Module):
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
     if self.clip_grad_val is not None:
-      nn.utils.clip_grad_norm_(self._critic.get_param(), self.clip_grad_val)
+      nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
     # self.critic.log(logger, step)
@@ -198,7 +201,7 @@ class MentalSAC_V2(nn.Module):
     self.policy_optimizer.zero_grad()
     actor_loss.backward()
     if self.clip_grad_val is not None:
-      nn.utils.clip_grad_norm_(self.policy.get_param(), self.clip_grad_val)
+      nn.utils.clip_grad_norm_(self.policy.parameters(), self.clip_grad_val)
     self.policy_optimizer.step()
 
     losses = {

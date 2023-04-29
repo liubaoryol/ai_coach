@@ -12,7 +12,7 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, eval_mode
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     ExpertDataset)
 from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
-from .agent import make_miql_agent
+from .agent.make_agent import make_miql_agent
 from .helper.mental_memory import MentalMemory
 from .helper.utils import get_expert_batch, evaluate, save
 

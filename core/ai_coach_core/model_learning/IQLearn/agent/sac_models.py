@@ -2,7 +2,6 @@ import torch
 import math
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributions import Normal
 from torch import distributions as pyd
 from torch.autograd import Variable, grad
 from torch.distributions import Categorical, RelaxedOneHotCategorical

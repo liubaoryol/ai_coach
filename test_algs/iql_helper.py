@@ -1,7 +1,9 @@
 import os
 import pickle
 import numpy as np
+import torch
 from collections import defaultdict
+from aicoach_baselines.option_gail.utils.state_filter import StateFilter
 
 
 def get_dirs(seed,
@@ -52,3 +54,19 @@ def conv_torch_trajs_2_iql_format(sar_trajectories, path: str):
 
   with open(path, 'wb') as f:
     pickle.dump(expert_trajs, f)
+
+
+def conv_iql_trajs_2_optiongail_format(trajectories, path: str):
+
+  use_rs = False
+  num_traj = len(trajectories["states"])
+  rs = StateFilter(enable=use_rs)
+
+  sample = []
+  for epi in range(num_traj):
+    s_array = torch.as_tensor(trajectories["states"][epi], dtype=torch.float32)
+    a_array = torch.as_tensor(trajectories["actions"][epi], dtype=torch.float32)
+    r_array = torch.as_tensor(trajectories["rewards"][epi], dtype=torch.float32)
+    sample.append((s_array, a_array, r_array))
+
+  torch.save((sample, rs.state_dict()), path)

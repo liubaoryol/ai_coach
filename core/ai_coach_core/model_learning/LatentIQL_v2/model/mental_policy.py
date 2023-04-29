@@ -1,6 +1,7 @@
 import torch
 from ai_coach_core.model_learning.IQLearn.agent.sac_models import (
     GumbelSoftmax, SquashedNormal)
+from torch.distributions import Normal
 from aicoach_baselines.option_gail.utils.model_util import (make_module,
                                                             make_module_list,
                                                             make_activation)
@@ -10,8 +11,18 @@ from aicoach_baselines.option_gail.utils.model_util import (make_module,
 
 class MentalPolicy(torch.nn.Module):
 
-  def __init__(self, dim_s, dim_a, dim_c, device, log_std_bounds, is_shared,
-               activation, hidden_policy, hidden_option, temperature):
+  def __init__(self,
+               dim_s,
+               dim_a,
+               dim_c,
+               device,
+               log_std_bounds,
+               is_shared,
+               activation,
+               hidden_policy,
+               hidden_option,
+               gumbel_temperature,
+               bounded_actor=True):
     super(MentalPolicy, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a
@@ -19,10 +30,11 @@ class MentalPolicy(torch.nn.Module):
     self.device = torch.device(device)
     self.log_std_bounds = log_std_bounds
     self.is_shared = is_shared
-    self.temperature = temperature
+    self.temperature = gumbel_temperature
     activation = make_activation(activation)
     n_hidden_pi = hidden_policy
     n_hidden_opt = hidden_option
+    self.bounded = bounded_actor
 
     if self.is_shared:
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
@@ -73,7 +85,7 @@ class MentalPolicy(torch.nn.Module):
     logstd = log_std_min + 0.5 * (log_std_max - log_std_min) * (logstd + 1)
     std = logstd.exp()
 
-    dist = SquashedNormal(mean, std)
+    dist = SquashedNormal(mean, std) if self.bounded else Normal(mean, std)
 
     return dist
 
@@ -82,16 +94,6 @@ class MentalPolicy(torch.nn.Module):
       return self.option_policy(s).view(-1, self.dim_c + 1, self.dim_c)
     else:
       return torch.stack([m(s) for m in self.option_policy], dim=-2)
-
-  def get_param(self, low_policy=True):
-    if low_policy:
-      if self.is_shared:
-        return list(self.policy.parameters()) + [self.a_log_std]
-      else:
-        return list(self.policy.parameters()) + list(
-            self.a_log_std.parameters())
-    else:
-      return list(self.option_policy.parameters())
 
   # ===================================================================== #
 
@@ -152,9 +154,10 @@ class MentalPolicy(torch.nn.Module):
     if fixed:
       option = dist.logits.argmax(dim=-1, keepdim=True)
     else:
-      option = dist.sample()
+      option = dist.sample().view(*dist.logits.shape[:-1], 1)
 
-    log_prob = dist.log_prob(option).view(*dist.logits.shape[:-1], 1)
+    log_prob = dist.log_prob(option.squeeze(-1)).view(*dist.logits.shape[:-1],
+                                                      1)
 
     return option, log_prob
 
