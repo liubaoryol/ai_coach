@@ -64,37 +64,6 @@ def lr_factor_func(i_iter, end_iter, start=1., end=0.):
     return end
 
 
-def get_dirs(seed,
-             base_dir="",
-             exp_type="gail",
-             env_type="mujoco",
-             env_name="HalfCheetah-v2",
-             msg="default",
-             is_opt=True):
-  assert env_type in ("mini", "mujoco",
-                      "rlbench"), f"Error, env_type {env_type} not supported"
-
-  base_log_dir = os.path.join(base_dir, "result/")
-  base_data_dir = os.path.join(base_dir, "data/")
-  rand_str = f"{seed}"
-
-  sample_name = os.path.join(base_data_dir, env_type,
-                             f"{env_name}_sample.torch")
-  pretrain_name = os.path.join(
-      base_data_dir, env_type,
-      f"{env_name}_pretrained{'-opt' if is_opt else ''}.torch")
-
-  log_dir_root = os.path.join(base_log_dir, env_name,
-                              f"{exp_type}{'-opt' if is_opt else ''}", msg,
-                              rand_str)
-  save_dir = os.path.join(log_dir_root, "model")
-  log_dir = os.path.join(log_dir_root, "log")
-  os.makedirs(save_dir)
-  os.makedirs(log_dir)
-
-  return log_dir, save_dir, sample_name, pretrain_name
-
-
 def env_class_and_demo_fn(env_type):
   if env_type == "mujoco":
     from .mujoco_env import MujocoEnv as RLEnv, get_demo

@@ -4,8 +4,7 @@ import os
 import torch
 from .model.option_ppo import MoEPPO
 from .model.option_gail import MoEGAIL
-from .utils.utils import (reward_validate, set_seed, get_dirs,
-                          env_class_and_demo_fn)
+from .utils.utils import (reward_validate, set_seed, env_class_and_demo_fn)
 from .utils.agent import Sampler
 from .utils.logger import Logger
 from .utils.config import Config
@@ -33,7 +32,12 @@ def sample_batch(gail: MoEGAIL, agent, n_sample, demo_sa_array):
   return sample_sar, demo_sar, sample_rsum, demo_rsum
 
 
-def learn(config: Config, msg="default"):
+def learn(config: Config,
+          log_dir,
+          save_dir,
+          sample_name,
+          pretrain_name,
+          msg="default"):
   env_type = config.env_type
   n_demo = config.n_demo
   n_sample = config.n_sample
@@ -46,13 +50,6 @@ def learn(config: Config, msg="default"):
 
   set_seed(seed)
 
-  log_dir, save_dir, sample_name, pretrain_name = get_dirs(seed,
-                                                           base_dir,
-                                                           "gail-moe",
-                                                           env_type,
-                                                           env_name,
-                                                           msg,
-                                                           is_opt=False)
   with open(os.path.join(save_dir, "config.log"), 'w') as f:
     f.write(str(config))
   logger = Logger(log_dir)

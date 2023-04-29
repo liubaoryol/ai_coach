@@ -4,8 +4,7 @@ import numpy as np
 import os
 import torch
 import random
-from aicoach_baselines.option_gail.utils.utils import (env_class_and_demo_fn,
-                                                       get_dirs)
+from aicoach_baselines.option_gail.utils.utils import env_class_and_demo_fn
 from aicoach_baselines.option_gail.utils.logger import Logger
 from aicoach_baselines.option_gail.utils.config import Config
 from aicoach_baselines.option_gail.utils.agent import _SamplerCommon
@@ -41,7 +40,13 @@ def train_iql(agent: MentalIQL_V2,
               smpl_scar,
               demo_sca,
               mini_bs,
+              logger,
+              learn_step,
               is_sqil,
+              use_target,
+              do_soft_update,
+              method_loss,
+              method_regularize,
               n_step=10):
   sp = torch.cat([s[:-1] for s, c, a, r in smpl_scar], dim=0)
   se = torch.cat([s[:-1] for s, c, a in demo_sca], dim=0)
@@ -55,31 +60,37 @@ def train_iql(agent: MentalIQL_V2,
   ap = torch.cat([a[:-1] for s, c, a, r in smpl_scar], dim=0)
   ae = torch.cat([a[:-1] for s, c, a in demo_sca], dim=0)
 
-  p_a = torch.zeros_like(smpl_scar[0][2][0])
+  p_a = torch.zeros_like(smpl_scar[0][2][0], device=agent.device)
   a_1p = torch.cat([torch.vstack([p_a, a[:-2]]) for s, c, a, r in smpl_scar],
                    dim=0)
   a_1e = torch.cat([torch.vstack([p_a, a[:-2]]) for s, c, a in demo_sca], dim=0)
 
-  lentrj = sp.size(0)
-  rp = torch.zeros((lentrj, 1))
-  re = torch.zeros((lentrj, 1))
-  dp = torch.zeros((lentrj, 1))
-  de = torch.zeros((lentrj, 1))
+  len_s = sp.size(0)
+  len_e = se.size(0)
+  rp = torch.zeros((len_s, 1), device=agent.device)
+  re = torch.zeros((len_e, 1), device=agent.device)
+  dp = torch.zeros((len_s, 1), device=agent.device)
+  de = torch.zeros((len_e, 1), device=agent.device)
 
   for _ in range(n_step):
-    inds = torch.randperm(lentrj, device=agent.device)
+    inds = torch.randperm(len_s, device=agent.device)
     for ind_p in inds.split(mini_bs):
       sp_b, cp_1b, ap_b, cp_b = sp[ind_p], c_1p[ind_p], ap[ind_p], cp[ind_p]
       snp_b, ap_1b, rp_b, dp_b = snp[ind_p], a_1p[ind_p], rp[ind_p], dp[ind_p]
 
-      ind_e = torch.randperm(lentrj, device=agent.device)[:ind_p.size(0)]
+      ind_e = torch.randperm(len_e, device=agent.device)[:ind_p.size(0)]
       se_b, ce_1b, ae_b, ce_b = se[ind_e], c_1e[ind_e], ae[ind_e], ce[ind_e]
       sne_b, ae_1b, re_b, de_b = sne[ind_e], a_1e[ind_e], re[ind_e], de[ind_e]
 
       policy_batch = (sp_b, cp_1b, ap_1b, snp_b, cp_b, ap_b, rp_b, dp_b)
       expert_batch = (se_b, ce_1b, ae_1b, sne_b, ce_b, ae_b, re_b, de_b)
+      learn_step += 1
 
-      agent.iq_update(policy_batch, expert_batch, is_sqil=is_sqil)
+      agent.iq_update(policy_batch, expert_batch, logger, learn_step, is_sqil,
+                      use_target, do_soft_update, method_loss,
+                      method_regularize)
+
+  return learn_step
 
 
 def convert_demo(demo_sa, agent: MentalIQL_V2):
@@ -111,7 +122,12 @@ def sample_batch(agent: MentalIQL_V2, sampler: _SamplerCommon, n_sample: int,
   return sample_sxar, demo_sxa, sample_r
 
 
-def learn(config: Config, msg="default"):
+def learn(config: Config,
+          log_dir,
+          save_dir,
+          sample_name,
+          pretrain_name,
+          msg="default"):
 
   env_type = config.env_type
   use_option = config.use_option
@@ -135,17 +151,19 @@ def learn(config: Config, msg="default"):
   alpha_lr = config.optimizer_lr_policy
   alpha_betas = [0.9, 0.999]
   clip_grad_val = 0.5
-  is_sqil = False
   bounded_actor = config.bounded_actor
   gumbel_temperature = 1
+
+  is_sqil = False
+  use_target = True
+  do_soft_update = True
+  method_loss = config.method_loss
+  method_regularize = config.method_regularize
 
   random.seed(seed)
   np.random.seed(seed)
   torch.random.manual_seed(seed)
 
-  log_dir, save_dir, sample_name, _ = get_dirs(seed, base_dir, "miql_v2",
-                                               env_type, env_name, msg,
-                                               use_option)
   with open(os.path.join(save_dir, "config.log"), 'w') as f:
     f.write(str(config))
   logger = Logger(log_dir)
@@ -195,11 +213,14 @@ def learn(config: Config, msg="default"):
   logger.log_test_info(info_dict, 0)
   print(f"init: r-sample-avg={sample_r} ; {msg}")
 
+  learn_step = 0
   for i in range(n_epoch):
-    sample_sxar, demo_sxar = sample_batch(agent, sampler, n_sample,
-                                          demo_sa_array)
+    sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
+                                                   demo_sa_array)
 
-    train_iql(agent, sample_sxar, demo_sxa, batch_size, is_sqil=is_sqil)
+    learn_step = train_iql(agent, sample_sxar, demo_sxa, batch_size, logger,
+                           learn_step, is_sqil, use_target, do_soft_update,
+                           method_loss, method_regularize)
 
     if (i + 1) % 20 == 0:
       info_dict = reward_validate(sampler, agent.policy, do_print=True)

@@ -106,7 +106,7 @@ class MentalSAC_V2(nn.Module):
     return latent_item, action_item
 
   def critic(self, obs, prev_latent, prev_action, latent, action, both=False):
-    return self._critic(obs, prev_latent, prev_action, latent, action, both)
+    return self._critic(obs, prev_latent, latent, action, both)
 
   def getV(self, obs, prev_latent, prev_action):
 
@@ -171,7 +171,7 @@ class MentalSAC_V2(nn.Module):
     else:
       critic_loss = F.mse_loss(current_Q, target_Q)
 
-    logger.log('train/critic_loss', critic_loss, step)
+    logger.log_train('critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -193,9 +193,9 @@ class MentalSAC_V2(nn.Module):
     actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
                   actor_Q).mean()
 
-    logger.log('train/actor_loss', actor_loss, step)
-    logger.log('train/actor_entropy', -act_log_prob.mean(), step)
-    logger.log('train/thinker_entropy', -lat_log_prob.mean(), step)
+    logger.log_train('actor_loss', actor_loss, step)
+    logger.log_train('actor_entropy', -act_log_prob.mean(), step)
+    logger.log_train('thinker_entropy', -lat_log_prob.mean(), step)
 
     # optimize the actor
     self.policy_optimizer.zero_grad()

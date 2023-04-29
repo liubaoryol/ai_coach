@@ -73,6 +73,7 @@ class MentalPolicy(torch.nn.Module):
       logstd = torch.stack([m.expand_as(mean[:, 0, :]) for m in self.a_log_std],
                            dim=-2)
     if ct is not None:
+      # TODO: backward pass not propagate
       ind = ct.view(-1, 1, 1).expand(-1, 1, self.dim_a)
       mean = mean.gather(dim=-2, index=ind).squeeze(dim=-2)
       logstd = logstd.gather(dim=-2, index=ind).squeeze(dim=-2)
@@ -117,7 +118,7 @@ class MentalPolicy(torch.nn.Module):
     if ct is None:
       at = at.view(-1, 1, self.dim_a)
 
-    log_prob = dist.log_prob(at)
+    log_prob = dist.log_prob(at).sum(-1, keepdim=True)
     return log_prob
 
   def log_prob_option(self, st, ct_1, ct):

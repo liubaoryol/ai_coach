@@ -5,8 +5,8 @@ import torch
 from .model.option_ppo import PPO, OptionPPO
 from .model.mental_policy import OptionPolicy, Policy
 from .utils.agent import Sampler
-from .utils.utils import (lr_factor_func, sample_batch, get_dirs,
-                          reward_validate, set_seed, env_class_and_demo_fn)
+from .utils.utils import (lr_factor_func, sample_batch, reward_validate,
+                          set_seed, env_class_and_demo_fn)
 from .utils.logger import Logger
 from .utils.config import Config
 

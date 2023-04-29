@@ -6,7 +6,7 @@ import torch
 from typing import Union
 import torch.nn.functional as F
 from .model.option_policy import (OptionPolicy, Policy)
-from .utils.utils import (validate, reward_validate, set_seed, get_dirs,
+from .utils.utils import (validate, reward_validate, set_seed, 
                           env_class_and_demo_fn)
 
 from .utils.logger import Logger
@@ -273,7 +273,12 @@ def make_policy(config: Config, dim_s, dim_a):
   return policy
 
 
-def learn(config: Config, msg="default"):
+def learn(config: Config,
+          log_dir,
+          save_dir,
+          sample_name,
+          pretrain_name,
+          msg="default"):
 
   use_option = config.use_option
   env_name = config.env_name
@@ -288,8 +293,6 @@ def learn(config: Config, msg="default"):
 
   set_seed(seed)
 
-  log_dir, save_dir, sample_name, pretrain_name = get_dirs(
-      seed, base_dir, "bc", env_type, env_name, msg, use_option)
   with open(os.path.join(save_dir, "config.log"), 'w') as f:
     f.write(str(config))
   logger = Logger(log_dir)

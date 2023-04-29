@@ -82,7 +82,7 @@ class MentalIQL_V2(MentalSAC_V2):
       critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V,
                                        batch, method_loss, method_regularize)
 
-    logger.log('train/critic_loss', critic_loss, step)
+    logger.log_train('critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -113,7 +113,7 @@ class MentalIQL_V2(MentalSAC_V2):
     offline = False
     num_actor_updates = 1
 
-    if self.actor and step % self.policy_update_frequency == 0:
+    if self.policy and step % self.policy_update_frequency == 0:
       if not vdice_actor:
 
         if offline:

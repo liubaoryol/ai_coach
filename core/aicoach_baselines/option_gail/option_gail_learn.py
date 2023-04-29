@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from .model.option_ppo import OptionPPO, PPO
 from .model.option_gail import OptionGAIL, GAIL
 from .utils.utils import (env_class_and_demo_fn, validate, reward_validate,
-                          set_seed, get_dirs)
+                          set_seed)
 from .utils.agent import Sampler
 from .utils.logger import Logger
 from .utils.config import Config
@@ -47,7 +47,12 @@ def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array):
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum
 
 
-def learn(config: Config, msg="default"):
+def learn(config: Config,
+          log_dir,
+          save_dir,
+          sample_name,
+          pretrain_name,
+          msg="default"):
 
   env_type = config.env_type
   use_pretrain = config.use_pretrain
@@ -62,12 +67,9 @@ def learn(config: Config, msg="default"):
   env_name = config.env_name
   use_state_filter = config.use_state_filter
   use_d_info_gail = config.use_d_info_gail
-  base_dir = config.base_dir
 
   set_seed(seed)
 
-  log_dir, save_dir, sample_name, pretrain_name = get_dirs(
-      seed, base_dir, "gail", env_type, env_name, msg, use_option)
   with open(os.path.join(save_dir, "config.log"), 'w') as f:
     f.write(str(config))
   logger = Logger(log_dir)
