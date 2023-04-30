@@ -41,10 +41,10 @@ def get_torch_datapath(config):
 
 def run_alg(config):
   alg_name = config.alg_name
-  msg = f"{config.loss_type}_{config.tag}"
+  msg = f"{config.tag}"
 
   log_dir, output_dir = get_dirs(config.base_dir, alg_name, config.env_type,
-                                 config.env_name)
+                                 config.env_name, msg)
   pretrain_name = os.path.join(config.base_dir, config.pretrain_path)
 
   if alg_name == "bc":
