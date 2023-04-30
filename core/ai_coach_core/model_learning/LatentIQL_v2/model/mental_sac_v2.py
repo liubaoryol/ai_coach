@@ -15,10 +15,10 @@ one_hot = one_hot_w_nan  # alias
 class MentalSAC_V2(nn.Module):
 
   def __init__(self, obs_dim, action_dim, lat_dim, batch_size, device, gamma,
-               critic_tau, critic_lr, critic_target_update_frequency, init_temp,
-               critic_betas, critic: MentalCritic, policy: MentalPolicy,
-               learn_temp, policy_update_frequency, policy_lr, policy_betas,
-               alpha_lr, alpha_betas, clip_grad_val) -> None:
+               critic_tau, critic_lr, init_temp, critic_betas,
+               critic: MentalCritic, policy: MentalPolicy, num_critic_update,
+               num_actor_update, learn_temp, policy_lr, policy_betas, alpha_lr,
+               alpha_betas, clip_grad_val) -> None:
     super().__init__()
 
     self.action_dim = action_dim
@@ -32,8 +32,10 @@ class MentalSAC_V2(nn.Module):
     self.critic_tau = critic_tau
     self.clip_grad_val = clip_grad_val
     self.learn_temp = learn_temp
-    self.policy_update_frequency = policy_update_frequency
-    self.critic_target_update_frequency = critic_target_update_frequency
+    self.policy_update_frequency = 1
+    self.critic_target_update_frequency = 1
+    self.num_critic_update = num_critic_update
+    self.num_actor_update = num_actor_update
 
     self.policy = policy.to(self.device)
     self._critic = critic.to(self.device)
@@ -171,7 +173,7 @@ class MentalSAC_V2(nn.Module):
     else:
       critic_loss = F.mse_loss(current_Q, target_Q)
 
-    logger.log_train('critic_loss', critic_loss, step)
+    # logger.log_train('critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -180,7 +182,6 @@ class MentalSAC_V2(nn.Module):
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
-    # self.critic.log(logger, step)
     return {'loss/critic': critic_loss.item()}
 
   def update_actor_and_alpha(self, obs, prev_lat, prev_act, logger, step):
@@ -193,9 +194,9 @@ class MentalSAC_V2(nn.Module):
     actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
                   actor_Q).mean()
 
-    logger.log_train('actor_loss', actor_loss, step)
-    logger.log_train('actor_entropy', -act_log_prob.mean(), step)
-    logger.log_train('thinker_entropy', -lat_log_prob.mean(), step)
+    # logger.log_train('actor_loss', actor_loss, step)
+    # logger.log_train('actor_entropy', -act_log_prob.mean(), step)
+    # logger.log_train('thinker_entropy', -lat_log_prob.mean(), step)
 
     # optimize the actor
     self.policy_optimizer.zero_grad()

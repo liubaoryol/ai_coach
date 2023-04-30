@@ -39,10 +39,13 @@ def run_iql(env_name,
             log_interval=500,
             eval_interval=2000,
             gumbel_temperature: float = 1.0,
-            list_hidden_dims=[256, 256],
+            list_critic_hidden_dims=[256, 256],
+            list_actor_hidden_dims=[256, 256],
             clip_grad_val=None,
             learn_alpha=False,
-            learning_rate=0.005,
+            critic_lr=0.005,
+            actor_lr=0.005,
+            alpha_lr=0.005,
             load_path: Optional[str] = None,
             bounded_actor=True,
             method_loss="value",
@@ -92,8 +95,8 @@ def run_iql(env_name,
                              q_net_base,
                              critic_target_update_frequency=4,
                              critic_tau=0.1,
-                             critic_lr=learning_rate,
-                             list_hidden_dims=list_hidden_dims)
+                             critic_lr=critic_lr,
+                             list_hidden_dims=list_critic_hidden_dims)
   elif agent_name == "sac":
     critic_base = DoubleQCritic
     use_target = True
@@ -106,11 +109,11 @@ def run_iql(env_name,
                            critic_tau=0.005,
                            gumbel_temperature=gumbel_temperature,
                            learn_temp=learn_alpha,
-                           critic_lr=learning_rate,
-                           actor_lr=learning_rate,
-                           alpha_lr=learning_rate,
-                           list_critic_hidden_dims=list_hidden_dims,
-                           list_actor_hidden_dims=list_hidden_dims,
+                           critic_lr=critic_lr,
+                           actor_lr=actor_lr,
+                           alpha_lr=alpha_lr,
+                           list_critic_hidden_dims=list_critic_hidden_dims,
+                           list_actor_hidden_dims=list_actor_hidden_dims,
                            clip_grad_val=clip_grad_val,
                            bounded_actor=bounded_actor)
   elif agent_name == "sacd":
@@ -123,12 +126,12 @@ def run_iql(env_name,
                             critic_base,
                             critic_target_update_frequency=1,
                             critic_tau=0.005,
-                            critic_lr=learning_rate,
-                            actor_lr=learning_rate,
-                            alpha_lr=learning_rate,
+                            critic_lr=critic_lr,
+                            actor_lr=actor_lr,
+                            alpha_lr=alpha_lr,
                             learn_temp=learn_alpha,
-                            list_critic_hidden_dims=list_hidden_dims,
-                            list_actor_hidden_dims=list_hidden_dims,
+                            list_critic_hidden_dims=list_critic_hidden_dims,
+                            list_actor_hidden_dims=list_actor_hidden_dims,
                             clip_grad_val=clip_grad_val)
   else:
     raise NotImplementedError
@@ -221,7 +224,7 @@ def run_iql(env_name,
           print('Learn begins!')
           begin_learn = True
 
-        if learn_steps == num_learn_steps:
+        if learn_steps >= num_learn_steps:
           print('Finished!')
           return
 
@@ -375,7 +378,7 @@ def iq_update_critic(self,
     critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V, batch,
                                      method_loss, method_regularize)
 
-  logger.log('train/critic_loss', critic_loss, step)
+  # logger.log('train/critic_loss', critic_loss, step)
 
   # Optimize the critic
   self.critic_optimizer.zero_grad()

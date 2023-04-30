@@ -81,7 +81,7 @@ class MentalIQL(MentalSAC):
       critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V,
                                        batch, method_loss, method_regularize)
 
-    logger.log('train/critic_loss', critic_loss, step)
+    # logger.log('train/critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -103,16 +103,16 @@ class MentalIQL(MentalSAC):
                 method_loss="value",
                 method_regularize=True):
 
-    losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
-                                   is_sqil, use_target, method_loss,
-                                   method_regularize)
+    for _ in range(self.num_critic_update):
+      losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
+                                     is_sqil, use_target, method_loss,
+                                     method_regularize)
 
     # args
     vdice_actor = False
     offline = False
-    num_actor_updates = 1
 
-    if self.actor and step % self.actor_update_frequency == 0:
+    if self.actor:
       if not vdice_actor:
 
         if offline:
@@ -125,16 +125,15 @@ class MentalIQL(MentalSAC):
           prev_lat = torch.cat([policy_batch[1], expert_batch[1]], dim=0)
           prev_act = torch.cat([policy_batch[2], expert_batch[2]], dim=0)
 
-        if num_actor_updates:
-          for i in range(num_actor_updates):
+        if self.num_actor_update:
+          for i in range(self.num_actor_update):
             actor_alpha_losses = self.update_actor_and_alpha(
                 obs, prev_lat, prev_act, logger, step)
 
         losses.update(actor_alpha_losses)
 
-    if step % self.critic_target_update_frequency == 0:
-      if do_soft_update:
-        soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
-      else:
-        hard_update(self.critic_net, self.critic_target_net)
+    if do_soft_update:
+      soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
+    else:
+      hard_update(self.critic_net, self.critic_target_net)
     return losses

@@ -4,6 +4,7 @@ import numpy as np
 import os
 import torch
 import random
+from itertools import count
 from aicoach_baselines.option_gail.utils.utils import env_class_and_demo_fn
 from aicoach_baselines.option_gail.utils.logger import Logger
 from aicoach_baselines.option_gail.utils.config import Config
@@ -84,13 +85,10 @@ def train_iql(agent: MentalIQL_V2,
 
       policy_batch = (sp_b, cp_1b, ap_1b, snp_b, cp_b, ap_b, rp_b, dp_b)
       expert_batch = (se_b, ce_1b, ae_1b, sne_b, ce_b, ae_b, re_b, de_b)
-      learn_step += 1
 
       agent.iq_update(policy_batch, expert_batch, logger, learn_step, is_sqil,
                       use_target, do_soft_update, method_loss,
                       method_regularize)
-
-  return learn_step
 
 
 def convert_demo(demo_sa, agent: MentalIQL_V2):
@@ -134,7 +132,7 @@ def learn(config: Config,
   n_demo = config.n_demo
   n_sample = config.n_sample
   n_thread = config.n_thread
-  n_epoch = config.n_epoch
+  max_exp_step = config.max_explore_step
   seed = config.seed
   env_name = config.env_name
   use_state_filter = config.use_state_filter
@@ -148,7 +146,6 @@ def learn(config: Config,
   use_tanh = False
   learn_temp = False
   policy_update_frequency = 1
-  alpha_lr = config.optimizer_lr_policy
   alpha_betas = [0.9, 0.999]
   clip_grad_val = 0.5
   bounded_actor = config.bounded_actor
@@ -192,10 +189,10 @@ def learn(config: Config,
 
   agent = MentalIQL_V2(dim_s, dim_a, config.dim_c, batch_size, config.device,
                        config.gamma, critic_tau, config.optimizer_lr_critic,
-                       critic_target_update_frequency, init_temp, critic_betas,
-                       critic, policy, learn_temp, policy_update_frequency,
-                       config.optimizer_lr_policy, policy_betas, alpha_lr,
-                       alpha_betas, clip_grad_val)
+                       init_temp, critic_betas, critic, policy,
+                       config.num_critic_update, config.num_actor_update,
+                       learn_temp, config.optimizer_lr_policy, policy_betas,
+                       config.optimizer_lr_alpha, alpha_betas, clip_grad_val)
 
   sampler = Sampler(seed,
                     env,
@@ -206,29 +203,32 @@ def learn(config: Config,
   demo_sa_array = tuple(
       (s.to(agent.device), a.to(agent.device)) for s, a, r in demo)
 
-  sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
-                                                 demo_sa_array)
-  info_dict = reward_validate(sampler, agent.policy, do_print=True)
+  # sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
+  #                                                demo_sa_array)
+  # info_dict = reward_validate(sampler, agent.policy, do_print=True)
 
-  logger.log_test_info(info_dict, 0)
-  print(f"init: r-sample-avg={sample_r} ; {msg}")
+  # logger.log_test_info(info_dict, 0)
+  # print(f"init: r-sample-avg={sample_r} ; {msg}")
 
-  learn_step = 0
-  for i in range(n_epoch):
+  explore_step = 0
+  for i in count():
+    if explore_step >= max_exp_step:
+      break
+
     sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
                                                    demo_sa_array)
+    logger.log_train("r-sample-avg", sample_r, explore_step)
+    print(f"{explore_step}: r-sample-avg={sample_r}, {msg}")
 
-    learn_step = train_iql(agent, sample_sxar, demo_sxa, batch_size, logger,
-                           learn_step, is_sqil, use_target, do_soft_update,
-                           method_loss, method_regularize)
+    train_iql(agent, sample_sxar, demo_sxa, batch_size, logger, explore_step,
+              is_sqil, use_target, do_soft_update, method_loss,
+              method_regularize)
+    explore_step += sum([len(traj[0]) for traj in sample_sxar])
 
-    if (i + 1) % 20 == 0:
+    if (i + 1) % 10 == 0:
       info_dict = reward_validate(sampler, agent.policy, do_print=True)
 
-      torch.save((agent.state_dict(), sampler.state_dict()), save_name_f(i))
-      logger.log_test_info(info_dict, i)
-      print(f"{i}: r-sample-avg={sample_r}", f"{msg}")
-    else:
-      print(f"{i}: r-sample-avg={sample_r}, {msg}")
-    logger.log_train("r-sample-avg", sample_r, i)
+      torch.save((agent.state_dict(), sampler.state_dict()),
+                 save_name_f(explore_step))
+      logger.log_test_info(info_dict, explore_step)
     logger.flush()

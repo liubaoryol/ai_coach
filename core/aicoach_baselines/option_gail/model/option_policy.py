@@ -78,9 +78,9 @@ class OptionPolicy(torch.nn.Module):
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
       self.option_policy = make_module(self.dim_s,
                                        (self.dim_c + 1) * self.dim_c,
-                                       n_hidden_pi, activation)
+                                       n_hidden_opt, activation)
       self.policy = make_module(self.dim_s, self.dim_c * self.dim_a,
-                                n_hidden_opt, activation)
+                                n_hidden_pi, activation)
 
       self.a_log_std = torch.nn.Parameter(
           torch.empty(1, self.dim_a, dtype=torch.float32).fill_(0.))

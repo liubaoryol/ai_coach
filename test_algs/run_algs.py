@@ -55,10 +55,6 @@ def run_alg(config):
     from aicoach_baselines.option_gail.option_gail_learn import learn
     sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
-  elif alg_name == "gailmoe":
-    from aicoach_baselines.option_gail.option_gail_learn_moe import learn
-    sample_name = get_torch_datapath(config)
-    learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ppo":
     from aicoach_baselines.option_gail.option_ppo_learn import learn
     sample_name = get_torch_datapath(config)
@@ -85,7 +81,7 @@ if __name__ == "__main__":
   multiprocessing.set_start_method('spawn')
 
   arg = ARGConfig()
-  arg.add_arg("alg_name", "gail", "bc / gail / gailmoe / ppo")
+  arg.add_arg("alg_name", "gail", "bc / gail /  ppo")
   arg.add_arg("use_option", True, "Use Option when training or not")
   arg.add_arg("n_pretrain_epoch", 5000, "Pretrain epoches")
   arg.add_arg("pretrain_log_interval", 20, "Pretrain logging logging interval")
@@ -110,11 +106,13 @@ if __name__ == "__main__":
       "Use pretrained master policy or not (only true when using D-info-GAIL)")
   arg.add_arg("train_option", True,
               "Train master policy or not (only false when using D-info-GAIL)")
-  arg.add_arg("use_state_filter", True, "Use state filter")
+  arg.add_arg("use_state_filter", False, "Use state filter")
   arg.add_arg("bounded_actor", True, "use bounded actor")
   arg.add_arg("data_path", "", "data path")
-  arg.add_arg("use_prev_action", True, "use prev action in trans")
+  arg.add_arg("use_prev_action", False, "use prev action in trans")
   arg.add_arg("pretrain_path", "", "pretrain path")
+  arg.add_arg("num_actor_update", 1, "")
+  arg.add_arg("num_critic_update", 1, "")
   arg.parser()
 
   if arg.env_type == "rlbench":
@@ -128,22 +126,31 @@ if __name__ == "__main__":
   config.base_dir = os.path.dirname(__file__)
 
   config.update(arg)
+  # Training Humanoid.* envs with larger policy network size
   if config.env_name.startswith("Humanoid"):
     config.hidden_policy = (512, 512)
     config.hidden_critic = (512, 512)
-    print(
-        f"Training Humanoid.* envs with larger policy network size :{config.hidden_policy}"
-    )
+
+  # Training RLBench.* envs with larger policy network size
   if config.env_type == "rlbench":
     config.hidden_policy = (128, 128)
     config.hidden_option = (128, 128)
     config.hidden_critic = (128, 128)
     config.log_clamp_policy = (-20., -2.)
-    print(
-        f"Training RLBench.* envs with larger policy network size :{config.hidden_policy}"
-    )
 
-  print(
-      f">>>> Training {'Option-' if config.use_option else ''} {config.alg_name} using {config.env_name} environment on {config.device}"
-  )
+  if config.alg_name in ["iql", "miql"]:
+    dim_c = config.dim_c
+    hp1, hp2 = config.hidden_policy
+    ho1, ho2 = config.hidden_option
+    hc1, hc2 = config.hidden_critic
+    config.hidden_policy = (hp1 * dim_c, hp2 * dim_c)
+    config.hidden_option = (ho1 * dim_c, ho2 * dim_c)
+    config.hidden_critic = (hc1 * dim_c, hc2 * dim_c)
+    print(f"Hidden policy: {config.hidden_policy}",
+          f"Hidden option: {config.hidden_option}",
+          f"Hidden critic: {config.hidden_critic}")
+
+  print(f">>>> Training {'Option-' if config.use_option else ''} "
+        f"{config.alg_name} using {config.env_name} "
+        f"environment on {config.device}")
   run_alg(config)

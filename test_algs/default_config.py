@@ -9,26 +9,27 @@ default_config = Config({
     "n_thread": 1,
     "n_sample": 4096,
     "n_epoch": 5000,
+    "max_explore_step": 3e6,
     "base_dir": os.path.dirname(__file__),
 
     # global task config
     "env_type": "mujoco",
     "env_name": "HalfCheetah-v2",
-    "use_state_filter": True,
+    "use_state_filter": False,
 
     # global policy config
     "activation": "relu",
-    "hidden_policy": (64, 64),
+    "hidden_policy": (64, 64),  # per option
     "shared_policy": False,
     "log_clamp_policy": (-5., 2.),
     "optimizer_lr_policy": 3.e-5,
     "dim_c": 4,
     "use_option": True,
-    "hidden_option": (64, 64),
+    "hidden_option": (64, 64),  # per option
     "optimizer_lr_option": 3.e-5,
 
     # ppo config
-    "hidden_critic": (64, 64),
+    "hidden_critic": (64, 64),  # per option
     "shared_critic": False,
     "train_policy": True,
     "train_option": True,
@@ -60,6 +61,9 @@ default_config = Config({
     "n_traj": 1,
     "method_regularize": True,
     "use_prev_action": True,
+    "optimizer_lr_alpha": 3.e-5,
+    "num_critic_update": 1,
+    "num_actor_update": 1,
 })
 
 mujoco_config = default_config.copy()

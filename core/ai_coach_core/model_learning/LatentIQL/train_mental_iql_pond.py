@@ -7,7 +7,6 @@ import datetime
 import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
-from collections import deque
 from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, eval_mode
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     ExpertDataset)
@@ -27,16 +26,23 @@ def train_mental_iql_pond(env_name,
                           log_dir,
                           output_dir,
                           replay_mem,
-                          n_max_epoch,
+                          max_explore_step,
                           initial_mem=None,
                           output_suffix="",
                           log_interval=500,
                           eval_epoch_interval=5,
                           gumbel_temperature: float = 1.0,
-                          list_hidden_dims=[256, 256],
+                          list_critic_hidden_dims=[256, 256],
+                          list_actor_hidden_dims=[256, 256],
+                          list_thinker_hidden_dims=[256, 256],
+                          num_critic_update=1,
+                          num_actor_update=1,
                           clip_grad_val=None,
                           learn_alpha=False,
-                          learning_rate=0.005,
+                          critic_lr=0.005,
+                          actor_lr=0.005,
+                          thinker_lr=0.005,
+                          alpha_lr=0.005,
                           load_path: Optional[str] = None,
                           bounded_actor=True,
                           method_loss="value",
@@ -83,13 +89,15 @@ def train_mental_iql_pond(env_name,
                           critic_tau=0.005,
                           gumbel_temperature=gumbel_temperature,
                           learn_temp=learn_alpha,
-                          critic_lr=learning_rate,
-                          actor_lr=learning_rate,
-                          thinker_lr=learning_rate,
-                          alpha_lr=learning_rate,
-                          list_critic_hidden_dims=list_hidden_dims,
-                          list_actor_hidden_dims=list_hidden_dims,
-                          list_thinker_hidden_dims=list_hidden_dims,
+                          critic_lr=critic_lr,
+                          actor_lr=actor_lr,
+                          thinker_lr=thinker_lr,
+                          alpha_lr=alpha_lr,
+                          list_critic_hidden_dims=list_critic_hidden_dims,
+                          list_actor_hidden_dims=list_actor_hidden_dims,
+                          list_thinker_hidden_dims=list_thinker_hidden_dims,
+                          num_critic_update=num_critic_update,
+                          num_actor_update=num_actor_update,
                           clip_grad_val=clip_grad_val,
                           bounded_actor=bounded_actor,
                           use_prev_action=use_prev_action)
@@ -122,17 +130,17 @@ def train_mental_iql_pond(env_name,
   # track mean reward and scores
   best_eval_returns = -np.inf
 
-  begin_learn = False
   learn_steps = 0
   NAN = float("nan")
   N_UPDATE_STEPS = 10
 
   for epoch in count():
-    if epoch == n_max_epoch:
+    if learn_steps >= max_explore_step:
       print('Finished!')
       return
 
     # #################### collect data
+    explore_step_cur = 0
     avg_episode_reward = 0
     online_memory_replay.clear()
     for n_epi in count():
@@ -161,6 +169,7 @@ def train_mental_iql_pond(env_name,
           done_no_lim = 0
         online_memory_replay.add((state, prev_lat, prev_act, next_state, latent,
                                   action, reward, done_no_lim))
+        explore_step_cur += 1
         if done or online_memory_replay.size() == replay_mem:
           break
 
@@ -171,9 +180,9 @@ def train_mental_iql_pond(env_name,
       else:
         avg_episode_reward = 0 if n_epi == 0 else avg_episode_reward / n_epi
         break
-
     logger.log('train/episode_reward', avg_episode_reward, learn_steps)
     logger.dump(learn_steps, save=(learn_steps > 0))
+    learn_steps += explore_step_cur
 
     # #################### prepare expert data
     expert_traj = expert_dataset.trajectories
@@ -209,10 +218,8 @@ def train_mental_iql_pond(env_name,
                                  learn_steps, is_sqil, use_target,
                                  do_soft_update, method_loss, method_regularize)
 
-        if learn_steps % log_interval == 0:
-          for key, loss in losses.items():
-            writer.add_scalar(key, loss, global_step=learn_steps)
-        learn_steps += 1
+    for key, loss in losses.items():
+      writer.add_scalar(key, loss, global_step=learn_steps)
 
     save(agent,
          epoch,
@@ -223,7 +230,7 @@ def train_mental_iql_pond(env_name,
          output_dir=output_dir,
          suffix=output_suffix)
 
-    if epoch % eval_epoch_interval == 0:
+    if (epoch + 1) % eval_epoch_interval == 0:
       eval_returns, eval_timesteps = evaluate(agent,
                                               eval_env,
                                               num_episodes=num_episodes)
