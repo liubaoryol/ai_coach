@@ -113,6 +113,7 @@ if __name__ == "__main__":
   arg.add_arg("pretrain_path", "", "pretrain path")
   arg.add_arg("num_actor_update", 1, "")
   arg.add_arg("num_critic_update", 1, "")
+  arg.add_arg("max_explore_step", 5e5, "")
   arg.parser()
 
   if arg.env_type == "rlbench":

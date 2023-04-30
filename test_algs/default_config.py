@@ -60,7 +60,7 @@ default_config = Config({
     "method_loss": "v0",
     "n_traj": 1,
     "method_regularize": True,
-    "use_prev_action": True,
+    "use_prev_action": False,
     "optimizer_lr_alpha": 3.e-5,
     "num_critic_update": 1,
     "num_actor_update": 1,
