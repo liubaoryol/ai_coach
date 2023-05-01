@@ -47,7 +47,7 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
                            policy,
                            use_state_filter=use_state_filter,
                            n_thread=n_thread)
-  n_epoch = len(max_explore_step / n_sample)
+  n_epoch = int(max_explore_step / n_sample)
   explore_step = 0
   for i in count():
     sample_sxar, sample_r = sample_batch(policy, sampling_agent, n_sample)
