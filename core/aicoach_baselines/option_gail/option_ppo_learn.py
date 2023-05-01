@@ -2,6 +2,7 @@
 
 import os
 import torch
+from itertools import count
 from .model.option_ppo import PPO, OptionPPO
 from .model.option_policy import OptionPolicy, Policy
 from .utils.agent import Sampler
@@ -17,7 +18,7 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
   env_name = config.env_name
   n_sample = config.n_sample
   n_thread = config.n_thread
-  n_epoch = config.n_epoch
+  max_explore_step = config.max_explore_step
   seed = config.seed
   use_state_filter = config.use_state_filter
 
@@ -46,17 +47,20 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
                            policy,
                            use_state_filter=use_state_filter,
                            n_thread=n_thread)
-
-  for i in range(n_epoch):
+  n_epoch = len(max_explore_step / n_sample)
+  explore_step = 0
+  for i in count():
     sample_sxar, sample_r = sample_batch(policy, sampling_agent, n_sample)
     lr_mult = lr_factor_func(i, n_epoch, 1., 0.)
     ppo.step(sample_sxar, lr_mult=lr_mult)
+
+    explore_step += sum([len(traj[0]) for traj in sample_sxar])
     if (i + 1) % 50 == 0:
       info_dict, cs_sample = reward_validate(sampling_agent, policy)
 
       torch.save((policy.state_dict(), sampling_agent.state_dict()),
                  save_name_f(i))
       logger.log_test_info(info_dict, i)
-    print(f"{i}: r-sample-avg={sample_r} ; {msg}")
-    logger.log_train("r-sample-avg", sample_r, i)
+    print(f"{explore_step}: r-sample-avg={sample_r} ; {msg}")
+    logger.log_train("r-sample-avg", sample_r, explore_step)
     logger.flush()

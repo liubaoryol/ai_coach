@@ -33,7 +33,7 @@ default_config = Config({
     "shared_critic": False,
     "train_policy": True,
     "train_option": True,
-    "optimizer_lr_critic": 3.e-5,
+    "optimizer_lr_critic": 3.e-4,
     "use_gae": True,
     "gamma": 0.99,
     "gae_tau": 0.95,
