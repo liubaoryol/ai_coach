@@ -6,8 +6,6 @@ Standalone IQ-Learn algorithm. See LICENSE for licensing terms.
 import torch
 import torch.nn.functional as F
 
-g_method_info_printed = False
-
 
 # Full IQ-Learn objective with other divergences and options
 def iq_loss(agent,
@@ -24,12 +22,6 @@ def iq_loss(agent,
   method_grad_pen = False
   method_lambda_gp = 10
   method_alpha = 0.5
-
-  global g_method_info_printed
-  if not g_method_info_printed:
-    print('method_loss:', method_loss)
-    print('method_regularize:', method_regularize)
-    g_method_info_printed = True
 
   gamma = agent.gamma
   obs, next_obs, action, env_reward, done, is_expert = batch
