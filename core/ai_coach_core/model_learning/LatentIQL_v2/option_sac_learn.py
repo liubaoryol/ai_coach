@@ -3,7 +3,7 @@
 import os
 import torch
 from .model.option_ppo import PPO, OptionPPO
-from .model.option_policy import OptionPolicy, Policy
+from .model.mental_policy import OptionPolicy, Policy
 from .utils.agent import Sampler
 from .utils.utils import (lr_factor_func, sample_batch, reward_validate,
                           set_seed, env_class_and_demo_fn)
@@ -11,7 +11,7 @@ from .utils.logger import Logger
 from .utils.config import Config
 
 
-def learn(config: Config, log_dir, save_dir, msg="default"):
+def learn(config: Config, msg="default"):
   env_type = config.env_type
   use_option = config.use_option
   env_name = config.env_name
@@ -20,9 +20,12 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
   n_epoch = config.n_epoch
   seed = config.seed
   use_state_filter = config.use_state_filter
+  base_dir = config.base_dir
 
   set_seed(seed)
 
+  log_dir, save_dir, sample_name, pretrain_name = get_dirs(
+      seed, base_dir, "ppo", "mujoco", env_name, msg, use_option)
   with open(os.path.join(save_dir, "config.log"), 'w') as f:
     f.write(str(config))
   logger = Logger(log_dir)

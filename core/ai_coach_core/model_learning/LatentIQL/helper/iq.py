@@ -8,18 +8,19 @@ from ..agent.mental_sac import MentalSAC
 
 
 # Full IQ-Learn objective with other divergences and options
-def iq_loss(agent: MentalSAC, current_Q, current_v, next_v, batch):
+def iq_loss(agent: MentalSAC,
+            current_Q,
+            current_v,
+            next_v,
+            batch,
+            method_loss="value",
+            method_regularize=True):
   # args
   method_div = ""
-  method_loss = "value"
   method_type = "iq"
   method_grad_pen = False
   method_lambda_gp = 10
   method_alpha = 0.5
-  if "SAC" in agent.__class__.__name__:
-    method_regularize = True
-  else:
-    method_regularize = False
 
   gamma = agent.gamma
   obs, prev_lat, prev_act, _, _, _, _, done, is_expert = batch

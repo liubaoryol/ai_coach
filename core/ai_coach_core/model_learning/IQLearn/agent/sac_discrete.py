@@ -201,7 +201,7 @@ class SAC_Discrete(object):
     else:
       critic_loss = F.mse_loss(current_Q, target_Q)
 
-    logger.log('train/critic_loss', critic_loss, step)
+    # logger.log('train/critic_loss', critic_loss, step)
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
@@ -209,7 +209,6 @@ class SAC_Discrete(object):
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
-    # self.critic.log(logger, step)
     return {'loss/critic': critic_loss.item()}
 
   def update_actor_and_alpha(self, obs, logger, step):
@@ -229,9 +228,9 @@ class SAC_Discrete(object):
 
     actor_loss = (-avg_Q - self.alpha.detach() * entropies).mean()
 
-    logger.log('train/actor_loss', actor_loss, step)
-    logger.log('train/target_entropy', self.target_entropy, step)
-    logger.log('train/actor_entropy', -entropies.mean(), step)
+    # logger.log('train/actor_loss', actor_loss, step)
+    # logger.log('train/target_entropy', self.target_entropy, step)
+    # logger.log('train/actor_entropy', -entropies.mean(), step)
 
     # optimize the actor
     self.actor_optimizer.zero_grad()
@@ -246,13 +245,12 @@ class SAC_Discrete(object):
         'actor_loss/entropy': -entropies.mean().item()
     }
 
-    # self.actor.log(logger, step)
     if self.learn_temp:
       self.log_alpha_optimizer.zero_grad()
       alpha_loss = (self.log_alpha *
                     (entropies - self.target_entropy).detach()).mean()
-      logger.log('train/alpha_loss', alpha_loss, step)
-      logger.log('train/alpha_value', self.alpha, step)
+      # logger.log('train/alpha_loss', alpha_loss, step)
+      # logger.log('train/alpha_value', self.alpha, step)
 
       alpha_loss.backward()
       self.log_alpha_optimizer.step()

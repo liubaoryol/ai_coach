@@ -100,8 +100,11 @@ class MetersGroup(object):
     elif ty == 'time':
       return f'{key}: {value:04.1f} s'
     elif ty == 'none':
-      ndigits = int(np.log10(value) + 1)
-      filler = '-' * ndigits
+      if value != 0:
+        ndigits = int(np.log10(value) + 1)
+        filler = '-' * ndigits
+      else:
+        filler = '-'
       return f'{key}: {filler}'
     else:
       raise f'invalid format type: {ty}'

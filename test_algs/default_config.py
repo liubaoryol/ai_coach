@@ -9,35 +9,36 @@ default_config = Config({
     "n_thread": 1,
     "n_sample": 4096,
     "n_epoch": 5000,
+    "max_explore_step": 5e5,
     "base_dir": os.path.dirname(__file__),
 
     # global task config
     "env_type": "mujoco",
     "env_name": "HalfCheetah-v2",
-    "use_state_filter": True,
+    "use_state_filter": False,
 
     # global policy config
     "activation": "relu",
-    "hidden_policy": (64, 64),
+    "hidden_policy": (64, 64),  # per option
     "shared_policy": False,
-    "log_clamp_policy": (-20., 0.),
-    "optimizer_lr_policy": 3.e-4,
+    "log_clamp_policy": (-5., 2.),
+    "optimizer_lr_policy": 3.e-5,
     "dim_c": 4,
     "use_option": True,
-    "hidden_option": (64, 64),
-    "optimizer_lr_option": 3.e-4,
+    "hidden_option": (64, 64),  # per option
+    "optimizer_lr_option": 3.e-5,
 
     # ppo config
-    "hidden_critic": (64, 64),
+    "hidden_critic": (64, 64),  # per option
     "shared_critic": False,
     "train_policy": True,
     "train_option": True,
-    "optimizer_lr_critic": 3.e-4,
+    "optimizer_lr_critic": 3.e-5,
     "use_gae": True,
     "gamma": 0.99,
     "gae_tau": 0.95,
     "clip_eps": 0.2,
-    "mini_batch_size": 64,
+    "mini_batch_size": 256,
     "lambda_entropy_policy": 0.,
     "lambda_entropy_option": 1.e-2,
 
@@ -54,8 +55,15 @@ default_config = Config({
     "optimizer_lr_discriminator": 3.e-4,
     "use_d_info_gail": False,
 
-    # miql config
+    # miql/iql config
     "bounded_actor": True,
+    "method_loss": "v0",
+    "n_traj": 1,
+    "method_regularize": True,
+    "use_prev_action": False,
+    "optimizer_lr_alpha": 3.e-5,
+    "num_critic_update": 1,
+    "num_actor_update": 1,
 })
 
 mujoco_config = default_config.copy()

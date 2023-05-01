@@ -8,18 +8,20 @@ import torch.nn.functional as F
 
 
 # Full IQ-Learn objective with other divergences and options
-def iq_loss(agent, current_Q, current_v, next_v, batch):
+def iq_loss(agent,
+            current_Q,
+            current_v,
+            next_v,
+            batch,
+            method_loss="value",
+            method_regularize=True):
   # args
   method_div = ""
-  method_loss = "value"
+  # method_loss = "value"
   method_type = "iq"
   method_grad_pen = False
   method_lambda_gp = 10
   method_alpha = 0.5
-  if "SAC" in agent.__class__.__name__:
-    method_regularize = True
-  else:
-    method_regularize = False
 
   gamma = agent.gamma
   obs, next_obs, action, env_reward, done, is_expert = batch

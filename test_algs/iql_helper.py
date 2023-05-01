@@ -1,31 +1,32 @@
 import os
 import pickle
 import numpy as np
+import torch
+import datetime
+import time
 from collections import defaultdict
+from aicoach_baselines.option_gail.utils.state_filter import StateFilter
 
 
-def get_dirs(seed,
-             base_dir="",
+def get_dirs(base_dir="",
              exp_type="gail",
              env_type="mujoco",
-             env_name="HalfCheetah-v2"):
+             env_name="HalfCheetah-v2",
+             msg="default"):
   assert env_type in ("mini", "mujoco",
                       "rlbench"), f"Error, env_type {env_type} not supported"
 
   base_log_dir = os.path.join(base_dir, "result/")
-  base_data_dir = os.path.join(base_dir, "data/")
-  rand_str = f"{seed}"
 
-  sample_name = os.path.join(base_data_dir, env_type,
-                             f"{env_name}_sample.torch")
-
-  log_dir_root = os.path.join(base_log_dir, env_name, f"{exp_type}", rand_str)
-  output_dir = os.path.join(log_dir_root, "model")
+  ts_str = datetime.datetime.fromtimestamp(
+      time.time()).strftime("%Y-%m-%d_%H-%M-%S")
+  log_dir_root = os.path.join(base_log_dir, env_name, exp_type, msg, ts_str)
+  save_dir = os.path.join(log_dir_root, "model")
   log_dir = os.path.join(log_dir_root, "log")
-  os.makedirs(output_dir)
+  os.makedirs(save_dir)
   os.makedirs(log_dir)
 
-  return log_dir, output_dir, sample_name
+  return log_dir, save_dir
 
 
 def conv_torch_trajs_2_iql_format(sar_trajectories, path: str):
@@ -52,3 +53,19 @@ def conv_torch_trajs_2_iql_format(sar_trajectories, path: str):
 
   with open(path, 'wb') as f:
     pickle.dump(expert_trajs, f)
+
+
+def conv_iql_trajs_2_optiongail_format(trajectories, path: str):
+
+  use_rs = False
+  num_traj = len(trajectories["states"])
+  rs = StateFilter(enable=use_rs)
+
+  sample = []
+  for epi in range(num_traj):
+    s_array = torch.as_tensor(trajectories["states"][epi], dtype=torch.float32)
+    a_array = torch.as_tensor(trajectories["actions"][epi], dtype=torch.float32)
+    r_array = torch.as_tensor(trajectories["rewards"][epi], dtype=torch.float32)
+    sample.append((s_array, a_array, r_array))
+
+  torch.save((sample, rs.state_dict()), path)

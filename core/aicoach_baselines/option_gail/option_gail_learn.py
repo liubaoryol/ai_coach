@@ -4,10 +4,11 @@ import os
 import torch
 from typing import Union
 import matplotlib.pyplot as plt
+from itertools import count
 from .model.option_ppo import OptionPPO, PPO
 from .model.option_gail import OptionGAIL, GAIL
 from .utils.utils import (env_class_and_demo_fn, validate, reward_validate,
-                          set_seed, get_dirs)
+                          set_seed)
 from .utils.agent import Sampler
 from .utils.logger import Logger
 from .utils.config import Config
@@ -47,7 +48,12 @@ def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array):
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum
 
 
-def learn(config: Config, msg="default"):
+def learn(config: Config,
+          log_dir,
+          save_dir,
+          sample_name,
+          pretrain_name,
+          msg="default"):
 
   env_type = config.env_type
   use_pretrain = config.use_pretrain
@@ -56,18 +62,15 @@ def learn(config: Config, msg="default"):
   n_sample = config.n_sample
   n_thread = config.n_thread
   n_iter = config.n_pretrain_epoch
-  n_epoch = config.n_epoch
+  max_exp_step = config.max_explore_step
   seed = config.seed
   log_interval = config.pretrain_log_interval
   env_name = config.env_name
   use_state_filter = config.use_state_filter
   use_d_info_gail = config.use_d_info_gail
-  base_dir = config.base_dir
 
   set_seed(seed)
 
-  log_dir, save_dir, sample_name, pretrain_name = get_dirs(
-      seed, base_dir, "gail", env_type, env_name, msg, use_option)
   with open(os.path.join(save_dir, "config.log"), 'w') as f:
     f.write(str(config))
   logger = Logger(log_dir)
@@ -113,58 +116,65 @@ def learn(config: Config, msg="default"):
     if use_d_info_gail:
       gail.policy.policy.load_state_dict(opt_sd)
 
-  sample_sxar, demo_sxar, sample_r, demo_r = sample_batch(
-      gail, sampling_agent, n_sample, demo_sa_array)
-  v_l, cs_demo = validate(gail.policy, [(tr[0], tr[-2]) for tr in demo_sxar])
-  info_dict, cs_sample = reward_validate(sampling_agent,
-                                         gail.policy,
-                                         do_print=True)
+  # sample_sxar, demo_sxar, sample_r, demo_r = sample_batch(
+  #     gail, sampling_agent, n_sample, demo_sa_array)
 
+  # v_l, cs_demo = validate(gail.policy, [(tr[0], tr[-2]) for tr in demo_sxar])
+  # info_dict, cs_sample = reward_validate(sampling_agent,
+  #                                        gail.policy,
+  #                                        do_print=True)
+
+  explore_step = 0
   LOG_PLOT = False
-  if LOG_PLOT and use_option:
-    a = plt.figure()
-    a.gca().plot(cs_demo[0][1:])
-    logger.log_test_fig("expert_c", a, 0)
+  # if LOG_PLOT and use_option:
+  #   a = plt.figure()
+  #   a.gca().plot(cs_demo[0][1:])
+  #   logger.log_test_fig("expert_c", a, explore_step)
 
-    a = plt.figure()
-    a.gca().plot(cs_sample[0][1:])
-    logger.log_test_fig("sample_c", a, 0)
+  #   a = plt.figure()
+  #   a.gca().plot(cs_sample[0][1:])
+  #   logger.log_test_fig("sample_c", a, explore_step)
 
-  logger.log_test_info(info_dict, 0)
-  print(
-      f"init: r-sample-avg={sample_r}, d-demo-avg={demo_r}, log_p={v_l} ; {msg}"
-  )
+  # logger.log_test_info(info_dict, explore_step)
+  # print(
+  #     f"init: r-sample-avg={sample_r}, d-demo-avg={demo_r}, log_p={v_l} ; {msg}"
+  # )
 
-  for i in range(n_epoch):
+  for i in count():
+    if explore_step >= max_exp_step:
+      break
+
     sample_sxar, demo_sxar, sample_r, demo_r = sample_batch(
         gail, sampling_agent, n_sample, demo_sa_array)
+
+    logger.log_train("r-sample-avg", sample_r, explore_step)
+    logger.log_train("r-demo-avg", demo_r, explore_step)
+    print(
+        f"{explore_step}: r-sample-avg={sample_r}, d-demo-avg={demo_r} ; {msg}")
 
     train_d(gail, sample_sxar, demo_sxar)
     # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
     train_g(ppo, sample_sxar, factor_lr=1.)
-    if (i + 1) % 20 == 0:
+
+    explore_step += sum([len(traj[0]) for traj in sample_sxar])
+    if (i + 1) % 10 == 0:
       v_l, cs_demo = validate(gail.policy,
                               [(tr[0], tr[-2]) for tr in demo_sxar])
-      logger.log_test("expert_logp", v_l, i)
+      logger.log_test("expert_logp", v_l, explore_step)
       info_dict, cs_sample = reward_validate(sampling_agent,
                                              gail.policy,
                                              do_print=True)
       if LOG_PLOT and use_option:
         a = plt.figure()
         a.gca().plot(cs_demo[0][1:])
-        logger.log_test_fig("expert_c", a, i)
+        logger.log_test_fig("expert_c", a, explore_step)
 
         a = plt.figure()
         a.gca().plot(cs_sample[0][1:])
-        logger.log_test_fig("sample_c", a, i)
+        logger.log_test_fig("sample_c", a, explore_step)
 
       torch.save((gail.state_dict(), sampling_agent.state_dict()),
-                 save_name_f(i))
-      logger.log_test_info(info_dict, i)
-      print(f"{i}: r-sample-avg={sample_r}, d-demo-avg={demo_r}, log_p={v_l} ;",
-            f"{msg}")
-    else:
-      print(f"{i}: r-sample-avg={sample_r}, d-demo-avg={demo_r} ; {msg}")
-    logger.log_train("r-sample-avg", sample_r, i)
-    logger.log_train("r-demo-avg", demo_r, i)
+                 save_name_f(explore_step))
+      logger.log_test_info(info_dict, explore_step)
+
     logger.flush()
