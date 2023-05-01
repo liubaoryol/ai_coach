@@ -9,7 +9,7 @@ def learn_iql(config: ARGConfig, log_dir, output_dir, path_iq_data, num_traj):
   n_sample = config.n_sample
   n_step = 10
   batch_size = config.mini_batch_size
-  clip_grad_val = 0.5
+  clip_grad_val = config.clip_grad_val
   learn_alpha = False
 
   num_iter = config.max_explore_step
@@ -45,7 +45,7 @@ def learn_miql(config: ARGConfig, log_dir, output_dir, path_iq_data, num_traj):
   n_sample = config.n_sample
   n_step = 10
   batch_size = config.mini_batch_size
-  clip_grad_val = 0.5
+  clip_grad_val = config.clip_grad_val
   learn_alpha = False
 
   log_interval = 500

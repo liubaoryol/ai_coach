@@ -7,8 +7,8 @@
 #     matplotlib >= 3.2
 
 ###### for Hopper-v2 #####
-python3 test_algs/run_algs.py --alg_name ppo --env_type mujoco \
+python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
-        --bounded_actor True --tag optppo-no-filter --use_prev_action False \
+        --bounded_actor True --tag iql-1k --use_prev_action False \
         --use_state_filter False --data_path "experts/Hopper-v2_25.pkl" \
-        --max_explore_step 3e6
+        --max_explore_step 3e6 --clip_grad_val 0

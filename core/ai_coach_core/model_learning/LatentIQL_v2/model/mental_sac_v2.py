@@ -178,7 +178,7 @@ class MentalSAC_V2(nn.Module):
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
-    if self.clip_grad_val is not None:
+    if not self.clip_grad_val:
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
@@ -201,7 +201,7 @@ class MentalSAC_V2(nn.Module):
     # optimize the actor
     self.policy_optimizer.zero_grad()
     actor_loss.backward()
-    if self.clip_grad_val is not None:
+    if not self.clip_grad_val:
       nn.utils.clip_grad_norm_(self.policy.parameters(), self.clip_grad_val)
     self.policy_optimizer.step()
 

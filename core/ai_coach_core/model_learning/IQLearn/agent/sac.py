@@ -214,7 +214,7 @@ class SAC(object):
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
-    if self.clip_grad_val is not None:
+    if not self.clip_grad_val:
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
@@ -239,7 +239,7 @@ class SAC(object):
     # optimize the actor
     self.actor_optimizer.zero_grad()
     actor_loss.backward()
-    if self.clip_grad_val is not None:
+    if not self.clip_grad_val:  # not zero or None
       nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
     self.actor_optimizer.step()
 

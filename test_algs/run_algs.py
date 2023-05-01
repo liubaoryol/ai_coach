@@ -114,7 +114,10 @@ if __name__ == "__main__":
   arg.add_arg("num_actor_update", 1, "")
   arg.add_arg("num_critic_update", 1, "")
   arg.add_arg("max_explore_step", 5e5, "")
+  arg.add_arg("clip_grad_val", 0, "")
   arg.parser()
+  if arg.clip_grad_val == 0:
+    arg.clip_grad_val = None
 
   if arg.env_type == "rlbench":
     config = rlbench_config

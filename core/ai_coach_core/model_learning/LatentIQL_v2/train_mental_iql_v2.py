@@ -147,7 +147,7 @@ def learn(config: Config,
   learn_temp = False
   policy_update_frequency = 1
   alpha_betas = [0.9, 0.999]
-  clip_grad_val = 0.5
+  clip_grad_val = config.clip_grad_val
   bounded_actor = config.bounded_actor
   gumbel_temperature = 1
 
