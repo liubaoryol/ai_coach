@@ -29,7 +29,7 @@ class Net(ABC):
       lr_scheduler.step(epoch=learning_steps)
     optim.zero_grad()
     loss.backward()
-    if not self.clip_grad_val:
+    if self.clip_grad_val:
       nn.utils.clip_grad_norm_(self.parameters(), self.clip_grad_val)
     optim.step()
     return loss
