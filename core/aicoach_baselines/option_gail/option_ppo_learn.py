@@ -59,8 +59,8 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
       info_dict, cs_sample = reward_validate(sampling_agent, policy)
 
       torch.save((policy.state_dict(), sampling_agent.state_dict()),
-                 save_name_f(i))
-      logger.log_test_info(info_dict, i)
+                 save_name_f(explore_step))
+      logger.log_test_info(info_dict, explore_step)
     print(f"{explore_step}: r-sample-avg={sample_r} ; {msg}")
     logger.log_train("r-sample-avg", sample_r, explore_step)
     logger.flush()
