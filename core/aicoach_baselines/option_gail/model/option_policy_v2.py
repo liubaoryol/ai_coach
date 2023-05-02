@@ -21,6 +21,7 @@ class OptionPolicyV2(torch.nn.Module):
     self.log_clamp = config.log_clamp_policy
     self.is_shared = config.shared_policy
     self.bounded = config.bounded_actor
+    self.orig_option_entropy = config.orig_option_entropy
 
     activation = make_activation(config.activation)
     n_hidden_pi = config.hidden_policy
@@ -76,12 +77,16 @@ class OptionPolicyV2(torch.nn.Module):
     # clamp mean and logstd
     mean = mean.clamp(-10, 10)
 
-    logstd = torch.tanh(logstd)
-    log_std_min, log_std_max = self.log_clamp
-    logstd = log_std_min + 0.5 * (log_std_max - log_std_min) * (logstd + 1)
-    std = logstd.exp()
+    if self.bounded:
+      logstd = torch.tanh(logstd)
+      log_std_min, log_std_max = self.log_clamp
+      logstd = log_std_min + 0.5 * (log_std_max - log_std_min) * (logstd + 1)
+      std = logstd.exp()
 
-    dist = SquashedNormal(mean, std) if self.bounded else Normal(mean, std)
+      dist = SquashedNormal(mean, std)
+    else:
+      logstd = logstd.clamp(self.log_clamp[0], self.log_clamp[1])
+      dist = Normal(mean, logstd.exp())
 
     return dist
 
@@ -157,10 +162,16 @@ class OptionPolicyV2(torch.nn.Module):
     return log_prob, entropy
 
   def option_log_prob_entropy(self, st, ct_1, ct):
-    # c1 can be dim_c, c2 should always < dim_c
-    log_opt = self.log_prob_option(st, ct_1, ct)
-    entropy = -log_opt.mean()
-    return log_opt, entropy
+    if self.orig_option_entropy:
+      log_tr = self.log_trans(st, ct_1)
+      log_opt = log_tr.gather(dim=-1, index=ct)
+      entropy = -(log_tr * log_tr.exp()).sum(dim=-1, keepdim=True)
+      return log_opt, entropy
+    else:
+      # c1 can be dim_c, c2 should always < dim_c
+      log_opt = self.log_prob_option(st, ct_1, ct)
+      entropy = -log_opt.mean()
+      return log_opt, entropy
 
   def log_alpha_beta(self, s_array, a_array):
     log_pis = self.log_prob_action(s_array, None,

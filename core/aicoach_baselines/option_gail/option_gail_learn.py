@@ -116,29 +116,8 @@ def learn(config: Config,
     if use_d_info_gail:
       gail.policy.policy.load_state_dict(opt_sd)
 
-  # sample_sxar, demo_sxar, sample_r, demo_r = sample_batch(
-  #     gail, sampling_agent, n_sample, demo_sa_array)
-
-  # v_l, cs_demo = validate(gail.policy, [(tr[0], tr[-2]) for tr in demo_sxar])
-  # info_dict, cs_sample = reward_validate(sampling_agent,
-  #                                        gail.policy,
-  #                                        do_print=True)
-
   explore_step = 0
   LOG_PLOT = False
-  # if LOG_PLOT and use_option:
-  #   a = plt.figure()
-  #   a.gca().plot(cs_demo[0][1:])
-  #   logger.log_test_fig("expert_c", a, explore_step)
-
-  #   a = plt.figure()
-  #   a.gca().plot(cs_sample[0][1:])
-  #   logger.log_test_fig("sample_c", a, explore_step)
-
-  # logger.log_test_info(info_dict, explore_step)
-  # print(
-  #     f"init: r-sample-avg={sample_r}, d-demo-avg={demo_r}, log_p={v_l} ; {msg}"
-  # )
 
   for i in count():
     if explore_step >= max_exp_step:

@@ -65,6 +65,9 @@ default_config = Config({
     "num_critic_update": 1,
     "num_actor_update": 1,
     "clip_grad_val": 0,
+
+    # gail debug
+    "orig_option_entropy": True,
 })
 
 mujoco_config = default_config.copy()

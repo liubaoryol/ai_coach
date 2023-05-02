@@ -4,7 +4,7 @@ from aicoach_baselines.option_gail.utils.config import ARGConfig
 from aicoach_baselines.option_gail.utils.mujoco_env import load_demo
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     read_file)
-from default_config import rlbench_config, mujoco_config
+from default_config import rlbench_config, mujoco_config, default_config
 from iql_helper import (get_dirs, conv_torch_trajs_2_iql_format,
                         conv_iql_trajs_2_optiongail_format)
 
@@ -85,40 +85,16 @@ if __name__ == "__main__":
   multiprocessing.set_start_method('spawn')
 
   arg = ARGConfig()
+  for key, value in default_config.items():
+    arg.add_arg(key, value)
+
   arg.add_arg("alg_name", "gail", "bc / gail /  ppo")
-  arg.add_arg("use_option", True, "Use Option when training or not")
-  arg.add_arg("n_pretrain_epoch", 5000, "Pretrain epoches")
-  arg.add_arg("pretrain_log_interval", 20, "Pretrain logging logging interval")
   # We can prove that using MLE is equivalent to MAP mathematically, but the former has higher computational efficiency
   # so here we recommend using MLE instead of MAP in your future work
   arg.add_arg("loss_type", "L2",
               "Pretraining method [L2, MLE, MAP, subpart MAP]")
-  arg.add_arg("dim_c", 4, "Number of Options")
-  arg.add_arg("env_type", "mujoco",
-              "Environment type, can be [mujoco, rlbench, mini]")
-  arg.add_arg("env_name", "AntPush-v0", "Environment name")
-  arg.add_arg("device", "cuda:0", "Computing device")
-  arg.add_arg("tag", "default", "Experiment tag")
-  arg.add_arg("n_demo", 5000, "Number of demonstration s-a")
-  arg.add_arg("n_epoch", 4000, "Number of training epochs")
-  arg.add_arg("seed", torch.randint(100, ()).item(), "Random seed")
-  arg.add_arg("use_c_in_discriminator", True,
-              "Use (s,a) or (s,c,a) as occupancy measurement")
-  arg.add_arg("use_d_info_gail", False, "Use directed-info gail or not")
-  arg.add_arg(
-      "use_pretrain", False,
-      "Use pretrained master policy or not (only true when using D-info-GAIL)")
-  arg.add_arg("train_option", True,
-              "Train master policy or not (only false when using D-info-GAIL)")
-  arg.add_arg("use_state_filter", False, "Use state filter")
-  arg.add_arg("bounded_actor", True, "use bounded actor")
   arg.add_arg("data_path", "", "data path")
-  arg.add_arg("use_prev_action", False, "use prev action in trans")
   arg.add_arg("pretrain_path", "", "pretrain path")
-  arg.add_arg("num_actor_update", 1, "")
-  arg.add_arg("num_critic_update", 1, "")
-  arg.add_arg("max_explore_step", 5e5, "")
-  arg.add_arg("clip_grad_val", 0.0, "")
   arg.parser()
   if arg.clip_grad_val == 0:
     arg.clip_grad_val = None
