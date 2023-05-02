@@ -1,5 +1,6 @@
 import torch
 from ..model.option_policy import OptionPolicy, Policy
+from ..model.option_policy_v2 import OptionPolicyV2
 import numpy as np
 from typing import Union
 import os
@@ -17,7 +18,7 @@ def validate(policy: Union[OptionPolicy, Policy], sa_array):
     log_pi = 0.
     cs = []
     for s_array, a_array in sa_array:
-      if isinstance(policy, OptionPolicy):
+      if isinstance(policy, OptionPolicy) or isinstance(policy, OptionPolicyV2):
         c_array, logp = policy.viterbi_path(s_array, a_array)
         log_pi += logp.item()
         cs.append(c_array.detach().cpu().squeeze(dim=-1).numpy())
@@ -35,7 +36,7 @@ def reward_validate(agent,
   trajs = agent.collect(policy.state_dict(), n_sample, fixed=True)
   rsums = [tr[-1].sum().item() for tr in trajs]
   steps = [tr[-1].size(0) for tr in trajs]
-  if isinstance(policy, OptionPolicy):
+  if isinstance(policy, OptionPolicy) or isinstance(policy, OptionPolicyV2):
     css = [
         tr[1].cpu().squeeze(dim=-1).numpy()
         for _, tr in sorted(zip(rsums, trajs), key=lambda d: d[0], reverse=True)

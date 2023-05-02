@@ -55,6 +55,10 @@ def run_alg(config):
     from aicoach_baselines.option_gail.option_gail_learn import learn
     sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
+  elif alg_name == "gailv2":
+    from aicoach_baselines.option_gail.option_gail_learn_v2 import learn
+    sample_name = get_torch_datapath(config)
+    learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ppo":
     from aicoach_baselines.option_gail.option_ppo_learn import learn
     sample_name = get_torch_datapath(config)
@@ -63,7 +67,7 @@ def run_alg(config):
     from iql_miql_train import learn_miql
     path_iq_data, num_traj = get_pickle_datapath_n_traj(config)
     learn_miql(config, log_dir, output_dir, path_iq_data, num_traj)
-  elif alg_name == "miql_v2":
+  elif alg_name == "miqlv2":
     from ai_coach_core.model_learning.LatentIQL_v2.train_mental_iql_v2 import (
         learn)
     sample_name = get_torch_datapath(config)

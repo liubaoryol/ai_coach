@@ -3,6 +3,7 @@ import time
 from copy import deepcopy
 from torch.multiprocessing import Process, Pipe, Lock, Value
 from ..model.option_policy import OptionPolicy, MoEPolicy
+from ..model.option_policy_v2 import OptionPolicyV2
 from .state_filter import StateFilter
 from .utils import set_seed
 
@@ -305,7 +306,7 @@ def Sampler(seed,
             policy,
             use_state_filter: bool = True,
             n_thread=4) -> _SamplerCommon:
-  if isinstance(policy, OptionPolicy):
+  if isinstance(policy, OptionPolicy) or isinstance(policy, OptionPolicyV2):
     loop_func = option_loop
   elif isinstance(policy, MoEPolicy):
     loop_func = moe_loop
