@@ -21,11 +21,15 @@ class OptionPolicyV2(torch.nn.Module):
     self.log_clamp = config.log_clamp_policy
     self.is_shared = config.shared_policy
     self.bounded = config.bounded_actor
-    self.orig_option_entropy = config.orig_option_entropy
 
     activation = make_activation(config.activation)
     n_hidden_pi = config.hidden_policy
     n_hidden_opt = config.hidden_option
+
+    # debug
+    self.orig_option_entropy = config.orig_option_entropy
+    self.gail_use_rsample = config.gail_use_rsample
+    self.gail_option_sample_orig = config.gail_option_sample_orig
 
     if self.is_shared:
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
@@ -143,7 +147,7 @@ class OptionPolicyV2(torch.nn.Module):
     if fixed:
       action = dist.mean
     else:
-      action = dist.sample()
+      action = dist.rsample() if self.gail_use_rsample else dist.sample()
 
     return action
 
@@ -152,7 +156,10 @@ class OptionPolicyV2(torch.nn.Module):
     if fixed:
       option = dist.logits.argmax(dim=-1, keepdim=True)
     else:
-      option = dist.sample().view(*dist.logits.shape[:-1], 1)
+      if self.gail_option_sample_orig:
+        option = F.gumbel_softmax(dist.logits, hard=False).multinomial(1).long()
+      else:
+        option = dist.sample().view(*dist.logits.shape[:-1], 1)
 
     return option
 

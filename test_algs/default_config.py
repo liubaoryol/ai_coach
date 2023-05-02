@@ -68,6 +68,8 @@ default_config = Config({
 
     # gail debug
     "orig_option_entropy": True,
+    "gail_use_rsample": False,
+    "gail_option_sample_orig": True,
 })
 
 mujoco_config = default_config.copy()

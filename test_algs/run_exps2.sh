@@ -9,6 +9,7 @@
 ###### for Hopper-v2 #####
 python3 test_algs/run_algs.py --alg_name gailv2 --env_type mujoco \
         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
-        --bounded_actor False --tag gailv3-1k-nobound --use_prev_action False \
+        --bounded_actor False --tag gailv4-opt_orig --use_prev_action False \
         --use_state_filter False --data_path "experts/Hopper-v2_25.pkl" \
-        --max_explore_step 3e6 --clip_grad_val 0 --orig_option_entropy True
+        --max_explore_step 3e6 --clip_grad_val 0 --orig_option_entropy True \
+        --gail_use_rsample False --gail_option_sample_orig True
