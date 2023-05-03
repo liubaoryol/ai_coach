@@ -152,8 +152,8 @@ def learn(config: Config,
         a.gca().plot(cs_sample[0][1:])
         logger.log_test_fig("sample_c", a, explore_step)
 
-      torch.save((gail.state_dict(), sampling_agent.state_dict()),
-                 save_name_f(explore_step))
+      # torch.save((gail.state_dict(), sampling_agent.state_dict()),
+      #            save_name_f(explore_step))
       logger.log_test_info(info_dict, explore_step)
 
     logger.flush()

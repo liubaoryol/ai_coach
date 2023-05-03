@@ -228,7 +228,7 @@ def learn(config: Config,
     if (i + 1) % 10 == 0:
       info_dict = reward_validate(sampler, agent.policy, do_print=True)
 
-      torch.save((agent.state_dict(), sampler.state_dict()),
-                 save_name_f(explore_step))
+      # torch.save((agent.state_dict(), sampler.state_dict()),
+      #            save_name_f(explore_step))
       logger.log_test_info(info_dict, explore_step)
     logger.flush()
