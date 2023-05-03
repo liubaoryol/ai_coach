@@ -71,6 +71,7 @@ default_config = Config({
     "gail_action_sample_orig": True,
     "gail_option_sample_orig": True,
     "gail_orig_log_opt": True,
+    "gail_orig_logstd_clamp": True,
 })
 
 mujoco_config = default_config.copy()

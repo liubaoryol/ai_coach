@@ -31,6 +31,7 @@ class OptionPolicyV2(torch.nn.Module):
     self.gail_action_sample_orig = config.gail_action_sample_orig
     self.gail_option_sample_orig = config.gail_option_sample_orig
     self.gail_orig_log_opt = config.gail_orig_log_opt
+    self.gail_orig_logstd_clamp = config.gail_orig_logstd_clamp
 
     if self.is_shared:
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
@@ -90,7 +91,12 @@ class OptionPolicyV2(torch.nn.Module):
 
       dist = SquashedNormal(mean, std)
     else:
-      logstd = logstd.clamp(self.log_clamp[0], self.log_clamp[1])
+      if self.gail_orig_logstd_clamp:
+        logstd = logstd.clamp(self.log_clamp[0], self.log_clamp[1])
+      else:
+        logstd = torch.tanh(logstd)
+        log_std_min, log_std_max = self.log_clamp
+        logstd = log_std_min + 0.5 * (log_std_max - log_std_min) * (logstd + 1)
       dist = Normal(mean, logstd.exp())
 
     return dist
