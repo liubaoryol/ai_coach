@@ -27,9 +27,10 @@ class OptionPolicyV2(torch.nn.Module):
     n_hidden_opt = config.hidden_option
 
     # debug
-    self.orig_option_entropy = config.orig_option_entropy
-    self.gail_use_rsample = config.gail_use_rsample
+    self.gail_option_entropy_orig = config.gail_option_entropy_orig
+    self.gail_action_sample_orig = config.gail_action_sample_orig
     self.gail_option_sample_orig = config.gail_option_sample_orig
+    self.gail_orig_log_opt = config.gail_orig_log_opt
 
     if self.is_shared:
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
@@ -139,15 +140,25 @@ class OptionPolicyV2(torch.nn.Module):
     return log_prob
 
   def log_prob_option(self, st, ct_1, ct):
-    dist = self.option_forward(st, ct_1)
-    return dist.log_prob(ct.squeeze(-1))
+    if self.gail_orig_log_opt:
+      log_tr = self.log_trans(st, ct_1)
+      return log_tr.gather(dim=-1, index=ct)
+    else:
+      dist = self.option_forward(st, ct_1)
+      return dist.log_prob(ct.squeeze(-1))
 
   def sample_action(self, st, ct, fixed=False):
     dist = self.action_forward(st, ct)
     if fixed:
       action = dist.mean
     else:
-      action = dist.rsample() if self.gail_use_rsample else dist.sample()
+      if self.gail_action_sample_orig:
+        action_mean = dist.mean
+        action_std = dist.stddev
+        eps = torch.empty_like(action_mean).normal_()
+        action = action_mean + action_std * eps
+      else:
+        action = dist.rsample()
 
     return action
 
@@ -169,7 +180,7 @@ class OptionPolicyV2(torch.nn.Module):
     return log_prob, entropy
 
   def option_log_prob_entropy(self, st, ct_1, ct):
-    if self.orig_option_entropy:
+    if self.gail_option_entropy_orig:
       log_tr = self.log_trans(st, ct_1)
       log_opt = log_tr.gather(dim=-1, index=ct)
       entropy = -(log_tr * log_tr.exp()).sum(dim=-1, keepdim=True)

@@ -22,11 +22,11 @@ default_config = Config({
     "hidden_policy": (64, 64),  # per option
     "shared_policy": False,
     "log_clamp_policy": (-5., 2.),
-    "optimizer_lr_policy": 3.e-5,
+    "optimizer_lr_policy": 3.e-4,
     "dim_c": 4,
     "use_option": True,
     "hidden_option": (64, 64),  # per option
-    "optimizer_lr_option": 3.e-5,
+    "optimizer_lr_option": 3.e-4,
 
     # ppo config
     "hidden_critic": (64, 64),  # per option
@@ -61,15 +61,16 @@ default_config = Config({
     "n_traj": 1,
     "method_regularize": True,
     "use_prev_action": False,
-    "optimizer_lr_alpha": 3.e-5,
+    "optimizer_lr_alpha": 3.e-4,
     "num_critic_update": 1,
     "num_actor_update": 1,
     "clip_grad_val": 0,
 
     # gail debug
-    "orig_option_entropy": True,
-    "gail_use_rsample": False,
+    "gail_option_entropy_orig": True,
+    "gail_action_sample_orig": True,
     "gail_option_sample_orig": True,
+    "gail_orig_log_opt": True,
 })
 
 mujoco_config = default_config.copy()

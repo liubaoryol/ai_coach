@@ -1,5 +1,6 @@
 import os
 import torch
+import json
 from aicoach_baselines.option_gail.utils.config import ARGConfig
 from aicoach_baselines.option_gail.utils.mujoco_env import load_demo
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
@@ -43,9 +44,15 @@ def run_alg(config):
   alg_name = config.alg_name
   msg = f"{config.tag}"
 
-  log_dir, output_dir = get_dirs(config.base_dir, alg_name, config.env_type,
-                                 config.env_name, msg)
+  log_dir, output_dir, log_dir_root = get_dirs(config.base_dir, alg_name,
+                                               config.env_type, config.env_name,
+                                               msg)
   pretrain_name = os.path.join(config.base_dir, config.pretrain_path)
+
+  # save config
+  config_path = os.path.join(log_dir_root, "config.txt")
+  with open(config_path, "w") as outfile:
+    outfile.write(str(config))
 
   if alg_name == "bc":
     from aicoach_baselines.option_gail.option_bc_learn import learn
