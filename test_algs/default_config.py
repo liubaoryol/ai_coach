@@ -64,7 +64,7 @@ default_config = Config({
     "optimizer_lr_alpha": 3.e-4,
     "num_critic_update": 1,
     "num_actor_update": 1,
-    "clip_grad_val": 0,
+    "clip_grad_val": 0.0,
 
     # gail debug
     "gail_option_entropy_orig": True,
