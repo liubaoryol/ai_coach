@@ -111,9 +111,7 @@ def train_mental_iql_stream(env_name,
   online_memory_replay = MentalMemory(replay_mem, seed + 1)
 
   # Setup logging
-  ts_str = datetime.datetime.fromtimestamp(
-      time.time()).strftime("%Y-%m-%d_%H-%M-%S")
-  log_dir = os.path.join(log_dir, env_name, agent_name, ts_str)
+  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
@@ -211,7 +209,7 @@ def train_mental_iql_stream(env_name,
 
         if learn_steps % log_interval == 0:
           for key, loss in losses.items():
-            writer.add_scalar(key, loss, global_step=learn_steps)
+            writer.add_scalar("loss/" + key, loss, global_step=learn_steps)
 
       if done:
         break
