@@ -21,7 +21,7 @@ default_config = Config({
     "activation": "relu",
     "hidden_policy": (64, 64),  # per option
     "shared_policy": False,
-    "log_clamp_policy": (-5., 2.),
+    "log_std_bounds": (-5., 2.),
     "optimizer_lr_policy": 3.e-4,
     "dim_c": 4,
     "use_option": True,
@@ -65,6 +65,7 @@ default_config = Config({
     "num_critic_update": 1,
     "num_actor_update": 1,
     "clip_grad_val": 0.0,
+    "gumbel_temperature": 1.0,
 
     # gail debug
     "gail_option_entropy_orig": True,

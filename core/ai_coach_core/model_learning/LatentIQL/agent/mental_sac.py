@@ -7,34 +7,34 @@ from torch.optim import Adam
 from ai_coach_core.model_learning.IQLearn.utils.utils import (soft_update,
                                                               one_hot_w_nan)
 from .mental_models import AbstractMentalActor, AbstractMentalThinker
+from aicoach_baselines.option_gail.utils.config import Config
 
 one_hot = one_hot_w_nan  # alias
 
 
 class MentalSAC(object):
 
-  def __init__(self, obs_dim, action_dim, lat_dim, batch_size, discrete_obs,
-               device, gamma, critic_tau, critic_lr, init_temp, critic_betas,
+  def __init__(self, config: Config, obs_dim, action_dim, lat_dim, discrete_obs,
                critic: nn.Module, actor: AbstractMentalActor,
-               thinker: AbstractMentalThinker, num_critic_update,
-               num_actor_update, learn_temp, actor_lr, actor_betas, thinker_lr,
-               thinker_betas, alpha_lr, alpha_betas, clip_grad_val):
-    self.gamma = gamma
-    self.batch_size = batch_size
+               thinker: AbstractMentalThinker):
+    self.gamma = config.gamma
+    self.batch_size = config.mini_batch_size
     self.discrete_obs = discrete_obs
     self.obs_dim = obs_dim
     self.action_dim = action_dim
     self.lat_dim = lat_dim
 
-    self.device = torch.device(device)
+    self.device = torch.device(config.device)
 
-    self.clip_grad_val = clip_grad_val
-    self.critic_tau = critic_tau
-    self.learn_temp = learn_temp
+    init_temp = 1e-2
+    self.critic_tau = 0.005
+    self.learn_temp = False
     self.actor_update_frequency = 1
     self.critic_target_update_frequency = 1
-    self.num_critic_update = num_critic_update
-    self.num_actor_update = num_actor_update
+
+    self.num_critic_update = config.num_critic_update
+    self.num_actor_update = config.num_actor_update
+    self.clip_grad_val = config.clip_grad_val
 
     self._critic = critic.to(self.device)
 
@@ -50,17 +50,18 @@ class MentalSAC(object):
     self.target_entropy = -action_dim
 
     # optimizers
+    thinker_betas = critic_betas = alpha_betas = actor_betas = [0.9, 0.999]
     self.actor_optimizer = Adam(self.actor.parameters(),
-                                lr=actor_lr,
+                                lr=config.optimizer_lr_policy,
                                 betas=actor_betas)
     self.thinker_optimizer = Adam(self.thinker.parameters(),
-                                  lr=thinker_lr,
+                                  lr=config.optimizer_lr_option,
                                   betas=thinker_betas)
     self.critic_optimizer = Adam(self._critic.parameters(),
-                                 lr=critic_lr,
+                                 lr=config.optimizer_lr_critic,
                                  betas=critic_betas)
     self.log_alpha_optimizer = Adam([self.log_alpha],
-                                    lr=alpha_lr,
+                                    lr=config.optimizer_lr_alpha,
                                     betas=alpha_betas)
     self.train()
     self.critic_target.train()

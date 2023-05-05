@@ -42,39 +42,13 @@ def learn_iql(config: ARGConfig, log_dir, output_dir, path_iq_data, num_traj):
 
 def learn_miql(config: ARGConfig, log_dir, output_dir, path_iq_data, num_traj):
 
-  n_sample = config.n_sample
-  n_step = 10
-  batch_size = config.mini_batch_size
-  clip_grad_val = config.clip_grad_val
-  learn_alpha = False
-
   log_interval = 500
   eval_interval = 10
 
-  train_mental_iql_pond(config.env_name, {},
-                        config.seed,
-                        batch_size,
-                        config.dim_c,
+  train_mental_iql_pond(config,
                         path_iq_data,
                         num_traj,
                         log_dir,
                         output_dir,
-                        replay_mem=n_sample,
-                        initial_mem=n_sample,
-                        max_explore_step=config.max_explore_step,
                         log_interval=log_interval,
-                        eval_epoch_interval=eval_interval,
-                        list_critic_hidden_dims=config.hidden_critic,
-                        list_actor_hidden_dims=config.hidden_policy,
-                        list_thinker_hidden_dims=config.hidden_option,
-                        clip_grad_val=clip_grad_val,
-                        learn_alpha=learn_alpha,
-                        critic_lr=config.optimizer_lr_critic,
-                        actor_lr=config.optimizer_lr_policy,
-                        thinker_lr=config.optimizer_lr_option,
-                        alpha_lr=config.optimizer_lr_alpha,
-                        gumbel_temperature=1.0,
-                        bounded_actor=config.bounded_actor,
-                        method_loss=config.method_loss,
-                        method_regularize=config.method_regularize,
-                        use_prev_action=config.use_prev_action)
+                        eval_epoch_interval=eval_interval)

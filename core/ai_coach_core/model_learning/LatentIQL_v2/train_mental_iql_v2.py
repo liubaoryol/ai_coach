@@ -128,7 +128,6 @@ def learn(config: Config,
           msg="default"):
 
   env_type = config.env_type
-  use_option = config.use_option
   n_demo = config.n_demo
   n_sample = config.n_sample
   n_thread = config.n_thread
@@ -137,19 +136,6 @@ def learn(config: Config,
   env_name = config.env_name
   use_state_filter = config.use_state_filter
   batch_size = config.mini_batch_size
-  base_dir = config.base_dir
-  critic_tau = 0.005
-  critic_target_update_frequency = 1
-  init_temp = 1e-2
-  critic_betas = [0.9, 0.999]
-  policy_betas = [0.9, 0.999]
-  use_tanh = False
-  learn_temp = False
-  policy_update_frequency = 1
-  alpha_betas = [0.9, 0.999]
-  clip_grad_val = config.clip_grad_val
-  bounded_actor = config.bounded_actor
-  gumbel_temperature = 1
 
   is_sqil = False
   use_target = True
@@ -172,27 +158,10 @@ def learn(config: Config,
   dim_s, dim_a = env.state_action_size()
   demo, _ = fn_get_demo(config, path=sample_name, n_demo=n_demo, display=False)
 
-  critic = MentalCritic(dim_s, dim_a, config.dim_c, config.device,
-                        config.shared_critic, config.activation,
-                        config.hidden_critic, config.gamma, use_tanh)
-  policy = MentalPolicy(dim_s,
-                        dim_a,
-                        config.dim_c,
-                        config.device,
-                        config.log_clamp_policy,
-                        config.shared_policy,
-                        config.activation,
-                        config.hidden_policy,
-                        config.hidden_option,
-                        gumbel_temperature=gumbel_temperature,
-                        bounded_actor=bounded_actor)
+  critic = MentalCritic(config, dim_s, dim_a, config.dim_c)
+  policy = MentalPolicy(config, dim_s, dim_a, config.dim_c)
 
-  agent = MentalIQL_V2(dim_s, dim_a, config.dim_c, batch_size, config.device,
-                       config.gamma, critic_tau, config.optimizer_lr_critic,
-                       init_temp, critic_betas, critic, policy,
-                       config.num_critic_update, config.num_actor_update,
-                       learn_temp, config.optimizer_lr_policy, policy_betas,
-                       config.optimizer_lr_alpha, alpha_betas, clip_grad_val)
+  agent = MentalIQL_V2(config, dim_s, dim_a, config.dim_c, critic, policy)
 
   sampler = Sampler(seed,
                     env,
@@ -202,13 +171,6 @@ def learn(config: Config,
 
   demo_sa_array = tuple(
       (s.to(agent.device), a.to(agent.device)) for s, a, r in demo)
-
-  # sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
-  #                                                demo_sa_array)
-  # info_dict = reward_validate(sampler, agent.policy, do_print=True)
-
-  # logger.log_test_info(info_dict, 0)
-  # print(f"init: r-sample-avg={sample_r} ; {msg}")
 
   explore_step = 0
   for i in count():

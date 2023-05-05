@@ -8,34 +8,34 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import (soft_update,
                                                               one_hot_w_nan)
 from .mental_policy import MentalPolicy
 from .mental_critic import MentalCritic
+from aicoach_baselines.option_gail.utils.config import Config
 
 one_hot = one_hot_w_nan  # alias
 
 
 class MentalSAC_V2(nn.Module):
 
-  def __init__(self, obs_dim, action_dim, lat_dim, batch_size, device, gamma,
-               critic_tau, critic_lr, init_temp, critic_betas,
-               critic: MentalCritic, policy: MentalPolicy, num_critic_update,
-               num_actor_update, learn_temp, policy_lr, policy_betas, alpha_lr,
-               alpha_betas, clip_grad_val) -> None:
+  def __init__(self, config: Config, obs_dim, action_dim, lat_dim,
+               critic: MentalCritic, policy: MentalPolicy) -> None:
     super().__init__()
 
     self.action_dim = action_dim
     self.obs_dim = obs_dim
     self.lat_dim = lat_dim
-    self.batch_size = batch_size
+    self.batch_size = config.mini_batch_size
 
-    self.device = device
+    self.device = config.device
 
-    self.gamma = gamma
-    self.critic_tau = critic_tau
-    self.clip_grad_val = clip_grad_val
-    self.learn_temp = learn_temp
+    self.gamma = config.gamma
+
+    init_temp = 1e-2
+    self.critic_tau = 0.005
+    self.clip_grad_val = config.clip_grad_val
+    self.learn_temp = False
     self.policy_update_frequency = 1
     self.critic_target_update_frequency = 1
-    self.num_critic_update = num_critic_update
-    self.num_actor_update = num_actor_update
+    self.num_critic_update = config.num_critic_update
+    self.num_actor_update = config.num_actor_update
 
     self.policy = policy.to(self.device)
     self._critic = critic.to(self.device)
@@ -48,14 +48,15 @@ class MentalSAC_V2(nn.Module):
 
     self.target_entropy = -action_dim
 
+    critic_betas = alpha_betas = policy_betas = [0.9, 0.999]
     self.policy_optimizer = Adam(self.policy.parameters(),
-                                 lr=policy_lr,
+                                 lr=config.optimizer_lr_policy,
                                  betas=policy_betas)
     self.critic_optimizer = Adam(self._critic.parameters(),
-                                 lr=critic_lr,
+                                 lr=config.optimizer_lr_critic,
                                  betas=critic_betas)
     self.log_alpha_optimizer = Adam([self.log_alpha],
-                                    lr=alpha_lr,
+                                    lr=config.optimizer_lr_alpha,
                                     betas=alpha_betas)
 
     self.to(self.device)

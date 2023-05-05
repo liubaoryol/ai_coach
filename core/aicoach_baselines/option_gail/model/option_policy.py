@@ -14,7 +14,7 @@ class Policy(torch.nn.Module):
     self.dim_a = dim_a
     self.dim_s = dim_s
     self.device = torch.device(config.device)
-    self.log_clamp = config.log_clamp_policy
+    self.log_clamp = config.log_std_bounds
     activation = make_activation(config.activation)
     n_hidden_pi = config.hidden_policy
 
@@ -68,7 +68,7 @@ class OptionPolicy(torch.nn.Module):
     self.dim_a = dim_a
     self.dim_c = config.dim_c
     self.device = torch.device(config.device)
-    self.log_clamp = config.log_clamp_policy
+    self.log_clamp = config.log_std_bounds
     self.is_shared = config.shared_policy
     activation = make_activation(config.activation)
     n_hidden_pi = config.hidden_policy

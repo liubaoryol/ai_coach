@@ -18,7 +18,7 @@ class OptionPolicyV2(torch.nn.Module):
     self.dim_a = dim_a
     self.dim_c = config.dim_c
     self.device = torch.device(config.device)
-    self.log_clamp = config.log_clamp_policy
+    self.log_clamp = config.log_std_bounds
     self.is_shared = config.shared_policy
     self.bounded = config.bounded_actor
 

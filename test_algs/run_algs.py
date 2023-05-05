@@ -127,7 +127,7 @@ if __name__ == "__main__":
     config.hidden_policy = (128, 128)
     config.hidden_option = (128, 128)
     config.hidden_critic = (128, 128)
-    config.log_clamp_policy = (-20., -2.)
+    config.log_std_bounds = (-20., -2.)
 
   if config.alg_name in ["iql", "miql"]:
     dim_c = config.dim_c

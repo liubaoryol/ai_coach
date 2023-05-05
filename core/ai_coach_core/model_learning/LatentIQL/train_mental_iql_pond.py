@@ -14,41 +14,30 @@ from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
 from .agent.make_agent import make_miql_agent
 from .helper.mental_memory import MentalMemory
 from .helper.utils import get_expert_batch, evaluate, save
+from aicoach_baselines.option_gail.utils.config import Config
 
 
-def train_mental_iql_pond(env_name,
-                          env_kwargs,
-                          seed,
-                          batch_size,
-                          num_latent,
+def train_mental_iql_pond(config: Config,
                           demo_path,
                           num_trajs,
                           log_dir,
                           output_dir,
-                          replay_mem,
-                          max_explore_step,
-                          initial_mem=None,
-                          output_suffix="",
                           log_interval=500,
                           eval_epoch_interval=5,
-                          gumbel_temperature: float = 1.0,
-                          list_critic_hidden_dims=[256, 256],
-                          list_actor_hidden_dims=[256, 256],
-                          list_thinker_hidden_dims=[256, 256],
-                          num_critic_update=1,
-                          num_actor_update=1,
-                          clip_grad_val=None,
-                          learn_alpha=False,
-                          critic_lr=0.005,
-                          actor_lr=0.005,
-                          thinker_lr=0.005,
-                          alpha_lr=0.005,
-                          load_path: Optional[str] = None,
-                          bounded_actor=True,
-                          method_loss="value",
-                          method_regularize=True,
-                          use_prev_action=True):
+                          env_kwargs={}):
+  env_name = config.env_name
+  seed = config.seed
+  batch_size = config.mini_batch_size
+  num_latent = config.dim_c
+  replay_mem = config.n_sample
+  max_explore_step = config.max_explore_step
+  initial_mem = replay_mem
+  output_suffix = ""
+  load_path = None
+  method_loss = config.method_loss
+  method_regularize = config.method_regularize
   agent_name = "miql"
+
   # constants
   num_episodes = 10
   save_interval = 10
@@ -82,25 +71,7 @@ def train_mental_iql_pond(env_name,
 
   use_target = True
   do_soft_update = True
-  agent = make_miql_agent(env,
-                          batch_size,
-                          device_name,
-                          num_latent,
-                          critic_tau=0.005,
-                          gumbel_temperature=gumbel_temperature,
-                          learn_temp=learn_alpha,
-                          critic_lr=critic_lr,
-                          actor_lr=actor_lr,
-                          thinker_lr=thinker_lr,
-                          alpha_lr=alpha_lr,
-                          list_critic_hidden_dims=list_critic_hidden_dims,
-                          list_actor_hidden_dims=list_actor_hidden_dims,
-                          list_thinker_hidden_dims=list_thinker_hidden_dims,
-                          num_critic_update=num_critic_update,
-                          num_actor_update=num_actor_update,
-                          clip_grad_val=clip_grad_val,
-                          bounded_actor=bounded_actor,
-                          use_prev_action=use_prev_action)
+  agent = make_miql_agent(config, env)
 
   if load_path is not None:
     if os.path.isfile(load_path):

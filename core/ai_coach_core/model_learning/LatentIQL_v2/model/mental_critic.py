@@ -2,36 +2,24 @@ import torch
 from aicoach_baselines.option_gail.utils.model_util import (make_module,
                                                             make_module_list,
                                                             make_activation)
-
-# This file should be included by option_ppo.py and never be used otherwise
+from aicoach_baselines.option_gail.utils.config import Config
 
 
 class MentalCritic(torch.nn.Module):
 
-  def __init__(
-      self,
-      dim_s,
-      dim_a,
-      dim_c,
-      device,
-      is_shared,
-      activation,
-      hidden_critic,
-      gamma=0.99,
-      use_tanh: bool = False,
-  ):
+  def __init__(self, config: Config, dim_s, dim_a, dim_c):
     super(MentalCritic, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a
     self.dim_c = dim_c
-    self.device = torch.device(device)
-    self.is_shared = is_shared
+    self.device = config.device
+    self.is_shared = config.shared_critic
 
-    self.gamma = gamma
-    self.use_tanh = use_tanh
+    self.gamma = config.gamma
+    self.use_tanh = False
 
-    activation = make_activation(activation)
-    n_hidden_v = hidden_critic
+    activation = make_activation(config.activation)
+    n_hidden_v = config.hidden_critic
 
     if self.is_shared:
       self.Q1 = make_module(self.dim_s + self.dim_a,
@@ -78,15 +66,3 @@ class MentalCritic(torch.nn.Module):
       return q1, q2
     else:
       return torch.min(q1, q2)
-
-  # def get_value(self, s, c=None):
-  #   # c could be None for directly output value on each c
-  #   if self.is_shared:
-  #     vs = self.value(s)
-  #   else:
-  #     vs = torch.cat([v(s) for v in self.value], dim=-1)
-
-  #   if c is None:
-  #     return vs
-  #   else:
-  #     return vs.gather(dim=-1, index=c)
