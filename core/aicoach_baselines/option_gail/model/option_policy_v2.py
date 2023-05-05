@@ -28,7 +28,6 @@ class OptionPolicyV2(torch.nn.Module):
 
     # debug
     self.gail_option_entropy_orig = config.gail_option_entropy_orig
-    self.gail_action_sample_orig = config.gail_action_sample_orig
     self.gail_option_sample_orig = config.gail_option_sample_orig
     self.gail_orig_log_opt = config.gail_orig_log_opt
     self.gail_orig_logstd_clamp = config.gail_orig_logstd_clamp
@@ -81,7 +80,6 @@ class OptionPolicyV2(torch.nn.Module):
         logstd = logstd.gather(dim=-2, index=ind).squeeze(dim=-2)
 
     # clamp mean and logstd
-    mean = mean.clamp(-10, 10)
 
     if self.bounded:
       logstd = torch.tanh(logstd)
@@ -91,6 +89,7 @@ class OptionPolicyV2(torch.nn.Module):
 
       dist = SquashedNormal(mean, std)
     else:
+      mean = mean.clamp(-10, 10)
       if self.gail_orig_logstd_clamp:
         logstd = logstd.clamp(self.log_clamp[0], self.log_clamp[1])
       else:
@@ -158,13 +157,7 @@ class OptionPolicyV2(torch.nn.Module):
     if fixed:
       action = dist.mean
     else:
-      if self.gail_action_sample_orig:
-        action_mean = dist.mean
-        action_std = dist.stddev
-        eps = torch.empty_like(action_mean).normal_()
-        action = action_mean + action_std * eps
-      else:
-        action = dist.rsample()
+      action = dist.rsample()
 
     return action
 
@@ -226,18 +219,23 @@ class OptionPolicyV2(torch.nn.Module):
     return log_alpha, log_beta, log_trs, log_pis, entropy
 
   def viterbi_path(self, s_array, a_array):
-    # c = torch.zeros(s_array.size(0)+1, 1, dtype=torch.long, device=self.device)
-    # c[0] = self.dim_c
-    # c[1] = torch.randint(0, self.dim_c, (1, 1))
-    # for i in range(2, s_array.size(0)+1):
-    # if torch.randint(0, 17, (1,)) == 0:
-    # c[i] = torch.randint(0, self.dim_c, (1, 1))
-    # else:
-    # c[i] = c[i-1]
-    # return c, torch.zeros(1, dtype=torch.float32, device=self.device)
     with torch.no_grad():
+      if self.bounded:
+        eps = 1.e-4
+        a_array = a_array.clamp(-1 + eps, 1 - eps)
+
+      # NOTE: debugging NaNs
+      # for cnt in range(len(s_array)):
+      #   log_pis_row = self.log_prob_action(s_array[cnt].unsqueeze(0), None,
+      #                                      a_array[cnt].unsqueeze(0))
+      #   is_nan = log_pis_row.isnan()
+      #   if torch.any(is_nan):
+      #     print("nan detected")
+      #     print(torch.argwhere(is_nan))
+
       log_pis = self.log_prob_action(s_array, None, a_array).view(
           -1, 1, self.dim_c)  # demo_len x 1 x ct
+
       log_trs = self.log_trans(s_array, None)  # demo_len x (ct_1+1) x ct
       log_prob = log_trs[:, :-1] + log_pis
       log_prob0 = log_trs[0, -1] + log_pis[0, 0]

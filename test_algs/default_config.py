@@ -70,7 +70,6 @@ default_config = Config({
 
     # gail debug
     "gail_option_entropy_orig": True,
-    "gail_action_sample_orig": True,
     "gail_option_sample_orig": True,
     "gail_orig_log_opt": True,
     "gail_orig_logstd_clamp": True,
