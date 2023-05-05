@@ -7,53 +7,34 @@ import torch.nn as nn
 from torch.optim import Adam
 from .sac_models import AbstractActor
 from ..utils.utils import soft_update, one_hot
+from aicoach_baselines.option_gail.utils.config import Config
 
 
 class SAC(object):
 
-  def __init__(self,
-               obs_dim,
-               action_dim,
-               batch_size,
-               discrete_obs,
-               device,
-               gamma,
-               critic_tau,
-               critic_lr,
-               critic_target_update_frequency,
-               init_temp,
-               critic_betas,
-               use_tanh: bool,
-               critic_base: Type[nn.Module],
-               actor: AbstractActor,
-               learn_temp,
-               actor_update_frequency,
-               actor_lr,
-               actor_betas,
-               alpha_lr,
-               alpha_betas,
-               list_critic_hidden_dims,
-               clip_grad_val=None):
-    self.gamma = gamma
-    self.batch_size = batch_size
+  def __init__(self, config: Config, obs_dim, action_dim, discrete_obs,
+               critic_base: Type[nn.Module], actor: AbstractActor):
+    self.gamma = config.gamma
+    self.batch_size = config.mini_batch_size
     self.discrete_obs = discrete_obs
     self.obs_dim = obs_dim
     self.action_dim = action_dim
 
-    self.device = torch.device(device)
+    self.device = torch.device(config.device)
 
-    self.clip_grad_val = clip_grad_val
-    self.critic_tau = critic_tau
-    self.learn_temp = learn_temp
-    self.actor_update_frequency = actor_update_frequency
-    self.critic_target_update_frequency = critic_target_update_frequency
+    self.clip_grad_val = config.clip_grad_val
+    self.critic_tau = 0.005
+    self.learn_temp = False
+    self.actor_update_frequency = 1
+    self.critic_target_update_frequency = 1
+    use_tanh = False
+    init_temp = 1e-2
 
-    self._critic = critic_base(obs_dim, action_dim, list_critic_hidden_dims,
-                               gamma, use_tanh).to(self.device)
+    self._critic = critic_base(obs_dim, action_dim, config.hidden_critic,
+                               self.gamma, use_tanh).to(self.device)
 
-    self.critic_target = critic_base(obs_dim, action_dim,
-                                     list_critic_hidden_dims, gamma,
-                                     use_tanh).to(self.device)
+    self.critic_target = critic_base(obs_dim, action_dim, config.hidden_critic,
+                                     self.gamma, use_tanh).to(self.device)
 
     self.critic_target.load_state_dict(self._critic.state_dict())
 
@@ -65,14 +46,15 @@ class SAC(object):
     self.target_entropy = -action_dim
 
     # optimizers
+    actor_betas = critic_betas = alpha_betas = [0.9, 0.999]
     self.actor_optimizer = Adam(self.actor.parameters(),
-                                lr=actor_lr,
+                                lr=config.optimizer_lr_policy,
                                 betas=actor_betas)
     self.critic_optimizer = Adam(self._critic.parameters(),
-                                 lr=critic_lr,
+                                 lr=config.optimizer_lr_critic,
                                  betas=critic_betas)
     self.log_alpha_optimizer = Adam([self.log_alpha],
-                                    lr=alpha_lr,
+                                    lr=config.optimizer_lr_alpha,
                                     betas=alpha_betas)
     self.train()
     self.critic_target.train()

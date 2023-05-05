@@ -20,37 +20,29 @@ from .utils.logger import Logger
 from itertools import count
 import types
 from .iq import iq_loss
+from aicoach_baselines.option_gail.utils.config import Config
 
 
-def run_iql(env_name,
-            env_kwargs,
-            seed,
-            batch_size,
+def run_iql(config: Config,
             demo_path,
             num_trajs,
             log_dir,
             output_dir,
-            replay_mem,
-            eps_window,
-            num_learn_steps,
-            initial_mem=None,
-            agent_name: str = "softq",
-            output_suffix="",
             log_interval=500,
             eval_interval=2000,
-            gumbel_temperature: float = 1.0,
-            list_critic_hidden_dims=[256, 256],
-            list_actor_hidden_dims=[256, 256],
-            clip_grad_val=None,
-            learn_alpha=False,
-            critic_lr=0.005,
-            actor_lr=0.005,
-            alpha_lr=0.005,
-            load_path: Optional[str] = None,
-            bounded_actor=True,
-            method_loss="value",
-            method_regularize=True):
+            env_kwargs={}):
   'agent_name: softq / sac / sacd'
+  env_name = config.env_name
+  seed = config.seed
+  batch_size = config.mini_batch_size
+  replay_mem = config.n_sample
+  eps_window = 10
+  num_learn_steps = config.max_explore_step
+  initial_mem = replay_mem
+  agent_name = config.iql_agent_name
+  output_suffix = "",
+  load_path = None,
+
   # constants
   num_episodes = 10
   save_interval = 10
@@ -86,53 +78,17 @@ def run_iql(env_name,
   num_learn_steps = int(num_learn_steps)
 
   if agent_name == "softq":
-    q_net_base = SimpleQNetwork
     use_target = False
     do_soft_update = False
-    agent = make_softq_agent(env,
-                             batch_size,
-                             device_name,
-                             q_net_base,
-                             critic_target_update_frequency=4,
-                             critic_tau=0.1,
-                             critic_lr=critic_lr,
-                             list_hidden_dims=list_critic_hidden_dims)
+    agent = make_softq_agent(config, env)
   elif agent_name == "sac":
-    critic_base = DoubleQCritic
     use_target = True
     do_soft_update = True
-    agent = make_sac_agent(env,
-                           batch_size,
-                           device_name,
-                           critic_base,
-                           critic_target_update_frequency=1,
-                           critic_tau=0.005,
-                           gumbel_temperature=gumbel_temperature,
-                           learn_temp=learn_alpha,
-                           critic_lr=critic_lr,
-                           actor_lr=actor_lr,
-                           alpha_lr=alpha_lr,
-                           list_critic_hidden_dims=list_critic_hidden_dims,
-                           list_actor_hidden_dims=list_actor_hidden_dims,
-                           clip_grad_val=clip_grad_val,
-                           bounded_actor=bounded_actor)
+    agent = make_sac_agent(config, env)
   elif agent_name == "sacd":
-    critic_base = SingleQCriticDiscrete
     use_target = True
     do_soft_update = True
-    agent = make_sacd_agent(env,
-                            batch_size,
-                            device_name,
-                            critic_base,
-                            critic_target_update_frequency=1,
-                            critic_tau=0.005,
-                            critic_lr=critic_lr,
-                            actor_lr=actor_lr,
-                            alpha_lr=alpha_lr,
-                            learn_temp=learn_alpha,
-                            list_critic_hidden_dims=list_critic_hidden_dims,
-                            list_actor_hidden_dims=list_actor_hidden_dims,
-                            clip_grad_val=clip_grad_val)
+    agent = make_sacd_agent(config, env)
   else:
     raise NotImplementedError
 
@@ -233,7 +189,7 @@ def run_iql(env_name,
         losses = agent.iq_update(online_memory_replay, expert_memory_replay,
                                  logger, learn_steps, only_expert_states,
                                  is_sqil, use_target, do_soft_update,
-                                 method_loss, method_regularize)
+                                 config.method_loss, config.method_regularize)
         ######
 
         if learn_steps % log_interval == 0:

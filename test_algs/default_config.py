@@ -56,6 +56,7 @@ default_config = Config({
     "use_d_info_gail": False,
 
     # miql/iql config
+    "iql_agent_name": "sac",
     "bounded_actor": True,
     "method_loss": "v0",
     "n_traj": 1,
