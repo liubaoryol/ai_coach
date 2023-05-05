@@ -50,6 +50,12 @@ class MentalSAC(object):
     self.target_entropy = -action_dim
 
     # optimizers
+    self.reset_optimizers(config)
+
+    self.train()
+    self.critic_target.train()
+
+  def reset_optimizers(self, config):
     thinker_betas = critic_betas = alpha_betas = actor_betas = [0.9, 0.999]
     self.actor_optimizer = Adam(self.actor.parameters(),
                                 lr=config.optimizer_lr_policy,
@@ -63,8 +69,6 @@ class MentalSAC(object):
     self.log_alpha_optimizer = Adam([self.log_alpha],
                                     lr=config.optimizer_lr_alpha,
                                     betas=alpha_betas)
-    self.train()
-    self.critic_target.train()
 
   def train(self, training=True):
     self.training = training

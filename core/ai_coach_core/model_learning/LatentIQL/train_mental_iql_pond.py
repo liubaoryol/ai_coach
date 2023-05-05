@@ -158,6 +158,8 @@ def train_mental_iql_pond(config: Config,
     expert_data = get_expert_batch(agent, expert_traj, num_latent, agent.device)
     sample_data = online_memory_replay.get_all_samples(agent.device)
 
+    # #################### update
+    agent.reset_optimizers(config)
     for _ in range(N_UPDATE_STEPS):
       inds = torch.randperm(online_memory_replay.size(), device=agent.device)
       for ind_p in inds.split(batch_size):

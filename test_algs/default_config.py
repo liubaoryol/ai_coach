@@ -9,7 +9,7 @@ default_config = Config({
     "n_thread": 1,
     "n_sample": 4096,
     "n_epoch": 5000,
-    "max_explore_step": 1e5,
+    "max_explore_step": 5e4,
     "base_dir": os.path.dirname(__file__),
 
     # global task config

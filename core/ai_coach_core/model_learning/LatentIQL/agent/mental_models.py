@@ -191,7 +191,7 @@ class DiagGaussianMentalActor(AbstractMentalActor):
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.log_std_bounds = config.log_std_bounds
-    self.bounded = config.bounded
+    self.bounded = config.bounded_actor
 
   def _get_output_dim(self):
     return 2 * self.action_dim

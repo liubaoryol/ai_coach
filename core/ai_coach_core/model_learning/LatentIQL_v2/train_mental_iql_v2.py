@@ -38,6 +38,7 @@ def reward_validate(sampler: _SamplerCommon,
 
 
 def train_iql(agent: MentalIQL_V2,
+              config,
               smpl_scar,
               demo_sca,
               mini_bs,
@@ -49,6 +50,7 @@ def train_iql(agent: MentalIQL_V2,
               method_loss,
               method_regularize,
               n_step=10):
+  agent.reset_optimizers(config)
   sp = torch.cat([s[:-1] for s, c, a, r in smpl_scar], dim=0)
   se = torch.cat([s[:-1] for s, c, a in demo_sca], dim=0)
   snp = torch.cat([s[1:] for s, c, a, r in smpl_scar], dim=0)
@@ -182,8 +184,8 @@ def learn(config: Config,
     logger.log_train("r-sample-avg", sample_r, explore_step)
     print(f"{explore_step}: r-sample-avg={sample_r}, {msg}")
 
-    train_iql(agent, sample_sxar, demo_sxa, batch_size, logger, explore_step,
-              is_sqil, use_target, do_soft_update, method_loss,
+    train_iql(agent, config, sample_sxar, demo_sxa, batch_size, logger,
+              explore_step, is_sqil, use_target, do_soft_update, method_loss,
               method_regularize)
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
 

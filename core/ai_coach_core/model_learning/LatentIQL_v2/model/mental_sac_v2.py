@@ -48,6 +48,19 @@ class MentalSAC_V2(nn.Module):
 
     self.target_entropy = -action_dim
 
+    # optimizers
+    self.reset_optimizers(config)
+
+    self.to(self.device)
+    self.critic_target.train()
+    self.train()
+
+  def train(self, training=True):
+    self.training = training
+    self.policy.train(training)
+    self._critic.train(training)
+
+  def reset_optimizers(self, config):
     critic_betas = alpha_betas = policy_betas = [0.9, 0.999]
     self.policy_optimizer = Adam(self.policy.parameters(),
                                  lr=config.optimizer_lr_policy,
@@ -58,15 +71,6 @@ class MentalSAC_V2(nn.Module):
     self.log_alpha_optimizer = Adam([self.log_alpha],
                                     lr=config.optimizer_lr_alpha,
                                     betas=alpha_betas)
-
-    self.to(self.device)
-    self.critic_target.train()
-    self.train()
-
-  def train(self, training=True):
-    self.training = training
-    self.policy.train(training)
-    self._critic.train(training)
 
   @property
   def alpha(self):

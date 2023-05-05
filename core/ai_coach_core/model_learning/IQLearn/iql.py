@@ -35,10 +35,10 @@ def run_iql(config: Config,
   env_name = config.env_name
   seed = config.seed
   batch_size = config.mini_batch_size
-  replay_mem = config.n_sample
+  replay_mem = config.n_sample * 2
   eps_window = 10
   num_learn_steps = config.max_explore_step
-  initial_mem = replay_mem
+  initial_mem = config.n_sample
   agent_name = config.iql_agent_name
   output_suffix = ""
   load_path = None
