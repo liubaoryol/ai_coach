@@ -40,8 +40,8 @@ def run_iql(config: Config,
   num_learn_steps = config.max_explore_step
   initial_mem = replay_mem
   agent_name = config.iql_agent_name
-  output_suffix = "",
-  load_path = None,
+  output_suffix = ""
+  load_path = None
 
   # constants
   num_episodes = 10
@@ -172,7 +172,7 @@ def run_iql(config: Config,
       online_memory_replay.add((state, next_state, action, reward, done_no_lim))
 
       learn_steps += 1
-      if online_memory_replay.size() > initial_mem:
+      if online_memory_replay.size() >= initial_mem:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')

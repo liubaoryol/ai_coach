@@ -6,38 +6,16 @@ from ai_coach_core.model_learning.LatentIQL.train_mental_iql_pond import (
 
 def learn_iql(config: ARGConfig, log_dir, output_dir, path_iq_data, num_traj):
 
-  n_sample = config.n_sample
-  n_step = 10
-  batch_size = config.mini_batch_size
-  clip_grad_val = config.clip_grad_val
-  learn_alpha = False
-
-  num_iter = config.max_explore_step
   log_interval = 500
   eval_interval = 10000
 
-  run_iql(config.env_name, {},
-          config.seed,
-          batch_size,
+  run_iql(config,
           path_iq_data,
           num_traj,
           log_dir,
           output_dir,
-          replay_mem=n_sample,
-          eps_window=10,
-          agent_name="sac",
-          num_learn_steps=num_iter,
           log_interval=log_interval,
-          eval_interval=eval_interval,
-          list_actor_hidden_dims=config.hidden_policy,
-          list_critic_hidden_dims=config.hidden_critic,
-          clip_grad_val=clip_grad_val,
-          learn_alpha=learn_alpha,
-          critic_lr=config.optimizer_lr_policy,
-          actor_lr=config.optimizer_lr_critic,
-          alpha_lr=config.optimizer_lr_alpha,
-          bounded_actor=config.bounded_actor,
-          method_loss=config.method_loss)
+          eval_interval=eval_interval)
 
 
 def learn_miql(config: ARGConfig, log_dir, output_dir, path_iq_data, num_traj):
