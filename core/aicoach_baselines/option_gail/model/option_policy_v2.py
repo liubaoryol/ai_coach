@@ -31,20 +31,24 @@ class OptionPolicyV2(torch.nn.Module):
     self.gail_option_sample_orig = config.gail_option_sample_orig
     self.gail_orig_log_opt = config.gail_orig_log_opt
     self.gail_orig_logstd_clamp = config.gail_orig_logstd_clamp
+    self.gail_use_nn_logstd = config.gail_use_nn_logstd
+
+    policy_scalar = 2 if self.gail_use_nn_logstd else 1
 
     if self.is_shared:
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
       self.option_policy = make_module(self.dim_s,
                                        (self.dim_c + 1) * self.dim_c,
                                        n_hidden_opt, activation)
-      self.policy = make_module(self.dim_s, self.dim_c * self.dim_a,
+      self.policy = make_module(self.dim_s,
+                                policy_scalar * self.dim_c * self.dim_a,
                                 n_hidden_pi, activation)
 
       self.a_log_std = torch.nn.Parameter(
           torch.empty(1, self.dim_a, dtype=torch.float32).fill_(0.))
     else:
-      self.policy = make_module_list(self.dim_s, self.dim_a, n_hidden_pi,
-                                     self.dim_c, activation)
+      self.policy = make_module_list(self.dim_s, policy_scalar * self.dim_a,
+                                     n_hidden_pi, self.dim_c, activation)
       self.a_log_std = torch.nn.ParameterList([
           torch.nn.Parameter(
               torch.empty(1, self.dim_a, dtype=torch.float32).fill_(0.))
@@ -62,12 +66,21 @@ class OptionPolicyV2(torch.nn.Module):
     # ct: None for all c, return (N x dim_c x dim_a); else return (N x dim_a)
     # s: N x dim_s, c: N x 1, c should always < dim_c
     if self.is_shared:
-      mean = self.policy(st).view(-1, self.dim_c, self.dim_a)
-      logstd = self.a_log_std.expand_as(mean[:, 0, :])
+      if self.gail_use_nn_logstd:
+        mean, logstd = self.policy(st).view(-1, self.dim_c,
+                                            2 * self.dim_a).chunk(2, dim=-1)
+      else:
+        mean = self.policy(st).view(-1, self.dim_c, self.dim_a)
+        logstd = self.a_log_std.expand_as(mean[:, 0, :])
     else:
-      mean = torch.stack([m(st) for m in self.policy], dim=-2)
-      logstd = torch.stack([m.expand_as(mean[:, 0, :]) for m in self.a_log_std],
-                           dim=-2)
+      if self.gail_use_nn_logstd:
+        mean, logstd = torch.stack([m(st) for m in self.policy],
+                                   dim=-2).chunk(2, dim=-1)
+      else:
+        mean = torch.stack([m(st) for m in self.policy], dim=-2)
+        logstd = torch.stack(
+            [m.expand_as(mean[:, 0, :]) for m in self.a_log_std], dim=-2)
+
     if ct is not None:
       # to make backward pass propagate with reparameterized ct
       if ct.shape[-1] > 1 or (self.dim_c == 1 and ct[0][0] != 0):
