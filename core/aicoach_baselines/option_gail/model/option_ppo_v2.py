@@ -19,6 +19,7 @@ class OptionPPOV2(torch.nn.Module):
     self.clip_eps = config.clip_eps
     self.lambda_entropy_policy = config.lambda_entropy_policy
     self.lambda_entropy_option = config.lambda_entropy_option
+    self.clip_grad_val = config.clip_grad_val
 
     self.policy = policy
 
@@ -153,7 +154,9 @@ class OptionPPOV2(torch.nn.Module):
           optim_hi.zero_grad()
           loss.backward()
           # after many experiments i find that do not clamp performs the best
-          # torch.nn.utils.clip_grad_norm_(self.policy.get_param(low_policy=not is_option), 0.5)
+          if self.clip_grad_val:
+            torch.nn.utils.clip_grad_norm_(
+                self.policy.get_param(low_policy=False), self.clip_grad_val)
           optim_hi.step()
 
         if train_policy:
@@ -177,7 +180,9 @@ class OptionPPOV2(torch.nn.Module):
           optim_lo.zero_grad()
           loss.backward()
           # after many experiments i find that do not clamp performs the best
-          # torch.nn.utils.clip_grad_norm_(self.policy.get_param(low_policy=not is_option), 0.5)
+          if self.clip_grad_val:
+            torch.nn.utils.clip_grad_norm_(
+                self.policy.get_param(low_policy=True), self.clip_grad_val)
           optim_lo.step()
 
   def step(self, sample_scar, lr_mult=1.0, n_step=10):
