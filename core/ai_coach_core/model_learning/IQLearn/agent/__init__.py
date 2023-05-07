@@ -55,7 +55,8 @@ def make_sac_agent(config: Config, env: gym.Env):
   else:
     action_dim = env.action_space.shape[0]
     actor = DiagGaussianActor(obs_dim, action_dim, config.hidden_policy,
-                              config.log_std_bounds, config.bounded_actor)
+                              config.log_std_bounds, config.bounded_actor,
+                              config.use_nn_logstd, config.clamp_action_logstd)
 
   agent = SAC(config, obs_dim, action_dim, discrete_obs, critic_base, actor)
 

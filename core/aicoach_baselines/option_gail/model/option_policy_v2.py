@@ -30,8 +30,8 @@ class OptionPolicyV2(torch.nn.Module):
     self.gail_option_entropy_orig = config.gail_option_entropy_orig
     self.gail_option_sample_orig = config.gail_option_sample_orig
     self.gail_orig_log_opt = config.gail_orig_log_opt
-    self.gail_orig_logstd_clamp = config.gail_orig_logstd_clamp
-    self.gail_use_nn_logstd = config.gail_use_nn_logstd
+    self.clamp_action_logstd = config.clamp_action_logstd
+    self.gail_use_nn_logstd = config.use_nn_logstd
 
     policy_scalar = 2 if self.gail_use_nn_logstd else 1
 
@@ -92,23 +92,18 @@ class OptionPolicyV2(torch.nn.Module):
         mean = mean.gather(dim=-2, index=ind).squeeze(dim=-2)
         logstd = logstd.gather(dim=-2, index=ind).squeeze(dim=-2)
 
-    # clamp mean and logstd
-
-    if self.bounded:
+    # clamp logstd
+    if self.clamp_action_logstd:
+      logstd = logstd.clamp(self.log_clamp[0], self.log_clamp[1])
+    else:
       logstd = torch.tanh(logstd)
       log_std_min, log_std_max = self.log_clamp
       logstd = log_std_min + 0.5 * (log_std_max - log_std_min) * (logstd + 1)
-      std = logstd.exp()
 
-      dist = SquashedNormal(mean, std)
+    if self.bounded:
+      dist = SquashedNormal(mean, logstd.exp())
     else:
       mean = mean.clamp(-10, 10)
-      if self.gail_orig_logstd_clamp:
-        logstd = logstd.clamp(self.log_clamp[0], self.log_clamp[1])
-      else:
-        logstd = torch.tanh(logstd)
-        log_std_min, log_std_max = self.log_clamp
-        logstd = log_std_min + 0.5 * (log_std_max - log_std_min) * (logstd + 1)
       dist = Normal(mean, logstd.exp())
 
     return dist

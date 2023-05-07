@@ -192,21 +192,39 @@ class DiagGaussianMentalActor(AbstractMentalActor):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.log_std_bounds = config.log_std_bounds
     self.bounded = config.bounded_actor
+    self.clamp_action_logstd = config.clamp_action_logstd
+    self.use_nn_logstd = config.use_nn_logstd
+    self.action_logstd = nn.Parameter(
+        torch.empty(1, self.action_dim, dtype=torch.float32).fill_(0.))
 
   def _get_output_dim(self):
-    return 2 * self.action_dim
+    if self.use_nn_logstd:
+      return 2 * self.action_dim
+    else:
+      return self.action_dim
 
   def forward(self, obs, lat):
-    mu, log_std = self.trunk(torch.cat((obs, lat), dim=-1)).chunk(2, dim=-1)
+    if self.use_nn_logstd:
+      mu, log_std = self.trunk(torch.cat((obs, lat), dim=-1)).chunk(2, dim=-1)
+    else:
+      mu = self.trunk(torch.cat((obs, lat), dim=-1))
+      log_std = self.action_logstd.expand_as(mu)
 
-    # restrict the range of log_std for numerical stability
-    log_std = torch.tanh(log_std)
-    log_std_min, log_std_max = self.log_std_bounds
-    log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
-
+    if self.clamp_action_logstd:
+      log_std = log_std.clamp(self.log_std_bounds[0], self.log_std_bounds[1])
+    else:
+      # restrict the range of log_std for numerical stability
+      log_std = torch.tanh(log_std)
+      log_std_min, log_std_max = self.log_std_bounds
+      log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
     std = log_std.exp()
 
-    dist = iqlm.SquashedNormal(mu, std) if self.bounded else Normal(mu, std)
+    if self.bounded:
+      dist = iqlm.SquashedNormal(mu, std)
+    else:
+      mu = mu.clamp(-10, 10)
+      dist = Normal(mu, std)
+
     return dist
 
   def rsample(self, obs, lat):
