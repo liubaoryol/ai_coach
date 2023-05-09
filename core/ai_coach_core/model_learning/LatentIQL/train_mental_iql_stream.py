@@ -112,9 +112,7 @@ def train_mental_iql_stream(config: Config,
 
   for epoch in count():
     state = env.reset()
-    prev_lat = NAN
-    prev_act = (NAN if agent.actor.is_discrete() else np.zeros(
-        env.action_space.shape))
+    prev_lat, prev_act = agent.prev_latent, agent.prev_action
     episode_reward = 0
     done = False
 

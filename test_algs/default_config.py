@@ -67,12 +67,14 @@ default_config = Config({
     "num_actor_update": 1,
     "clip_grad_val": 0.0,
     "gumbel_temperature": 1.0,
+    "use_prev_action_dim": True,
+    "use_prev_option_dim": True,
 
     # gail debug
     "gail_option_entropy_orig": True,
     "gail_option_sample_orig": True,
     "gail_orig_log_opt": True,
-    "clamp_action_logstd": True,
+    "clamp_action_logstd": True,  # True: use clamp() / False: use tanh
     "use_nn_logstd": False,
 })
 

@@ -9,8 +9,6 @@ from ai_coach_core.latent_inference.decoding import most_probable_sequence_v2
 from ai_coach_core.model_learning.IQLearn.utils.utils import eval_mode
 from ..agent.mental_sac import MentalSAC
 
-NAN = float("nan")
-
 
 def conv_trajectories_2_iql_format(sax_trajectories: Sequence,
                                    cb_conv_action_to_idx: Callable[[Any], int],
@@ -123,9 +121,7 @@ def evaluate(agent: MentalSAC, env: Env, num_episodes=10, vis=True):
 
   while len(total_returns) < num_episodes:
     state = env.reset()
-    prev_latent = NAN
-    prev_act = (NAN if agent.actor.is_discrete() else np.zeros(
-        env.action_space.shape))
+    prev_latent, prev_act = agent.prev_latent, agent.prev_action
     done = False
 
     with eval_mode(agent):
@@ -192,9 +188,7 @@ def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
   mental_states = infer_mental_states(agent, expert_traj, num_latent)
   num_samples = len(expert_traj["states"])
 
-  prev_latent = NAN
-  prev_action = (NAN if agent.actor.is_discrete() else np.zeros_like(
-      expert_traj["actions"][0][0]))
+  prev_latent, prev_action = agent.prev_latent, agent.prev_action
   batch_obs = []
   batch_prev_lat = []
   batch_prev_act = []

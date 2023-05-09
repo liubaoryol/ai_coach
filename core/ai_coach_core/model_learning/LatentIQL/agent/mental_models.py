@@ -33,9 +33,11 @@ class MentalDoubleQCritic(MentalSACQCritic):
     super().__init__(config, obs_dim, action_dim, lat_dim)
 
     list_hidden_dims = config.hidden_critic
-    input_dim = obs_dim + lat_dim + lat_dim + action_dim
+    input_dim = (obs_dim + lat_dim + lat_dim + action_dim +
+                 int(config.use_prev_option_dim))
+
     if self.use_prev_action:
-      input_dim += action_dim
+      input_dim += action_dim + int(config.use_prev_action_dim)
 
     # Q1 architecture
     self.Q1 = mlp(input_dim, 1, list_hidden_dims)
@@ -113,6 +115,7 @@ class AbstractMentalActor(nn.Module):
     self.action_dim = action_dim
     self.lat_dim = lat_dim
     list_hidden_dims = config.hidden_policy
+    self.use_nn_logstd = config.use_nn_logstd
 
     input_dim = self.obs_dim + self.lat_dim
     output_dim = self._get_output_dim()
@@ -193,9 +196,9 @@ class DiagGaussianMentalActor(AbstractMentalActor):
     self.log_std_bounds = config.log_std_bounds
     self.bounded = config.bounded_actor
     self.clamp_action_logstd = config.clamp_action_logstd
-    self.use_nn_logstd = config.use_nn_logstd
-    self.action_logstd = nn.Parameter(
-        torch.empty(1, self.action_dim, dtype=torch.float32).fill_(0.))
+    if not self.use_nn_logstd:
+      self.action_logstd = nn.Parameter(
+          torch.empty(1, self.action_dim, dtype=torch.float32).fill_(0.))
 
   def _get_output_dim(self):
     if self.use_nn_logstd:
@@ -239,6 +242,9 @@ class DiagGaussianMentalActor(AbstractMentalActor):
 
   def evaluate_action(self, obs, lat, action):
     dist = self.forward(obs, lat)
+    if self.bounded:
+      EPS = 1.e-4
+      action = action.clip(-1.0 + EPS, 1.0 - EPS)
     log_probs = dist.log_prob(action).sum(-1, keepdim=True)
 
     return log_probs
@@ -260,9 +266,9 @@ class AbstractMentalThinker(nn.Module):
     self.lat_dim = lat_dim
     self.use_prev_action = config.use_prev_action
 
-    input_dim = self.obs_dim + self.lat_dim
+    input_dim = self.obs_dim + self.lat_dim + int(config.use_prev_option_dim)
     if self.use_prev_action:
-      input_dim += self.action_dim
+      input_dim += self.action_dim + int(config.use_prev_action_dim)
 
     output_dim = self.lat_dim
 

@@ -84,7 +84,7 @@ def train_mental_iql_pond(config: Config,
   expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
   print(f'--> Expert memory size: {len(expert_dataset)}')
 
-  online_memory_replay = MentalMemory(replay_mem, seed + 1)
+  online_memory_replay = MentalMemory(replay_mem, seed + 1, use_deque=False)
 
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)
@@ -100,7 +100,6 @@ def train_mental_iql_pond(config: Config,
   best_eval_returns = -np.inf
 
   learn_steps = 0
-  NAN = float("nan")
   N_UPDATE_STEPS = 10
 
   for epoch in count():
@@ -114,12 +113,9 @@ def train_mental_iql_pond(config: Config,
     online_memory_replay.clear()
     for n_epi in count():
       state = env.reset()
-      prev_lat = NAN
-      prev_act = (NAN if agent.actor.is_discrete() else np.zeros(
-          env.action_space.shape))
+      prev_lat, prev_act = agent.prev_latent, agent.prev_action
       episode_reward = 0
       done = False
-
       for episode_step in count():
         with eval_mode(agent):
           # if not begin_learn:
@@ -139,16 +135,17 @@ def train_mental_iql_pond(config: Config,
         online_memory_replay.add((state, prev_lat, prev_act, next_state, latent,
                                   action, reward, done_no_lim))
         explore_step_cur += 1
-        if done or online_memory_replay.size() == replay_mem:
+        if done:
           break
 
         state = next_state
 
-      if online_memory_replay.size() < replay_mem:
-        avg_episode_reward += episode_reward
-      else:
-        avg_episode_reward = 0 if n_epi == 0 else avg_episode_reward / n_epi
+      avg_episode_reward += episode_reward
+      if online_memory_replay.size() >= replay_mem:
         break
+
+    avg_episode_reward = avg_episode_reward / n_epi
+
     logger.log('train/episode_reward', avg_episode_reward, learn_steps)
     logger.dump(learn_steps, save=(learn_steps > 0))
     learn_steps += explore_step_cur
