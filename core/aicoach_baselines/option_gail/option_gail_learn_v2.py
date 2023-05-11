@@ -44,7 +44,10 @@ def sample_batch(gail: OptionGAILV2, agent, n_sample, demo_sa_array):
                                  fixed=False)
   sample_sxar, sample_rsum = gail.convert_sample(sample_sxar_in)
   demo_sxar, demo_rsum = gail.convert_demo(demo_sa_in)
-  return sample_sxar, demo_sxar, sample_rsum, demo_rsum
+  sample_avgstep = (sum([sxar[-1].size(0)
+                         for sxar in sample_sxar]) / len(sample_sxar))
+ 
+  return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
 
 
 def learn(config: Config,
@@ -122,13 +125,14 @@ def learn(config: Config,
     if explore_step >= max_exp_step:
       break
 
-    sample_sxar, demo_sxar, sample_r, demo_r = sample_batch(
+    sample_sxar, demo_sxar, sample_r, demo_r, sample_avgstep = sample_batch(
         gail, sampling_agent, n_sample, demo_sa_array)
 
     logger.log_train("r-sample-avg", sample_r, explore_step)
     logger.log_train("r-demo-avg", demo_r, explore_step)
-    print(
-        f"{explore_step}: r-sample-avg={sample_r}, d-demo-avg={demo_r} ; {msg}")
+    logger.log_train("step-sample-avg", sample_avgstep, explore_step)
+    print(f"{explore_step}: r-sample-avg={sample_r}, d-demo-avg={demo_r}, "
+          f"step-sample-avg={sample_avgstep} ; {msg}")
 
     train_d(gail, sample_sxar, demo_sxar)
     # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)

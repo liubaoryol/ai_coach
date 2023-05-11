@@ -23,6 +23,23 @@ from .iq import iq_loss
 from aicoach_baselines.option_gail.utils.config import Config
 
 
+def run_sac(config: Config,
+            log_dir,
+            output_dir,
+            log_interval=500,
+            eval_interval=2000,
+            env_kwargs={}):
+  return trainer_impl(config,
+                      None,
+                      None,
+                      log_dir,
+                      output_dir,
+                      log_interval,
+                      eval_interval,
+                      env_kwargs,
+                      imitate=False)
+
+
 def run_iql(config: Config,
             demo_path,
             num_trajs,
@@ -31,14 +48,34 @@ def run_iql(config: Config,
             log_interval=500,
             eval_interval=2000,
             env_kwargs={}):
+  return trainer_impl(config,
+                      demo_path,
+                      num_trajs,
+                      log_dir,
+                      output_dir,
+                      log_interval,
+                      eval_interval,
+                      env_kwargs,
+                      imitate=True)
+
+
+def trainer_impl(config: Config,
+                 demo_path,
+                 num_trajs,
+                 log_dir,
+                 output_dir,
+                 log_interval=500,
+                 eval_interval=2000,
+                 env_kwargs={},
+                 imitate=True):
   'agent_name: softq / sac / sacd'
   env_name = config.env_name
   seed = config.seed
   batch_size = config.mini_batch_size
-  replay_mem = config.n_sample * 2
+  replay_mem = config.n_sample
   eps_window = 10
   num_learn_steps = config.max_explore_step
-  initial_mem = config.n_sample
+  initial_mem = replay_mem
   agent_name = config.iql_agent_name
   output_suffix = ""
   load_path = None
@@ -100,15 +137,16 @@ def run_iql(config: Config,
       print("[Attention]: Did not find checkpoint {}".format(load_path))
 
   # Load expert data
-  subsample_freq = 1
-  expert_memory_replay = Memory(replay_mem // 2, seed)
-  expert_memory_replay.load(demo_path,
-                            num_trajs=num_trajs,
-                            sample_freq=subsample_freq,
-                            seed=seed + 42)
-  print(f'--> Expert memory size: {expert_memory_replay.size()}')
+  if imitate:
+    subsample_freq = 1
+    expert_memory_replay = Memory(replay_mem, seed)
+    expert_memory_replay.load(demo_path,
+                              num_trajs=num_trajs,
+                              sample_freq=subsample_freq,
+                              seed=seed + 42)
+    print(f'--> Expert memory size: {expert_memory_replay.size()}')
 
-  online_memory_replay = Memory(replay_mem // 2, seed + 1)
+  online_memory_replay = Memory(replay_mem, seed + 1)
 
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)
@@ -122,7 +160,9 @@ def run_iql(config: Config,
 
   # track mean reward and scores
   rewards_window = deque(maxlen=eps_window)  # last N rewards
+  epi_step_window = deque(maxlen=eps_window)
   best_eval_returns = -np.inf
+  cnt_steps = 0
 
   begin_learn = False
   episode_reward = 0
@@ -151,6 +191,7 @@ def run_iql(config: Config,
         # learn_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode', epoch, learn_steps)
         logger.log('eval/episode_reward', returns, learn_steps)
+        logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
         logger.dump(learn_steps, ty='eval')
 
         if returns > best_eval_returns:
@@ -162,6 +203,7 @@ def run_iql(config: Config,
                env_name,
                agent_name,
                is_sqil,
+               imitate,
                output_dir=output_dir,
                suffix=output_suffix + "_best")
 
@@ -183,14 +225,16 @@ def run_iql(config: Config,
           return
 
         ######
-        # IQ-Learn Modification
-        agent.iq_update = types.MethodType(iq_update, agent)
-        agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
-        losses = agent.iq_update(online_memory_replay, expert_memory_replay,
-                                 logger, learn_steps, only_expert_states,
-                                 is_sqil, use_target, do_soft_update,
-                                 config.method_loss, config.method_regularize)
-        ######
+        if imitate:
+          # IQ-Learn Modification
+          agent.iq_update = types.MethodType(iq_update, agent)
+          agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
+          losses = agent.iq_update(online_memory_replay, expert_memory_replay,
+                                   logger, learn_steps, only_expert_states,
+                                   is_sqil, use_target, do_soft_update,
+                                   config.method_loss, config.method_regularize)
+        else:
+          losses = agent.update(online_memory_replay, logger, learn_steps)
 
         if learn_steps % log_interval == 0:
           for key, loss in losses.items():
@@ -201,18 +245,24 @@ def run_iql(config: Config,
       state = next_state
 
     rewards_window.append(episode_reward)
-    logger.log('train/episode', epoch, learn_steps)
-    logger.log('train/episode_reward', episode_reward, learn_steps)
-    logger.log('train/episode_step', episode_step, learn_steps)
-    logger.dump(learn_steps, save=begin_learn)
-    save(agent,
-         epoch,
-         save_interval,
-         env_name,
-         agent_name,
-         is_sqil,
-         output_dir=output_dir,
-         suffix=output_suffix)
+    epi_step_window.append(episode_step + 1)
+    cnt_steps += episode_step + 1
+    if cnt_steps >= log_interval:
+      cnt_steps = 0
+      logger.log('train/episode', epoch, learn_steps)
+      logger.log('train/episode_reward', np.mean(rewards_window), learn_steps)
+      logger.log('train/episode_step', np.mean(epi_step_window), learn_steps)
+      logger.dump(learn_steps, save=begin_learn)
+
+    # save(agent,
+    #      epoch,
+    #      save_interval,
+    #      env_name,
+    #      agent_name,
+    #      is_sqil,
+    #      imitate,
+    #      output_dir=output_dir,
+    #      suffix=output_suffix)
 
 
 def save(agent,
@@ -221,13 +271,17 @@ def save(agent,
          env_name,
          agent_name,
          is_sqil: bool,
+         imitate: bool,
          output_dir='results',
          suffix=""):
   if epoch % save_interval == 0:
-    if is_sqil:
-      name = f'sqil_{env_name}'
+    if imitate:
+      if is_sqil:
+        name = f'sqil_{env_name}'
+      else:
+        name = f'iq_{env_name}'
     else:
-      name = f'iq_{env_name}'
+      name = f'rl_{env_name}'
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)

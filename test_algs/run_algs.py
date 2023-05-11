@@ -54,35 +54,85 @@ def run_alg(config):
   with open(config_path, "w") as outfile:
     outfile.write(str(config))
 
-  if alg_name == "bc":
+  if alg_name == "obc":
     from aicoach_baselines.option_gail.option_bc_learn import learn
     sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
-  elif alg_name == "gail":
+  elif alg_name == "ogail":
     from aicoach_baselines.option_gail.option_gail_learn import learn
     sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
-  elif alg_name == "gailv2":
+  elif alg_name == "ogailv2":
     from aicoach_baselines.option_gail.option_gail_learn_v2 import learn
     sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
-  elif alg_name == "ppo":
+  elif alg_name == "oppo":
     from aicoach_baselines.option_gail.option_ppo_learn import learn
-    sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, msg)
   elif alg_name == "miql":
-    from iql_miql_train import learn_miql
+    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
+        train_mental_iql_stream)
+    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_pond import (
+        train_mental_iql_pond)
     path_iq_data, num_traj = get_pickle_datapath_n_traj(config)
-    learn_miql(config, log_dir, output_dir, path_iq_data, num_traj)
+    log_interval, eval_interval = 500, 10000
+    if config.miql_stream:
+      train_mental_iql_stream(config,
+                              path_iq_data,
+                              num_traj,
+                              log_dir,
+                              output_dir,
+                              log_interval=log_interval,
+                              eval_interval=eval_interval)
+    else:
+      train_mental_iql_pond(config,
+                            path_iq_data,
+                            num_traj,
+                            log_dir,
+                            output_dir,
+                            log_interval=log_interval,
+                            eval_interval=eval_interval)
   elif alg_name == "miqlv2":
     from ai_coach_core.model_learning.LatentIQL_v2.train_mental_iql_v2 import (
         learn)
     sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "iql":
-    from iql_miql_train import learn_iql
+    from ai_coach_core.model_learning.IQLearn.iql import run_iql
     path_iq_data, num_traj = get_pickle_datapath_n_traj(config)
-    learn_iql(config, log_dir, output_dir, path_iq_data, num_traj)
+    log_interval, eval_interval = 500, 10000
+    run_iql(config,
+            log_dir,
+            output_dir,
+            path_iq_data,
+            num_traj,
+            log_interval=log_interval,
+            eval_interval=eval_interval)
+  elif alg_name == "sac":
+    from ai_coach_core.model_learning.IQLearn.iql import run_sac
+    log_interval, eval_interval = 500, 10000
+    run_sac(config,
+            log_dir,
+            output_dir,
+            log_interval=log_interval,
+            eval_interval=eval_interval)
+  elif alg_name == "msac":
+    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
+        train_mental_sac)
+    log_interval, eval_interval = 500, 5000
+    train_mental_sac(config,
+                     log_dir,
+                     output_dir,
+                     log_interval=log_interval,
+                     eval_interval=eval_interval)
+  elif alg_name == "sb3_sac":
+    from sb3_algs import sb3_run_sac
+    log_interval, eval_interval = 10, 5000
+    sb3_run_sac(config,
+                log_dir,
+                output_dir,
+                log_interval=log_interval,
+                eval_interval=eval_interval)
   else:
     raise ValueError("Invalid alg_name")
 
@@ -129,17 +179,19 @@ if __name__ == "__main__":
     config.hidden_critic = (128, 128)
     config.log_std_bounds = (-20., -2.)
 
-  if config.alg_name in ["iql", "miql"]:
+  if config.alg_name in ["obc", "ogail", "ogailv2", "oppo", "miqlv2"]:
     dim_c = config.dim_c
     hp1, hp2 = config.hidden_policy
     ho1, ho2 = config.hidden_option
     hc1, hc2 = config.hidden_critic
-    config.hidden_policy = (hp1 * dim_c, hp2 * dim_c)
-    config.hidden_option = (ho1 * dim_c, ho2 * dim_c)
-    config.hidden_critic = (hc1 * dim_c, hc2 * dim_c)
-    print(f"Hidden policy: {config.hidden_policy}",
-          f"Hidden option: {config.hidden_option}",
-          f"Hidden critic: {config.hidden_critic}")
+
+    config.hidden_policy = (hp1 // dim_c, hp2 // dim_c)
+    config.hidden_option = (ho1 // dim_c, ho2 // dim_c)
+    config.hidden_critic = (hc1 // dim_c, hc2 // dim_c)
+
+  print(f"Hidden_policy: {config.hidden_policy}",
+        f"Hidden_option: {config.hidden_option}",
+        f"Hidden_critic: {config.hidden_critic}")
 
   print(f">>>> Training {'Option-' if config.use_option else ''} "
         f"{config.alg_name} using {config.env_name} "

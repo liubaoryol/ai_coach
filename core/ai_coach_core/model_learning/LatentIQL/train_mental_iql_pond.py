@@ -23,7 +23,7 @@ def train_mental_iql_pond(config: Config,
                           log_dir,
                           output_dir,
                           log_interval=500,
-                          eval_epoch_interval=5,
+                          eval_interval=5000,
                           env_kwargs={}):
   env_name = config.env_name
   seed = config.seed
@@ -99,11 +99,12 @@ def train_mental_iql_pond(config: Config,
   # track mean reward and scores
   best_eval_returns = -np.inf
 
-  learn_steps = 0
-  N_UPDATE_STEPS = 10
+  explore_steps = 0
+  cnt_evals = 0
+  n_total_epi = 0
 
   for epoch in count():
-    if learn_steps >= max_explore_step:
+    if explore_steps >= max_explore_step:
       print('Finished!')
       return
 
@@ -144,11 +145,15 @@ def train_mental_iql_pond(config: Config,
       if online_memory_replay.size() >= replay_mem:
         break
 
-    avg_episode_reward = avg_episode_reward / n_epi
+    avg_episode_reward = avg_episode_reward / (n_epi + 1)
+    avg_epi_step = explore_step_cur / (n_epi + 1)
+    n_total_epi += n_epi + 1
 
-    logger.log('train/episode_reward', avg_episode_reward, learn_steps)
-    logger.dump(learn_steps, save=(learn_steps > 0))
-    learn_steps += explore_step_cur
+    logger.log('eval/episode', n_total_epi, explore_steps)
+    logger.log('train/episode_reward', avg_episode_reward, explore_steps)
+    logger.log('eval/episode_step', avg_epi_step, explore_steps)
+    logger.dump(explore_steps, save=(explore_steps > 0))
+    explore_steps += explore_step_cur
 
     # #################### prepare expert data
     expert_traj = expert_dataset.trajectories
@@ -157,7 +162,7 @@ def train_mental_iql_pond(config: Config,
 
     # #################### update
     agent.reset_optimizers(config)
-    for _ in range(N_UPDATE_STEPS):
+    for _ in range(config.n_update_rounds):
       inds = torch.randperm(online_memory_replay.size(), device=agent.device)
       for ind_p in inds.split(batch_size):
         so, spl, spa, sno, sl, sa, sr, sd = (sample_data[0][ind_p],
@@ -183,11 +188,11 @@ def train_mental_iql_pond(config: Config,
 
         # IQ-Learn
         losses = agent.iq_update(sample_batch, expert_batch, logger,
-                                 learn_steps, is_sqil, use_target,
+                                 explore_steps, is_sqil, use_target,
                                  do_soft_update, method_loss, method_regularize)
 
     for key, loss in losses.items():
-      writer.add_scalar("loss/" + key, loss, global_step=learn_steps)
+      writer.add_scalar("loss/" + key, loss, global_step=explore_steps)
 
     save(agent,
          epoch,
@@ -195,16 +200,19 @@ def train_mental_iql_pond(config: Config,
          env_name,
          agent_name,
          is_sqil,
+         True,
          output_dir=output_dir,
          suffix=output_suffix)
 
-    if (epoch + 1) % eval_epoch_interval == 0:
+    if explore_steps >= (cnt_evals + 1) * eval_interval:
+      cnt_evals += 1
       eval_returns, eval_timesteps = evaluate(agent,
                                               eval_env,
                                               num_episodes=num_episodes)
       returns = np.mean(eval_returns)
-      logger.log('eval/episode_reward', returns, learn_steps)
-      logger.dump(learn_steps, ty='eval')
+      logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
+      logger.log('eval/episode_reward', returns, explore_steps)
+      logger.dump(explore_steps, ty='eval')
 
       if returns > best_eval_returns:
         # Store best eval returns
@@ -215,5 +223,6 @@ def train_mental_iql_pond(config: Config,
              env_name,
              agent_name,
              is_sqil,
+             True,
              output_dir=output_dir,
              suffix=output_suffix + "_best")

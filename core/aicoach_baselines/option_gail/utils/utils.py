@@ -10,7 +10,8 @@ import random
 def sample_batch(policy: Union[OptionPolicy, Policy], agent, n_step):
   sample = agent.collect(policy.state_dict(), n_step, fixed=False)
   rsum = sum([sxar[-1].sum().item() for sxar in sample]) / len(sample)
-  return sample, rsum
+  avgsteps = sum([sxar[-1].size(0) for sxar in sample]) / len(sample)
+  return sample, rsum, avgsteps
 
 
 def validate(policy: Union[OptionPolicy, Policy], sa_array):
@@ -49,12 +50,14 @@ def reward_validate(agent,
       "r-min": np.min(rsums),
       "r-avg": np.mean(rsums),
       "step-max": np.max(steps),
+      "step-avg": np.mean(steps),
       "step-min": np.min(steps),
   }
   if do_print:
     print(f"R: [ {info_dict['r-min']:.02f} ~ {info_dict['r-max']:.02f},",
           f"avg: {info_dict['r-avg']:.02f} ],",
-          f"L: [ {info_dict['step-min']} ~ {info_dict['step-max']} ]")
+          f"L: [ {info_dict['step-min']} ~ {info_dict['step-max']}, ",
+          f"avg: {info_dict['step-avg']:.02f} ]")
   return info_dict, css
 
 

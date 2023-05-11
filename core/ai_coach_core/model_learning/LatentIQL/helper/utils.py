@@ -57,13 +57,17 @@ def save(agent: MentalSAC,
          env_name,
          agent_name,
          is_sqil: bool,
+         imitate: bool,
          output_dir='results',
          suffix=""):
   if epoch % save_interval == 0:
-    if is_sqil:
-      name = f'sqil_{env_name}'
+    if imitate:
+      if is_sqil:
+        name = f'sqil_{env_name}'
+      else:
+        name = f'iq_{env_name}'
     else:
-      name = f'iq_{env_name}'
+      name = f'rl_{env_name}'
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)
@@ -239,3 +243,16 @@ def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
 
   return (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs,
           batch_latent, batch_action, batch_reward, batch_done)
+
+
+def get_samples(batch_size, dataset):
+  indexes = np.random.choice(np.arange(len(dataset[0])),
+                             size=batch_size,
+                             replace=False)
+
+  eo, epl, epa, eno, el, ea, er, ed = (dataset[0][indexes], dataset[1][indexes],
+                                       dataset[2][indexes], dataset[3][indexes],
+                                       dataset[4][indexes], dataset[5][indexes],
+                                       dataset[6][indexes], dataset[7][indexes])
+  expert_batch = (eo, epl, epa, eno, el, ea, er, ed)
+  return expert_batch

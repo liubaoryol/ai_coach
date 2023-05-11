@@ -12,10 +12,20 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, eval_mode
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     ExpertDataset)
 from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
-from .agent.make_agent import make_miql_agent
+from .agent.make_agent import make_miql_agent, make_msac_agent
 from .helper.mental_memory import MentalMemory
-from .helper.utils import get_expert_batch, evaluate, save
+from .helper.utils import get_expert_batch, evaluate, save, get_samples
 from aicoach_baselines.option_gail.utils.config import Config
+
+
+def train_mental_sac(config: Config,
+                     log_dir,
+                     output_dir,
+                     log_interval=500,
+                     eval_interval=5000,
+                     env_kwargs={}):
+  return trainer_impl(config, None, None, log_dir, output_dir, "msac",
+                      log_interval, eval_interval, env_kwargs)
 
 
 def train_mental_iql_stream(config: Config,
@@ -24,8 +34,21 @@ def train_mental_iql_stream(config: Config,
                             log_dir,
                             output_dir,
                             log_interval=500,
-                            eval_interval=5,
+                            eval_interval=5000,
                             env_kwargs={}):
+  return trainer_impl(config, demo_path, num_trajs, log_dir, output_dir, "miql",
+                      log_interval, eval_interval, env_kwargs)
+
+
+def trainer_impl(config: Config,
+                 demo_path,
+                 num_trajs,
+                 log_dir,
+                 output_dir,
+                 agent_name,
+                 log_interval=500,
+                 eval_interval=5000,
+                 env_kwargs={}):
 
   env_name = config.env_name
   seed = config.seed
@@ -40,7 +63,14 @@ def train_mental_iql_stream(config: Config,
   method_regularize = config.method_regularize
   eps_window = 10
 
-  agent_name = "miql"
+  imitation = (agent_name == "miql")
+  if imitation:
+    fn_make_agent = make_miql_agent
+  elif agent_name == "msac":
+    fn_make_agent = make_msac_agent
+  else:
+    raise NotImplementedError
+
   # constants
   num_episodes = 10
   save_interval = 10
@@ -76,7 +106,7 @@ def train_mental_iql_stream(config: Config,
 
   use_target = True
   do_soft_update = True
-  agent = make_miql_agent(config, env)
+  agent = fn_make_agent(config, env)
 
   if load_path is not None:
     if os.path.isfile(load_path):
@@ -85,9 +115,10 @@ def train_mental_iql_stream(config: Config,
     else:
       print("[Attention]: Did not find checkpoint {}".format(load_path))
 
-  # Load expert data
-  expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
-  print(f'--> Expert memory size: {len(expert_dataset)}')
+  if imitation:
+    # Load expert data
+    expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
+    print(f'--> Expert memory size: {len(expert_dataset)}')
 
   online_memory_replay = MentalMemory(replay_mem, seed + 1)
 
@@ -102,13 +133,15 @@ def train_mental_iql_stream(config: Config,
                   agent=agent_name)
 
   # track mean reward and scores
-  rewards_window = deque(maxlen=eps_window)  # last N rewards
   best_eval_returns = -np.inf
+  rewards_window = deque(maxlen=eps_window)  # last N rewards
+  epi_step_window = deque(maxlen=eps_window)
+  cnt_steps = 0
 
   begin_learn = False
   episode_reward = 0
   learn_steps = 0
-  NAN = float("nan")
+  expert_data = None
 
   for epoch in count():
     state = env.reset()
@@ -136,6 +169,7 @@ def train_mental_iql_stream(config: Config,
         # learn_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode', epoch, learn_steps)
         logger.log('eval/episode_reward', returns, learn_steps)
+        logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
         logger.dump(learn_steps, ty='eval')
 
         if returns > best_eval_returns:
@@ -147,6 +181,7 @@ def train_mental_iql_stream(config: Config,
                env_name,
                agent_name,
                is_sqil,
+               imitation,
                output_dir=output_dir,
                suffix=output_suffix + "_best")
 
@@ -168,23 +203,26 @@ def train_mental_iql_stream(config: Config,
           print('Finished!')
           return
 
-        # ##### sample batch
-        # infer mental states of expert data
-        num_samples = 1
-        expert_traj = expert_dataset.sample_episodes(num_samples)
-        expert_batch = get_expert_batch(agent, expert_traj, num_latent,
-                                        agent.device)
+        if imitation:
+          # ##### sample batch
+          # infer mental states of expert data
+          if (expert_data is None
+              or learn_steps % config.demo_latent_infer_interval == 0):
+            expert_data = get_expert_batch(agent, expert_dataset.trajectories,
+                                           num_latent, agent.device)
 
-        batch_size = len(expert_batch[0])
-        policy_batch = online_memory_replay.get_samples(batch_size,
-                                                        agent.device)
+          expert_batch = get_samples(batch_size, expert_data)
+          policy_batch = online_memory_replay.get_samples(
+              batch_size, agent.device)
 
-        ######
-        # IQ-Learn Modification
-        losses = agent.iq_update(policy_batch, expert_batch, logger,
-                                 learn_steps, is_sqil, use_target,
-                                 do_soft_update, method_loss, method_regularize)
-        ######
+          ######
+          # IQ-Learn Modification
+          losses = agent.iq_update(policy_batch, expert_batch, logger,
+                                   learn_steps, is_sqil, use_target,
+                                   do_soft_update, method_loss,
+                                   method_regularize)
+        else:
+          losses = agent.update(online_memory_replay, logger, learn_steps)
 
         if learn_steps % log_interval == 0:
           for key, loss in losses.items():
@@ -194,15 +232,22 @@ def train_mental_iql_stream(config: Config,
         break
       state = next_state
 
-    logger.log('train/episode', epoch, learn_steps)
-    logger.log('train/episode_reward', episode_reward, learn_steps)
-    logger.log('train/episode_step', episode_step, learn_steps)
-    logger.dump(learn_steps, save=begin_learn)
-    save(agent,
-         epoch,
-         save_interval,
-         env_name,
-         agent_name,
-         is_sqil,
-         output_dir=output_dir,
-         suffix=output_suffix)
+    rewards_window.append(episode_reward)
+    epi_step_window.append(episode_step + 1)
+    cnt_steps += episode_step + 1
+    if cnt_steps >= log_interval:
+      cnt_steps = 0
+      logger.log('train/episode', epoch, learn_steps)
+      logger.log('train/episode_reward', np.mean(rewards_window), learn_steps)
+      logger.log('train/episode_step', np.mean(epi_step_window), learn_steps)
+      logger.dump(learn_steps, save=begin_learn)
+
+    # save(agent,
+    #       epoch,
+    #       save_interval,
+    #       env_name,
+    #       agent_name,
+    #       is_sqil,
+    #       imitation,
+    #       output_dir=output_dir,
+    #       suffix=output_suffix)

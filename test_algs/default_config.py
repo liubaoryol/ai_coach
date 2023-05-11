@@ -19,17 +19,17 @@ default_config = Config({
 
     # global policy config
     "activation": "relu",
-    "hidden_policy": (64, 64),  # per option
+    "hidden_policy": (256, 256),
     "shared_policy": False,
     "log_std_bounds": (-5., 2.),
     "optimizer_lr_policy": 3.e-4,
     "dim_c": 4,
     "use_option": True,
-    "hidden_option": (64, 64),  # per option
+    "hidden_option": (256, 256),
     "optimizer_lr_option": 3.e-4,
 
     # ppo config
-    "hidden_critic": (64, 64),  # per option
+    "hidden_critic": (256, 256),
     "shared_critic": False,
     "train_policy": True,
     "train_option": True,
@@ -69,6 +69,9 @@ default_config = Config({
     "gumbel_temperature": 1.0,
     "use_prev_action_dim": True,
     "use_prev_option_dim": True,
+    "miql_stream": False,
+    "demo_latent_infer_interval": 4096,
+    "n_update_rounds": 10,
 
     # gail debug
     "gail_option_entropy_orig": True,

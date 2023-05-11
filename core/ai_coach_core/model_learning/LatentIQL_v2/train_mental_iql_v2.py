@@ -119,7 +119,10 @@ def sample_batch(agent: MentalIQL_V2, sampler: _SamplerCommon, n_sample: int,
                                 fixed=False)
   sample_r = avg_sample_reward(sample_sxar)
   demo_sxa = convert_demo(demo_sa_in, agent)
-  return sample_sxar, demo_sxa, sample_r
+  sample_avgstep = (sum([sxar[-1].size(0)
+                         for sxar in sample_sxar]) / len(sample_sxar))
+
+  return sample_sxar, demo_sxa, sample_r, sample_avgstep
 
 
 def learn(config: Config,
@@ -179,10 +182,12 @@ def learn(config: Config,
     if explore_step >= max_exp_step:
       break
 
-    sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
-                                                   demo_sa_array)
+    sample_sxar, demo_sxa, sample_r, sample_avgstep = sample_batch(
+        agent, sampler, n_sample, demo_sa_array)
     logger.log_train("r-sample-avg", sample_r, explore_step)
-    print(f"{explore_step}: r-sample-avg={sample_r}, {msg}")
+    logger.log_train("step-sample-avg", sample_avgstep, explore_step)
+    print(f"{explore_step}: r-sample-avg={sample_r}, "
+          f"step-sample-avg={sample_avgstep} ; {msg}")
 
     train_iql(agent, config, sample_sxar, demo_sxa, batch_size, logger,
               explore_step, is_sqil, use_target, do_soft_update, method_loss,
