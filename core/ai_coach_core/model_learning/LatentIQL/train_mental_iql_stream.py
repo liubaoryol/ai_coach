@@ -1,9 +1,6 @@
-from typing import Optional
 import os
 import random
 import numpy as np
-import time
-import datetime
 import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
@@ -18,12 +15,12 @@ from .helper.utils import get_expert_batch, evaluate, save, get_samples
 from aicoach_baselines.option_gail.utils.config import Config
 
 
-def train_mental_sac(config: Config,
-                     log_dir,
-                     output_dir,
-                     log_interval=500,
-                     eval_interval=5000,
-                     env_kwargs={}):
+def train_mental_sac_stream(config: Config,
+                            log_dir,
+                            output_dir,
+                            log_interval=500,
+                            eval_interval=5000,
+                            env_kwargs={}):
   return trainer_impl(config, None, None, log_dir, output_dir, "msac",
                       log_interval, eval_interval, env_kwargs)
 
@@ -73,7 +70,6 @@ def trainer_impl(config: Config,
 
   # constants
   num_episodes = 10
-  save_interval = 10
   is_sqil = False
   if initial_mem is None:
     initial_mem = batch_size
@@ -167,7 +163,7 @@ def trainer_impl(config: Config,
                                                 num_episodes=num_episodes)
         returns = np.mean(eval_returns)
         # learn_steps += 1  # To prevent repeated eval at timestep 0
-        logger.log('eval/episode', epoch, learn_steps)
+        # logger.log('eval/episode', epoch, learn_steps)
         logger.log('eval/episode_reward', returns, learn_steps)
         logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
         logger.dump(learn_steps, ty='eval')
@@ -241,13 +237,3 @@ def trainer_impl(config: Config,
       logger.log('train/episode_reward', np.mean(rewards_window), learn_steps)
       logger.log('train/episode_step', np.mean(epi_step_window), learn_steps)
       logger.dump(learn_steps, save=begin_learn)
-
-    # save(agent,
-    #       epoch,
-    #       save_interval,
-    #       env_name,
-    #       agent_name,
-    #       is_sqil,
-    #       imitation,
-    #       output_dir=output_dir,
-    #       suffix=output_suffix)

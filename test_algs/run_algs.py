@@ -54,85 +54,61 @@ def run_alg(config):
   with open(config_path, "w") as outfile:
     outfile.write(str(config))
 
+  log_interval, eval_interval = 500, 10000
+  if (config.data_path.endswith("torch") or config.data_path.endswith("pt")
+      or config.data_path.endswith("pkl") or config.data_path.endswith("npy")):
+    sample_name = get_torch_datapath(config)
+    path_iq_data, num_traj = get_pickle_datapath_n_traj(config)
+  else:
+    print(f"Data path not exists: {config.data_path}")
+
   if alg_name == "obc":
     from aicoach_baselines.option_gail.option_bc_learn import learn
-    sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ogail":
     from aicoach_baselines.option_gail.option_gail_learn import learn
-    sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ogailv2":
     from aicoach_baselines.option_gail.option_gail_learn_v2 import learn
-    sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "oppo":
     from aicoach_baselines.option_gail.option_ppo_learn import learn
     learn(config, log_dir, output_dir, msg)
-  elif alg_name == "miql":
+  elif alg_name == "miql" and config.miql_stream:
     from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
         train_mental_iql_stream)
+    train_mental_iql_stream(config, path_iq_data, num_traj, log_dir, output_dir,
+                            log_interval, eval_interval)
+  elif alg_name == "miql" and not config.miql_stream:
     from ai_coach_core.model_learning.LatentIQL.train_mental_iql_pond import (
         train_mental_iql_pond)
-    path_iq_data, num_traj = get_pickle_datapath_n_traj(config)
-    log_interval, eval_interval = 500, 10000
-    if config.miql_stream:
-      train_mental_iql_stream(config,
-                              path_iq_data,
-                              num_traj,
-                              log_dir,
-                              output_dir,
-                              log_interval=log_interval,
-                              eval_interval=eval_interval)
-    else:
-      train_mental_iql_pond(config,
-                            path_iq_data,
-                            num_traj,
-                            log_dir,
-                            output_dir,
-                            log_interval=log_interval,
-                            eval_interval=eval_interval)
+    train_mental_iql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
+                          log_interval, eval_interval)
   elif alg_name == "miqlv2":
     from ai_coach_core.model_learning.LatentIQL_v2.train_mental_iql_v2 import (
         learn)
-    sample_name = get_torch_datapath(config)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "iql":
     from ai_coach_core.model_learning.IQLearn.iql import run_iql
-    path_iq_data, num_traj = get_pickle_datapath_n_traj(config)
-    log_interval, eval_interval = 500, 10000
-    run_iql(config,
-            log_dir,
-            output_dir,
-            path_iq_data,
-            num_traj,
-            log_interval=log_interval,
-            eval_interval=eval_interval)
+    run_iql(config, log_dir, output_dir, path_iq_data, num_traj, log_interval,
+            eval_interval)
   elif alg_name == "sac":
     from ai_coach_core.model_learning.IQLearn.iql import run_sac
-    log_interval, eval_interval = 500, 10000
-    run_sac(config,
-            log_dir,
-            output_dir,
-            log_interval=log_interval,
-            eval_interval=eval_interval)
-  elif alg_name == "msac":
+    run_sac(config, log_dir, output_dir, log_interval, eval_interval)
+  elif alg_name == "msac" and config.miql_stream:
     from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
-        train_mental_sac)
-    log_interval, eval_interval = 500, 5000
-    train_mental_sac(config,
-                     log_dir,
-                     output_dir,
-                     log_interval=log_interval,
-                     eval_interval=eval_interval)
+        train_mental_sac_stream)
+    train_mental_sac_stream(config, log_dir, output_dir, log_interval,
+                            eval_interval)
+  elif alg_name == "msac" and not config.miql_stream:
+    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_pond import (
+        train_mental_sac_pond)
+    train_mental_sac_pond(config, log_dir, output_dir, log_interval,
+                          eval_interval)
   elif alg_name == "sb3_sac":
     from sb3_algs import sb3_run_sac
     log_interval, eval_interval = 10, 5000
-    sb3_run_sac(config,
-                log_dir,
-                output_dir,
-                log_interval=log_interval,
-                eval_interval=eval_interval)
+    sb3_run_sac(config, log_dir, output_dir, log_interval, eval_interval)
   else:
     raise ValueError("Invalid alg_name")
 
