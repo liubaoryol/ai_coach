@@ -72,6 +72,7 @@ default_config = Config({
     "miql_stream": False,
     "demo_latent_infer_interval": 4096,
     "n_update_rounds": 10,
+    "separate_policy_update": False,
 
     # gail debug
     "gail_option_entropy_orig": True,

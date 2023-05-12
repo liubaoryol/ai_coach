@@ -52,6 +52,9 @@ class MentalSAC(object):
     self.use_prev_action_dim = config.use_prev_action_dim
     self.use_prev_latent_dim = config.use_prev_option_dim
 
+    # separate policy update
+    self.separate_policy_update = config.separate_policy_update
+
     NAN = float("nan")
     self.prev_latent = NAN
     if self.use_prev_action_dim:
@@ -385,33 +388,67 @@ class MentalSAC(object):
     prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
                                self.action_dim, self.use_prev_action_dim)
 
-    latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
-    action, act_log_prob = self.actor.rsample(obs, latent)
+    if self.separate_policy_update:
+      # thinker update
+      latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
+      action, act_log_prob = self.actor.rsample(obs, latent)
+      actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
 
-    actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
+      option_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
+                     actor_Q).mean()
+      self.thinker_optimizer.zero_grad()
+      option_loss.backward()
+      if self.clip_grad_val:
+        nn.utils.clip_grad_norm_(self.thinker.parameters(), self.clip_grad_val)
+      self.thinker_optimizer.step()
 
-    actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
-                  actor_Q).mean()
+      # actor update
+      latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
+      action, act_log_prob = self.actor.rsample(obs, latent)
+      actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
 
-    # logger.log('train/actor_loss', actor_loss, step)
-    # logger.log('train/actor_entropy', -act_log_prob.mean(), step)
-    # logger.log('train/thinker_entropy', -lat_log_prob.mean(), step)
+      actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
+                    actor_Q).mean()
+      self.actor_optimizer.zero_grad()
+      actor_loss.backward()
+      if self.clip_grad_val:
+        nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
+      self.actor_optimizer.step()
 
-    # optimize the actor
-    self.actor_optimizer.zero_grad()
-    self.thinker_optimizer.zero_grad()
-    actor_loss.backward()
-    if self.clip_grad_val:
-      nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
-      nn.utils.clip_grad_norm_(self.thinker.parameters(), self.clip_grad_val)
-    self.actor_optimizer.step()
-    self.thinker_optimizer.step()
+      losses = {
+          'loss/actor': actor_loss.item(),
+          'loss/thinker': option_loss.item(),
+          'actor_loss/actor_entropy': -act_log_prob.mean().item(),
+          'actor_loss/thinker_entropy': -lat_log_prob.mean().item()
+      }
+    else:
+      latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
+      action, act_log_prob = self.actor.rsample(obs, latent)
 
-    losses = {
-        'loss/actor': actor_loss.item(),
-        'actor_loss/actor_entropy': -act_log_prob.mean().item(),
-        'actor_loss/thinker_entropy': -lat_log_prob.mean().item()
-    }
+      actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
+
+      actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
+                    actor_Q).mean()
+
+      # logger.log('train/actor_loss', actor_loss, step)
+      # logger.log('train/actor_entropy', -act_log_prob.mean(), step)
+      # logger.log('train/thinker_entropy', -lat_log_prob.mean(), step)
+
+      # optimize the actor
+      self.actor_optimizer.zero_grad()
+      self.thinker_optimizer.zero_grad()
+      actor_loss.backward()
+      if self.clip_grad_val:
+        nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
+        nn.utils.clip_grad_norm_(self.thinker.parameters(), self.clip_grad_val)
+      self.actor_optimizer.step()
+      self.thinker_optimizer.step()
+
+      losses = {
+          'loss/actor': actor_loss.item(),
+          'actor_loss/actor_entropy': -act_log_prob.mean().item(),
+          'actor_loss/thinker_entropy': -lat_log_prob.mean().item()
+      }
 
     # TODO: implement learn alpha
     # if self.learn_temp:
