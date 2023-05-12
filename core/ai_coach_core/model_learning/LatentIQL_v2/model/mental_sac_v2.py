@@ -28,7 +28,7 @@ class MentalSAC_V2(nn.Module):
 
     self.gamma = config.gamma
 
-    init_temp = 1e-2
+    self.init_temp = config.init_temp
     self.critic_tau = 0.005
     self.clip_grad_val = config.clip_grad_val
     self.learn_temp = False
@@ -43,7 +43,7 @@ class MentalSAC_V2(nn.Module):
     self.critic_target = copy.deepcopy(self._critic).to(self.device)
     self.critic_target.load_state_dict(self._critic.state_dict())
 
-    self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
+    self.log_alpha = torch.tensor(np.log(self.init_temp)).to(self.device)
     self.log_alpha.requires_grad = True
 
     self.target_entropy = -action_dim

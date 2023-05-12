@@ -25,7 +25,7 @@ class MentalSAC(object):
 
     self.device = torch.device(config.device)
 
-    init_temp = 1e-2
+    self.init_temp = config.init_temp
     self.critic_tau = 0.005
     self.learn_temp = False
     self.actor_update_frequency = 1
@@ -43,7 +43,7 @@ class MentalSAC(object):
     self.actor = actor.to(self.device)
     self.thinker = thinker.to(self.device)
 
-    self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
+    self.log_alpha = torch.tensor(np.log(self.init_temp)).to(self.device)
     self.log_alpha.requires_grad = True
     # Target Entropy = −dim(A)
     self.target_entropy = -action_dim

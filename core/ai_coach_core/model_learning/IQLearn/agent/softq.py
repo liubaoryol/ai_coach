@@ -21,14 +21,14 @@ class SoftQ(object):
     self.device = torch.device(config.device)
     self.actor = None
     self.critic_tau = 0.1
-    init_temp = 1e-2
+    self.init_temp = config.init_temp
     use_tanh = False
 
     self.discrete_obs = discrete_obs
     self.obs_dim = num_inputs
 
     self.critic_target_update_frequency = 4
-    self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
+    self.log_alpha = torch.tensor(np.log(self.init_temp)).to(self.device)
 
     self.q_net = q_net_base(num_inputs, action_dim, config.hidden_critic,
                             self.gamma, use_tanh).to(self.device)

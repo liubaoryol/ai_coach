@@ -28,7 +28,7 @@ class SAC_Discrete(object):
     self.actor_update_frequency = 1
     self.critic_target_update_frequency = 1
     use_tanh = False
-    init_temp = 1e-2
+    self.init_temp = config.init_temp
 
     self._critic = critic_base(obs_dim, action_dim, config.hidden_critic,
                                self.gamma, use_tanh).to(self.device)
@@ -40,7 +40,7 @@ class SAC_Discrete(object):
 
     self.actor = actor.to(self.device)
 
-    self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
+    self.log_alpha = torch.tensor(np.log(self.init_temp)).to(self.device)
     self.log_alpha.requires_grad = True
     # Target Entropy = −dim(A) (e.g. , -6 for HalfCheetah-v2) as given in the paper
     self.target_entropy = -action_dim

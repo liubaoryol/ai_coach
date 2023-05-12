@@ -73,6 +73,7 @@ default_config = Config({
     "demo_latent_infer_interval": 4096,
     "n_update_rounds": 10,
     "separate_policy_update": False,
+    "init_temp": 1e-2,
 
     # gail debug
     "gail_option_entropy_orig": True,
