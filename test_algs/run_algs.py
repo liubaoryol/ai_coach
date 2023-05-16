@@ -74,6 +74,9 @@ def run_alg(config):
   elif alg_name == "oppo":
     from aicoach_baselines.option_gail.option_ppo_learn import learn
     learn(config, log_dir, output_dir, msg)
+  elif alg_name == "oppov2":
+    from aicoach_baselines.option_gail.option_ppo_learn_v2 import learn
+    learn(config, log_dir, output_dir, msg)
   elif alg_name == "miql" and config.miql_stream:
     from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
         train_mental_iql_stream)

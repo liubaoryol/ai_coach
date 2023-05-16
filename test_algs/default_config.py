@@ -74,6 +74,7 @@ default_config = Config({
     "n_update_rounds": 10,
     "separate_policy_update": False,
     "init_temp": 1e-2,
+    "learn_temp": False,
 
     # gail debug
     "gail_option_entropy_orig": True,

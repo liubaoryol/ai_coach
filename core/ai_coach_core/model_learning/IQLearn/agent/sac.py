@@ -24,7 +24,7 @@ class SAC(object):
 
     self.clip_grad_val = config.clip_grad_val
     self.critic_tau = 0.005
-    self.learn_temp = False
+    self.learn_temp = config.learn_temp
     self.actor_update_frequency = 1
     self.critic_target_update_frequency = 1
     use_tanh = False

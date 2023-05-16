@@ -27,7 +27,7 @@ class MentalSAC(object):
 
     self.init_temp = config.init_temp
     self.critic_tau = 0.005
-    self.learn_temp = False
+    self.learn_temp = config.learn_temp
     self.actor_update_frequency = 1
     self.critic_target_update_frequency = 1
 

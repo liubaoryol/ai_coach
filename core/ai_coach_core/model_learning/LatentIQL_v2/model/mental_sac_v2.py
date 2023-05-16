@@ -31,7 +31,7 @@ class MentalSAC_V2(nn.Module):
     self.init_temp = config.init_temp
     self.critic_tau = 0.005
     self.clip_grad_val = config.clip_grad_val
-    self.learn_temp = False
+    self.learn_temp = config.learn_temp
     self.policy_update_frequency = 1
     self.critic_target_update_frequency = 1
     self.num_critic_update = config.num_critic_update

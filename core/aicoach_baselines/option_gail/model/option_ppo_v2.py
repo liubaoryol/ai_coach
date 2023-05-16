@@ -1,7 +1,107 @@
 import torch
 from .option_critic import OptionCritic, Critic
-from .option_policy_v2 import OptionPolicyV2
+from .option_policy_v2 import OptionPolicyV2, PolicyV2
 from ..utils.config import Config
+
+
+class PPOV2(object):
+
+  def __init__(self, config: Config, policy: PolicyV2):
+    self.policy = policy
+    self.clip_eps = config.clip_eps
+    self.lr = config.optimizer_lr_policy
+    self.gamma = config.gamma
+    self.gae_tau = config.gae_tau
+    self.use_gae = config.use_gae
+    self.mini_bs = config.mini_batch_size
+    self.lambda_entropy = config.lambda_entropy_policy
+    self.clip_grad_val = config.clip_grad_val
+
+    self.critic = Critic(config, self.policy.dim_s)
+
+  def _calc_adv(self, sample_sar):
+    with torch.no_grad():
+      s_array = []
+      a_array = []
+      ret_array = []
+      adv_array = []
+      vel_array = []
+      for s, a, r in sample_sar:
+        v = self.critic.get_value(s).detach()
+        advantages = torch.zeros_like(v)
+        returns = torch.zeros_like(v)
+        next_value = 0.
+        adv = 0.
+        ret = 0.
+
+        for i in reversed(range(r.size(0))):
+          ret = r[i] + self.gamma * ret
+          returns[i] = ret
+
+          if not self.use_gae:
+            advantages[i] = ret - v[i]
+          else:
+            delta = r[i] + self.gamma * next_value - v[i]
+            adv = delta + self.gamma * self.gae_tau * adv
+            advantages[i] = adv
+            next_value = v[i]
+
+        s_array.append(s)
+        a_array.append(a)
+        ret_array.append(returns)
+        adv_array.append(advantages)
+        vel_array.append(v)
+      s_array = torch.cat(s_array, dim=0)
+      a_array = torch.cat(a_array, dim=0)
+      ret_array = torch.cat(ret_array, dim=0)
+      adv_array = torch.cat(adv_array, dim=0)
+      vel_array = torch.cat(vel_array, dim=0)
+    return s_array, a_array, ret_array, adv_array, vel_array
+
+  def step(self, sample_sar, lr_mult=1., n_step=10):
+    # policy_remap => params, log_pi, log_prob_entropy
+    # sample_r => N x [s, a, r], s = T x dim_s, a = T x dim_a, r = T x 1, tensor
+
+    optim = torch.optim.Adam(self.critic.get_param() + self.policy.get_param(),
+                             lr=self.lr * lr_mult,
+                             weight_decay=1.e-3,
+                             eps=1e-5)
+
+    with torch.no_grad():
+      states, actions, returns, advantages, vel_array = self._calc_adv(
+          sample_sar)
+      fixed_log_probs = self.policy.log_prob_action(states, actions).detach()
+
+    for _ in range(n_step):
+      inds = torch.randperm(states.size(0))
+
+      for ind_b in inds.split(self.mini_bs):
+        state_b, action_b, return_b, advantages_b, fixed_log_b, fixed_v_b = \
+            states[ind_b], actions[ind_b], returns[ind_b], advantages[ind_b], fixed_log_probs[ind_b], vel_array[ind_b]
+
+        advantages_b = (advantages_b - advantages_b.mean()) / (
+            advantages_b.std() + 1e-8) if ind_b.size(0) > 1 else 0.
+
+        logp, entropy = self.policy.policy_log_prob_entropy(state_b, action_b)
+        vpred = self.critic.get_value(state_b)
+
+        vpred_clip = fixed_v_b + (vpred - fixed_v_b).clamp(
+            -self.clip_eps, self.clip_eps)
+        vf_loss = torch.max((vpred - return_b).square(),
+                            (vpred_clip - return_b).square()).mean()
+
+        ratio = (logp - fixed_log_b).clamp_max(15.).exp()
+        pg_loss = -torch.min(
+            advantages_b * ratio,
+            advantages_b *
+            ratio.clamp(1.0 - self.clip_eps, 1.0 + self.clip_eps)).mean()
+        loss = pg_loss + vf_loss * 0.5 - self.lambda_entropy * entropy.mean()
+        optim.zero_grad()
+        loss.backward()
+        if self.clip_grad_val:
+          torch.nn.utils.clip_grad_norm_(self.policy.get_param(),
+                                         self.clip_grad_val)
+        optim.step()
 
 
 class OptionPPOV2(torch.nn.Module):

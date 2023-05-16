@@ -10,6 +10,80 @@ from ..utils.config import Config
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 
 
+class PolicyV2(torch.nn.Module):
+
+  def __init__(self, config: Config, dim_s=2, dim_a=2):
+    super(PolicyV2, self).__init__()
+    self.dim_a = dim_a
+    self.dim_s = dim_s
+    self.device = torch.device(config.device)
+    self.log_clamp = config.log_std_bounds
+    activation = make_activation(config.activation)
+    n_hidden_pi = config.hidden_policy
+    self.bounded = config.bounded_actor
+
+    self.clamp_action_logstd = config.clamp_action_logstd
+    self.use_nn_logstd = config.use_nn_logstd
+
+    policy_scalar = 2 if self.use_nn_logstd else 1
+
+    self.policy = make_module(self.dim_s, policy_scalar * self.dim_a,
+                              n_hidden_pi, activation)
+    self.a_log_std = torch.nn.Parameter(
+        torch.empty(1, self.dim_a, dtype=torch.float32).fill_(0.))
+
+    self.to(self.device)
+
+  def action_forward(self, s):
+    if self.use_nn_logstd:
+      mean, logstd = self.policy(s).chunk(2, dim=-1)
+    else:
+      mean = self.policy(s)
+      logstd = self.a_log_std.expand_as(mean)
+
+    if self.clamp_action_logstd:
+      logstd = logstd.clamp(self.log_clamp[0], self.log_clamp[1])
+    else:
+      logstd = torch.tanh(logstd)
+      log_std_min, log_std_max = self.log_clamp
+      logstd = log_std_min + 0.5 * (log_std_max - log_std_min) * (logstd + 1)
+
+    if self.bounded:
+      dist = SquashedNormal(mean, logstd.exp())
+    else:
+      mean = mean.clamp(-10, 10)
+      dist = Normal(mean, logstd.exp())
+
+    return dist
+
+  def log_prob_action(self, s, a):
+    dist = self.action_forward(s)
+
+    log_prob = dist.log_prob(a).sum(-1, keepdim=True)
+    return log_prob
+
+  def sample_action(self, s, fixed=False):
+    dist = self.action_forward(s)
+    if fixed:
+      action = dist.mean
+    else:
+      action = dist.rsample()
+
+    return action
+
+  def policy_log_prob_entropy(self, s, a):
+    log_prob = self.log_prob_action(s, a)
+    entropy = -log_prob.mean()
+    return log_prob, entropy
+
+  def get_param(self, low_policy=True):
+    if not low_policy:
+      print(
+          "WARNING >>>> policy do not have high policy params, returning low policy params instead"
+      )
+    return list(self.parameters())
+
+
 class OptionPolicyV2(torch.nn.Module):
 
   def __init__(self, config: Config, dim_s=2, dim_a=2):
@@ -31,9 +105,9 @@ class OptionPolicyV2(torch.nn.Module):
     self.gail_option_sample_orig = config.gail_option_sample_orig
     self.gail_orig_log_opt = config.gail_orig_log_opt
     self.clamp_action_logstd = config.clamp_action_logstd
-    self.gail_use_nn_logstd = config.use_nn_logstd
+    self.use_nn_logstd = config.use_nn_logstd
 
-    policy_scalar = 2 if self.gail_use_nn_logstd else 1
+    policy_scalar = 2 if self.use_nn_logstd else 1
 
     if self.is_shared:
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
@@ -66,14 +140,14 @@ class OptionPolicyV2(torch.nn.Module):
     # ct: None for all c, return (N x dim_c x dim_a); else return (N x dim_a)
     # s: N x dim_s, c: N x 1, c should always < dim_c
     if self.is_shared:
-      if self.gail_use_nn_logstd:
+      if self.use_nn_logstd:
         mean, logstd = self.policy(st).view(-1, self.dim_c,
                                             2 * self.dim_a).chunk(2, dim=-1)
       else:
         mean = self.policy(st).view(-1, self.dim_c, self.dim_a)
         logstd = self.a_log_std.expand_as(mean[:, 0, :])
     else:
-      if self.gail_use_nn_logstd:
+      if self.use_nn_logstd:
         mean, logstd = torch.stack([m(st) for m in self.policy],
                                    dim=-2).chunk(2, dim=-1)
       else:
