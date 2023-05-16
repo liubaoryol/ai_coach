@@ -158,7 +158,7 @@ if __name__ == "__main__":
     config.hidden_critic = (128, 128)
     config.log_std_bounds = (-20., -2.)
 
-  if config.alg_name in ["obc", "ogail", "ogailv2", "oppo", "miqlv2"]:
+  if config.alg_name in ["obc", "ogail", "ogailv2", "oppo", "oppov2", "miqlv2"]:
     dim_c = config.dim_c
     hp1, hp2 = config.hidden_policy
     ho1, ho2 = config.hidden_option
