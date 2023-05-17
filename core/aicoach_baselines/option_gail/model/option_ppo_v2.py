@@ -109,7 +109,7 @@ class PPOV2(object):
     return {
         'policy_pg_loss': pg_loss.item(),
         'policy_vf_loss': vf_loss.item(),
-        'policy_entropy': entropy.item(),
+        'policy_entropy': entropy.mean().item(),
         'policy_loss': loss.item(),
         'state_min': state_min,
         'state_max': state_max
@@ -301,11 +301,11 @@ class OptionPPOV2(torch.nn.Module):
     return {
         'option_pg_loss': option_pg_loss.item(),
         'option_vf_loss': option_vf_loss.item(),
-        'option_entropy': option_entropy.item(),
+        'option_entropy': option_entropy.mean().item(),
         'option_loss': option_loss.item(),
         'policy_pg_loss': pg_loss.item(),
         'policy_vf_loss': vf_loss.item(),
-        'policy_entropy': entropy.item(),
+        'policy_entropy': entropy.mean().item(),
         'policy_loss': loss.item(),
     }
 
