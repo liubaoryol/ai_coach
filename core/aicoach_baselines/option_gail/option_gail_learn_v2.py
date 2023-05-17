@@ -28,7 +28,7 @@ def make_gail(config: Config, dim_s, dim_a):
 
 def train_g(ppo: OptionPPOV2, sample_sxar, factor_lr, n_step=10):
   if isinstance(ppo, OptionPPOV2):
-    ppo.step(sample_sxar, lr_mult=factor_lr, n_step=n_step)
+    return ppo.step(sample_sxar, lr_mult=factor_lr, n_step=n_step)
   else:
     raise NotImplementedError()
 
@@ -46,7 +46,7 @@ def sample_batch(gail: OptionGAILV2, agent, n_sample, demo_sa_array):
   demo_sxar, demo_rsum = gail.convert_demo(demo_sa_in)
   sample_avgstep = (sum([sxar[-1].size(0)
                          for sxar in sample_sxar]) / len(sample_sxar))
- 
+
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
 
 
@@ -134,11 +134,15 @@ def learn(config: Config,
     print(f"{explore_step}: r-sample-avg={sample_r}, d-demo-avg={demo_r}, "
           f"step-sample-avg={sample_avgstep} ; {msg}")
 
-    train_d(gail, sample_sxar, demo_sxar)
-    # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
-    train_g(ppo, sample_sxar, factor_lr=1.)
-
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
+
+    d_losses = train_d(gail, sample_sxar, demo_sxar)
+    # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
+    g_losses = train_g(ppo, sample_sxar, factor_lr=1.)
+
+    logger.log_loss_info(d_losses, explore_step)
+    logger.log_loss_info(g_losses, explore_step)
+
     if (i + 1) % 10 == 0:
       v_l, cs_demo = validate(gail.policy,
                               [(tr[0], tr[-2]) for tr in demo_sxar])

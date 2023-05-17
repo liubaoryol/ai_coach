@@ -57,6 +57,10 @@ class PolicyV2(torch.nn.Module):
     return dist
 
   def log_prob_action(self, s, a):
+    if self.bounded:
+      EPS = 1.e-4
+      a = a.clamp(-1 + EPS, 1 - EPS)
+
     dist = self.action_forward(s)
 
     log_prob = dist.log_prob(a).sum(-1, keepdim=True)
@@ -219,6 +223,10 @@ class OptionPolicyV2(torch.nn.Module):
 
   def log_prob_action(self, st, ct, at):
     # if c is None, return (N x dim_c x 1), else return (N x 1)
+    if self.bounded:
+      EPS = 1.e-4
+      at = at.clamp(-1 + EPS, 1 - EPS)
+
     dist = self.action_forward(st, ct)
     if ct is None:
       at = at.view(-1, 1, self.dim_a)
@@ -302,9 +310,9 @@ class OptionPolicyV2(torch.nn.Module):
 
   def viterbi_path(self, s_array, a_array):
     with torch.no_grad():
-      if self.bounded:
-        eps = 1.e-4
-        a_array = a_array.clamp(-1 + eps, 1 - eps)
+      # if self.bounded:
+      #   eps = 1.e-4
+      #   a_array = a_array.clamp(-1 + eps, 1 - eps)
 
       # NOTE: debugging NaNs
       # for cnt in range(len(s_array)):

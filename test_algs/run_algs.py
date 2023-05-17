@@ -159,14 +159,15 @@ if __name__ == "__main__":
     config.log_std_bounds = (-20., -2.)
 
   if config.alg_name in ["obc", "ogail", "ogailv2", "oppo", "oppov2", "miqlv2"]:
-    dim_c = config.dim_c
-    hp1, hp2 = config.hidden_policy
-    ho1, ho2 = config.hidden_option
-    hc1, hc2 = config.hidden_critic
+    if config.use_option:
+      dim_c = config.dim_c
+      hp1, hp2 = config.hidden_policy
+      ho1, ho2 = config.hidden_option
+      hc1, hc2 = config.hidden_critic
 
-    config.hidden_policy = (hp1 // dim_c, hp2 // dim_c)
-    config.hidden_option = (ho1 // dim_c, ho2 // dim_c)
-    config.hidden_critic = (hc1 // dim_c, hc2 // dim_c)
+      config.hidden_policy = (hp1 // dim_c, hp2 // dim_c)
+      config.hidden_option = (ho1 // dim_c, ho2 // dim_c)
+      config.hidden_critic = (hc1 // dim_c, hc2 // dim_c)
 
   print(f"Hidden_policy: {config.hidden_policy}",
         f"Hidden_option: {config.hidden_option}",

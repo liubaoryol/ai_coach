@@ -12,6 +12,13 @@ class Logger(object):
       os.makedirs(self.logdir)
     self.writer = SummaryWriter(self.logdir)
 
+  def log_loss(self, tag, v, i):
+    self.writer.add_scalar(f"Loss/{tag}", v, i)
+
+  def log_loss_info(self, info_dict, i):
+    for k in info_dict:
+      self.writer.add_scalar(f"Loss/{k}", info_dict[k], i)
+
   def log_train(self, tag, v, i):
     self.writer.add_scalar(f"Train/{tag}", v, i)
 

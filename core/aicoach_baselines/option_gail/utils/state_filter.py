@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from warnings import warn
 
 
 class StateFilter(object):
@@ -14,6 +15,8 @@ class StateFilter(object):
   def __call__(self, x, fixed=False):
     if not self.enable:
       return x
+
+    warn("State_filter used")
 
     if self.mean is None or self.n_step < 1:
       if fixed:

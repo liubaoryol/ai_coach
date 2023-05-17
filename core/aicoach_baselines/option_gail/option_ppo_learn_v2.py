@@ -55,18 +55,21 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
 
     sample_sxar, sample_r, avgsteps = sample_batch(policy, sampling_agent,
                                                    n_sample)
-    lr_mult = lr_factor_func(i, n_epoch, 1., 0.)
-    ppo.step(sample_sxar, lr_mult=lr_mult)
+    print(f"{explore_step}: r-sample-avg={sample_r}, step-sample-avg={avgsteps}"
+          f" ; {msg}")
+    logger.log_train("r-sample-avg", sample_r, explore_step)
+    logger.log_train("step-sample-avg", avgsteps, explore_step)
 
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
+
+    lr_mult = lr_factor_func(i, n_epoch, 1., 0.)
+    losses = ppo.step(sample_sxar, lr_mult=lr_mult)
+    logger.log_loss_info(losses, explore_step)
+
     if (i + 1) % 10 == 0:
       info_dict, cs_sample = reward_validate(sampling_agent, policy)
 
       # torch.save((policy.state_dict(), sampling_agent.state_dict()),
       #            save_name_f(explore_step))
       logger.log_test_info(info_dict, explore_step)
-    print(f"{explore_step}: r-sample-avg={sample_r}, step-sample-avg={avgsteps}"
-          f" ; {msg}")
-    logger.log_train("r-sample-avg", sample_r, explore_step)
-    logger.log_train("step-sample-avg", avgsteps, explore_step)
     logger.flush()

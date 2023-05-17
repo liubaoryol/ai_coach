@@ -72,6 +72,9 @@ class PPOV2(object):
           sample_sar)
       fixed_log_probs = self.policy.log_prob_action(states, actions).detach()
 
+    state_min = states.min()
+    state_max = states.max()
+
     for _ in range(n_step):
       inds = torch.randperm(states.size(0))
 
@@ -96,12 +99,21 @@ class PPOV2(object):
             advantages_b *
             ratio.clamp(1.0 - self.clip_eps, 1.0 + self.clip_eps)).mean()
         loss = pg_loss + vf_loss * 0.5 - self.lambda_entropy * entropy.mean()
+
         optim.zero_grad()
         loss.backward()
         if self.clip_grad_val:
           torch.nn.utils.clip_grad_norm_(self.policy.get_param(),
                                          self.clip_grad_val)
         optim.step()
+    return {
+        'policy_pg_loss': pg_loss.item(),
+        'policy_vf_loss': vf_loss.item(),
+        'policy_entropy': entropy.item(),
+        'policy_loss': loss.item(),
+        'state_min': state_min,
+        'state_max': state_max
+    }
 
 
 class OptionPPOV2(torch.nn.Module):
@@ -235,24 +247,25 @@ class OptionPPOV2(torch.nn.Module):
         if train_option:
           adv_hi_b = (adv_hi_b - adv_hi_b.mean()) / (
               adv_hi_b.std() + 1e-8) if ind_b.size(0) > 1 else 0.
-          logp, entropy = self.policy.option_log_prob_entropy(s_b, c_1b, c_b)
+          logp, option_entropy = self.policy.option_log_prob_entropy(
+              s_b, c_1b, c_b)
           vpred = (self.critic_lo.get_value(s_b) * fixed_pc_b).sum(dim=-1,
                                                                    keepdim=True)
 
           vpred_clip = fixed_vh_b + (vpred - fixed_vh_b).clamp(
               -self.clip_eps, self.clip_eps)
-          vf_loss = torch.max((vpred - ret_b).square(),
-                              (vpred_clip - ret_b).square()).mean()
+          option_vf_loss = torch.max((vpred - ret_b).square(),
+                                     (vpred_clip - ret_b).square()).mean()
 
           ratio = (logp - fixed_log_hi_b).clamp_max(15.).exp()
-          pg_loss = -torch.min(
+          option_pg_loss = -torch.min(
               adv_hi_b * ratio,
               adv_hi_b *
               ratio.clamp(1.0 - self.clip_eps, 1.0 + self.clip_eps)).mean()
-          loss = pg_loss + vf_loss * 0.5 - self.lambda_entropy_option * entropy.mean(
-          )
+          option_loss = (option_pg_loss + option_vf_loss * 0.5 -
+                         self.lambda_entropy_option * option_entropy.mean())
           optim_hi.zero_grad()
-          loss.backward()
+          option_loss.backward()
           # after many experiments i find that do not clamp performs the best
           if self.clip_grad_val:
             torch.nn.utils.clip_grad_norm_(
@@ -285,9 +298,20 @@ class OptionPPOV2(torch.nn.Module):
                 self.policy.get_param(low_policy=True), self.clip_grad_val)
           optim_lo.step()
 
+    return {
+        'option_pg_loss': option_pg_loss.item(),
+        'option_vf_loss': option_vf_loss.item(),
+        'option_entropy': option_entropy.item(),
+        'option_loss': option_loss.item(),
+        'policy_pg_loss': pg_loss.item(),
+        'policy_vf_loss': vf_loss.item(),
+        'policy_entropy': entropy.item(),
+        'policy_loss': loss.item(),
+    }
+
   def step(self, sample_scar, lr_mult=1.0, n_step=10):
-    self._step_elem(sample_scar,
-                    lr_mult=lr_mult,
-                    train_policy=self.train_policy,
-                    train_option=self.train_option,
-                    n_step=n_step)
+    return self._step_elem(sample_scar,
+                           lr_mult=lr_mult,
+                           train_policy=self.train_policy,
+                           train_option=self.train_option,
+                           n_step=n_step)
