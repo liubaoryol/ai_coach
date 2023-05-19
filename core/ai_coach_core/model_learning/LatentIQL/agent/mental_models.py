@@ -243,7 +243,7 @@ class DiagGaussianMentalActor(AbstractMentalActor):
   def evaluate_action(self, obs, lat, action):
     dist = self.forward(obs, lat)
     if self.bounded:
-      EPS = 1.e-4
+      EPS = 1.e-7
       action = action.clip(-1.0 + EPS, 1.0 - EPS)
     log_probs = dist.log_prob(action).sum(-1, keepdim=True)
 

@@ -78,7 +78,7 @@ class OptionGAILV2(torch.nn.Module):
           loss.backward()
           self.optim.step()
 
-    return {'disc_loss', loss.item()}
+    return {'disc_loss': loss.item()}
 
   def step(self, sample_sar, demo_sar, n_step=10):
     return self.step_original_gan(sample_sar, demo_sar, n_step)

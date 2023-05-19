@@ -58,12 +58,15 @@ class PolicyV2(torch.nn.Module):
 
   def log_prob_action(self, s, a):
     if self.bounded:
-      EPS = 1.e-4
+      EPS = 1.e-7
       a = a.clamp(-1 + EPS, 1 - EPS)
 
     dist = self.action_forward(s)
 
     log_prob = dist.log_prob(a).sum(-1, keepdim=True)
+    # if log_prob.isnan().any():
+    #   idx_nan = torch.argwhere(log_prob.isnan())
+    #   print("nan")
     return log_prob
 
   def sample_action(self, s, fixed=False):
@@ -224,7 +227,7 @@ class OptionPolicyV2(torch.nn.Module):
   def log_prob_action(self, st, ct, at):
     # if c is None, return (N x dim_c x 1), else return (N x 1)
     if self.bounded:
-      EPS = 1.e-4
+      EPS = 1.e-7
       at = at.clamp(-1 + EPS, 1 - EPS)
 
     dist = self.action_forward(st, ct)
