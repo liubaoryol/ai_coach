@@ -72,9 +72,6 @@ class PPOV2(object):
           sample_sar)
       fixed_log_probs = self.policy.log_prob_action(states, actions).detach()
 
-    state_min = states.min()
-    state_max = states.max()
-
     for _ in range(n_step):
       inds = torch.randperm(states.size(0))
 
@@ -110,9 +107,7 @@ class PPOV2(object):
         'policy_pg_loss': pg_loss.item(),
         'policy_vf_loss': vf_loss.item(),
         'policy_entropy': entropy.mean().item(),
-        'policy_loss': loss.item(),
-        'state_min': state_min,
-        'state_max': state_max
+        'policy_loss': loss.item()
     }
 
 
@@ -236,9 +231,6 @@ class OptionPPOV2(torch.nn.Module):
       fixed_pc = self.policy.log_trans(states, options_1).exp().detach(
       ) if train_option else torch.zeros_like(advantages_lo)
 
-    state_min = states.min()
-    state_max = states.max()
-
     for _ in range(n_step):
       inds = torch.randperm(states.size(0))
 
@@ -309,9 +301,7 @@ class OptionPPOV2(torch.nn.Module):
         'policy_pg_loss': pg_loss.item(),
         'policy_vf_loss': vf_loss.item(),
         'policy_entropy': entropy.mean().item(),
-        'policy_loss': loss.item(),
-        'state_min': state_min,
-        'state_max': state_max
+        'policy_loss': loss.item()
     }
 
   def step(self, sample_scar, lr_mult=1.0, n_step=10):
