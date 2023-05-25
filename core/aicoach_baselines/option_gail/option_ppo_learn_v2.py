@@ -63,7 +63,9 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
 
     lr_mult = lr_factor_func(i, n_epoch, 1., 0.)
-    losses = ppo.step(sample_sxar, lr_mult=lr_mult)
+    losses = ppo.step(sample_sxar,
+                      lr_mult=lr_mult,
+                      n_step=config.n_update_rounds)
     logger.log_loss_info(losses, explore_step)
 
     if (i + 1) % 10 == 0:

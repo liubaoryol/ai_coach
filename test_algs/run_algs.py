@@ -108,10 +108,10 @@ def run_alg(config):
         train_mental_sac_pond)
     train_mental_sac_pond(config, log_dir, output_dir, log_interval,
                           eval_interval)
-  elif alg_name == "sb3_sac":
-    from sb3_algs import sb3_run_sac
-    log_interval, eval_interval = 10, 5000
-    sb3_run_sac(config, log_dir, output_dir, log_interval, eval_interval)
+  elif alg_name[:3] == "sb3":
+    from sb3_algs import sb3_run
+    sb3_run(config, log_dir, output_dir, log_interval, eval_interval,
+            alg_name[4:])
   else:
     raise ValueError("Invalid alg_name")
 
