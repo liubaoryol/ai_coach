@@ -5,6 +5,7 @@ To run web experiment, `ai_coach_core` and `ai_coach_domain` packages should be 
 cd web_app/
 pip install -e ../core
 pip install -e ../domains
+pip install -r "requirements.txt"
 ```
 
 Then, run the following command:
