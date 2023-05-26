@@ -6,127 +6,154 @@ import matplotlib.pyplot as plt
 sns.set_theme(style="white")
 
 
-def save_bar_plots_reward(df_input_name, output_name, list_domains,
-                          list_domain_names, perfect_scores, perfect_steps,
-                          save_plot):
+def save_bar_plots_score(df_input_name, output_name, domain_name, domain_title,
+                         perfect_score, perfect_step, save_plot, use_cost,
+                         add_rulebased, add_valuebased, offset, ylim,
+                         interv_thres):
   df = pd.read_csv(df_input_name)
 
-  for idx in range(len(list_domains)):
-    df.loc[len(df.index)] = [
-        list_domains[idx], "Centralized", 0, 0, 0, perfect_scores[idx],
-        perfect_steps[idx]
-    ]
-    df.loc[len(df.index)] = [
-        list_domains[idx], "Centralized", 1, 0, 0, perfect_scores[idx],
-        perfect_steps[idx]
-    ]
-
-  max_r = 120
-  df["real_score"] = max_r + (df["score"] - df["num_feedback"] * df["cost"])
-  handle = None
-  labels = [
-      "Expectation\nValue", "Expectation\nRule", "Confidence\nValue",
-      "Confidence\nRule", "No\nintervention", "Centralized\npolicy"
+  df.loc[len(df.index)] = [
+      domain_name, "Centralized", 0, 0, 0, perfect_score, perfect_step
+  ]
+  df.loc[len(df.index)] = [
+      domain_name, "Centralized", 1, 0, 0, perfect_score, perfect_step
   ]
 
-  fig, axes = plt.subplots(1, 1, figsize=(6, 5))
-  for idx in range(len(list_domains)):
-    df_domain = df[df["domain"] == list_domains[idx]]
+  df_domain = df[df["domain"] == domain_name]
 
-    # ==== reward vs delta =====
-    benefit_based = df_domain[((df_domain["strategy"] == "Average")
-                               #  | (df_domain["strategy"] == "Argmax")
-                               )
-                              & (df_domain["cost"] == 0)
-                              & (df_domain["interv_thres"] == 5)]
+  df_domain["real_score"] = -offset + (
+      df_domain["score"] - df_domain["num_feedback"] * df_domain["cost"])
+  handle = None
+
+  palette = sns.color_palette()
+
+  colors = [palette[0]]
+  labels = ["No\nintervention"]
+  if add_rulebased:
+    labels.append("Rule-based\nStrategy")
+    colors.append(palette[1])
+  if add_valuebased:
+    labels.append("Value-based\nStrategy")
+    colors.append(palette[3])
+  labels.append("Centralized\npolicy")
+  colors.append(palette[2])
+
+  if use_cost:
+    cost = 1
+    ylabel = "Objective J"
+  else:
+    cost = 0
+    ylabel = "Task reward"
+
+  figwidth = 6
+  if add_rulebased and add_valuebased:
+    figwidth = 8
+
+  fig, axes = plt.subplots(1, 1, figsize=(figwidth, 5))
+
+  # ==== reward vs delta =====
+  list_methods = []
+  baseline_no = df_domain[(df_domain["strategy"] == "No_intervention")
+                          & (df_domain["cost"] == cost)]
+  list_methods.append(baseline_no)
+
+  if add_rulebased:
     rule_based = df_domain[(df_domain["strategy"] == "Rule_avg")
-                           & (df_domain["cost"] == 0)]
-    confidence_value = df_domain[(df_domain["strategy"] == "Argmax_thres")
-                                 & (df_domain["cost"] == 0)
-                                 & (df_domain["infer_thres"] == 0.3)]
-    confidence_rule = df_domain[(df_domain["strategy"] == "Rule_thres")
-                                & (df_domain["cost"] == 0)
-                                & (df_domain["infer_thres"] == 0.3)]
-    baselines = df_domain[((df_domain["strategy"] == "No_intervention")
-                           | (df_domain["strategy"] == "Centralized"))
-                          & (df_domain["cost"] == 0)]
-    methods = pd.concat([
-        benefit_based, rule_based, confidence_value, confidence_rule, baselines
-    ])
+                           & (df_domain["cost"] == cost)]
+    list_methods.append(rule_based)
 
-    ax = sns.barplot(ax=axes, data=methods, x='strategy', y='real_score')
+  if add_valuebased:
+    benefit_based = df_domain[(df_domain["strategy"] == "Average")
+                              & (df_domain["cost"] == cost)
+                              & (df_domain["interv_thres"] == interv_thres)]
+    list_methods.append(benefit_based)
 
-    fontsize = 16
-    ax.set_ylabel("Task reward", fontsize=fontsize)
-    ax.set_xlabel("Strategy", fontsize=fontsize)
-    ax.set_xticklabels(labels)
-    ax.set_ylim([0, 80])
-    list_yticks = ax.get_yticklabels()
-    list_yticks_new = [int(ytick.get_text()) - max_r for ytick in list_yticks]
-    ax.set_yticklabels(list_yticks_new)
+  baseline_cen = df_domain[(df_domain["strategy"] == "Centralized")
+                           & (df_domain["cost"] == cost)]
+  list_methods.append(baseline_cen)
+
+  methods = pd.concat(list_methods)
+
+  ax = sns.barplot(ax=axes,
+                   data=methods,
+                   x='strategy',
+                   y='real_score',
+                   palette=colors)
+
+  fontsize = 16
+  ax.set_ylabel(ylabel, fontsize=fontsize)
+  ax.set_xlabel("Strategy", fontsize=fontsize)
+  ax.set_xticklabels(labels)
+  ax.set_ylim([0, ylim])
+  list_yticks = ax.get_yticklabels()
+  list_yticks_new = [int(ytick.get_text()) + offset for ytick in list_yticks]
+  ax.set_yticklabels(list_yticks_new)
+  ax.set_title(domain_title, fontsize=fontsize + 2)
+
   fig.tight_layout()
   if save_plot:
     fig.savefig(output_name)
 
 
-def save_bar_plots_objectiveJ(df_input_name, output_name, list_domains,
-                              list_domain_names, perfect_scores, perfect_steps,
-                              save_plot):
+def save_bar_plots_n_feedback(df_input_name, output_name, domain_name,
+                              domain_title, perfect_score, perfect_step,
+                              save_plot, interv_thres):
   df = pd.read_csv(df_input_name)
 
-  for idx in range(len(list_domains)):
-    df.loc[len(df.index)] = [
-        list_domains[idx], "Centralized", 0, 0, 0, perfect_scores[idx],
-        perfect_steps[idx]
-    ]
-    df.loc[len(df.index)] = [
-        list_domains[idx], "Centralized", 1, 0, 0, perfect_scores[idx],
-        perfect_steps[idx]
-    ]
-
-  max_r = 120
-  df["real_score"] = max_r + (df["score"] - df["num_feedback"] * df["cost"])
-  handle = None
-  labels = [
-      "Expectation\nValue", "Expectation\nRule", "Confidence\nValue",
-      "Confidence\nRule", "No\nintervention", "Centralized\npolicy"
+  df.loc[len(df.index)] = [
+      domain_name, "Centralized", 0, 0, 0, perfect_score, perfect_step
+  ]
+  df.loc[len(df.index)] = [
+      domain_name, "Centralized", 1, 0, 0, perfect_score, perfect_step
   ]
 
+  df_domain = df[df["domain"] == domain_name]
+
+  handle = None
+
+  palette = sns.color_palette()
+  colors = [palette[0], palette[3], palette[2]]
+  labels = ["No\nintervention"]
+  labels.append("Value-based\nStrategy")
+  labels.append("Centralized\npolicy")
+
+  cost = 0
+  ylabel = "# Intervention"
+
   fig, axes = plt.subplots(1, 1, figsize=(6, 5))
-  for idx in range(len(list_domains)):
-    df_domain = df[df["domain"] == list_domains[idx]]
 
-    # ==== reward vs delta =====
-    benefit_based = df_domain[((df_domain["strategy"] == "Average")
-                               #  | (df_domain["strategy"] == "Argmax")
-                               )
-                              & (df_domain["cost"] == 1)
-                              & (df_domain["interv_thres"] == 5)]
-    rule_based = df_domain[(df_domain["strategy"] == "Rule_avg")
-                           & (df_domain["cost"] == 1)]
-    confidence_value = df_domain[(df_domain["strategy"] == "Argmax_thres")
-                                 & (df_domain["cost"] == 1)
-                                 & (df_domain["infer_thres"] == 0.3)]
-    confidence_rule = df_domain[(df_domain["strategy"] == "Rule_thres")
-                                & (df_domain["cost"] == 1)
-                                & (df_domain["infer_thres"] == 0.3)]
-    baselines = df_domain[((df_domain["strategy"] == "No_intervention")
-                           | (df_domain["strategy"] == "Centralized"))
-                          & (df_domain["cost"] == 1)]
-    methods = pd.concat([
-        benefit_based, rule_based, confidence_value, confidence_rule, baselines
-    ])
+  # ==== reward vs delta =====
+  list_methods = []
+  baseline_no = df_domain[(df_domain["strategy"] == "No_intervention")
+                          & (df_domain["cost"] == cost)]
+  list_methods.append(baseline_no)
 
-    ax = sns.barplot(ax=axes, data=methods, x='strategy', y='real_score')
+  benefit_based = df_domain[(df_domain["strategy"] == "Average")
+                            & (df_domain["cost"] == cost)
+                            & (df_domain["interv_thres"] == interv_thres)]
+  list_methods.append(benefit_based)
 
-    fontsize = 16
-    ax.set_ylabel("Objective J", fontsize=fontsize)
-    ax.set_xlabel("Strategy", fontsize=fontsize)
-    ax.set_xticklabels(labels)
-    ax.set_ylim([0, 80])
-    list_yticks = ax.get_yticklabels()
-    list_yticks_new = [int(ytick.get_text()) - max_r for ytick in list_yticks]
-    ax.set_yticklabels(list_yticks_new)
+  baseline_cen = df_domain[(df_domain["strategy"] == "Centralized")
+                           & (df_domain["cost"] == cost)]
+  list_methods.append(baseline_cen)
+
+  methods = pd.concat(list_methods)
+
+  ax = sns.barplot(ax=axes,
+                   data=methods,
+                   x='strategy',
+                   y='num_feedback',
+                   palette=colors)
+
+  fontsize = 16
+  ax.set_ylabel(ylabel, fontsize=fontsize)
+  ax.set_xlabel("Strategy", fontsize=fontsize)
+  ax.set_xticklabels(labels)
+  # list_yticks = ax.get_yticklabels()
+  # list_yticks_new = [int(ytick.get_text()) + offset for ytick in list_yticks]
+  # ax.set_yticklabels(list_yticks_new)
+  ax.set_title(domain_title, fontsize=fontsize + 2)
+
   fig.tight_layout()
   if save_plot:
     fig.savefig(output_name)
@@ -152,17 +179,120 @@ if __name__ == "__main__":
   perfect_scores = [-43, -21, 7, 5]
   perfect_steps = [43, 21, 19, 9]
 
+  offsets = [-120, -50, 0, 0]
+  ylims = [80, 30, 8, 6]
+  interv_thres = [5, 2, 0.1, 0.1]
+
   cost = 1
 
   SAVE_RESULT = True
   NO_SAVE = not SAVE_RESULT
-  save_bar_plots_reward(intv_result_name,
-                        output_dir + "movers_bar_plots_reward.png",
-                        list_domains[:1], list_domain_names[:1],
-                        perfect_scores[:1], perfect_steps[:1], SAVE_RESULT)
-  save_bar_plots_objectiveJ(intv_result_name,
-                            output_dir + "movers_bar_plots_J.png",
-                            list_domains[:1], list_domain_names[:1],
-                            perfect_scores[:1], perfect_steps[:1], SAVE_RESULT)
+  save_bar_plots_score(intv_result_name,
+                       output_dir + f"{list_domains[0]}_bar_rule_reward.png",
+                       list_domains[0],
+                       list_domain_names[0],
+                       perfect_scores[0],
+                       perfect_steps[0],
+                       SAVE_RESULT,
+                       use_cost=False,
+                       add_rulebased=True,
+                       add_valuebased=False,
+                       offset=offsets[0],
+                       ylim=ylims[0],
+                       interv_thres=interv_thres[0])
+  save_bar_plots_score(intv_result_name,
+                       output_dir + f"{list_domains[0]}_bar_rule_J.png",
+                       list_domains[0],
+                       list_domain_names[0],
+                       perfect_scores[0],
+                       perfect_steps[0],
+                       SAVE_RESULT,
+                       use_cost=True,
+                       add_rulebased=True,
+                       add_valuebased=False,
+                       offset=offsets[0],
+                       ylim=ylims[0],
+                       interv_thres=interv_thres[0])
+
+  save_bar_plots_score(intv_result_name,
+                       output_dir + f"{list_domains[0]}_bar_both_reward.png",
+                       list_domains[0],
+                       list_domain_names[0],
+                       perfect_scores[0],
+                       perfect_steps[0],
+                       SAVE_RESULT,
+                       use_cost=False,
+                       add_rulebased=True,
+                       add_valuebased=True,
+                       offset=offsets[0],
+                       ylim=ylims[0],
+                       interv_thres=interv_thres[0])
+  save_bar_plots_score(intv_result_name,
+                       output_dir + f"{list_domains[0]}_bar_both_J.png",
+                       list_domains[0],
+                       list_domain_names[0],
+                       perfect_scores[0],
+                       perfect_steps[0],
+                       SAVE_RESULT,
+                       use_cost=True,
+                       add_rulebased=True,
+                       add_valuebased=True,
+                       offset=offsets[0],
+                       ylim=ylims[0],
+                       interv_thres=interv_thres[0])
+
+  for idx_dom in [0, 1]:
+    save_bar_plots_score(intv_result_name,
+                         output_dir +
+                         f"{list_domains[idx_dom]}_bar_val_reward.png",
+                         list_domains[idx_dom],
+                         list_domain_names[idx_dom],
+                         perfect_scores[idx_dom],
+                         perfect_steps[idx_dom],
+                         SAVE_RESULT,
+                         use_cost=False,
+                         add_rulebased=False,
+                         add_valuebased=True,
+                         offset=offsets[idx_dom],
+                         ylim=ylims[idx_dom],
+                         interv_thres=interv_thres[idx_dom])
+    save_bar_plots_score(intv_result_name,
+                         output_dir + f"{list_domains[idx_dom]}_bar_val_J.png",
+                         list_domains[idx_dom],
+                         list_domain_names[idx_dom],
+                         perfect_scores[idx_dom],
+                         perfect_steps[idx_dom],
+                         SAVE_RESULT,
+                         use_cost=True,
+                         add_rulebased=False,
+                         add_valuebased=True,
+                         offset=offsets[idx_dom],
+                         ylim=ylims[idx_dom],
+                         interv_thres=interv_thres[idx_dom])
+
+  for idx_dom in [2, 3]:
+    save_bar_plots_score(intv_result_name,
+                         output_dir +
+                         f"{list_domains[idx_dom]}_bar_val_reward.png",
+                         list_domains[idx_dom],
+                         list_domain_names[idx_dom],
+                         perfect_scores[idx_dom],
+                         perfect_steps[idx_dom],
+                         SAVE_RESULT,
+                         use_cost=False,
+                         add_rulebased=False,
+                         add_valuebased=True,
+                         offset=offsets[idx_dom],
+                         ylim=ylims[idx_dom],
+                         interv_thres=interv_thres[idx_dom])
+    save_bar_plots_n_feedback(intv_result_name,
+                              output_dir +
+                              f"{list_domains[idx_dom]}_bar_val_n_feedback.png",
+                              list_domains[idx_dom],
+                              list_domain_names[idx_dom],
+                              perfect_scores[idx_dom],
+                              perfect_steps[idx_dom],
+                              SAVE_RESULT,
+                              interv_thres=interv_thres[idx_dom])
 
   plt.show()
