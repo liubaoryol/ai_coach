@@ -27,6 +27,7 @@ default_config = Config({
     "use_option": True,
     "hidden_option": (256, 256),
     "optimizer_lr_option": 3.e-4,
+    "clip_grad_val": 0.0,
 
     # ppo config
     "hidden_critic": (256, 256),
@@ -65,7 +66,6 @@ default_config = Config({
     "optimizer_lr_alpha": 3.e-4,
     "num_critic_update": 1,
     "num_actor_update": 1,
-    "clip_grad_val": 0.0,
     "gumbel_temperature": 1.0,
     "use_prev_action_dim": True,
     "use_prev_option_dim": True,
@@ -75,6 +75,7 @@ default_config = Config({
     "separate_policy_update": False,
     "init_temp": 1e-2,
     "learn_temp": False,
+    "thinker_clip_grad_val": 0.0,
 
     # gail debug
     "gail_option_entropy_orig": True,

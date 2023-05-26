@@ -34,6 +34,7 @@ class MentalSAC(object):
     self.num_critic_update = config.num_critic_update
     self.num_actor_update = config.num_actor_update
     self.clip_grad_val = config.clip_grad_val
+    self.thinker_clip_grad_val = config.thinker_clip_grad_val
 
     self._critic = critic.to(self.device)
 
@@ -398,8 +399,9 @@ class MentalSAC(object):
                      actor_Q).mean()
       self.thinker_optimizer.zero_grad()
       option_loss.backward()
-      if self.clip_grad_val:
-        nn.utils.clip_grad_norm_(self.thinker.parameters(), self.clip_grad_val)
+      if self.thinker_clip_grad_val:
+        nn.utils.clip_grad_norm_(self.thinker.parameters(),
+                                 self.thinker_clip_grad_val)
       self.thinker_optimizer.step()
 
       # actor update
@@ -440,7 +442,9 @@ class MentalSAC(object):
       actor_loss.backward()
       if self.clip_grad_val:
         nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
-        nn.utils.clip_grad_norm_(self.thinker.parameters(), self.clip_grad_val)
+      if self.thinker_clip_grad_val:
+        nn.utils.clip_grad_norm_(self.thinker.parameters(),
+                                 self.thinker_clip_grad_val)
       self.actor_optimizer.step()
       self.thinker_optimizer.step()
 
