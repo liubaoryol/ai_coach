@@ -6,7 +6,9 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import (average_dicts,
 from .mental_sac import MentalSAC
 from ..helper.utils import get_concat_samples
 from ..helper.iq import iq_loss
+import time
 
+DEBUG_TIME = True
 
 class MentalIQL(MentalSAC):
 
