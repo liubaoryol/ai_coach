@@ -21,5 +21,5 @@ setup(name="ai_coach_core",
           'torch',
           'termcolor',
           'tensorboard',
-          "stable-baselines3>=1.1.0",
+          "stable-baselines3<=1.8.0,>=1.1.0",
       ])
