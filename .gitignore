@@ -20,6 +20,10 @@ aws_web_app/venv/
 
 core/ai_coach_core/tests/*_trajectories
 core/ai_coach_core/tests/*_data
+output/
+human_data/
+result/
+experts/
 
 *.png
 *.log
