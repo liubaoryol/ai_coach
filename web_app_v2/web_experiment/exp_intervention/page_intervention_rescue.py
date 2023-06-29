@@ -19,7 +19,7 @@ class RescueV2Intervention(RescueGameUserRandom):
   def __init__(self, partial_obs) -> None:
     super().__init__(partial_obs, latent_collection=False)
 
-    data_dir = "../misc/BTIL_feedback_results/data/"
+    data_dir = "../misc/TIC_results/data/"
     model_dir = data_dir + "learned_models/"
     v_value_file = "rescue_2_500_0,30_30_merged_v_values_learned.pickle"
 
