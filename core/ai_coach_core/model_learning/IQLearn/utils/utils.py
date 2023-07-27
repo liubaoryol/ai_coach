@@ -60,7 +60,7 @@ def make_env(env_name, monitor=True, env_make_kwargs={}):
 
 
 def one_hot(indices: torch.Tensor, num_classes):
-  return F.one_hot(indices.squeeze(-1).long(),
+  return F.one_hot(indices.reshape(-1).long(),
                    num_classes=num_classes).to(dtype=torch.float)
 
 

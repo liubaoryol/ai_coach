@@ -20,6 +20,9 @@ class MujocoEnv(object):
     self.display = display
     return self
 
+  def seed(self, seed):
+    self.env.seed(seed)
+
   def reset(self, random: bool = False):
     s = self.env.reset()
     return s

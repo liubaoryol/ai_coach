@@ -9,36 +9,36 @@ from torch.distributions import Categorical
 from ..utils.utils import one_hot
 from ..utils.atari_wrapper import LazyFrames
 from ..dataset.memory import Memory
+from aicoach_baselines.option_gail.utils.config import Config
 
 
 class SoftQ(object):
 
-  def __init__(self, num_inputs, action_dim, batch_size, discrete_obs, device,
-               gamma, critic_tau, critic_lr, critic_target_update_frequency,
-               init_temp, critic_betas, q_net_base: Type[nn.Module],
-               list_hidden_dims, use_tanh: bool):
-    self.gamma = gamma
-    self.batch_size = batch_size
-    self.device = torch.device(device)
-    # self.args = args
-    # agent_cfg = args.agent
+  def __init__(self, config: Config, num_inputs, action_dim, discrete_obs,
+               q_net_base: Type[nn.Module]):
+    self.gamma = config.gamma
+    self.batch_size = config.mini_batch_size
+    self.device = torch.device(config.device)
     self.actor = None
-    self.critic_tau = critic_tau
+    self.critic_tau = 0.1
+    self.init_temp = config.init_temp
+    use_tanh = False
 
     self.discrete_obs = discrete_obs
     self.obs_dim = num_inputs
 
-    self.critic_target_update_frequency = critic_target_update_frequency
-    self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
+    self.critic_target_update_frequency = 4
+    self.log_alpha = torch.tensor(np.log(self.init_temp)).to(self.device)
 
-    self.q_net = q_net_base(num_inputs, action_dim, list_hidden_dims, gamma,
-                            use_tanh).to(self.device)
-    self.target_net = q_net_base(num_inputs, action_dim, list_hidden_dims,
-                                 gamma, use_tanh).to(self.device)
+    self.q_net = q_net_base(num_inputs, action_dim, config.hidden_critic,
+                            self.gamma, use_tanh).to(self.device)
+    self.target_net = q_net_base(num_inputs, action_dim, config.hidden_critic,
+                                 self.gamma, use_tanh).to(self.device)
 
+    critic_betas = [0.9, 0.999]
     self.target_net.load_state_dict(self.q_net.state_dict())
     self.critic_optimizer = Adam(self.q_net.parameters(),
-                                 lr=critic_lr,
+                                 lr=config.optimizer_lr_critic,
                                  betas=critic_betas)
     self.train()
     self.target_net.train()

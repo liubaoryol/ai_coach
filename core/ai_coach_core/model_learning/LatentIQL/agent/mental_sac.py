@@ -5,36 +5,36 @@ import torch.nn as nn
 import copy
 from torch.optim import Adam
 from ai_coach_core.model_learning.IQLearn.utils.utils import (soft_update,
+                                                              one_hot,
                                                               one_hot_w_nan)
 from .mental_models import AbstractMentalActor, AbstractMentalThinker
-
-one_hot = one_hot_w_nan  # alias
+from aicoach_baselines.option_gail.utils.config import Config
 
 
 class MentalSAC(object):
 
-  def __init__(self, obs_dim, action_dim, lat_dim, batch_size, discrete_obs,
-               device, gamma, critic_tau, critic_lr, init_temp, critic_betas,
+  def __init__(self, config: Config, obs_dim, action_dim, lat_dim, discrete_obs,
                critic: nn.Module, actor: AbstractMentalActor,
-               thinker: AbstractMentalThinker, num_critic_update,
-               num_actor_update, learn_temp, actor_lr, actor_betas, thinker_lr,
-               thinker_betas, alpha_lr, alpha_betas, clip_grad_val):
-    self.gamma = gamma
-    self.batch_size = batch_size
+               thinker: AbstractMentalThinker):
+    self.gamma = config.gamma
+    self.batch_size = config.mini_batch_size
     self.discrete_obs = discrete_obs
     self.obs_dim = obs_dim
     self.action_dim = action_dim
     self.lat_dim = lat_dim
 
-    self.device = torch.device(device)
+    self.device = torch.device(config.device)
 
-    self.clip_grad_val = clip_grad_val
-    self.critic_tau = critic_tau
-    self.learn_temp = learn_temp
+    self.init_temp = config.init_temp
+    self.critic_tau = 0.005
+    self.learn_temp = config.learn_temp
     self.actor_update_frequency = 1
     self.critic_target_update_frequency = 1
-    self.num_critic_update = num_critic_update
-    self.num_actor_update = num_actor_update
+
+    self.num_critic_update = config.num_critic_update
+    self.num_actor_update = config.num_actor_update
+    self.clip_grad_val = config.clip_grad_val
+    self.thinker_clip_grad_val = config.thinker_clip_grad_val
 
     self._critic = critic.to(self.device)
 
@@ -44,26 +44,47 @@ class MentalSAC(object):
     self.actor = actor.to(self.device)
     self.thinker = thinker.to(self.device)
 
-    self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
+    self.log_alpha = torch.tensor(np.log(self.init_temp)).to(self.device)
     self.log_alpha.requires_grad = True
     # Target Entropy = −dim(A)
     self.target_entropy = -action_dim
 
+    # prev latent, prev action
+    self.use_prev_action_dim = config.use_prev_action_dim
+    self.use_prev_latent_dim = config.use_prev_option_dim
+
+    # separate policy update
+    self.separate_policy_update = config.separate_policy_update
+
+    NAN = float("nan")
+    self.prev_latent = NAN
+    if self.use_prev_action_dim:
+      self.prev_action = (NAN if self.actor.is_discrete() else np.full(
+          self.action_dim, NAN, dtype=float))
+    else:
+      self.prev_action = (NAN if self.actor.is_discrete() else np.zeros(
+          self.action_dim, dtype=float))
+
     # optimizers
-    self.actor_optimizer = Adam(self.actor.parameters(),
-                                lr=actor_lr,
-                                betas=actor_betas)
-    self.thinker_optimizer = Adam(self.thinker.parameters(),
-                                  lr=thinker_lr,
-                                  betas=thinker_betas)
-    self.critic_optimizer = Adam(self._critic.parameters(),
-                                 lr=critic_lr,
-                                 betas=critic_betas)
-    self.log_alpha_optimizer = Adam([self.log_alpha],
-                                    lr=alpha_lr,
-                                    betas=alpha_betas)
+    self.reset_optimizers(config)
+
     self.train()
     self.critic_target.train()
+
+  def reset_optimizers(self, config):
+    thinker_betas = critic_betas = alpha_betas = actor_betas = [0.9, 0.999]
+    self.actor_optimizer = Adam(self.actor.parameters(),
+                                lr=config.optimizer_lr_policy,
+                                betas=actor_betas)
+    self.thinker_optimizer = Adam(self.thinker.parameters(),
+                                  lr=config.optimizer_lr_option,
+                                  betas=thinker_betas)
+    self.critic_optimizer = Adam(self._critic.parameters(),
+                                 lr=config.optimizer_lr_critic,
+                                 betas=critic_betas)
+    self.log_alpha_optimizer = Adam([self.log_alpha],
+                                    lr=config.optimizer_lr_alpha,
+                                    betas=alpha_betas)
 
   def train(self, training=True):
     self.training = training
@@ -83,26 +104,56 @@ class MentalSAC(object):
   def critic_target_net(self):
     return self.critic_target
 
-  def _conv_input(self, input, is_discrete, dimension):
-    if is_discrete:
-      input = np.array(input).reshape(-1)
-      input = torch.FloatTensor(input).to(self.device)
-      input = one_hot(input, dimension)
-      # input = input.view(-1, dimension)
-    else:
-      input = torch.FloatTensor(input).to(self.device)
-      if input.ndim < 2:
-        input = input.unsqueeze(0)
+  def conv_input(self, batch_input, is_discrete, dimension, extra_dim=False):
+    if extra_dim:
+      # find nan
+      if is_discrete:
+        batch_input = torch.tensor(
+            batch_input, dtype=torch.float).reshape(-1).to(self.device)
+        mask_nan = batch_input.isnan()
+        non_nan_input = batch_input[~mask_nan]
 
-    return input
+        n_batch = len(batch_input)
+        batch_conv = torch.zeros((n_batch, dimension + 1),
+                                 dtype=torch.float).to(device=self.device)
+        if len(non_nan_input) != 0:
+          batch_conv[~mask_nan, :-1] = one_hot(non_nan_input, dimension)
+
+        batch_conv[mask_nan, -1] = 1.0
+      else:
+        if not isinstance(batch_input, torch.Tensor):
+          batch_input = torch.tensor(batch_input,
+                                     dtype=torch.float).to(self.device)
+          if batch_input.ndim < 2:
+            batch_input = batch_input.unsqueeze(0)
+        mask_nan = batch_input[:, 0].isnan()
+        batch_input[mask_nan, :] = 0.0
+        is_prev = torch.zeros(len(batch_input)).to(device=self.device)
+        is_prev[mask_nan] = 1.0
+        batch_conv = torch.cat([batch_input, is_prev.reshape(-1, 1)], dim=-1)
+
+      return batch_conv
+    else:
+      if is_discrete:
+        batch_input = torch.tensor(
+            batch_input, dtype=torch.float).reshape(-1).to(self.device)
+        batch_input = one_hot_w_nan(batch_input, dimension)
+      else:
+        if not isinstance(batch_input, torch.Tensor):
+          batch_input = torch.tensor(batch_input,
+                                     dtype=torch.float).to(self.device)
+          if batch_input.ndim < 2:
+            batch_input = batch_input.unsqueeze(0)
+
+      return batch_input
 
   def gather_mental_probs(self, state, prev_latent, prev_action):
     # --- convert inputs
-    state = self._conv_input(state, self.discrete_obs, self.obs_dim)
-    prev_latent = self._conv_input(prev_latent, self.thinker.is_discrete(),
-                                   self.lat_dim)
-    prev_action = self._conv_input(prev_action, self.actor.is_discrete(),
-                                   self.action_dim)
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
+    prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
+                                  self.lat_dim, self.use_prev_latent_dim)
+    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                  self.action_dim, self.use_prev_action_dim)
 
     with torch.no_grad():
       probs, log_probs = self.thinker.mental_probs(state, prev_latent,
@@ -112,9 +163,9 @@ class MentalSAC(object):
 
   def evaluate_action(self, state, latent, action):
     # --- convert inputs
-    state = self._conv_input(state, self.discrete_obs, self.obs_dim)
-    latent = self._conv_input(latent, self.thinker.is_discrete(), self.lat_dim)
-    action = self._conv_input(action, self.actor.is_discrete(), self.action_dim)
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
+    latent = self.conv_input(latent, self.thinker.is_discrete(), self.lat_dim)
+    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
 
     with torch.no_grad():
       log_prob = self.actor.evaluate_action(state, latent, action)
@@ -122,11 +173,11 @@ class MentalSAC(object):
 
   def choose_action(self, state, prev_latent, prev_action, sample=False):
     # --- convert inputs
-    state = self._conv_input(state, self.discrete_obs, self.obs_dim)
-    prev_latent = self._conv_input(prev_latent, self.thinker.is_discrete(),
-                                   self.lat_dim)
-    prev_action = self._conv_input(prev_action, self.actor.is_discrete(),
-                                   self.action_dim)
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
+    prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
+                                  self.lat_dim, self.use_prev_latent_dim)
+    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                  self.action_dim, self.use_prev_action_dim)
 
     with torch.no_grad():
       if sample:
@@ -155,15 +206,17 @@ class MentalSAC(object):
       obs = one_hot(obs, self.obs_dim)
     # ------
 
+    prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
+                                  self.lat_dim, self.use_prev_latent_dim)
     # --- convert latent
     if self.thinker.is_discrete():
-      prev_latent = one_hot(prev_latent, self.lat_dim)
       latent = one_hot(latent, self.lat_dim)
     # ------
 
+    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                  self.action_dim, self.use_prev_action_dim)
     # --- convert discrete action
     if self.actor.is_discrete():
-      prev_action = one_hot(prev_action, self.action_dim)
       action = one_hot(action, self.action_dim)
     # ------
 
@@ -177,13 +230,13 @@ class MentalSAC(object):
     # ------
 
     # --- convert prev_latent
-    if self.thinker.is_discrete():
-      prev_latent = one_hot(prev_latent, self.lat_dim)
+    prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
+                                  self.lat_dim, self.use_prev_latent_dim)
     # ------
 
     # --- convert prev_action
-    if self.actor.is_discrete():
-      prev_action = one_hot(prev_action, self.action_dim)
+    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                  self.action_dim, self.use_prev_action_dim)
     # ------
 
     latent, lat_log_prob = self.thinker.sample(obs, prev_latent, prev_action)
@@ -210,13 +263,13 @@ class MentalSAC(object):
     # ------
 
     # --- convert prev_latent
-    if self.thinker.is_discrete():
-      prev_latent = one_hot(prev_latent, self.lat_dim)
+    prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
+                                  self.lat_dim, self.use_prev_latent_dim)
     # ------
 
     # --- convert prev_action
-    if self.actor.is_discrete():
-      prev_action = one_hot(prev_action, self.action_dim)
+    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                  self.action_dim, self.use_prev_action_dim)
     # ------
 
     latent, lat_log_prob = self.thinker.sample(obs, prev_latent, prev_action)
@@ -263,19 +316,35 @@ class MentalSAC(object):
     # ------
 
     # --- convert latent
+    prev_lat = self.conv_input(prev_lat, self.thinker.is_discrete(),
+                               self.lat_dim, self.use_prev_latent_dim)
     if self.thinker.is_discrete():
-      prev_lat = one_hot(prev_lat, self.lat_dim)
       latent = one_hot(latent, self.lat_dim)
     # ------
 
     # --- convert action
+    prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
+                               self.action_dim, self.use_prev_action_dim)
     if self.actor.is_discrete():
-      prev_act = one_hot(prev_act, self.action_dim)
       action = one_hot(action, self.action_dim)
     # ------
 
+    # --- convert action
+    zero_column = torch.zeros(len(latent)).reshape(-1, 1).to(device=self.device)
+    if self.use_prev_latent_dim:
+      latent_ = torch.cat([latent, zero_column], dim=-1)
+    else:
+      latent_ = latent
+
+    if self.use_prev_action_dim:
+      action_ = torch.cat([action, zero_column], dim=-1)
+    else:
+      action_ = action
+
+    # ------
     with torch.no_grad():
-      next_latent, lat_log_prob = self.thinker.sample(next_obs, latent, action)
+      next_latent, lat_log_prob = self.thinker.sample(next_obs, latent_,
+                                                      action_)
       if self.thinker.is_discrete():
         next_latent = one_hot(next_latent, self.lat_dim)
 
@@ -283,7 +352,7 @@ class MentalSAC(object):
       if self.actor.is_discrete():
         next_action = one_hot(next_action, self.action_dim)
 
-      target_Q = self.critic_target(next_obs, latent, action, next_latent,
+      target_Q = self.critic_target(next_obs, latent_, action_, next_latent,
                                     next_action)
       target_V = target_Q - self.alpha.detach() * (act_log_prob + lat_log_prob)
       target_Q = reward + (1 - done) * self.gamma * target_V
@@ -302,7 +371,7 @@ class MentalSAC(object):
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
-    if self.clip_grad_val is not None:
+    if self.clip_grad_val:
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
@@ -314,39 +383,76 @@ class MentalSAC(object):
     if self.discrete_obs:
       obs = one_hot(obs, self.obs_dim)
     # ------
-    if self.thinker.is_discrete():
-      prev_lat = one_hot(prev_lat, self.lat_dim)
 
-    if self.actor.is_discrete():
-      prev_act = one_hot(prev_act, self.action_dim)
+    prev_lat = self.conv_input(prev_lat, self.thinker.is_discrete(),
+                               self.lat_dim, self.use_prev_latent_dim)
+    prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
+                               self.action_dim, self.use_prev_action_dim)
 
-    latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
+    if self.separate_policy_update:
+      # thinker update
+      latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
+      action, act_log_prob = self.actor.rsample(obs, latent)
+      actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
 
-    action, act_log_prob = self.actor.rsample(obs, latent)
-    actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
+      option_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
+                     actor_Q).mean()
+      self.thinker_optimizer.zero_grad()
+      option_loss.backward()
+      if self.thinker_clip_grad_val:
+        nn.utils.clip_grad_norm_(self.thinker.parameters(),
+                                 self.thinker_clip_grad_val)
+      self.thinker_optimizer.step()
 
-    actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
-                  actor_Q).mean()
+      # actor update
+      latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
+      action, act_log_prob = self.actor.rsample(obs, latent)
+      actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
 
-    # logger.log('train/actor_loss', actor_loss, step)
-    # logger.log('train/actor_entropy', -act_log_prob.mean(), step)
-    # logger.log('train/thinker_entropy', -lat_log_prob.mean(), step)
+      actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
+                    actor_Q).mean()
+      self.actor_optimizer.zero_grad()
+      actor_loss.backward()
+      if self.clip_grad_val:
+        nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
+      self.actor_optimizer.step()
 
-    # optimize the actor
-    self.actor_optimizer.zero_grad()
-    self.thinker_optimizer.zero_grad()
-    actor_loss.backward()
-    if self.clip_grad_val is not None:
-      nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
-      nn.utils.clip_grad_norm_(self.thinker.parameters(), self.clip_grad_val)
-    self.actor_optimizer.step()
-    self.thinker_optimizer.step()
+      losses = {
+          'loss/actor': actor_loss.item(),
+          'loss/thinker': option_loss.item(),
+          'actor_loss/actor_entropy': -act_log_prob.mean().item(),
+          'actor_loss/thinker_entropy': -lat_log_prob.mean().item()
+      }
+    else:
+      latent, lat_log_prob = self.thinker.rsample(obs, prev_lat, prev_act)
+      action, act_log_prob = self.actor.rsample(obs, latent)
 
-    losses = {
-        'loss/actor': actor_loss.item(),
-        'actor_loss/actor_entropy': -act_log_prob.mean().item(),
-        'actor_loss/thinker_entropy': -lat_log_prob.mean().item()
-    }
+      actor_Q = self._critic(obs, prev_lat, prev_act, latent, action)
+
+      actor_loss = (self.alpha.detach() * (act_log_prob + lat_log_prob) -
+                    actor_Q).mean()
+
+      # logger.log('train/actor_loss', actor_loss, step)
+      # logger.log('train/actor_entropy', -act_log_prob.mean(), step)
+      # logger.log('train/thinker_entropy', -lat_log_prob.mean(), step)
+
+      # optimize the actor
+      self.actor_optimizer.zero_grad()
+      self.thinker_optimizer.zero_grad()
+      actor_loss.backward()
+      if self.clip_grad_val:
+        nn.utils.clip_grad_norm_(self.actor.parameters(), self.clip_grad_val)
+      if self.thinker_clip_grad_val:
+        nn.utils.clip_grad_norm_(self.thinker.parameters(),
+                                 self.thinker_clip_grad_val)
+      self.actor_optimizer.step()
+      self.thinker_optimizer.step()
+
+      losses = {
+          'loss/actor': actor_loss.item(),
+          'actor_loss/actor_entropy': -act_log_prob.mean().item(),
+          'actor_loss/thinker_entropy': -lat_log_prob.mean().item()
+      }
 
     # TODO: implement learn alpha
     # if self.learn_temp:

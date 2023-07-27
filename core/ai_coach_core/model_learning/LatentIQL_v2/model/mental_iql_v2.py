@@ -87,7 +87,7 @@ class MentalIQL_V2(MentalSAC_V2):
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
-    if hasattr(self, 'clip_grad_val') and self.clip_grad_val is not None:
+    if hasattr(self, 'clip_grad_val') and self.clip_grad_val:
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     # step critic
     self.critic_optimizer.step()

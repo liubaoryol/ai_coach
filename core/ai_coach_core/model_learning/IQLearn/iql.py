@@ -20,37 +20,66 @@ from .utils.logger import Logger
 from itertools import count
 import types
 from .iq import iq_loss
+from aicoach_baselines.option_gail.utils.config import Config
 
 
-def run_iql(env_name,
-            env_kwargs,
-            seed,
-            batch_size,
+def run_sac(config: Config,
+            log_dir,
+            output_dir,
+            log_interval=500,
+            eval_interval=2000,
+            env_kwargs={}):
+  return trainer_impl(config,
+                      None,
+                      None,
+                      log_dir,
+                      output_dir,
+                      log_interval,
+                      eval_interval,
+                      env_kwargs,
+                      imitate=False)
+
+
+def run_iql(config: Config,
             demo_path,
             num_trajs,
             log_dir,
             output_dir,
-            replay_mem,
-            eps_window,
-            num_learn_steps,
-            initial_mem=None,
-            agent_name: str = "softq",
-            output_suffix="",
             log_interval=500,
             eval_interval=2000,
-            gumbel_temperature: float = 1.0,
-            list_critic_hidden_dims=[256, 256],
-            list_actor_hidden_dims=[256, 256],
-            clip_grad_val=None,
-            learn_alpha=False,
-            critic_lr=0.005,
-            actor_lr=0.005,
-            alpha_lr=0.005,
-            load_path: Optional[str] = None,
-            bounded_actor=True,
-            method_loss="value",
-            method_regularize=True):
+            env_kwargs={}):
+  return trainer_impl(config,
+                      demo_path,
+                      num_trajs,
+                      log_dir,
+                      output_dir,
+                      log_interval,
+                      eval_interval,
+                      env_kwargs,
+                      imitate=True)
+
+
+def trainer_impl(config: Config,
+                 demo_path,
+                 num_trajs,
+                 log_dir,
+                 output_dir,
+                 log_interval=500,
+                 eval_interval=2000,
+                 env_kwargs={},
+                 imitate=True):
   'agent_name: softq / sac / sacd'
+  env_name = config.env_name
+  seed = config.seed
+  batch_size = config.mini_batch_size
+  replay_mem = config.n_sample
+  eps_window = 10
+  num_learn_steps = config.max_explore_step
+  initial_mem = replay_mem
+  agent_name = config.iql_agent_name
+  output_suffix = ""
+  load_path = None
+
   # constants
   num_episodes = 10
   save_interval = 10
@@ -86,53 +115,17 @@ def run_iql(env_name,
   num_learn_steps = int(num_learn_steps)
 
   if agent_name == "softq":
-    q_net_base = SimpleQNetwork
     use_target = False
     do_soft_update = False
-    agent = make_softq_agent(env,
-                             batch_size,
-                             device_name,
-                             q_net_base,
-                             critic_target_update_frequency=4,
-                             critic_tau=0.1,
-                             critic_lr=critic_lr,
-                             list_hidden_dims=list_critic_hidden_dims)
+    agent = make_softq_agent(config, env)
   elif agent_name == "sac":
-    critic_base = DoubleQCritic
     use_target = True
     do_soft_update = True
-    agent = make_sac_agent(env,
-                           batch_size,
-                           device_name,
-                           critic_base,
-                           critic_target_update_frequency=1,
-                           critic_tau=0.005,
-                           gumbel_temperature=gumbel_temperature,
-                           learn_temp=learn_alpha,
-                           critic_lr=critic_lr,
-                           actor_lr=actor_lr,
-                           alpha_lr=alpha_lr,
-                           list_critic_hidden_dims=list_critic_hidden_dims,
-                           list_actor_hidden_dims=list_actor_hidden_dims,
-                           clip_grad_val=clip_grad_val,
-                           bounded_actor=bounded_actor)
+    agent = make_sac_agent(config, env)
   elif agent_name == "sacd":
-    critic_base = SingleQCriticDiscrete
     use_target = True
     do_soft_update = True
-    agent = make_sacd_agent(env,
-                            batch_size,
-                            device_name,
-                            critic_base,
-                            critic_target_update_frequency=1,
-                            critic_tau=0.005,
-                            critic_lr=critic_lr,
-                            actor_lr=actor_lr,
-                            alpha_lr=alpha_lr,
-                            learn_temp=learn_alpha,
-                            list_critic_hidden_dims=list_critic_hidden_dims,
-                            list_actor_hidden_dims=list_actor_hidden_dims,
-                            clip_grad_val=clip_grad_val)
+    agent = make_sacd_agent(config, env)
   else:
     raise NotImplementedError
 
@@ -144,20 +137,19 @@ def run_iql(env_name,
       print("[Attention]: Did not find checkpoint {}".format(load_path))
 
   # Load expert data
-  subsample_freq = 1
-  expert_memory_replay = Memory(replay_mem // 2, seed)
-  expert_memory_replay.load(demo_path,
-                            num_trajs=num_trajs,
-                            sample_freq=subsample_freq,
-                            seed=seed + 42)
-  print(f'--> Expert memory size: {expert_memory_replay.size()}')
+  if imitate:
+    subsample_freq = 1
+    expert_memory_replay = Memory(replay_mem, seed)
+    expert_memory_replay.load(demo_path,
+                              num_trajs=num_trajs,
+                              sample_freq=subsample_freq,
+                              seed=seed + 42)
+    print(f'--> Expert memory size: {expert_memory_replay.size()}')
 
-  online_memory_replay = Memory(replay_mem // 2, seed + 1)
+  online_memory_replay = Memory(replay_mem, seed + 1)
 
   # Setup logging
-  ts_str = datetime.datetime.fromtimestamp(
-      time.time()).strftime("%Y-%m-%d_%H-%M-%S")
-  log_dir = os.path.join(log_dir, env_name, agent_name, ts_str)
+  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
@@ -168,7 +160,9 @@ def run_iql(env_name,
 
   # track mean reward and scores
   rewards_window = deque(maxlen=eps_window)  # last N rewards
+  epi_step_window = deque(maxlen=eps_window)
   best_eval_returns = -np.inf
+  cnt_steps = 0
 
   begin_learn = False
   episode_reward = 0
@@ -197,6 +191,7 @@ def run_iql(env_name,
         # learn_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode', epoch, learn_steps)
         logger.log('eval/episode_reward', returns, learn_steps)
+        logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
         logger.dump(learn_steps, ty='eval')
 
         if returns > best_eval_returns:
@@ -208,6 +203,7 @@ def run_iql(env_name,
                env_name,
                agent_name,
                is_sqil,
+               imitate,
                output_dir=output_dir,
                suffix=output_suffix + "_best")
 
@@ -218,7 +214,7 @@ def run_iql(env_name,
       online_memory_replay.add((state, next_state, action, reward, done_no_lim))
 
       learn_steps += 1
-      if online_memory_replay.size() > initial_mem:
+      if online_memory_replay.size() >= initial_mem:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
@@ -229,36 +225,44 @@ def run_iql(env_name,
           return
 
         ######
-        # IQ-Learn Modification
-        agent.iq_update = types.MethodType(iq_update, agent)
-        agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
-        losses = agent.iq_update(online_memory_replay, expert_memory_replay,
-                                 logger, learn_steps, only_expert_states,
-                                 is_sqil, use_target, do_soft_update,
-                                 method_loss, method_regularize)
-        ######
+        if imitate:
+          # IQ-Learn Modification
+          agent.iq_update = types.MethodType(iq_update, agent)
+          agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
+          losses = agent.iq_update(online_memory_replay, expert_memory_replay,
+                                   logger, learn_steps, only_expert_states,
+                                   is_sqil, use_target, do_soft_update,
+                                   config.method_loss, config.method_regularize)
+        else:
+          losses = agent.update(online_memory_replay, logger, learn_steps)
 
         if learn_steps % log_interval == 0:
           for key, loss in losses.items():
-            writer.add_scalar(key, loss, global_step=learn_steps)
+            writer.add_scalar("loss/" + key, loss, global_step=learn_steps)
 
       if done:
         break
       state = next_state
 
     rewards_window.append(episode_reward)
-    logger.log('train/episode', epoch, learn_steps)
-    logger.log('train/episode_reward', episode_reward, learn_steps)
-    logger.log('train/episode_step', episode_step, learn_steps)
-    logger.dump(learn_steps, save=begin_learn)
-    save(agent,
-         epoch,
-         save_interval,
-         env_name,
-         agent_name,
-         is_sqil,
-         output_dir=output_dir,
-         suffix=output_suffix)
+    epi_step_window.append(episode_step + 1)
+    cnt_steps += episode_step + 1
+    if cnt_steps >= log_interval:
+      cnt_steps = 0
+      logger.log('train/episode', epoch, learn_steps)
+      logger.log('train/episode_reward', np.mean(rewards_window), learn_steps)
+      logger.log('train/episode_step', np.mean(epi_step_window), learn_steps)
+      logger.dump(learn_steps, save=begin_learn)
+
+    # save(agent,
+    #      epoch,
+    #      save_interval,
+    #      env_name,
+    #      agent_name,
+    #      is_sqil,
+    #      imitate,
+    #      output_dir=output_dir,
+    #      suffix=output_suffix)
 
 
 def save(agent,
@@ -267,13 +271,17 @@ def save(agent,
          env_name,
          agent_name,
          is_sqil: bool,
+         imitate: bool,
          output_dir='results',
          suffix=""):
   if epoch % save_interval == 0:
-    if is_sqil:
-      name = f'sqil_{env_name}'
+    if imitate:
+      if is_sqil:
+        name = f'sqil_{env_name}'
+      else:
+        name = f'iq_{env_name}'
     else:
-      name = f'iq_{env_name}'
+      name = f'rl_{env_name}'
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)
@@ -383,7 +391,7 @@ def iq_update_critic(self,
   # Optimize the critic
   self.critic_optimizer.zero_grad()
   critic_loss.backward()
-  if hasattr(self, 'clip_grad_val') and self.clip_grad_val is not None:
+  if hasattr(self, 'clip_grad_val') and self.clip_grad_val:
     nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
   # step critic
   self.critic_optimizer.step()

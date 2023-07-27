@@ -38,6 +38,7 @@ def reward_validate(sampler: _SamplerCommon,
 
 
 def train_iql(agent: MentalIQL_V2,
+              config,
               smpl_scar,
               demo_sca,
               mini_bs,
@@ -49,6 +50,7 @@ def train_iql(agent: MentalIQL_V2,
               method_loss,
               method_regularize,
               n_step=10):
+  agent.reset_optimizers(config)
   sp = torch.cat([s[:-1] for s, c, a, r in smpl_scar], dim=0)
   se = torch.cat([s[:-1] for s, c, a in demo_sca], dim=0)
   snp = torch.cat([s[1:] for s, c, a, r in smpl_scar], dim=0)
@@ -117,7 +119,10 @@ def sample_batch(agent: MentalIQL_V2, sampler: _SamplerCommon, n_sample: int,
                                 fixed=False)
   sample_r = avg_sample_reward(sample_sxar)
   demo_sxa = convert_demo(demo_sa_in, agent)
-  return sample_sxar, demo_sxa, sample_r
+  sample_avgstep = (sum([sxar[-1].size(0)
+                         for sxar in sample_sxar]) / len(sample_sxar))
+
+  return sample_sxar, demo_sxa, sample_r, sample_avgstep
 
 
 def learn(config: Config,
@@ -128,7 +133,6 @@ def learn(config: Config,
           msg="default"):
 
   env_type = config.env_type
-  use_option = config.use_option
   n_demo = config.n_demo
   n_sample = config.n_sample
   n_thread = config.n_thread
@@ -137,19 +141,6 @@ def learn(config: Config,
   env_name = config.env_name
   use_state_filter = config.use_state_filter
   batch_size = config.mini_batch_size
-  base_dir = config.base_dir
-  critic_tau = 0.005
-  critic_target_update_frequency = 1
-  init_temp = 1e-2
-  critic_betas = [0.9, 0.999]
-  policy_betas = [0.9, 0.999]
-  use_tanh = False
-  learn_temp = False
-  policy_update_frequency = 1
-  alpha_betas = [0.9, 0.999]
-  clip_grad_val = 0.5
-  bounded_actor = config.bounded_actor
-  gumbel_temperature = 1
 
   is_sqil = False
   use_target = True
@@ -172,27 +163,10 @@ def learn(config: Config,
   dim_s, dim_a = env.state_action_size()
   demo, _ = fn_get_demo(config, path=sample_name, n_demo=n_demo, display=False)
 
-  critic = MentalCritic(dim_s, dim_a, config.dim_c, config.device,
-                        config.shared_critic, config.activation,
-                        config.hidden_critic, config.gamma, use_tanh)
-  policy = MentalPolicy(dim_s,
-                        dim_a,
-                        config.dim_c,
-                        config.device,
-                        config.log_clamp_policy,
-                        config.shared_policy,
-                        config.activation,
-                        config.hidden_policy,
-                        config.hidden_option,
-                        gumbel_temperature=gumbel_temperature,
-                        bounded_actor=bounded_actor)
+  critic = MentalCritic(config, dim_s, dim_a, config.dim_c)
+  policy = MentalPolicy(config, dim_s, dim_a, config.dim_c)
 
-  agent = MentalIQL_V2(dim_s, dim_a, config.dim_c, batch_size, config.device,
-                       config.gamma, critic_tau, config.optimizer_lr_critic,
-                       init_temp, critic_betas, critic, policy,
-                       config.num_critic_update, config.num_actor_update,
-                       learn_temp, config.optimizer_lr_policy, policy_betas,
-                       config.optimizer_lr_alpha, alpha_betas, clip_grad_val)
+  agent = MentalIQL_V2(config, dim_s, dim_a, config.dim_c, critic, policy)
 
   sampler = Sampler(seed,
                     env,
@@ -203,32 +177,27 @@ def learn(config: Config,
   demo_sa_array = tuple(
       (s.to(agent.device), a.to(agent.device)) for s, a, r in demo)
 
-  # sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
-  #                                                demo_sa_array)
-  # info_dict = reward_validate(sampler, agent.policy, do_print=True)
-
-  # logger.log_test_info(info_dict, 0)
-  # print(f"init: r-sample-avg={sample_r} ; {msg}")
-
   explore_step = 0
   for i in count():
     if explore_step >= max_exp_step:
       break
 
-    sample_sxar, demo_sxa, sample_r = sample_batch(agent, sampler, n_sample,
-                                                   demo_sa_array)
+    sample_sxar, demo_sxa, sample_r, sample_avgstep = sample_batch(
+        agent, sampler, n_sample, demo_sa_array)
     logger.log_train("r-sample-avg", sample_r, explore_step)
-    print(f"{explore_step}: r-sample-avg={sample_r}, {msg}")
+    logger.log_train("step-sample-avg", sample_avgstep, explore_step)
+    print(f"{explore_step}: r-sample-avg={sample_r}, "
+          f"step-sample-avg={sample_avgstep} ; {msg}")
 
-    train_iql(agent, sample_sxar, demo_sxa, batch_size, logger, explore_step,
-              is_sqil, use_target, do_soft_update, method_loss,
+    train_iql(agent, config, sample_sxar, demo_sxa, batch_size, logger,
+              explore_step, is_sqil, use_target, do_soft_update, method_loss,
               method_regularize)
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
 
     if (i + 1) % 10 == 0:
       info_dict = reward_validate(sampler, agent.policy, do_print=True)
 
-      torch.save((agent.state_dict(), sampler.state_dict()),
-                 save_name_f(explore_step))
+      # torch.save((agent.state_dict(), sampler.state_dict()),
+      #            save_name_f(explore_step))
       logger.log_test_info(info_dict, explore_step)
     logger.flush()

@@ -6,7 +6,9 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import (average_dicts,
 from .mental_sac import MentalSAC
 from ..helper.utils import get_concat_samples
 from ..helper.iq import iq_loss
+import time
 
+DEBUG_TIME = True
 
 class MentalIQL(MentalSAC):
 
@@ -86,7 +88,7 @@ class MentalIQL(MentalSAC):
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
-    if hasattr(self, 'clip_grad_val') and self.clip_grad_val is not None:
+    if hasattr(self, 'clip_grad_val') and self.clip_grad_val:
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     # step critic
     self.critic_optimizer.step()

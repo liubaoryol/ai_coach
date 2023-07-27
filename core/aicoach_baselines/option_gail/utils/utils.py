@@ -1,5 +1,6 @@
 import torch
 from ..model.option_policy import OptionPolicy, Policy
+from ..model.option_policy_v2 import OptionPolicyV2
 import numpy as np
 from typing import Union
 import os
@@ -9,7 +10,8 @@ import random
 def sample_batch(policy: Union[OptionPolicy, Policy], agent, n_step):
   sample = agent.collect(policy.state_dict(), n_step, fixed=False)
   rsum = sum([sxar[-1].sum().item() for sxar in sample]) / len(sample)
-  return sample, rsum
+  avgsteps = sum([sxar[-1].size(0) for sxar in sample]) / len(sample)
+  return sample, rsum, avgsteps
 
 
 def validate(policy: Union[OptionPolicy, Policy], sa_array):
@@ -17,7 +19,7 @@ def validate(policy: Union[OptionPolicy, Policy], sa_array):
     log_pi = 0.
     cs = []
     for s_array, a_array in sa_array:
-      if isinstance(policy, OptionPolicy):
+      if isinstance(policy, OptionPolicy) or isinstance(policy, OptionPolicyV2):
         c_array, logp = policy.viterbi_path(s_array, a_array)
         log_pi += logp.item()
         cs.append(c_array.detach().cpu().squeeze(dim=-1).numpy())
@@ -35,7 +37,7 @@ def reward_validate(agent,
   trajs = agent.collect(policy.state_dict(), n_sample, fixed=True)
   rsums = [tr[-1].sum().item() for tr in trajs]
   steps = [tr[-1].size(0) for tr in trajs]
-  if isinstance(policy, OptionPolicy):
+  if isinstance(policy, OptionPolicy) or isinstance(policy, OptionPolicyV2):
     css = [
         tr[1].cpu().squeeze(dim=-1).numpy()
         for _, tr in sorted(zip(rsums, trajs), key=lambda d: d[0], reverse=True)
@@ -48,12 +50,14 @@ def reward_validate(agent,
       "r-min": np.min(rsums),
       "r-avg": np.mean(rsums),
       "step-max": np.max(steps),
+      "step-avg": np.mean(steps),
       "step-min": np.min(steps),
   }
   if do_print:
     print(f"R: [ {info_dict['r-min']:.02f} ~ {info_dict['r-max']:.02f},",
           f"avg: {info_dict['r-avg']:.02f} ],",
-          f"L: [ {info_dict['step-min']} ~ {info_dict['step-max']} ]")
+          f"L: [ {info_dict['step-min']} ~ {info_dict['step-max']}, ",
+          f"avg: {info_dict['step-avg']:.02f} ]")
   return info_dict, css
 
 

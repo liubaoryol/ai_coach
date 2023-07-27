@@ -3,38 +3,14 @@ import gym
 from gym.spaces import Discrete, Box
 from .mental_models import (SoftDiscreteMentalActor, DiagGaussianMentalActor,
                             SoftDiscreteMentalThinker, MentalDoubleQCritic)
-from .mental_iql import MentalIQL
+from .mental_iql import MentalIQL, MentalSAC
+from aicoach_baselines.option_gail.utils.config import Config
 
 
-def make_miql_agent(env: gym.Env,
-                    batch_size,
-                    device_name,
-                    lat_dim,
-                    gamma: float = 0.99,
-                    critic_tau: float = 0.005,
-                    critic_lr: float = 3e-4,
-                    init_temp: float = 1e-2,
-                    critic_betas=[0.9, 0.999],
-                    use_tanh: bool = False,
-                    learn_temp: bool = False,
-                    actor_lr: float = 3e-4,
-                    actor_betas=[0.9, 0.999],
-                    thinker_lr: float = 3e-4,
-                    thinker_betas=[0.9, 0.999],
-                    alpha_lr: float = 3e-4,
-                    alpha_betas=[0.9, 0.999],
-                    num_critic_update=1,
-                    num_actor_update=1,
-                    list_critic_hidden_dims=[256, 256],
-                    list_actor_hidden_dims=[256, 256],
-                    list_thinker_hidden_dims=[256, 256],
-                    log_std_bounds=[-5, 2],
-                    gumbel_temperature=0.5,
-                    clip_grad_val=None,
-                    bounded_actor=True,
-                    use_prev_action=True):
+def make_miql_agent(config: Config, env: gym.Env):
   'discrete observation may not work well'
 
+  latent_dim = config.dim_c
   if isinstance(env.observation_space, Discrete):
     obs_dim = env.observation_space.n
     discrete_obs = True
@@ -49,26 +25,47 @@ def make_miql_agent(env: gym.Env,
 
   if isinstance(env.action_space, Discrete):
     action_dim = env.action_space.n
-    actor = SoftDiscreteMentalActor(obs_dim, action_dim, lat_dim,
-                                    list_actor_hidden_dims, gumbel_temperature)
+    actor = SoftDiscreteMentalActor(config, obs_dim, action_dim, latent_dim)
   else:
     action_dim = env.action_space.shape[0]
-    actor = DiagGaussianMentalActor(obs_dim, action_dim, lat_dim,
-                                    list_actor_hidden_dims, log_std_bounds,
-                                    bounded_actor)
+    actor = DiagGaussianMentalActor(config, obs_dim, action_dim, latent_dim)
 
-  thinker = SoftDiscreteMentalThinker(obs_dim, action_dim, lat_dim,
-                                      list_thinker_hidden_dims,
-                                      gumbel_temperature, use_prev_action)
-  critic = MentalDoubleQCritic(obs_dim, action_dim, lat_dim,
-                               list_critic_hidden_dims, gamma, use_tanh,
-                               use_prev_action)
+  thinker = SoftDiscreteMentalThinker(config, obs_dim, action_dim, latent_dim)
+  critic = MentalDoubleQCritic(config, obs_dim, action_dim, latent_dim)
 
-  agent = MentalIQL(obs_dim, action_dim, lat_dim, batch_size, discrete_obs,
-                    device_name, gamma, critic_tau, critic_lr, init_temp,
-                    critic_betas, critic, actor, thinker, num_critic_update,
-                    num_actor_update, learn_temp, actor_lr, actor_betas,
-                    thinker_lr, thinker_betas, alpha_lr, alpha_betas,
-                    clip_grad_val)
+  agent = MentalIQL(config, obs_dim, action_dim, latent_dim, discrete_obs,
+                    critic, actor, thinker)
+
+  return agent
+
+
+def make_msac_agent(config: Config, env: gym.Env):
+  'discrete observation may not work well'
+
+  latent_dim = config.dim_c
+  if isinstance(env.observation_space, Discrete):
+    obs_dim = env.observation_space.n
+    discrete_obs = True
+  else:
+    obs_dim = env.observation_space.shape[0]
+    discrete_obs = False
+
+  if not (isinstance(env.action_space, Discrete)
+          or isinstance(env.action_space, Box)):
+    raise RuntimeError(
+        "Invalid action space: Only Discrete and Box action spaces supported")
+
+  if isinstance(env.action_space, Discrete):
+    action_dim = env.action_space.n
+    actor = SoftDiscreteMentalActor(config, obs_dim, action_dim, latent_dim)
+  else:
+    action_dim = env.action_space.shape[0]
+    actor = DiagGaussianMentalActor(config, obs_dim, action_dim, latent_dim)
+
+  thinker = SoftDiscreteMentalThinker(config, obs_dim, action_dim, latent_dim)
+  critic = MentalDoubleQCritic(config, obs_dim, action_dim, latent_dim)
+
+  agent = MentalSAC(config, obs_dim, action_dim, latent_dim, discrete_obs,
+                    critic, actor, thinker)
 
   return agent

@@ -1,9 +1,6 @@
-from typing import Optional
 import os
 import random
 import numpy as np
-import time
-import datetime
 import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
@@ -11,48 +8,105 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, eval_mode
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     ExpertDataset)
 from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
-from .agent.make_agent import make_miql_agent
+from .agent.make_agent import make_miql_agent, make_msac_agent
+from .agent.mental_iql import MentalIQL
+from .agent.mental_sac import MentalSAC
 from .helper.mental_memory import MentalMemory
-from .helper.utils import get_expert_batch, evaluate, save
+from .helper.utils import get_expert_batch, evaluate, save, get_samples
+from aicoach_baselines.option_gail.utils.config import Config
 
 
-def train_mental_iql_pond(env_name,
-                          env_kwargs,
-                          seed,
-                          batch_size,
-                          num_latent,
+def train_mental_sac_pond(config: Config,
+                          log_dir,
+                          output_dir,
+                          log_interval=500,
+                          eval_interval=5000,
+                          env_kwargs={}):
+  return trainer_impl(config, None, None, log_dir, output_dir, "msac",
+                      log_interval, eval_interval, env_kwargs)
+
+
+def train_mental_iql_pond(config: Config,
                           demo_path,
                           num_trajs,
                           log_dir,
                           output_dir,
-                          replay_mem,
-                          max_explore_step,
-                          initial_mem=None,
-                          output_suffix="",
                           log_interval=500,
-                          eval_epoch_interval=5,
-                          gumbel_temperature: float = 1.0,
-                          list_critic_hidden_dims=[256, 256],
-                          list_actor_hidden_dims=[256, 256],
-                          list_thinker_hidden_dims=[256, 256],
-                          num_critic_update=1,
-                          num_actor_update=1,
-                          clip_grad_val=None,
-                          learn_alpha=False,
-                          critic_lr=0.005,
-                          actor_lr=0.005,
-                          thinker_lr=0.005,
-                          alpha_lr=0.005,
-                          load_path: Optional[str] = None,
-                          bounded_actor=True,
-                          method_loss="value",
-                          method_regularize=True,
-                          use_prev_action=True):
-  agent_name = "miql"
+                          eval_interval=5000,
+                          env_kwargs={}):
+  return trainer_impl(config, demo_path, num_trajs, log_dir, output_dir, "miql",
+                      log_interval, eval_interval, env_kwargs)
+
+
+def step_iq_update(config: Config, agent: MentalIQL, sample_data, expert_data,
+                   logger, explore_steps, is_sqil):
+  use_target = True
+  do_soft_update = True
+
+  # #################### update
+  agent.reset_optimizers(config)
+  for _ in range(config.n_update_rounds):
+    inds = torch.randperm(len(sample_data[0]), device=agent.device)
+    for ind_p in inds.split(config.mini_batch_size):
+      so, spl, spa, sno, sl, sa, sr, sd = (sample_data[0][ind_p],
+                                           sample_data[1][ind_p],
+                                           sample_data[2][ind_p],
+                                           sample_data[3][ind_p],
+                                           sample_data[4][ind_p],
+                                           sample_data[5][ind_p],
+                                           sample_data[6][ind_p],
+                                           sample_data[7][ind_p])
+      sample_batch = (so, spl, spa, sno, sl, sa, sr, sd)
+      expert_batch = get_samples(ind_p.size(0), expert_data)
+
+      # IQ-Learn
+      losses = agent.iq_update(sample_batch, expert_batch, logger,
+                               explore_steps, is_sqil, use_target,
+                               do_soft_update, config.method_loss,
+                               config.method_regularize)
+  return losses
+
+
+def step_sac_update(config: Config, agent: MentalSAC,
+                    online_memory_replay: MentalMemory, logger, explore_steps):
+  # #################### update
+  # agent.reset_optimizers(config)
+  for dummy_i in range(config.n_update_rounds):
+    for dummy_j in range(online_memory_replay.size() // config.mini_batch_size):
+      losses = agent.update(online_memory_replay, logger, explore_steps)
+
+  return losses
+
+
+def trainer_impl(config: Config,
+                 demo_path,
+                 num_trajs,
+                 log_dir,
+                 output_dir,
+                 agent_name,
+                 log_interval=500,
+                 eval_interval=5000,
+                 env_kwargs={}):
+  env_name = config.env_name
+  seed = config.seed
+  num_latent = config.dim_c
+  replay_mem = config.n_sample
+  max_explore_step = config.max_explore_step
+  initial_mem = replay_mem
+  output_suffix = ""
+  load_path = None
+  is_sqil = False
+
+  imitation = (agent_name == "miql")
+  if imitation:
+    fn_make_agent = make_miql_agent
+  elif agent_name == "msac":
+    fn_make_agent = make_msac_agent
+  else:
+    raise NotImplementedError
+
   # constants
   num_episodes = 10
-  save_interval = 10
-  is_sqil = False
   if initial_mem is None:
     initial_mem = replay_mem
 
@@ -80,27 +134,7 @@ def train_mental_iql_pond(env_name,
   replay_mem = int(replay_mem)
   initial_mem = int(initial_mem)
 
-  use_target = True
-  do_soft_update = True
-  agent = make_miql_agent(env,
-                          batch_size,
-                          device_name,
-                          num_latent,
-                          critic_tau=0.005,
-                          gumbel_temperature=gumbel_temperature,
-                          learn_temp=learn_alpha,
-                          critic_lr=critic_lr,
-                          actor_lr=actor_lr,
-                          thinker_lr=thinker_lr,
-                          alpha_lr=alpha_lr,
-                          list_critic_hidden_dims=list_critic_hidden_dims,
-                          list_actor_hidden_dims=list_actor_hidden_dims,
-                          list_thinker_hidden_dims=list_thinker_hidden_dims,
-                          num_critic_update=num_critic_update,
-                          num_actor_update=num_actor_update,
-                          clip_grad_val=clip_grad_val,
-                          bounded_actor=bounded_actor,
-                          use_prev_action=use_prev_action)
+  agent = fn_make_agent(config, env)
 
   if load_path is not None:
     if os.path.isfile(load_path):
@@ -109,16 +143,15 @@ def train_mental_iql_pond(env_name,
     else:
       print("[Attention]: Did not find checkpoint {}".format(load_path))
 
-  # Load expert data
-  expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
-  print(f'--> Expert memory size: {len(expert_dataset)}')
+  if imitation:
+    # Load expert data
+    expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
+    print(f'--> Expert memory size: {len(expert_dataset)}')
 
-  online_memory_replay = MentalMemory(replay_mem, seed + 1)
+  online_memory_replay = MentalMemory(replay_mem, seed + 1, use_deque=False)
 
   # Setup logging
-  ts_str = datetime.datetime.fromtimestamp(
-      time.time()).strftime("%Y-%m-%d_%H-%M-%S")
-  log_dir = os.path.join(log_dir, env_name, agent_name, ts_str)
+  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
@@ -130,12 +163,12 @@ def train_mental_iql_pond(env_name,
   # track mean reward and scores
   best_eval_returns = -np.inf
 
-  learn_steps = 0
-  NAN = float("nan")
-  N_UPDATE_STEPS = 10
+  explore_steps = 0
+  cnt_evals = 0
+  n_total_epi = 0
 
   for epoch in count():
-    if learn_steps >= max_explore_step:
+    if explore_steps >= max_explore_step:
       print('Finished!')
       return
 
@@ -145,12 +178,9 @@ def train_mental_iql_pond(env_name,
     online_memory_replay.clear()
     for n_epi in count():
       state = env.reset()
-      prev_lat = NAN
-      prev_act = (NAN if agent.actor.is_discrete() else np.zeros(
-          env.action_space.shape))
+      prev_lat, prev_act = agent.prev_latent, agent.prev_action
       episode_reward = 0
       done = False
-
       for episode_step in count():
         with eval_mode(agent):
           # if not begin_learn:
@@ -170,73 +200,50 @@ def train_mental_iql_pond(env_name,
         online_memory_replay.add((state, prev_lat, prev_act, next_state, latent,
                                   action, reward, done_no_lim))
         explore_step_cur += 1
-        if done or online_memory_replay.size() == replay_mem:
+        if done:
           break
 
         state = next_state
 
-      if online_memory_replay.size() < replay_mem:
-        avg_episode_reward += episode_reward
-      else:
-        avg_episode_reward = 0 if n_epi == 0 else avg_episode_reward / n_epi
+      avg_episode_reward += episode_reward
+      if online_memory_replay.size() >= replay_mem:
         break
-    logger.log('train/episode_reward', avg_episode_reward, learn_steps)
-    logger.dump(learn_steps, save=(learn_steps > 0))
-    learn_steps += explore_step_cur
 
-    # #################### prepare expert data
-    expert_traj = expert_dataset.trajectories
-    expert_data = get_expert_batch(agent, expert_traj, num_latent, agent.device)
-    sample_data = online_memory_replay.get_all_samples(agent.device)
+    avg_episode_reward = avg_episode_reward / (n_epi + 1)
+    avg_epi_step = explore_step_cur / (n_epi + 1)
+    n_total_epi += n_epi + 1
 
-    for _ in range(N_UPDATE_STEPS):
-      inds = torch.randperm(online_memory_replay.size(), device=agent.device)
-      for ind_p in inds.split(batch_size):
-        so, spl, spa, sno, sl, sa, sr, sd = (sample_data[0][ind_p],
-                                             sample_data[1][ind_p],
-                                             sample_data[2][ind_p],
-                                             sample_data[3][ind_p],
-                                             sample_data[4][ind_p],
-                                             sample_data[5][ind_p],
-                                             sample_data[6][ind_p],
-                                             sample_data[7][ind_p])
-        sample_batch = (so, spl, spa, sno, sl, sa, sr, sd)
-        ind_e = torch.randperm(len(expert_data[0]),
-                               device=agent.device)[:ind_p.size(0)]
-        eo, epl, epa, eno, el, ea, er, ed = (expert_data[0][ind_e],
-                                             expert_data[1][ind_e],
-                                             expert_data[2][ind_e],
-                                             expert_data[3][ind_e],
-                                             expert_data[4][ind_e],
-                                             expert_data[5][ind_e],
-                                             expert_data[6][ind_e],
-                                             expert_data[7][ind_e])
-        expert_batch = (eo, epl, epa, eno, el, ea, er, ed)
+    logger.log('train/episode', n_total_epi, explore_steps)
+    logger.log('train/episode_reward', avg_episode_reward, explore_steps)
+    logger.log('train/episode_step', avg_epi_step, explore_steps)
+    logger.dump(explore_steps, save=(explore_steps > 0))
+    explore_steps += explore_step_cur
 
-        # IQ-Learn
-        losses = agent.iq_update(sample_batch, expert_batch, logger,
-                                 learn_steps, is_sqil, use_target,
-                                 do_soft_update, method_loss, method_regularize)
+    # #################### update
+    if imitation:
+      # prepare expert data
+      expert_data = get_expert_batch(agent, expert_dataset.trajectories,
+                                     num_latent, agent.device)
+      sample_data = online_memory_replay.get_all_samples(agent.device)
+      losses = step_iq_update(config, agent, sample_data, expert_data, logger,
+                              explore_steps, is_sqil)
+    else:
+      losses = step_sac_update(config, agent, online_memory_replay, logger,
+                               explore_steps)
 
     for key, loss in losses.items():
-      writer.add_scalar(key, loss, global_step=learn_steps)
+      writer.add_scalar("loss/" + key, loss, global_step=explore_steps)
 
-    save(agent,
-         epoch,
-         save_interval,
-         env_name,
-         agent_name,
-         is_sqil,
-         output_dir=output_dir,
-         suffix=output_suffix)
-
-    if (epoch + 1) % eval_epoch_interval == 0:
+    cnt_evals += explore_step_cur
+    if cnt_evals >= eval_interval:
+      cnt_evals = 0
       eval_returns, eval_timesteps = evaluate(agent,
                                               eval_env,
                                               num_episodes=num_episodes)
       returns = np.mean(eval_returns)
-      logger.log('eval/episode_reward', returns, learn_steps)
-      logger.dump(learn_steps, ty='eval')
+      logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
+      logger.log('eval/episode_reward', returns, explore_steps)
+      logger.dump(explore_steps, ty='eval')
 
       if returns > best_eval_returns:
         # Store best eval returns
@@ -247,5 +254,6 @@ def train_mental_iql_pond(env_name,
              env_name,
              agent_name,
              is_sqil,
+             imitation,
              output_dir=output_dir,
              suffix=output_suffix + "_best")

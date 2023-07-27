@@ -26,7 +26,7 @@ def get_dirs(base_dir="",
   os.makedirs(save_dir)
   os.makedirs(log_dir)
 
-  return log_dir, save_dir
+  return log_dir, save_dir, log_dir_root
 
 
 def conv_torch_trajs_2_iql_format(sar_trajectories, path: str):

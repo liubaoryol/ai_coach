@@ -8,10 +8,13 @@ from ai_coach_core.model_learning.IQLearn.utils.atari_wrapper import LazyFrames
 
 class MentalMemory(object):
 
-  def __init__(self, memory_size: int, seed: int = 0) -> None:
+  def __init__(self,
+               memory_size: int,
+               seed: int = 0,
+               use_deque: bool = True) -> None:
     random.seed(seed)
     self.memory_size = memory_size
-    self.buffer = deque(maxlen=self.memory_size)
+    self.buffer = deque(maxlen=self.memory_size) if use_deque else list()
 
   def add(self, experience) -> None:
     'experience: obs, prev_lat, prev_act, next_obs, latent, action'

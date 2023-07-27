@@ -13,3 +13,12 @@ AGENT_TRAIN_FORMAT['miql'] = [
     ('alpha_value', 'TVAL', 'float'),
     ('actor_entropy', 'AENT', 'float')
 ]
+
+AGENT_TRAIN_FORMAT['msac'] = [
+    # ('batch_reward', 'BR', 'float'),
+    ('actor_loss', 'ALOSS', 'float'),
+    ('critic_loss', 'CLOSS', 'float'),
+    ('alpha_loss', 'TLOSS', 'float'),
+    ('alpha_value', 'TVAL', 'float'),
+    ('actor_entropy', 'AENT', 'float')
+]

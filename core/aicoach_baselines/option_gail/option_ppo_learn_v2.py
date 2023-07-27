@@ -3,8 +3,8 @@
 import os
 import torch
 from itertools import count
-from .model.option_ppo import PPO, OptionPPO
-from .model.option_policy import OptionPolicy, Policy
+from .model.option_ppo_v2 import OptionPPOV2, PPOV2
+from .model.option_policy_v2 import OptionPolicyV2, PolicyV2
 from .utils.agent import Sampler
 from .utils.utils import (lr_factor_func, sample_batch, reward_validate,
                           set_seed, env_class_and_demo_fn)
@@ -36,11 +36,11 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
   dim_s, dim_a = env.state_action_size()
 
   if use_option:
-    policy = OptionPolicy(config, dim_s=dim_s, dim_a=dim_a)
-    ppo = OptionPPO(config, policy)
+    policy = OptionPolicyV2(config, dim_s=dim_s, dim_a=dim_a)
+    ppo = OptionPPOV2(config, policy)
   else:
-    policy = Policy(config, dim_s=dim_s, dim_a=dim_a)
-    ppo = PPO(config, policy)
+    policy = PolicyV2(config, dim_s=dim_s, dim_a=dim_a)
+    ppo = PPOV2(config, policy)
 
   sampling_agent = Sampler(seed,
                            env,
@@ -60,10 +60,14 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
     logger.log_train("r-sample-avg", sample_r, explore_step)
     logger.log_train("step-sample-avg", avgsteps, explore_step)
 
-    lr_mult = lr_factor_func(i, n_epoch, 1., 0.)
-    ppo.step(sample_sxar, lr_mult=lr_mult)
-
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
+
+    lr_mult = lr_factor_func(i, n_epoch, 1., 0.)
+    losses = ppo.step(sample_sxar,
+                      lr_mult=lr_mult,
+                      n_step=config.n_update_rounds)
+    logger.log_loss_info(losses, explore_step)
+
     if (i + 1) % 10 == 0:
       info_dict, cs_sample = reward_validate(sampling_agent, policy)
 

@@ -5,36 +5,26 @@ from torch.distributions import Normal
 from aicoach_baselines.option_gail.utils.model_util import (make_module,
                                                             make_module_list,
                                                             make_activation)
+from aicoach_baselines.option_gail.utils.config import Config
 
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 
 
 class MentalPolicy(torch.nn.Module):
 
-  def __init__(self,
-               dim_s,
-               dim_a,
-               dim_c,
-               device,
-               log_std_bounds,
-               is_shared,
-               activation,
-               hidden_policy,
-               hidden_option,
-               gumbel_temperature,
-               bounded_actor=True):
+  def __init__(self, config: Config, dim_s, dim_a, dim_c):
     super(MentalPolicy, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a
     self.dim_c = dim_c
-    self.device = torch.device(device)
-    self.log_std_bounds = log_std_bounds
-    self.is_shared = is_shared
-    self.temperature = gumbel_temperature
-    activation = make_activation(activation)
-    n_hidden_pi = hidden_policy
-    n_hidden_opt = hidden_option
-    self.bounded = bounded_actor
+    self.device = torch.device(config.device)
+    self.log_std_bounds = config.log_std_bounds
+    self.is_shared = config.shared_policy
+    self.temperature = config.gumbel_temperature
+    activation = make_activation(config.activation)
+    n_hidden_pi = config.hidden_policy
+    n_hidden_opt = config.hidden_option
+    self.bounded = config.bounded_actor
 
     if self.is_shared:
       # output prediction p(ct| st, ct-1) with shape (N x ct-1 x ct)
@@ -128,7 +118,7 @@ class MentalPolicy(torch.nn.Module):
 
   def log_prob_option(self, st, ct_1, ct):
     dist = self.option_forward(st, ct_1)
-    return dist.log_prob(ct)
+    return dist.log_prob(ct.squeeze(-1))
 
   def rsample_action(self, st, ct):
     dist = self.action_forward(st, ct)

@@ -3,6 +3,7 @@ import time
 from copy import deepcopy
 from torch.multiprocessing import Process, Pipe, Lock, Value
 from ..model.option_policy import OptionPolicy, MoEPolicy
+from ..model.option_policy_v2 import OptionPolicyV2
 from .state_filter import StateFilter
 from .utils import set_seed
 
@@ -159,10 +160,10 @@ class _Sampler(_SamplerCommon):
     child_q, self.queue = pipe_pair()
     self.procs = [
         Process(target=self.worker,
-                name=f"subproc_{seed}",
-                args=(seed, env, policy, self.state_filter, loop_func,
+                name=f"subproc_{seed + i * 10}",
+                args=(seed + i * 10, env, policy, self.state_filter, loop_func,
                       self.state, self.counter, child_q))
-        for _ in range(n_thread)
+        for i in range(n_thread)
     ]
     self.pids = []
     for p in self.procs:
@@ -215,6 +216,7 @@ class _Sampler(_SamplerCommon):
     set_seed(seed)
 
     env.init(display=False)
+    env.seed(seed)
     with state.get_lock():
       state.value -= 1
 
@@ -274,6 +276,7 @@ class _SamplerSS(_SamplerCommon):
             f"despite n_thread={n_thread}")
     self.env = deepcopy(env)
     self.env.init(display=False)
+    self.env.seed(seed)
     self.policy = deepcopy(policy)
     self.loop_func = loop_func
 
@@ -305,7 +308,7 @@ def Sampler(seed,
             policy,
             use_state_filter: bool = True,
             n_thread=4) -> _SamplerCommon:
-  if isinstance(policy, OptionPolicy):
+  if isinstance(policy, OptionPolicy) or isinstance(policy, OptionPolicyV2):
     loop_func = option_loop
   elif isinstance(policy, MoEPolicy):
     loop_func = moe_loop

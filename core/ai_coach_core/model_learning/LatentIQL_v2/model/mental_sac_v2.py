@@ -8,34 +8,34 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import (soft_update,
                                                               one_hot_w_nan)
 from .mental_policy import MentalPolicy
 from .mental_critic import MentalCritic
+from aicoach_baselines.option_gail.utils.config import Config
 
 one_hot = one_hot_w_nan  # alias
 
 
 class MentalSAC_V2(nn.Module):
 
-  def __init__(self, obs_dim, action_dim, lat_dim, batch_size, device, gamma,
-               critic_tau, critic_lr, init_temp, critic_betas,
-               critic: MentalCritic, policy: MentalPolicy, num_critic_update,
-               num_actor_update, learn_temp, policy_lr, policy_betas, alpha_lr,
-               alpha_betas, clip_grad_val) -> None:
+  def __init__(self, config: Config, obs_dim, action_dim, lat_dim,
+               critic: MentalCritic, policy: MentalPolicy) -> None:
     super().__init__()
 
     self.action_dim = action_dim
     self.obs_dim = obs_dim
     self.lat_dim = lat_dim
-    self.batch_size = batch_size
+    self.batch_size = config.mini_batch_size
 
-    self.device = device
+    self.device = config.device
 
-    self.gamma = gamma
-    self.critic_tau = critic_tau
-    self.clip_grad_val = clip_grad_val
-    self.learn_temp = learn_temp
+    self.gamma = config.gamma
+
+    self.init_temp = config.init_temp
+    self.critic_tau = 0.005
+    self.clip_grad_val = config.clip_grad_val
+    self.learn_temp = config.learn_temp
     self.policy_update_frequency = 1
     self.critic_target_update_frequency = 1
-    self.num_critic_update = num_critic_update
-    self.num_actor_update = num_actor_update
+    self.num_critic_update = config.num_critic_update
+    self.num_actor_update = config.num_actor_update
 
     self.policy = policy.to(self.device)
     self._critic = critic.to(self.device)
@@ -43,20 +43,13 @@ class MentalSAC_V2(nn.Module):
     self.critic_target = copy.deepcopy(self._critic).to(self.device)
     self.critic_target.load_state_dict(self._critic.state_dict())
 
-    self.log_alpha = torch.tensor(np.log(init_temp)).to(self.device)
+    self.log_alpha = torch.tensor(np.log(self.init_temp)).to(self.device)
     self.log_alpha.requires_grad = True
 
     self.target_entropy = -action_dim
 
-    self.policy_optimizer = Adam(self.policy.parameters(),
-                                 lr=policy_lr,
-                                 betas=policy_betas)
-    self.critic_optimizer = Adam(self._critic.parameters(),
-                                 lr=critic_lr,
-                                 betas=critic_betas)
-    self.log_alpha_optimizer = Adam([self.log_alpha],
-                                    lr=alpha_lr,
-                                    betas=alpha_betas)
+    # optimizers
+    self.reset_optimizers(config)
 
     self.to(self.device)
     self.critic_target.train()
@@ -66,6 +59,18 @@ class MentalSAC_V2(nn.Module):
     self.training = training
     self.policy.train(training)
     self._critic.train(training)
+
+  def reset_optimizers(self, config):
+    critic_betas = alpha_betas = policy_betas = [0.9, 0.999]
+    self.policy_optimizer = Adam(self.policy.parameters(),
+                                 lr=config.optimizer_lr_policy,
+                                 betas=policy_betas)
+    self.critic_optimizer = Adam(self._critic.parameters(),
+                                 lr=config.optimizer_lr_critic,
+                                 betas=critic_betas)
+    self.log_alpha_optimizer = Adam([self.log_alpha],
+                                    lr=config.optimizer_lr_alpha,
+                                    betas=alpha_betas)
 
   @property
   def alpha(self):
@@ -178,7 +183,7 @@ class MentalSAC_V2(nn.Module):
     # Optimize the critic
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
-    if self.clip_grad_val is not None:
+    if self.clip_grad_val:
       nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
     self.critic_optimizer.step()
 
@@ -201,7 +206,7 @@ class MentalSAC_V2(nn.Module):
     # optimize the actor
     self.policy_optimizer.zero_grad()
     actor_loss.backward()
-    if self.clip_grad_val is not None:
+    if self.clip_grad_val:
       nn.utils.clip_grad_norm_(self.policy.parameters(), self.clip_grad_val)
     self.policy_optimizer.step()
 

@@ -321,19 +321,8 @@ class GumbelSoftmax(RelaxedOneHotCategorical):
 
 class AbstractActor(nn.Module):
 
-  def __init__(self, obs_dim, action_dim, list_hidden_dims, log_std_bounds):
+  def __init__(self):
     super().__init__()
-
-    output_dim = action_dim
-    # if log_std_bounds is given, assume gaussian(continuous) action actor
-    if log_std_bounds is not None:
-      output_dim = 2 * action_dim
-
-    self.trunk = mlp(obs_dim, output_dim, list_hidden_dims)
-
-    self.apply(weight_init)
-
-    self.log_std_bounds = log_std_bounds
 
   def forward(self, obs):
     raise NotImplementedError
@@ -348,7 +337,7 @@ class AbstractActor(nn.Module):
     raise NotImplementedError
 
   def is_discrete(self):
-    return self.log_std_bounds is None
+    raise NotImplementedError
 
 
 class DiagGaussianActor(AbstractActor):
@@ -359,21 +348,50 @@ class DiagGaussianActor(AbstractActor):
                action_dim,
                list_hidden_dims,
                log_std_bounds,
-               bounded=True):
-    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds)
+               bounded=True,
+               use_nn_logstd=False,
+               clamp_action_logstd=False):
+    super().__init__()
+    self.use_nn_logstd = use_nn_logstd
+    self.clamp_action_logstd = clamp_action_logstd
+
+    output_dim = action_dim
+    if self.use_nn_logstd:
+      output_dim = 2 * action_dim
+    else:
+      self.action_logstd = nn.Parameter(
+          torch.empty(1, action_dim, dtype=torch.float32).fill_(0.))
+
+    self.trunk = mlp(obs_dim, output_dim, list_hidden_dims)
+
+    self.apply(weight_init)
+
+    self.log_std_bounds = log_std_bounds
     self.bounded = bounded
 
   def forward(self, obs):
-    mu, log_std = self.trunk(obs).chunk(2, dim=-1)
+    if self.use_nn_logstd:
+      mu, log_std = self.trunk(obs).chunk(2, dim=-1)
+    else:
+      mu = self.trunk(obs)
+      log_std = self.action_logstd.expand_as(mu)
 
-    # constrain log_std inside [log_std_min, log_std_max]
-    log_std = torch.tanh(log_std)
-    log_std_min, log_std_max = self.log_std_bounds
-    log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
-
+    # clamp logstd
+    if self.clamp_action_logstd:
+      log_std = log_std.clamp(self.log_std_bounds[0], self.log_std_bounds[1])
+    else:
+      # constrain log_std inside [log_std_min, log_std_max]
+      log_std = torch.tanh(log_std)
+      log_std_min, log_std_max = self.log_std_bounds
+      log_std = log_std_min + 0.5 * (log_std_max - log_std_min) * (log_std + 1)
     std = log_std.exp()
 
-    dist = SquashedNormal(mu, std) if self.bounded else pyd.Normal(mu, std)
+    if self.bounded:
+      dist = SquashedNormal(mu, std)
+    else:
+      mu = mu.clamp(-10, 10)
+      dist = pyd.Normal(mu, std)
+
     return dist
 
   def rsample(self, obs):
@@ -389,12 +407,20 @@ class DiagGaussianActor(AbstractActor):
   def exploit(self, obs):
     return self.forward(obs).mean
 
+  def is_discrete(self):
+    return False
+
 
 class DiscreteActor(AbstractActor):
   'cf) https://github.com/openai/spinningup/issues/148 '
 
   def __init__(self, obs_dim, action_dim, list_hidden_dims):
-    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds=None)
+    super().__init__()
+
+    output_dim = action_dim
+    self.trunk = mlp(obs_dim, output_dim, list_hidden_dims)
+
+    self.apply(weight_init)
 
   def forward(self, obs):
     logits = self.trunk(obs)
@@ -426,12 +452,20 @@ class DiscreteActor(AbstractActor):
     'should not be used'
     raise NotImplementedError
 
+  def is_discrete(self):
+    return True
+
 
 class SoftDiscreteActor(AbstractActor):
   'cf) https://github.com/openai/spinningup/issues/148 '
 
   def __init__(self, obs_dim, action_dim, list_hidden_dims, temperature):
-    super().__init__(obs_dim, action_dim, list_hidden_dims, log_std_bounds=None)
+    super().__init__()
+
+    output_dim = action_dim
+    self.trunk = mlp(obs_dim, output_dim, list_hidden_dims)
+
+    self.apply(weight_init)
     self.temperature = torch.tensor(temperature)
 
   def forward(self, obs):
@@ -458,3 +492,6 @@ class SoftDiscreteActor(AbstractActor):
     log_prob = dist.log_prob(action).view(-1, 1)
 
     return action, log_prob
+
+  def is_discrete(self):
+    return True

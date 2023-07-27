@@ -5,8 +5,8 @@ import torch
 from typing import Union
 import matplotlib.pyplot as plt
 from itertools import count
-from .model.option_ppo import OptionPPO, PPO
-from .model.option_gail import OptionGAIL, GAIL
+from .model.option_ppo_v2 import OptionPPOV2
+from .model.option_gail_v2 import OptionGAILV2
 from .utils.utils import (env_class_and_demo_fn, validate, reward_validate,
                           set_seed)
 from .utils.agent import Sampler
@@ -19,26 +19,25 @@ def make_gail(config: Config, dim_s, dim_a):
   use_option = config.use_option
 
   if use_option:
-    gail = OptionGAIL(config, dim_s=dim_s, dim_a=dim_a)
-    ppo = OptionPPO(config, gail.policy)
+    gail = OptionGAILV2(config, dim_s=dim_s, dim_a=dim_a)
+    ppo = OptionPPOV2(config, gail.policy)
   else:
-    gail = GAIL(config, dim_s=dim_s, dim_a=dim_a)
-    ppo = PPO(config, gail.policy)
+    raise NotImplementedError()
   return gail, ppo
 
 
-def train_g(ppo: Union[OptionPPO, PPO], sample_sxar, factor_lr, n_step=10):
-  if isinstance(ppo, OptionPPO):
-    ppo.step(sample_sxar, lr_mult=factor_lr, n_step=n_step)
+def train_g(ppo: OptionPPOV2, sample_sxar, factor_lr, n_step=10):
+  if isinstance(ppo, OptionPPOV2):
+    return ppo.step(sample_sxar, lr_mult=factor_lr, n_step=n_step)
   else:
-    ppo.step(sample_sxar, lr_mult=factor_lr, n_step=n_step)
+    raise NotImplementedError()
 
 
-def train_d(gail: Union[OptionGAIL, GAIL], sample_sxar, demo_sxar, n_step=10):
+def train_d(gail: OptionGAILV2, sample_sxar, demo_sxar, n_step=10):
   return gail.step(sample_sxar, demo_sxar, n_step=n_step)
 
 
-def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array):
+def sample_batch(gail: OptionGAILV2, agent, n_sample, demo_sa_array):
   demo_sa_in = agent.filter_demo(demo_sa_array)
   sample_sxar_in = agent.collect(gail.policy.state_dict(),
                                  n_sample,
@@ -47,6 +46,7 @@ def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array):
   demo_sxar, demo_rsum = gail.convert_demo(demo_sa_in)
   sample_avgstep = (sum([sxar[-1].size(0)
                          for sxar in sample_sxar]) / len(sample_sxar))
+
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
 
 
@@ -134,11 +134,15 @@ def learn(config: Config,
     print(f"{explore_step}: r-sample-avg={sample_r}, d-demo-avg={demo_r}, "
           f"step-sample-avg={sample_avgstep} ; {msg}")
 
-    train_d(gail, sample_sxar, demo_sxar)
-    # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
-    train_g(ppo, sample_sxar, factor_lr=1.)
-
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
+
+    d_losses = train_d(gail, sample_sxar, demo_sxar)
+    # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
+    g_losses = train_g(ppo, sample_sxar, factor_lr=1.)
+
+    logger.log_loss_info(d_losses, explore_step)
+    logger.log_loss_info(g_losses, explore_step)
+
     if (i + 1) % 10 == 0:
       v_l, cs_demo = validate(gail.policy,
                               [(tr[0], tr[-2]) for tr in demo_sxar])

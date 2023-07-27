@@ -9,7 +9,7 @@ default_config = Config({
     "n_thread": 1,
     "n_sample": 4096,
     "n_epoch": 5000,
-    "max_explore_step": 5e5,
+    "max_explore_step": 5e4,
     "base_dir": os.path.dirname(__file__),
 
     # global task config
@@ -19,21 +19,22 @@ default_config = Config({
 
     # global policy config
     "activation": "relu",
-    "hidden_policy": (64, 64),  # per option
+    "hidden_policy": (256, 256),
     "shared_policy": False,
-    "log_clamp_policy": (-5., 2.),
-    "optimizer_lr_policy": 3.e-5,
+    "log_std_bounds": (-5., 2.),
+    "optimizer_lr_policy": 3.e-4,
     "dim_c": 4,
     "use_option": True,
-    "hidden_option": (64, 64),  # per option
-    "optimizer_lr_option": 3.e-5,
+    "hidden_option": (256, 256),
+    "optimizer_lr_option": 3.e-4,
+    "clip_grad_val": 0.0,
 
     # ppo config
-    "hidden_critic": (64, 64),  # per option
+    "hidden_critic": (256, 256),
     "shared_critic": False,
     "train_policy": True,
     "train_option": True,
-    "optimizer_lr_critic": 3.e-5,
+    "optimizer_lr_critic": 3.e-4,
     "use_gae": True,
     "gamma": 0.99,
     "gae_tau": 0.95,
@@ -56,14 +57,32 @@ default_config = Config({
     "use_d_info_gail": False,
 
     # miql/iql config
+    "iql_agent_name": "sac",
     "bounded_actor": True,
     "method_loss": "v0",
     "n_traj": 1,
     "method_regularize": True,
     "use_prev_action": False,
-    "optimizer_lr_alpha": 3.e-5,
+    "optimizer_lr_alpha": 3.e-4,
     "num_critic_update": 1,
     "num_actor_update": 1,
+    "gumbel_temperature": 1.0,
+    "use_prev_action_dim": True,
+    "use_prev_option_dim": True,
+    "miql_stream": False,
+    "demo_latent_infer_interval": 4096,
+    "n_update_rounds": 10,
+    "separate_policy_update": False,
+    "init_temp": 1e-2,
+    "learn_temp": False,
+    "thinker_clip_grad_val": 0.0,
+
+    # gail debug
+    "gail_option_entropy_orig": True,
+    "gail_option_sample_orig": True,
+    "gail_orig_log_opt": True,
+    "clamp_action_logstd": True,  # True: use clamp() / False: use tanh
+    "use_nn_logstd": False,
 })
 
 mujoco_config = default_config.copy()

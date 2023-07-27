@@ -9,8 +9,6 @@ from ai_coach_core.latent_inference.decoding import most_probable_sequence_v2
 from ai_coach_core.model_learning.IQLearn.utils.utils import eval_mode
 from ..agent.mental_sac import MentalSAC
 
-NAN = float("nan")
-
 
 def conv_trajectories_2_iql_format(sax_trajectories: Sequence,
                                    cb_conv_action_to_idx: Callable[[Any], int],
@@ -59,13 +57,17 @@ def save(agent: MentalSAC,
          env_name,
          agent_name,
          is_sqil: bool,
+         imitate: bool,
          output_dir='results',
          suffix=""):
   if epoch % save_interval == 0:
-    if is_sqil:
-      name = f'sqil_{env_name}'
+    if imitate:
+      if is_sqil:
+        name = f'sqil_{env_name}'
+      else:
+        name = f'iq_{env_name}'
     else:
-      name = f'iq_{env_name}'
+      name = f'rl_{env_name}'
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)
@@ -123,9 +125,7 @@ def evaluate(agent: MentalSAC, env: Env, num_episodes=10, vis=True):
 
   while len(total_returns) < num_episodes:
     state = env.reset()
-    prev_latent = NAN
-    prev_act = (NAN if agent.actor.is_discrete() else np.zeros(
-        env.action_space.shape))
+    prev_latent, prev_act = agent.prev_latent, agent.prev_action
     done = False
 
     with eval_mode(agent):
@@ -192,9 +192,7 @@ def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
   mental_states = infer_mental_states(agent, expert_traj, num_latent)
   num_samples = len(expert_traj["states"])
 
-  prev_latent = NAN
-  prev_action = (NAN if agent.actor.is_discrete() else np.zeros_like(
-      expert_traj["actions"][0][0]))
+  prev_latent, prev_action = agent.prev_latent, agent.prev_action
   batch_obs = []
   batch_prev_lat = []
   batch_prev_act = []
@@ -245,3 +243,16 @@ def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
 
   return (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs,
           batch_latent, batch_action, batch_reward, batch_done)
+
+
+def get_samples(batch_size, dataset):
+  indexes = np.random.choice(np.arange(len(dataset[0])),
+                             size=batch_size,
+                             replace=False)
+
+  eo, epl, epa, eno, el, ea, er, ed = (dataset[0][indexes], dataset[1][indexes],
+                                       dataset[2][indexes], dataset[3][indexes],
+                                       dataset[4][indexes], dataset[5][indexes],
+                                       dataset[6][indexes], dataset[7][indexes])
+  expert_batch = (eo, epl, epa, eno, el, ea, er, ed)
+  return expert_batch
