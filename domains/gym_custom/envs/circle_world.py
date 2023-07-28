@@ -86,6 +86,7 @@ class CircleWorld(gym.Env):
 if __name__ == "__main__":
   env = CircleWorld()
 
+  # to see env.reset() works as intended
   canvas_sz = 300
   canvas = np.ones((canvas_sz, canvas_sz, 3), dtype=np.uint8) * 255
 
