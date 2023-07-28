@@ -8,6 +8,10 @@ register(id='circleworld-v0',
          entry_point='gym_custom.envs:CircleWorld',
          max_episode_steps=50)
 
+register(id='multigoals2d-v0',
+         entry_point='gym_custom.envs:MultiGoals2D',
+         max_episode_steps=200)
+
 register(id='AntPush-v0',
          entry_point='gym_custom.envs.ant_maze_env_ex:AntPushEnv_v0',
          max_episode_steps=1000)

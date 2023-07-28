@@ -13,5 +13,6 @@ setup(name="ai_coach_domain",
       packages=find_packages(exclude=["tests", "tests.*"]),
       python_requires='>=3.8',
       install_requires=[
-          'numpy', 'matplotlib', 'click', 'mujoco-py<2.2,>=2.1', 'gym'
+          'numpy', 'matplotlib', 'click', 'mujoco-py<2.2,>=2.1', 'gym',
+          'opencv-python'
       ])
