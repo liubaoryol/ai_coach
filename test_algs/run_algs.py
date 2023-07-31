@@ -77,18 +77,18 @@ def run_alg(config):
   elif alg_name == "oppov2":
     from aicoach_baselines.option_gail.option_ppo_learn_v2 import learn
     learn(config, log_dir, output_dir, msg)
-  elif alg_name == "miql" and config.miql_stream:
-    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
-        train_mental_iql_stream)
-    train_mental_iql_stream(config, path_iq_data, num_traj, log_dir, output_dir,
-                            log_interval, eval_interval)
-  elif alg_name == "miql" and not config.miql_stream:
-    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_pond import (
-        train_mental_iql_pond)
-    train_mental_iql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
-                          log_interval, eval_interval)
-  elif alg_name == "miqlv2":
-    from ai_coach_core.model_learning.LatentIQL_v2.train_mental_iql_v2 import (
+  elif alg_name == "oiql" and config.oiql_stream:
+    from ai_coach_core.model_learning.OptionIQL.train_oiql_stream import (
+        train_oiql_stream)
+    train_oiql_stream(config, path_iq_data, num_traj, log_dir, output_dir,
+                      log_interval, eval_interval)
+  elif alg_name == "oiql" and not config.oiql_stream:
+    from ai_coach_core.model_learning.OptionIQL.train_oiql_pond import (
+        train_oiql_pond)
+    train_oiql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
+                    log_interval, eval_interval)
+  elif alg_name == "oiqlv2":
+    from ai_coach_core.model_learning.OptionIQL_v2.train_oiql_v2 import (
         learn)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "iql":
@@ -98,16 +98,14 @@ def run_alg(config):
   elif alg_name == "sac":
     from ai_coach_core.model_learning.IQLearn.iql import run_sac
     run_sac(config, log_dir, output_dir, log_interval, eval_interval)
-  elif alg_name == "msac" and config.miql_stream:
-    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_stream import (
-        train_mental_sac_stream)
-    train_mental_sac_stream(config, log_dir, output_dir, log_interval,
-                            eval_interval)
-  elif alg_name == "msac" and not config.miql_stream:
-    from ai_coach_core.model_learning.LatentIQL.train_mental_iql_pond import (
-        train_mental_sac_pond)
-    train_mental_sac_pond(config, log_dir, output_dir, log_interval,
-                          eval_interval)
+  elif alg_name == "osac" and config.oiql_stream:
+    from ai_coach_core.model_learning.OptionIQL.train_oiql_stream import (
+        train_osac_stream)
+    train_osac_stream(config, log_dir, output_dir, log_interval, eval_interval)
+  elif alg_name == "osac" and not config.oiql_stream:
+    from ai_coach_core.model_learning.OptionIQL.train_oiql_pond import (
+        train_osac_pond)
+    train_osac_pond(config, log_dir, output_dir, log_interval, eval_interval)
   elif alg_name[:3] == "sb3":
     from sb3_algs import sb3_run
     sb3_run(config, log_dir, output_dir, log_interval, eval_interval,
@@ -158,7 +156,7 @@ if __name__ == "__main__":
     config.hidden_critic = (128, 128)
     config.log_std_bounds = (-20., -2.)
 
-  if config.alg_name in ["obc", "ogail", "ogailv2", "oppo", "oppov2", "miqlv2"]:
+  if config.alg_name in ["obc", "ogail", "ogailv2", "oppo", "oppov2", "oiqlv2"]:
     if config.use_option:
       dim_c = config.dim_c
       hp1, hp2 = config.hidden_policy

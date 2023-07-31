@@ -56,7 +56,7 @@ default_config = Config({
     "optimizer_lr_discriminator": 3.e-4,
     "use_d_info_gail": False,
 
-    # miql/iql config
+    # oiql/iql config
     "iql_agent_name": "sac",
     "bounded_actor": True,
     "method_loss": "v0",
@@ -69,7 +69,7 @@ default_config = Config({
     "gumbel_temperature": 1.0,
     "use_prev_action_dim": True,
     "use_prev_option_dim": True,
-    "miql_stream": False,
+    "oiql_stream": False,
     "demo_latent_infer_interval": 4096,
     "n_update_rounds": 10,
     "separate_policy_update": False,

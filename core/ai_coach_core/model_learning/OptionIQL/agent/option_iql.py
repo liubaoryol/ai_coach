@@ -3,13 +3,15 @@ import torch.nn as nn
 from ai_coach_core.model_learning.IQLearn.utils.utils import (average_dicts,
                                                               soft_update,
                                                               hard_update)
-from .mental_sac_v2 import MentalSAC_V2
-from ai_coach_core.model_learning.LatentIQL.helper.utils import (
-    get_concat_samples)
-from ai_coach_core.model_learning.LatentIQL.helper.iq import iq_loss
+from .option_sac import OptionSAC
+from ..helper.utils import get_concat_samples
+from ..helper.iq import iq_loss
+import time
+
+DEBUG_TIME = True
 
 
-class MentalIQL_V2(MentalSAC_V2):
+class OptionIQL(OptionSAC):
 
   def minimal_iq_update(self,
                         policy_batch,
@@ -82,7 +84,7 @@ class MentalIQL_V2(MentalSAC_V2):
       critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V,
                                        batch, method_loss, method_regularize)
 
-    # logger.log_train('critic_loss', critic_loss, step)
+    # logger.log('train/critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -103,6 +105,7 @@ class MentalIQL_V2(MentalSAC_V2):
                 do_soft_update=False,
                 method_loss="value",
                 method_regularize=True):
+
     for _ in range(self.num_critic_update):
       losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
                                      is_sqil, use_target, method_loss,
@@ -112,7 +115,7 @@ class MentalIQL_V2(MentalSAC_V2):
     vdice_actor = False
     offline = False
 
-    if self.policy:
+    if self.actor:
       if not vdice_actor:
 
         if offline:

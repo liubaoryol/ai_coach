@@ -7,15 +7,15 @@ from torch.optim import Adam
 from ai_coach_core.model_learning.IQLearn.utils.utils import (soft_update,
                                                               one_hot,
                                                               one_hot_w_nan)
-from .mental_models import AbstractMentalActor, AbstractMentalThinker
+from .option_models import AbstractOptionActor, AbstractOptionThinker
 from aicoach_baselines.option_gail.utils.config import Config
 
 
-class MentalSAC(object):
+class OptionSAC(object):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim, discrete_obs,
-               critic: nn.Module, actor: AbstractMentalActor,
-               thinker: AbstractMentalThinker):
+               critic: nn.Module, actor: AbstractOptionActor,
+               thinker: AbstractOptionThinker):
     self.gamma = config.gamma
     self.batch_size = config.mini_batch_size
     self.discrete_obs = discrete_obs

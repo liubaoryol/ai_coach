@@ -5,10 +5,10 @@ from aicoach_baselines.option_gail.utils.model_util import (make_module,
 from aicoach_baselines.option_gail.utils.config import Config
 
 
-class MentalCritic(torch.nn.Module):
+class OptionCritic(torch.nn.Module):
 
   def __init__(self, config: Config, dim_s, dim_a, dim_c):
-    super(MentalCritic, self).__init__()
+    super(OptionCritic, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a
     self.dim_c = dim_c

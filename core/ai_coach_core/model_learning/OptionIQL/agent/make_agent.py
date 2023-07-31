@@ -1,13 +1,13 @@
 from typing import Type
 import gym
 from gym.spaces import Discrete, Box
-from .mental_models import (SoftDiscreteMentalActor, DiagGaussianMentalActor,
-                            SoftDiscreteMentalThinker, MentalDoubleQCritic)
-from .mental_iql import MentalIQL, MentalSAC
+from .option_models import (SoftDiscreteOptionActor, DiagGaussianOptionActor,
+                            SoftDiscreteOptionThinker, OptionDoubleQCritic)
+from .option_iql import OptionIQL, OptionSAC
 from aicoach_baselines.option_gail.utils.config import Config
 
 
-def make_miql_agent(config: Config, env: gym.Env):
+def make_oiql_agent(config: Config, env: gym.Env):
   'discrete observation may not work well'
 
   latent_dim = config.dim_c
@@ -25,21 +25,21 @@ def make_miql_agent(config: Config, env: gym.Env):
 
   if isinstance(env.action_space, Discrete):
     action_dim = env.action_space.n
-    actor = SoftDiscreteMentalActor(config, obs_dim, action_dim, latent_dim)
+    actor = SoftDiscreteOptionActor(config, obs_dim, action_dim, latent_dim)
   else:
     action_dim = env.action_space.shape[0]
-    actor = DiagGaussianMentalActor(config, obs_dim, action_dim, latent_dim)
+    actor = DiagGaussianOptionActor(config, obs_dim, action_dim, latent_dim)
 
-  thinker = SoftDiscreteMentalThinker(config, obs_dim, action_dim, latent_dim)
-  critic = MentalDoubleQCritic(config, obs_dim, action_dim, latent_dim)
+  thinker = SoftDiscreteOptionThinker(config, obs_dim, action_dim, latent_dim)
+  critic = OptionDoubleQCritic(config, obs_dim, action_dim, latent_dim)
 
-  agent = MentalIQL(config, obs_dim, action_dim, latent_dim, discrete_obs,
+  agent = OptionIQL(config, obs_dim, action_dim, latent_dim, discrete_obs,
                     critic, actor, thinker)
 
   return agent
 
 
-def make_msac_agent(config: Config, env: gym.Env):
+def make_osac_agent(config: Config, env: gym.Env):
   'discrete observation may not work well'
 
   latent_dim = config.dim_c
@@ -57,15 +57,15 @@ def make_msac_agent(config: Config, env: gym.Env):
 
   if isinstance(env.action_space, Discrete):
     action_dim = env.action_space.n
-    actor = SoftDiscreteMentalActor(config, obs_dim, action_dim, latent_dim)
+    actor = SoftDiscreteOptionActor(config, obs_dim, action_dim, latent_dim)
   else:
     action_dim = env.action_space.shape[0]
-    actor = DiagGaussianMentalActor(config, obs_dim, action_dim, latent_dim)
+    actor = DiagGaussianOptionActor(config, obs_dim, action_dim, latent_dim)
 
-  thinker = SoftDiscreteMentalThinker(config, obs_dim, action_dim, latent_dim)
-  critic = MentalDoubleQCritic(config, obs_dim, action_dim, latent_dim)
+  thinker = SoftDiscreteOptionThinker(config, obs_dim, action_dim, latent_dim)
+  critic = OptionDoubleQCritic(config, obs_dim, action_dim, latent_dim)
 
-  agent = MentalSAC(config, obs_dim, action_dim, latent_dim, discrete_obs,
+  agent = OptionSAC(config, obs_dim, action_dim, latent_dim, discrete_obs,
                     critic, actor, thinker)
 
   return agent

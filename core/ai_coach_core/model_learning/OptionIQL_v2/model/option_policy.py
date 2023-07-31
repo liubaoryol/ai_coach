@@ -10,10 +10,10 @@ from aicoach_baselines.option_gail.utils.config import Config
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 
 
-class MentalPolicy(torch.nn.Module):
+class OptionPolicy(torch.nn.Module):
 
   def __init__(self, config: Config, dim_s, dim_a, dim_c):
-    super(MentalPolicy, self).__init__()
+    super(OptionPolicy, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a
     self.dim_c = dim_c

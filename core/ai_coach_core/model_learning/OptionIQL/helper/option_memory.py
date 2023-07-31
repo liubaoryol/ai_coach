@@ -6,7 +6,7 @@ import torch
 from ai_coach_core.model_learning.IQLearn.utils.atari_wrapper import LazyFrames
 
 
-class MentalMemory(object):
+class OptionMemory(object):
 
   def __init__(self,
                memory_size: int,

@@ -8,37 +8,37 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, eval_mode
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     ExpertDataset)
 from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
-from .agent.make_agent import make_miql_agent, make_msac_agent
-from .agent.mental_iql import MentalIQL
-from .agent.mental_sac import MentalSAC
-from .helper.mental_memory import MentalMemory
+from .agent.make_agent import make_oiql_agent, make_osac_agent
+from .agent.option_iql import OptionIQL
+from .agent.option_sac import OptionSAC
+from .helper.option_memory import OptionMemory
 from .helper.utils import get_expert_batch, evaluate, save, get_samples
 from aicoach_baselines.option_gail.utils.config import Config
 
 
-def train_mental_sac_pond(config: Config,
-                          log_dir,
-                          output_dir,
-                          log_interval=500,
-                          eval_interval=5000,
-                          env_kwargs={}):
-  return trainer_impl(config, None, None, log_dir, output_dir, "msac",
+def train_osac_pond(config: Config,
+                    log_dir,
+                    output_dir,
+                    log_interval=500,
+                    eval_interval=5000,
+                    env_kwargs={}):
+  return trainer_impl(config, None, None, log_dir, output_dir, "osac",
                       log_interval, eval_interval, env_kwargs)
 
 
-def train_mental_iql_pond(config: Config,
-                          demo_path,
-                          num_trajs,
-                          log_dir,
-                          output_dir,
-                          log_interval=500,
-                          eval_interval=5000,
-                          env_kwargs={}):
-  return trainer_impl(config, demo_path, num_trajs, log_dir, output_dir, "miql",
+def train_oiql_pond(config: Config,
+                    demo_path,
+                    num_trajs,
+                    log_dir,
+                    output_dir,
+                    log_interval=500,
+                    eval_interval=5000,
+                    env_kwargs={}):
+  return trainer_impl(config, demo_path, num_trajs, log_dir, output_dir, "oiql",
                       log_interval, eval_interval, env_kwargs)
 
 
-def step_iq_update(config: Config, agent: MentalIQL, sample_data, expert_data,
+def step_iq_update(config: Config, agent: OptionIQL, sample_data, expert_data,
                    logger, explore_steps, is_sqil):
   use_target = True
   do_soft_update = True
@@ -67,8 +67,8 @@ def step_iq_update(config: Config, agent: MentalIQL, sample_data, expert_data,
   return losses
 
 
-def step_sac_update(config: Config, agent: MentalSAC,
-                    online_memory_replay: MentalMemory, logger, explore_steps):
+def step_sac_update(config: Config, agent: OptionSAC,
+                    online_memory_replay: OptionMemory, logger, explore_steps):
   # #################### update
   # agent.reset_optimizers(config)
   for dummy_i in range(config.n_update_rounds):
@@ -97,11 +97,11 @@ def trainer_impl(config: Config,
   load_path = None
   is_sqil = False
 
-  imitation = (agent_name == "miql")
+  imitation = (agent_name == "oiql")
   if imitation:
-    fn_make_agent = make_miql_agent
-  elif agent_name == "msac":
-    fn_make_agent = make_msac_agent
+    fn_make_agent = make_oiql_agent
+  elif agent_name == "osac":
+    fn_make_agent = make_osac_agent
   else:
     raise NotImplementedError
 
@@ -148,7 +148,7 @@ def trainer_impl(config: Config,
     expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
     print(f'--> Expert memory size: {len(expert_dataset)}')
 
-  online_memory_replay = MentalMemory(replay_mem, seed + 1, use_deque=False)
+  online_memory_replay = OptionMemory(replay_mem, seed + 1, use_deque=False)
 
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)

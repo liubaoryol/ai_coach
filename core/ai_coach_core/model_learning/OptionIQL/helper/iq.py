@@ -4,11 +4,11 @@ Copyright 2022 Div Garg. All rights reserved.
 Standalone IQ-Learn algorithm. See LICENSE for licensing terms.
 """
 import torch
-from ..agent.mental_sac import MentalSAC
+from ..agent.option_sac import OptionSAC
 
 
 # Full IQ-Learn objective with other divergences and options
-def iq_loss(agent: MentalSAC,
+def iq_loss(agent: OptionSAC,
             current_Q,
             current_v,
             next_v,

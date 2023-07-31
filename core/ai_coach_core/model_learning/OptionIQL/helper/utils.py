@@ -7,7 +7,7 @@ import numpy as np
 from gym import Env
 from ai_coach_core.latent_inference.decoding import most_probable_sequence_v2
 from ai_coach_core.model_learning.IQLearn.utils.utils import eval_mode
-from ..agent.mental_sac import MentalSAC
+from ..agent.option_sac import OptionSAC
 
 
 def conv_trajectories_2_iql_format(sax_trajectories: Sequence,
@@ -51,7 +51,7 @@ def conv_trajectories_2_iql_format(sax_trajectories: Sequence,
     pickle.dump(expert_trajs, f)
 
 
-def save(agent: MentalSAC,
+def save(agent: OptionSAC,
          epoch,
          save_interval,
          env_name,
@@ -111,7 +111,7 @@ def get_concat_samples(policy_batch, expert_batch, is_sqil: bool):
           batch_latent, batch_action, batch_reward, batch_done, is_expert)
 
 
-def evaluate(agent: MentalSAC, env: Env, num_episodes=10, vis=True):
+def evaluate(agent: OptionSAC, env: Env, num_episodes=10, vis=True):
   """Evaluates the policy.
     Args:
       actor: A policy to evaluate.
@@ -146,7 +146,7 @@ def evaluate(agent: MentalSAC, env: Env, num_episodes=10, vis=True):
   return total_returns, total_timesteps
 
 
-def infer_mental_states(agent: MentalSAC, expert_traj, num_latent):
+def infer_mental_states(agent: OptionSAC, expert_traj, num_latent):
   num_samples = len(expert_traj["states"])
 
   def fit_shape_2_latent(val):
@@ -188,7 +188,7 @@ def infer_mental_states(agent: MentalSAC, expert_traj, num_latent):
   return mental_states
 
 
-def get_expert_batch(agent: MentalSAC, expert_traj, num_latent, device):
+def get_expert_batch(agent: OptionSAC, expert_traj, num_latent, device):
   mental_states = infer_mental_states(agent, expert_traj, num_latent)
   num_samples = len(expert_traj["states"])
 
