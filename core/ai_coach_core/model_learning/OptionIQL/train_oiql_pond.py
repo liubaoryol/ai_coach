@@ -97,9 +97,11 @@ def trainer_impl(config: Config,
   load_path = None
   is_sqil = False
 
+  alg_type = 'rl'
   imitation = (agent_name == "oiql")
   if imitation:
     fn_make_agent = make_oiql_agent
+    alg_type = 'sqil' if is_sqil else 'iq'
   elif agent_name == "osac":
     fn_make_agent = make_osac_agent
   else:
@@ -253,7 +255,6 @@ def trainer_impl(config: Config,
              1,
              env_name,
              agent_name,
-             is_sqil,
-             imitation,
+             alg_type,
              output_dir=output_dir,
              suffix=output_suffix + "_best")

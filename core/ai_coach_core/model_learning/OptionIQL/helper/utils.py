@@ -56,18 +56,11 @@ def save(agent: OptionSAC,
          save_interval,
          env_name,
          agent_name,
-         is_sqil: bool,
-         imitate: bool,
+         alg_type: str,
          output_dir='results',
          suffix=""):
   if epoch % save_interval == 0:
-    if imitate:
-      if is_sqil:
-        name = f'sqil_{env_name}'
-      else:
-        name = f'iq_{env_name}'
-    else:
-      name = f'rl_{env_name}'
+    name = f'{alg_type}_{env_name}'
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)
