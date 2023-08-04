@@ -3,8 +3,6 @@ import numpy as np
 import random
 import torch
 
-from ai_coach_core.model_learning.IQLearn.utils.atari_wrapper import LazyFrames
-
 
 class OptionMemory(object):
 
@@ -52,46 +50,14 @@ class OptionMemory(object):
     else:
       batch = self.sample(batch_size, False)
 
-    (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs, batch_latent,
-     batch_action, batch_reward, batch_done) = zip(*batch)
+    n_batch = len(batch)
+    vec_batch_items = zip(*batch)
 
-    n_batch = len(batch_obs)
-
-    # Scale obs for atari. TODO: Use flags
-    if isinstance(batch_obs[0], LazyFrames):
-      # Use lazyframes for improved memory storage (same as original DQN)
-      batch_obs = np.array(batch_obs) / 255.0
-    if isinstance(batch_next_obs[0], LazyFrames):
-      batch_next_obs = np.array(batch_next_obs) / 255.0
-    batch_obs = np.array(batch_obs)
-    batch_next_obs = np.array(batch_next_obs)
-    batch_action = np.array(batch_action)
-    batch_prev_lat = np.array(batch_prev_lat)
-    batch_prev_act = np.array(batch_prev_act)
-    batch_latent = np.array(batch_latent)
-
-    batch_obs = torch.as_tensor(batch_obs, dtype=torch.float,
-                                device=device).reshape(n_batch, -1)
-    batch_next_obs = torch.as_tensor(batch_next_obs,
-                                     dtype=torch.float,
-                                     device=device).reshape(n_batch, -1)
-    batch_action = torch.as_tensor(batch_action,
+    list_batch_torch_items = []
+    for batch_item in vec_batch_items:
+      torch_item = torch.as_tensor(np.array(batch_item),
                                    dtype=torch.float,
                                    device=device).reshape(n_batch, -1)
-    batch_prev_lat = torch.as_tensor(batch_prev_lat,
-                                     dtype=torch.float,
-                                     device=device).reshape(n_batch, -1)
-    batch_prev_act = torch.as_tensor(batch_prev_act,
-                                     dtype=torch.float,
-                                     device=device).reshape(n_batch, -1)
-    batch_latent = torch.as_tensor(batch_latent,
-                                   dtype=torch.float,
-                                   device=device).reshape(n_batch, -1)
-    batch_reward = torch.as_tensor(batch_reward,
-                                   dtype=torch.float,
-                                   device=device).reshape(n_batch, -1)
-    batch_done = torch.as_tensor(batch_done, dtype=torch.float,
-                                 device=device).reshape(n_batch, -1)
+      list_batch_torch_items.append(torch_item)
 
-    return (batch_obs, batch_prev_lat, batch_prev_act, batch_next_obs,
-            batch_latent, batch_action, batch_reward, batch_done)
+    return list_batch_torch_items
