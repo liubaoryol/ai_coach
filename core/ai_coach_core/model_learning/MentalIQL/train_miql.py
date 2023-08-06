@@ -111,22 +111,24 @@ def train(config: Config,
   expert_data = None
 
   for epoch in count():
-    state = env.reset()
-    prev_lat, prev_act = agent.prev_latent, agent.prev_action
     episode_reward = 0
     done = False
+
+    state = env.reset()
+    prev_lat, prev_act = agent.PREV_LATENT, agent.PREV_ACTION
+    with eval_mode(agent):
+      latent = agent.choose_mental_state(state, prev_lat, sample=True)
 
     for episode_step in count():
       with eval_mode(agent):
         # if not begin_learn:
         #   action = env.action_space.sample()
         # else:
-        latent, action = agent.choose_action(state,
-                                             prev_lat,
-                                             prev_act,
-                                             sample=True)
+        action = agent.choose_action(state, latent, sample=True)
 
-      next_state, reward, done, info = env.step(action)
+        next_state, reward, done, info = env.step(action)
+        next_latent = agent.choose_mental_state(next_state, latent, sample=True)
+
       episode_reward += reward
 
       if learn_steps % eval_interval == 0 and begin_learn:
@@ -156,8 +158,8 @@ def train(config: Config,
       done_no_lim = done
       if info.get('TimeLimit.truncated', False):
         done_no_lim = 0
-      online_memory_replay.add((state, prev_lat, prev_act, next_state, latent,
-                                action, reward, done_no_lim))
+      online_memory_replay.add((prev_lat, prev_act, state, latent, action,
+                                next_state, next_latent, reward, done_no_lim))
 
       learn_steps += 1
       if online_memory_replay.size() >= initial_mem:
@@ -195,6 +197,9 @@ def train(config: Config,
       if done:
         break
       state = next_state
+      prev_lat = latent
+      prev_act = action
+      latent = next_latent
 
     rewards_window.append(episode_reward)
     epi_step_window.append(episode_step + 1)

@@ -88,12 +88,11 @@ def run_alg(config):
     train_oiql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
                     log_interval, eval_interval)
   elif alg_name == "oiqlv2":
-    from ai_coach_core.model_learning.OptionIQL_v2.train_oiql_v2 import (
-        learn)
+    from ai_coach_core.model_learning.OptionIQL_v2.train_oiql_v2 import (learn)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "iql":
     from ai_coach_core.model_learning.IQLearn.iql import run_iql
-    run_iql(config, log_dir, output_dir, path_iq_data, num_traj, log_interval,
+    run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
             eval_interval)
   elif alg_name == "sac":
     from ai_coach_core.model_learning.IQLearn.iql import run_sac

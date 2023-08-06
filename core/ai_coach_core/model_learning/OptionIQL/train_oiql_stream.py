@@ -11,7 +11,8 @@ from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
 from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
 from .agent.make_agent import make_oiql_agent, make_osac_agent
 from .helper.option_memory import OptionMemory
-from .helper.utils import get_expert_batch, evaluate, save, get_samples
+from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
+                           infer_mental_states)
 from aicoach_baselines.option_gail.utils.config import Config
 
 
@@ -144,7 +145,7 @@ def trainer_impl(config: Config,
 
   for epoch in count():
     state = env.reset()
-    prev_lat, prev_act = agent.prev_latent, agent.prev_action
+    prev_lat, prev_act = agent.PREV_LATENT, agent.PREV_ACTION
     episode_reward = 0
     done = False
 
@@ -207,8 +208,16 @@ def trainer_impl(config: Config,
           # infer mental states of expert data
           if (expert_data is None
               or learn_steps % config.demo_latent_infer_interval == 0):
-            expert_data = get_expert_batch(agent, expert_dataset.trajectories,
-                                           num_latent, agent.device)
+            inferred_latents = infer_mental_states(agent,
+                                                   expert_dataset.trajectories,
+                                                   num_latent)
+            exb = get_expert_batch(expert_dataset.trajectories,
+                                   inferred_latents, agent.device,
+                                   agent.PREV_LATENT, agent.PREV_ACTION)
+            expert_data = (exb["states"], exb["prev_latents"],
+                           exb["prev_actions"], exb["next_states"],
+                           exb["latents"], exb["actions"], exb["rewards"],
+                           exb["dones"])
 
           expert_batch = get_samples(batch_size, expert_data)
           policy_batch = online_memory_replay.get_samples(
@@ -230,6 +239,8 @@ def trainer_impl(config: Config,
       if done:
         break
       state = next_state
+      prev_lat = latent
+      prev_act = action
 
     rewards_window.append(episode_reward)
     epi_step_window.append(episode_step + 1)

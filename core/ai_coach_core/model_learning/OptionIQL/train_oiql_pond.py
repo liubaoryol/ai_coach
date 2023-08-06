@@ -12,7 +12,8 @@ from .agent.make_agent import make_oiql_agent, make_osac_agent
 from .agent.option_iql import OptionIQL
 from .agent.option_sac import OptionSAC
 from .helper.option_memory import OptionMemory
-from .helper.utils import get_expert_batch, evaluate, save, get_samples
+from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
+                           infer_mental_states)
 from aicoach_baselines.option_gail.utils.config import Config
 
 
@@ -180,7 +181,7 @@ def trainer_impl(config: Config,
     online_memory_replay.clear()
     for n_epi in count():
       state = env.reset()
-      prev_lat, prev_act = agent.prev_latent, agent.prev_action
+      prev_lat, prev_act = agent.PREV_LATENT, agent.PREV_ACTION
       episode_reward = 0
       done = False
       for episode_step in count():
@@ -206,6 +207,8 @@ def trainer_impl(config: Config,
           break
 
         state = next_state
+        prev_lat = latent
+        prev_act = action
 
       avg_episode_reward += episode_reward
       if online_memory_replay.size() >= replay_mem:
@@ -224,8 +227,14 @@ def trainer_impl(config: Config,
     # #################### update
     if imitation:
       # prepare expert data
-      expert_data = get_expert_batch(agent, expert_dataset.trajectories,
-                                     num_latent, agent.device)
+      inferred_latents = infer_mental_states(agent, expert_dataset.trajectories,
+                                             num_latent)
+      exb = get_expert_batch(expert_dataset.trajectories, inferred_latents,
+                             agent.device, agent.PREV_LATENT, agent.PREV_ACTION)
+      expert_data = (exb["states"], exb["prev_latents"], exb["prev_actions"],
+                     exb["next_states"], exb["latents"], exb["actions"],
+                     exb["rewards"], exb["dones"])
+
       sample_data = online_memory_replay.get_all_samples(agent.device)
       losses = step_iq_update(config, agent, sample_data, expert_data, logger,
                               explore_steps, is_sqil)

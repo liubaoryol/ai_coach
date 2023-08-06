@@ -57,12 +57,12 @@ class OptionSAC(object):
     self.separate_policy_update = config.separate_policy_update
 
     NAN = float("nan")
-    self.prev_latent = NAN
+    self.PREV_LATENT = NAN
     if self.use_prev_action_dim:
-      self.prev_action = (NAN if self.actor.is_discrete() else np.full(
+      self.PREV_ACTION = (NAN if self.actor.is_discrete() else np.full(
           self.action_dim, NAN, dtype=float))
     else:
-      self.prev_action = (NAN if self.actor.is_discrete() else np.zeros(
+      self.PREV_ACTION = (NAN if self.actor.is_discrete() else np.zeros(
           self.action_dim, dtype=float))
 
     # optimizers

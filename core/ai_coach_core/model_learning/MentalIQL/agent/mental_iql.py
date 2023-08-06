@@ -47,3 +47,9 @@ class MentalIQL:
 
   def miql_update(self):
     self.tx_agent
+
+  def choose_action(self, state, option, sample=False):
+    return self.pi_agent.choose_action(state, option, sample)
+
+  def choose_mental_state(self, state, prev_option, sample=False):
+    return self.tx_agent.choose_action(state, prev_option, sample)

@@ -2,9 +2,9 @@ import torch
 from ai_coach_core.model_learning.IQLearn.utils.utils import (average_dicts,
                                                               soft_update,
                                                               hard_update)
+from ai_coach_core.model_learning.IQLearn.iq import iq_loss
 from ai_coach_core.model_learning.OptionIQL.helper.utils import (
     get_concat_samples)
-from ai_coach_core.model_learning.OptionIQL.helper.iq import iq_loss
 from .option_softq import OptionSoftQ
 from .option_sac import OptionSAC
 
