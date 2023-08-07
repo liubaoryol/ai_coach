@@ -8,16 +8,14 @@ from torch.optim import Adam
 from torch.distributions import Categorical
 from ai_coach_core.model_learning.IQLearn.utils.utils import one_hot
 from aicoach_baselines.option_gail.utils.config import Config
+from .option_abstract import AbstractPolicyLeaner
 
 
-class OptionSoftQ(object):
+class OptionSoftQ(AbstractPolicyLeaner):
 
   def __init__(self, config: Config, num_inputs, action_dim, option_dim,
                discrete_obs, q_net_base: Type[nn.Module]):
-    self.gamma = config.gamma
-    self.batch_size = config.mini_batch_size
-    self.device = torch.device(config.device)
-    self.actor = None
+    super().__init__(config)
     self.critic_tau = 0.1
     self.init_temp = config.init_temp
     use_tanh = False
@@ -35,17 +33,23 @@ class OptionSoftQ(object):
                                  config.hidden_critic, config.activation,
                                  self.gamma, use_tanh).to(self.device)
 
-    critic_betas = [0.9, 0.999]
     self.target_net.load_state_dict(self.q_net.state_dict())
-    self.critic_optimizer = Adam(self.q_net.parameters(),
-                                 lr=config.optimizer_lr_critic,
-                                 betas=critic_betas)
+
+    # optimizers
+    self.reset_optimizers(config)
+
     self.train()
     self.target_net.train()
 
   def train(self, training=True):
     self.training = training
     self.q_net.train(training)
+
+  def reset_optimizers(self, config):
+    critic_betas = [0.9, 0.999]
+    self.critic_optimizer = Adam(self.q_net.parameters(),
+                                 lr=config.optimizer_lr_critic,
+                                 betas=critic_betas)
 
   @property
   def alpha(self):
@@ -59,34 +63,27 @@ class OptionSoftQ(object):
   def critic_target_net(self):
     return self.target_net
 
-  def choose_action(self, state, option, sample=False):
+  def choose_action(self, obs, option, sample=False):
 
-    # --- convert state
-    if self.discrete_obs:
-      state = torch.FloatTensor([state]).to(self.device)
-      state = one_hot(state, self.obs_dim)
-      state = state.view(-1, self.obs_dim)
-    # ------
-    else:
-      state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
 
     with torch.no_grad():
-      q = self.q_net(state, option)
-      dist = F.softmax(q / self.alpha, dim=1)
-      # if sample:
-      dist = Categorical(dist)
-      action = dist.sample()  # if sample else dist.mean
-      # else:
-      #     action = torch.argmax(dist, dim=1)
+      q = self.q_net(obs, option)
+      dist = F.softmax(q / self.alpha, dim=-1)
+      if sample:
+        dist = Categorical(dist)
+        action = dist.sample()
+      else:
+        action = torch.argmax(dist, dim=-1)
 
     return action.detach().cpu().numpy()[0]
 
   def critic(self, obs, option, action, both=False):
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
+    action = self.conv_input(action, False, 1)
 
     q = self.q_net(obs, option, both)
     if isinstance(q, tuple) and both:
@@ -99,30 +96,25 @@ class OptionSoftQ(object):
 
   def getV(self, obs, option):
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
 
     q = self.q_net(obs, option)
-    v = self.alpha * torch.logsumexp(q / self.alpha, dim=1, keepdim=True)
+    v = self.alpha * torch.logsumexp(q / self.alpha, dim=-1, keepdim=True)
     return v
 
   def get_targetV(self, obs, option):
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
 
     q = self.target_net(obs, option)
-    target_v = self.alpha * torch.logsumexp(q / self.alpha, dim=1, keepdim=True)
+    target_v = self.alpha * torch.logsumexp(
+        q / self.alpha, dim=-1, keepdim=True)
     return target_v
 
   def update(self, obs, option, action, next_obs, next_option, reward, done,
              logger, step):
-    # obs, next_obs, action, reward, done = replay_buffer.get_samples(
-    #     self.batch_size, self.device)
 
     losses = self.update_critic(obs, option, action, next_obs, next_option,
                                 reward, done, logger, step)
@@ -161,20 +153,19 @@ class OptionSoftQ(object):
     self.q_net.load_state_dict(torch.load(critic_path,
                                           map_location=self.device))
 
-  def infer_q(self, state, option, action):
-    if self.discrete_obs:
-      state = [state]
-    state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-    action = torch.FloatTensor([action]).unsqueeze(0).to(self.device)
+  def log_probs(self, state, action):
+    '''
+    if action is not None: return shape is (len_demo, n_option)
+    if action is None: return shape is (len_demo, n_option, n_action)
+    '''
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
 
-    with torch.no_grad():
-      q = self.critic(state, option, action)
-    return q.squeeze(0).cpu().numpy()
+    qout = self.q_net(state, None)
+    log_probs = F.log_softmax(qout / self.alpha, dim=-1)
+    if action is not None:
+      action = self.conv_input(action, False, 1)
+      action_idx = action.long().view(-1, 1, 1).expand(-1, log_probs.shape[-2],
+                                                       1)
+      log_probs = log_probs.gather(dim=-1, index=action_idx).squeeze(-1)
 
-  def infer_v(self, state, option):
-    if self.discrete_obs:
-      state = [state]
-    state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
-    with torch.no_grad():
-      v = self.getV(state, option).squeeze()
-    return v.cpu().numpy()
+    return log_probs

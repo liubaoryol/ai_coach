@@ -165,7 +165,14 @@ class OptionSAC(object):
     # --- convert inputs
     state = self.conv_input(state, self.discrete_obs, self.obs_dim)
     latent = self.conv_input(latent, self.thinker.is_discrete(), self.lat_dim)
-    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
+
+    # --- action
+    if not isinstance(action, torch.Tensor):
+      n_col = 1 if self.actor.is_discrete() else self.action_dim
+      action = torch.tensor(np.array(action).reshape(-1, n_col)).to(self.device)
+    else:
+      if action.ndim < 2:
+        action = action.unsqueeze(0)
 
     with torch.no_grad():
       log_prob = self.actor.evaluate_action(state, latent, action)

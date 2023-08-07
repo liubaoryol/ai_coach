@@ -14,6 +14,34 @@ from ai_coach_core.model_learning.OptionIQL.helper.option_memory import (
 from ai_coach_core.model_learning.OptionIQL.helper.utils import (
     get_expert_batch, evaluate, save, get_samples)
 from aicoach_baselines.option_gail.utils.config import Config
+from .agent.make_agent import MentalIQL
+from .agent.make_agent import make_miql_agent
+
+
+def infer_mental_states_all_demo(agent: MentalIQL, expert_traj):
+  num_samples = len(expert_traj["states"])
+  list_mental_states = []
+  for i_e in range(num_samples):
+    expert_states = expert_traj["states"][i_e]
+    expert_actions = expert_traj["actions"][i_e]
+    mental_array, _ = agent.infer_mental_states(expert_states, expert_actions)
+    list_mental_states.append(mental_array)
+
+  return list_mental_states
+
+
+def infer_last_next_mental_state(agent: MentalIQL, expert_traj,
+                                 list_mental_states):
+  num_samples = len(expert_traj["states"])
+  list_last_next_mental_state = []
+  for i_e in range(num_samples):
+    last_next_state = expert_traj["next_states"][i_e][-1]
+    last_mental_state = list_mental_states[i_e][-1]
+    last_next_mental_state = agent.choose_mental_state(last_next_state,
+                                                       last_mental_state, False)
+    list_last_next_mental_state.append(last_next_mental_state)
+
+  return list_last_next_mental_state
 
 
 def train(config: Config,
@@ -21,11 +49,11 @@ def train(config: Config,
           num_trajs,
           log_dir,
           output_dir,
-          agent_name,
           log_interval=500,
           eval_interval=5000,
           env_kwargs={}):
 
+  agent_name = "miql"
   env_name = config.env_name
   seed = config.seed
   batch_size = config.mini_batch_size
@@ -34,9 +62,6 @@ def train(config: Config,
   num_learn_steps = config.max_explore_step
   initial_mem = replay_mem
   output_suffix = ""
-  load_path = None
-  method_loss = config.method_loss
-  method_regularize = config.method_regularize
   eps_window = 10
   is_sqil = False
   num_episodes = 10
@@ -72,16 +97,7 @@ def train(config: Config,
   eps_window = int(eps_window)
   num_learn_steps = int(num_learn_steps)
 
-  use_target = True
-  do_soft_update = True
   agent = fn_make_agent(config, env)
-
-  if load_path is not None:
-    if os.path.isfile(load_path):
-      print("=> loading pretrain '{}'".format(load_path))
-      agent.load(load_path)
-    else:
-      print("[Attention]: Did not find checkpoint {}".format(load_path))
 
   # Load expert data
   expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
@@ -116,15 +132,14 @@ def train(config: Config,
 
     state = env.reset()
     prev_lat, prev_act = agent.PREV_LATENT, agent.PREV_ACTION
-    with eval_mode(agent):
-      latent = agent.choose_mental_state(state, prev_lat, sample=True)
+    latent = agent.choose_mental_state(state, prev_lat, sample=True)
 
     for episode_step in count():
       with eval_mode(agent):
         # if not begin_learn:
         #   action = env.action_space.sample()
         # else:
-        action = agent.choose_action(state, latent, sample=True)
+        action = agent.choose_policy_action(state, latent, sample=True)
 
         next_state, reward, done, info = env.step(action)
         next_latent = agent.choose_mental_state(next_state, latent, sample=True)
@@ -176,8 +191,21 @@ def train(config: Config,
         # infer mental states of expert data
         if (expert_data is None
             or learn_steps % config.demo_latent_infer_interval == 0):
-          expert_data = get_expert_batch(agent, expert_dataset.trajectories,
-                                         num_latent, agent.device)
+          mental_states = infer_mental_states_all_demo(
+              agent, expert_dataset.trajectories)
+          mental_states_after_end = infer_last_next_mental_state(
+              agent, expert_dataset.trajectories, mental_states)
+          exb = get_expert_batch(
+              expert_dataset.trajectories,
+              mental_states,
+              agent.device,
+              agent.PREV_LATENT,
+              agent.PREV_ACTION,
+              mental_states_after_end=mental_states_after_end)
+          expert_data = (exb["prev_latents"], exb["prev_actions"],
+                         exb["states"], exb["latents"], exb["actions"],
+                         exb["next_states"], exb["next_latents"],
+                         exb["rewards"], exb["dones"])
 
         ######
         # IQ-Learn Modification
@@ -185,14 +213,14 @@ def train(config: Config,
         policy_batch = online_memory_replay.get_samples(batch_size,
                                                         agent.device)
 
-        losses = agent.miql_update(policy_batch, expert_batch, logger,
-                                   learn_steps, is_sqil, use_target,
-                                   do_soft_update, method_loss,
-                                   method_regularize)
+        tx_losses, pi_losses = agent.miql_update(policy_batch, expert_batch,
+                                                 logger, learn_steps)
 
         if learn_steps % log_interval == 0:
-          for key, loss in losses.items():
-            writer.add_scalar("loss/" + key, loss, global_step=learn_steps)
+          for key, loss in tx_losses.items():
+            writer.add_scalar("tx_loss/" + key, loss, global_step=learn_steps)
+          for key, loss in pi_losses.items():
+            writer.add_scalar("pi_loss/" + key, loss, global_step=learn_steps)
 
       if done:
         break

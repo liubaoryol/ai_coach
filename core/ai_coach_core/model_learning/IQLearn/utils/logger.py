@@ -153,8 +153,8 @@ class Logger(object):
       else:
         self._sw = None
     # each agent has specific output format for training
-    assert agent in AGENT_TRAIN_FORMAT
-    train_format = COMMON_TRAIN_FORMAT + AGENT_TRAIN_FORMAT[agent]
+    # assert agent in AGENT_TRAIN_FORMAT
+    train_format = COMMON_TRAIN_FORMAT + AGENT_TRAIN_FORMAT.get(agent, [])
     self._train_mg = MetersGroup(os.path.join(log_dir, 'train'),
                                  formating=train_format)
     self._eval_mg = MetersGroup(os.path.join(log_dir, 'eval'),

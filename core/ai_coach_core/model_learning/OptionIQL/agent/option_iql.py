@@ -13,44 +13,6 @@ DEBUG_TIME = True
 
 class OptionIQL(OptionSAC):
 
-  def minimal_iq_update(self,
-                        policy_batch,
-                        expert_batch,
-                        logger,
-                        step,
-                        is_sqil=False,
-                        use_target=False,
-                        method_alpha=0.5):
-    # args = self.args
-    (obs, prev_lat, prev_act, next_obs, latent, action, reward, done,
-     is_expert) = get_concat_samples(policy_batch, expert_batch, is_sqil)
-
-    ######
-    # IQ-Learn minimal implementation with X^2 divergence (~15 lines)
-    # Calculate 1st term of loss: -E_(ρ_expert)[Q(s, a) - γV(s')]
-    current_Q = self.critic(obs, prev_lat, prev_act, latent, action)
-    y = (1 - done) * self.gamma * self.getV(next_obs, latent, action)
-    if use_target:
-      with torch.no_grad():
-        y = (1 - done) * self.gamma * self.get_targetV(next_obs, latent, action)
-
-    reward = (current_Q - y)[is_expert]
-    loss = -(reward).mean()
-
-    # 2nd term of iq loss (use expert and policy states): E_(ρ)[Q(s,a) - γV(s')]
-    value_loss = (self.getV(obs, prev_lat, prev_act) - y).mean()
-    loss += value_loss
-
-    # Use χ2 divergence (adds a extra term to the loss)
-    chi2_loss = 1 / (4 * method_alpha) * (reward**2).mean()
-    loss += chi2_loss
-    ######
-
-    self.critic_optimizer.zero_grad()
-    loss.backward()
-    self.critic_optimizer.step()
-    return loss
-
   def iq_update_critic(self,
                        policy_batch,
                        expert_batch,
@@ -68,7 +30,7 @@ class OptionIQL(OptionSAC):
 
     agent = self
 
-    current_Q = self.critic(obs, prev_lat, prev_act, latent, action, both=True)
+    current_Q = self.critic(*vec_v_args, *vec_actions, both=True)
     if isinstance(current_Q, tuple):
       q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
                                     vec_next_v_args, vec_actions, done,
@@ -131,10 +93,9 @@ class OptionIQL(OptionSAC):
           prev_lat = torch.cat([policy_batch[1], expert_batch[1]], dim=0)
           prev_act = torch.cat([policy_batch[2], expert_batch[2]], dim=0)
 
-        if self.num_actor_update:
-          for i in range(self.num_actor_update):
-            actor_alpha_losses = self.update_actor_and_alpha(
-                obs, prev_lat, prev_act, logger, step)
+        for i in range(self.num_actor_update):
+          actor_alpha_losses = self.update_actor_and_alpha(
+              obs, prev_lat, prev_act, logger, step)
 
         losses.update(actor_alpha_losses)
 

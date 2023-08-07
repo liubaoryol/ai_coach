@@ -9,28 +9,29 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import (one_hot,
                                                               soft_update)
 from aicoach_baselines.option_gail.utils.config import Config
 from .nn_models import AbstractOptionActor
+from .option_abstract import AbstractPolicyLeaner
 
 
-class OptionSAC(object):
+class OptionSAC(AbstractPolicyLeaner):
 
   def __init__(self, config: Config, obs_dim, action_dim, option_dim,
                discrete_obs, critic_base: Type[nn.Module],
                actor: AbstractOptionActor):
-    self.gamma = config.gamma
-    self.batch_size = config.mini_batch_size
+    super().__init__(config)
     self.discrete_obs = discrete_obs
     self.obs_dim = obs_dim
     self.action_dim = action_dim
 
-    self.device = torch.device(config.device)
-
-    self.clip_grad_val = config.clip_grad_val
+    use_tanh = False
+    self.init_temp = config.init_temp
     self.critic_tau = 0.005
     self.learn_temp = config.learn_temp
     self.actor_update_frequency = 1
     self.critic_target_update_frequency = 1
-    use_tanh = False
-    self.init_temp = config.init_temp
+
+    self.num_critic_update = config.num_critic_update
+    self.num_actor_update = config.num_actor_update
+    self.clip_grad_val = config.clip_grad_val
 
     self._critic = critic_base(obs_dim, action_dim, option_dim,
                                config.hidden_critic, config.activation,
@@ -50,6 +51,17 @@ class OptionSAC(object):
     self.target_entropy = -action_dim
 
     # optimizers
+    self.reset_optimizers(config)
+
+    self.train()
+    self.critic_target.train()
+
+  def train(self, training=True):
+    self.training = training
+    self.actor.train(training)
+    self._critic.train(training)
+
+  def reset_optimizers(self, config):
     actor_betas = critic_betas = alpha_betas = [0.9, 0.999]
     self.actor_optimizer = Adam(self.actor.parameters(),
                                 lr=config.optimizer_lr_policy,
@@ -60,13 +72,6 @@ class OptionSAC(object):
     self.log_alpha_optimizer = Adam([self.log_alpha],
                                     lr=config.optimizer_lr_alpha,
                                     betas=alpha_betas)
-    self.train()
-    self.critic_target.train()
-
-  def train(self, training=True):
-    self.training = training
-    self.actor.train(training)
-    self._critic.train(training)
 
   @property
   def alpha(self):
@@ -80,50 +85,33 @@ class OptionSAC(object):
   def critic_target_net(self):
     return self.critic_target
 
-  def choose_action(self, state, option, sample=False):
+  def choose_action(self, obs, option, sample=False):
     # --- convert state
-    if self.discrete_obs:
-      state = torch.FloatTensor([state]).to(self.device)
-      state = one_hot(state, self.obs_dim)
-      state = state.view(-1, self.obs_dim)
-    # ------
-    else:
-      state = torch.FloatTensor(state).to(self.device).unsqueeze(0)
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
 
     with torch.no_grad():
       if sample:
-        action, _ = self.actor.sample(state, option)
+        action, _ = self.actor.sample(obs, option)
       else:
-        action = self.actor.exploit(state, option)
+        action = self.actor.exploit(obs, option)
 
     return action.detach().cpu().numpy()[0]
 
   def critic(self, obs, option, action, both=False):
-
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
-
-    # --- convert discrete action
-    if self.actor.is_discrete():
-      action = one_hot(action, self.action_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
+    option = self.conv_input(option, False, 1)
 
     return self._critic(obs, option, action, both)
 
   def getV(self, obs, option):
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
 
     action, log_prob = self.actor.sample(obs, option)
-    # --- convert discrete action
-    if self.actor.is_discrete():
-      action = one_hot(action, self.action_dim)
-    # ------
+    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
 
     current_Q = self._critic(obs, option, action)
     current_V = current_Q - self.alpha.detach() * log_prob
@@ -131,16 +119,11 @@ class OptionSAC(object):
 
   def get_targetV(self, obs, option):
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
 
     action, log_prob = self.actor.sample(obs, option)
-    # --- convert discrete action
-    if self.actor.is_discrete():
-      action = one_hot(action, self.action_dim)
-    # ------
+    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
 
     target_Q = self.critic_target(obs, option, action)
     target_V = target_Q - self.alpha.detach() * log_prob
@@ -148,8 +131,6 @@ class OptionSAC(object):
 
   def update(self, obs, option, action, next_obs, next_option, reward, done,
              logger, step):
-    # obs, next_obs, action, reward, done = replay_buffer.get_samples(
-    #     self.batch_size, self.device)
 
     losses = self.update_critic(obs, option, action, next_obs, next_option,
                                 reward, done, logger, step)
@@ -167,27 +148,22 @@ class OptionSAC(object):
   def update_critic(self, obs, option, action, next_obs, next_option, reward,
                     done, logger, step):
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-      next_obs = one_hot(next_obs, self.obs_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    next_obs = self.conv_input(next_obs, self.discrete_obs, self.obs_dim)
+
+    option = self.conv_input(option, False, 1)
+    next_option = self.conv_input(next_option, False, 1)
 
     with torch.no_grad():
       next_action, log_prob = self.actor.sample(next_obs, next_option)
-      # --- convert discrete action
-      if self.actor.is_discrete():
-        next_action = one_hot(next_action, self.action_dim)
-      # ------
+      next_action = self.conv_input(next_action, self.actor.is_discrete(),
+                                    self.action_dim)
 
       target_Q = self.critic_target(next_obs, next_option, next_action)
       target_V = target_Q - self.alpha.detach() * log_prob
       target_Q = reward + (1 - done) * self.gamma * target_V
 
-    # --- convert discrete action
-    if self.actor.is_discrete():
-      action = one_hot(action, self.action_dim)
-    # ------
+    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
 
     # get current Q estimates
     current_Q = self._critic(obs, option, action, both=True)
@@ -211,10 +187,8 @@ class OptionSAC(object):
 
   def update_actor_and_alpha(self, obs, option, logger, step):
 
-    # --- convert state
-    if self.discrete_obs:
-      obs = one_hot(obs, self.obs_dim)
-    # ------
+    obs = self.conv_input(obs, self.discrete_obs, self.obs_dim)
+    option = self.conv_input(option, False, 1)
 
     action, log_prob = self.actor.rsample(obs, option)
     actor_Q = self._critic(obs, option, action)
@@ -275,32 +249,14 @@ class OptionSAC(object):
       self._critic.load_state_dict(
           torch.load(critic_path, map_location=self.device))
 
-  def infer_q(self, state, option, action):
+  def log_probs(self, state, action):
+    '''
+    action should not be None. return shape is (len_demo, n_option)
+    '''
+    assert action is not None
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
+    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
 
-    # --- convert state
-    if self.discrete_obs:
-      state = torch.FloatTensor([state]).to(self.device)
-      state = one_hot(state, self.obs_dim)
-      state = state.view(-1, self.obs_dim)
-    # ------
-    else:
-      state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
+    log_probs = self.actor.log_prob_actions(state, action)
 
-    # --- convert action
-    if self.actor.is_discrete():
-      action = torch.FloatTensor([action]).to(self.device)
-      action = one_hot(action, self.action_dim)
-      action = action.view(-1, self.action_dim)
-    # ------
-    else:
-      action = torch.FloatTensor(action).unsqueeze(0).to(self.device)
-
-    with torch.no_grad():
-      q = self._critic(state, option, action)
-    return q.squeeze(0).cpu().numpy()
-
-  def infer_v(self, state, option):
-    state = torch.FloatTensor(state).unsqueeze(0).to(self.device)
-    with torch.no_grad():
-      v = self.getV(state, option).squeeze()
-    return v.cpu().numpy()
+    return log_probs

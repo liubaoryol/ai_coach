@@ -111,6 +111,7 @@ class OptionPolicy(torch.nn.Module):
     # if c is None, return (N x dim_c x 1), else return (N x 1)
     dist = self.action_forward(st, ct)
     if ct is None:
+      # TODO: incorrect when action is discrete
       at = at.view(-1, 1, self.dim_a)
 
     log_prob = dist.log_prob(at).sum(-1, keepdim=True)

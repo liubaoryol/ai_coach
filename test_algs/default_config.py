@@ -83,6 +83,36 @@ default_config = Config({
     "gail_orig_log_opt": True,
     "clamp_action_logstd": True,  # True: use clamp() / False: use tanh
     "use_nn_logstd": False,
+
+    # miql config
+    # tx
+    "miql_tx_method_loss": "v0",
+    "miql_tx_method_regularize": False,
+    "miql_tx_init_temp": 1e-2,
+    "miql_tx_hidden_critic": (64, 64),
+    "miql_tx_activation": "relu",
+    "miql_tx_optimizer_lr_critic": 3.e-4,
+    "miql_tx_clip_grad_val": 0.0,
+    "miql_tx_num_critic_update": 1,
+    "miql_tx_num_actor_update": 1,
+    # pi
+    "miql_pi_method_loss": "v0",
+    "miql_pi_method_regularize": False,
+    "miql_pi_init_temp": 1e-2,
+    "miql_pi_learn_temp": False,
+    "miql_pi_num_critic_update": 1,
+    "miql_pi_num_actor_update": 1,
+    "miql_pi_clip_grad_val": 0.0,
+    "miql_pi_hidden_critic": (64, 64),
+    "miql_pi_hidden_policy": (64, 64),
+    "miql_pi_activation": "relu",
+    "miql_pi_optimizer_lr_policy": 3.e-4,
+    "miql_pi_optimizer_lr_critic": 3.e-4,
+    "miql_pi_optimizer_lr_alpha": 3.e-4,
+    "miql_pi_log_std_bounds": (-5., 2.),
+    "miql_pi_bounded_actor": True,
+    "miql_pi_use_nn_logstd": True,
+    "miql_pi_clamp_action_logstd": False,  # True: use clamp() / False: use tanh
 })
 
 mujoco_config = default_config.copy()

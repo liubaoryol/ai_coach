@@ -109,6 +109,10 @@ def run_alg(config):
     from sb3_algs import sb3_run
     sb3_run(config, log_dir, output_dir, log_interval, eval_interval,
             alg_name[4:])
+  elif alg_name == "miql":
+    from ai_coach_core.model_learning.MentalIQL.train_miql import (train)
+    train(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
+          eval_interval)
   else:
     raise ValueError("Invalid alg_name")
 
@@ -131,6 +135,12 @@ if __name__ == "__main__":
   arg.parser()
   if arg.clip_grad_val == 0:
     arg.clip_grad_val = None
+  if arg.thinker_clip_grad_val == 0:
+    arg.thinker_clip_grad_val = None
+  if arg.miql_pi_clip_grad_val == 0:
+    arg.miql_pi_clip_grad_val = None
+  if arg.miql_tx_clip_grad_val == 0:
+    arg.miql_tx_clip_grad_val = None
 
   if arg.env_type == "rlbench":
     config = rlbench_config
@@ -166,11 +176,12 @@ if __name__ == "__main__":
       config.hidden_option = (ho1 // dim_c, ho2 // dim_c)
       config.hidden_critic = (hc1 // dim_c, hc2 // dim_c)
 
-  print(f"Hidden_policy: {config.hidden_policy}",
-        f"Hidden_option: {config.hidden_option}",
-        f"Hidden_critic: {config.hidden_critic}")
+  if config.alg_name != "miql":
+    print(f"Hidden_policy: {config.hidden_policy}",
+          f"Hidden_option: {config.hidden_option}",
+          f"Hidden_critic: {config.hidden_critic}")
 
-  print(f">>>> Training {'Option-' if config.use_option else ''} "
+  print(f">>>> Training "
         f"{config.alg_name} using {config.env_name} "
         f"environment on {config.device}")
   run_alg(config)
