@@ -53,7 +53,6 @@ class MentalIQL:
                                      discrete_obs, SimpleOptionQNetwork,
                                      self._get_pi_iq_vars)
     else:
-      # TODO: implement
       actor = DiagGaussianOptionActor(
           obs_dim, action_dim, lat_dim, config_pi.hidden_policy,
           config_pi.activation, config_pi.log_std_bounds,
@@ -91,8 +90,8 @@ class MentalIQL:
     pi_loss = self.pi_agent.iq_update(policy_batch, expert_batch, logger, step,
                                       PI_IS_SQIL, PI_USE_TARGET,
                                       PI_DO_SOFT_UPDATE,
-                                      self.tx_agent.method_loss,
-                                      self.tx_agent.method_regularize)
+                                      self.pi_agent.method_loss,
+                                      self.pi_agent.method_regularize)
     tx_loss = self.tx_agent.iq_update(policy_batch, expert_batch, logger, step,
                                       TX_IS_SQIL, TX_USE_TARGET,
                                       TX_DO_SOFT_UPDATE,

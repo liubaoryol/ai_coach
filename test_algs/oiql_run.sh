@@ -35,10 +35,10 @@
 # Mental-IQL:
 python3 test_algs/run_algs.py --alg_name miql --env_type mujoco \
         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
-        --tag miql_64_3e-4_boundnnstd --seed 0 \
+        --tag miql_64_tx3e-4_pi3-5_boundnnstd --seed 0 --dim_c 2 \
         --data_path "experts/Hopper-v2_25.pkl" --max_explore_step 3e6 \
         --mini_batch_size 64 --demo_latent_infer_interval 5000 \
         --miql_tx_optimizer_lr_critic 3.e-4 --miql_tx_init_temp 1e-2 \
-        --miql_pi_optimizer_lr_critic 3.e-4 --miql_pi_optimizer_lr_alpha 3.e-4 \
-        --miql_pi_optimizer_lr_policy 3.e-4 --miql_pi_init_temp 1e-2 \
+        --miql_pi_optimizer_lr_critic 3.e-5 --miql_pi_optimizer_lr_alpha 3.e-5 \
+        --miql_pi_optimizer_lr_policy 3.e-5 --miql_pi_init_temp 1e-2 \
         --miql_pi_learn_temp True
