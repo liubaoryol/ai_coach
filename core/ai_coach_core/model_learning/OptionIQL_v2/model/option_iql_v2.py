@@ -3,52 +3,13 @@ import torch.nn as nn
 from ai_coach_core.model_learning.IQLearn.utils.utils import (average_dicts,
                                                               soft_update,
                                                               hard_update)
-from .mental_sac import MentalSAC
-from ..helper.utils import get_concat_samples
-from ..helper.iq import iq_loss
-import time
+from .option_sac_v2 import OptionSAC_V2
+from ai_coach_core.model_learning.OptionIQL.helper.utils import (
+    get_concat_samples)
+from ai_coach_core.model_learning.IQLearn.iq import iq_loss
 
-DEBUG_TIME = True
 
-class MentalIQL(MentalSAC):
-
-  def minimal_iq_update(self,
-                        policy_batch,
-                        expert_batch,
-                        logger,
-                        step,
-                        is_sqil=False,
-                        use_target=False,
-                        method_alpha=0.5):
-    # args = self.args
-    (obs, prev_lat, prev_act, next_obs, latent, action, reward, done,
-     is_expert) = get_concat_samples(policy_batch, expert_batch, is_sqil)
-
-    ######
-    # IQ-Learn minimal implementation with X^2 divergence (~15 lines)
-    # Calculate 1st term of loss: -E_(ρ_expert)[Q(s, a) - γV(s')]
-    current_Q = self.critic(obs, prev_lat, prev_act, latent, action)
-    y = (1 - done) * self.gamma * self.getV(next_obs, latent, action)
-    if use_target:
-      with torch.no_grad():
-        y = (1 - done) * self.gamma * self.get_targetV(next_obs, latent, action)
-
-    reward = (current_Q - y)[is_expert]
-    loss = -(reward).mean()
-
-    # 2nd term of iq loss (use expert and policy states): E_(ρ)[Q(s,a) - γV(s')]
-    value_loss = (self.getV(obs, prev_lat, prev_act) - y).mean()
-    loss += value_loss
-
-    # Use χ2 divergence (adds a extra term to the loss)
-    chi2_loss = 1 / (4 * method_alpha) * (reward**2).mean()
-    loss += chi2_loss
-    ######
-
-    self.critic_optimizer.zero_grad()
-    loss.backward()
-    self.critic_optimizer.step()
-    return loss
+class OptionIQL_V2(OptionSAC_V2):
 
   def iq_update_critic(self,
                        policy_batch,
@@ -59,31 +20,34 @@ class MentalIQL(MentalSAC):
                        use_target=False,
                        method_loss="value",
                        method_regularize=True):
-    batch = get_concat_samples(policy_batch, expert_batch, is_sqil)
-    obs, prev_lat, prev_act, next_obs, latent, action = batch[0:6]
+    (obs, prev_lat, prev_act, next_obs, latent, action, _, done,
+     is_expert) = get_concat_samples(policy_batch, expert_batch, is_sqil)
+    vec_v_args = (obs, prev_lat, prev_act)
+    vec_next_v_args = (next_obs, latent, action)
+    vec_actions = (latent, action)
 
     agent = self
-    current_V = self.getV(obs, prev_lat, prev_act)
-    if use_target:
-      with torch.no_grad():
-        next_V = self.get_targetV(next_obs, latent, action)
-    else:
-      next_V = self.getV(next_obs, latent, action)
 
-    current_Q = self.critic(obs, prev_lat, prev_act, latent, action, both=True)
+    current_Q = self.critic(*vec_v_args, *vec_actions, both=True)
     if isinstance(current_Q, tuple):
-      q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], current_V, next_V,
-                                    batch, method_loss, method_regularize)
-      q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], current_V, next_V,
-                                    batch, method_loss, method_regularize)
+      q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
+                                    vec_next_v_args, vec_actions, done,
+                                    is_expert, use_target, method_loss,
+                                    method_regularize)
+      q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
+                                    vec_next_v_args, vec_actions, done,
+                                    is_expert, use_target, method_loss,
+                                    method_regularize)
       critic_loss = 1 / 2 * (q1_loss + q2_loss)
       # merge loss dicts
       loss_dict = average_dicts(loss_dict1, loss_dict2)
     else:
-      critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V,
-                                       batch, method_loss, method_regularize)
+      critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
+                                       vec_next_v_args, vec_actions, done,
+                                       is_expert, use_target, method_loss,
+                                       method_regularize)
 
-    # logger.log('train/critic_loss', critic_loss, step)
+    # logger.log_train('critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -104,7 +68,6 @@ class MentalIQL(MentalSAC):
                 do_soft_update=False,
                 method_loss="value",
                 method_regularize=True):
-
     for _ in range(self.num_critic_update):
       losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
                                      is_sqil, use_target, method_loss,
@@ -114,7 +77,7 @@ class MentalIQL(MentalSAC):
     vdice_actor = False
     offline = False
 
-    if self.actor:
+    if self.policy:
       if not vdice_actor:
 
         if offline:

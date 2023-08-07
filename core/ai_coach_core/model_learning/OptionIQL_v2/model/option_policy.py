@@ -10,10 +10,10 @@ from aicoach_baselines.option_gail.utils.config import Config
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 
 
-class MentalPolicy(torch.nn.Module):
+class OptionPolicy(torch.nn.Module):
 
   def __init__(self, config: Config, dim_s, dim_a, dim_c):
-    super(MentalPolicy, self).__init__()
+    super(OptionPolicy, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a
     self.dim_c = dim_c
@@ -111,6 +111,7 @@ class MentalPolicy(torch.nn.Module):
     # if c is None, return (N x dim_c x 1), else return (N x 1)
     dist = self.action_forward(st, ct)
     if ct is None:
+      # TODO: incorrect when action is discrete
       at = at.view(-1, 1, self.dim_a)
 
     log_prob = dist.log_prob(at).sum(-1, keepdim=True)

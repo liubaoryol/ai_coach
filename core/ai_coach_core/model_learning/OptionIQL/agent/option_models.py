@@ -7,7 +7,7 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import mlp, weight_init
 from aicoach_baselines.option_gail.utils.config import Config
 
 
-class MentalSACQCritic(nn.Module):
+class OptionSACQCritic(nn.Module):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__()
@@ -27,7 +27,7 @@ class MentalSACQCritic(nn.Module):
     return input
 
 
-class MentalDoubleQCritic(MentalSACQCritic):
+class OptionDoubleQCritic(OptionSACQCritic):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
@@ -106,7 +106,7 @@ class MentalDoubleQCritic(MentalSACQCritic):
     return grad_pen
 
 
-class AbstractMentalActor(nn.Module):
+class AbstractOptionActor(nn.Module):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__()
@@ -147,7 +147,7 @@ class AbstractMentalActor(nn.Module):
     raise NotImplementedError
 
 
-class SoftDiscreteMentalActor(AbstractMentalActor):
+class SoftDiscreteOptionActor(AbstractOptionActor):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
@@ -189,7 +189,7 @@ class SoftDiscreteMentalActor(AbstractMentalActor):
     return True
 
 
-class DiagGaussianMentalActor(AbstractMentalActor):
+class DiagGaussianOptionActor(AbstractOptionActor):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
@@ -256,7 +256,7 @@ class DiagGaussianMentalActor(AbstractMentalActor):
     return False
 
 
-class AbstractMentalThinker(nn.Module):
+class AbstractOptionThinker(nn.Module):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__()
@@ -293,7 +293,7 @@ class AbstractMentalThinker(nn.Module):
     raise NotImplementedError
 
 
-class SoftDiscreteMentalThinker(AbstractMentalThinker):
+class SoftDiscreteOptionThinker(AbstractOptionThinker):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)

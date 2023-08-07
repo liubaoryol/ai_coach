@@ -10,25 +10,37 @@ import torch.nn.functional as F
 # Full IQ-Learn objective with other divergences and options
 def iq_loss(agent,
             current_Q,
-            current_v,
-            next_v,
-            batch,
+            vec_v_args,
+            vec_next_v_args,
+            vec_actions,
+            done,
+            is_expert,
+            use_target,
             method_loss="value",
             method_regularize=True):
   # args
   method_div = ""
-  # method_loss = "value"
   method_type = "iq"
   method_grad_pen = False
   method_lambda_gp = 10
   method_alpha = 0.5
 
   gamma = agent.gamma
-  obs, next_obs, action, env_reward, done, is_expert = batch
-
   loss_dict = {}
+
+  current_v = agent.getV(*vec_v_args)
+  if use_target:
+    with torch.no_grad():
+      next_v = agent.get_targetV(*vec_next_v_args)
+  else:
+    next_v = agent.getV(*vec_next_v_args)
+
   # keep track of value of initial states
-  v0 = agent.getV(obs[is_expert.squeeze(1), ...]).mean()
+  vec_v_args_expert = []
+  for arg in vec_v_args:
+    vec_v_args_expert.append(arg[is_expert.squeeze(1), ...])
+
+  v0 = agent.getV(*vec_v_args_expert).mean()
   loss_dict['v0'] = v0.item()
 
   #  calculate 1st term for IQ loss
@@ -118,11 +130,19 @@ def iq_loss(agent,
 
   if method_grad_pen:
     # add a gradient penalty to loss (Wasserstein_1 metric)
-    gp_loss = agent.critic_net.grad_pen(obs[is_expert.squeeze(1), ...],
-                                        action[is_expert.squeeze(1), ...],
-                                        obs[~is_expert.squeeze(1),
-                                            ...], action[~is_expert.squeeze(1),
-                                                         ...], method_lambda_gp)
+    vec_actions_expert = []
+    vec_actions_policy = []
+    for item in vec_actions:
+      vec_actions_expert.append(item[is_expert.squeeze(1), ...])
+      vec_actions_policy.append(item[~is_expert.squeeze(1), ...])
+
+    vec_v_args_policy = []
+    for arg in vec_v_args:
+      vec_v_args_policy.append(arg[~is_expert.squeeze(1), ...])
+
+    gp_loss = agent.critic_net.grad_pen(*vec_v_args_expert, *vec_actions_expert,
+                                        *vec_v_args_policy, *vec_actions_policy,
+                                        method_lambda_gp)
     loss_dict['gp_loss'] = gp_loss.item()
     loss += gp_loss
 

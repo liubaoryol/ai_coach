@@ -9,14 +9,14 @@ from aicoach_baselines.option_gail.utils.utils import env_class_and_demo_fn
 from aicoach_baselines.option_gail.utils.logger import Logger
 from aicoach_baselines.option_gail.utils.config import Config
 from aicoach_baselines.option_gail.utils.agent import _SamplerCommon
-from .model.mental_critic import MentalCritic
-from .model.mental_policy import MentalPolicy
-from .model.mental_iql_v2 import MentalIQL_V2
+from .model.option_critic import OptionCritic
+from .model.option_policy import OptionPolicy
+from .model.option_iql_v2 import OptionIQL_V2
 from .agent import Sampler
 
 
 def reward_validate(sampler: _SamplerCommon,
-                    policy: MentalPolicy,
+                    policy: OptionPolicy,
                     n_sample=-8,
                     do_print=True):
   trajs = sampler.collect(policy.state_dict(), n_sample, fixed=True)
@@ -37,7 +37,7 @@ def reward_validate(sampler: _SamplerCommon,
   return info_dict
 
 
-def train_iql(agent: MentalIQL_V2,
+def train_iql(agent: OptionIQL_V2,
               config,
               smpl_scar,
               demo_sca,
@@ -93,7 +93,7 @@ def train_iql(agent: MentalIQL_V2,
                       method_regularize)
 
 
-def convert_demo(demo_sa, agent: MentalIQL_V2):
+def convert_demo(demo_sa, agent: OptionIQL_V2):
   with torch.no_grad():
     out_sample = []
     for s_array, a_array in demo_sa:
@@ -111,7 +111,7 @@ def avg_sample_reward(sample_scar):
   return r_sum_avg
 
 
-def sample_batch(agent: MentalIQL_V2, sampler: _SamplerCommon, n_sample: int,
+def sample_batch(agent: OptionIQL_V2, sampler: _SamplerCommon, n_sample: int,
                  demo_sa_array):
   demo_sa_in = sampler.filter_demo(demo_sa_array)
   sample_sxar = sampler.collect(agent.policy.state_dict(),
@@ -155,7 +155,7 @@ def learn(config: Config,
   with open(os.path.join(save_dir, "config.log"), 'w') as f:
     f.write(str(config))
   logger = Logger(log_dir)
-  save_name_f = lambda i: os.path.join(save_dir, f"miql_v2_{i}.torch")
+  save_name_f = lambda i: os.path.join(save_dir, f"oiql_v2_{i}.torch")
 
   class_Env, fn_get_demo = env_class_and_demo_fn(env_type)
 
@@ -163,10 +163,10 @@ def learn(config: Config,
   dim_s, dim_a = env.state_action_size()
   demo, _ = fn_get_demo(config, path=sample_name, n_demo=n_demo, display=False)
 
-  critic = MentalCritic(config, dim_s, dim_a, config.dim_c)
-  policy = MentalPolicy(config, dim_s, dim_a, config.dim_c)
+  critic = OptionCritic(config, dim_s, dim_a, config.dim_c)
+  policy = OptionPolicy(config, dim_s, dim_a, config.dim_c)
 
-  agent = MentalIQL_V2(config, dim_s, dim_a, config.dim_c, critic, policy)
+  agent = OptionIQL_V2(config, dim_s, dim_a, config.dim_c, critic, policy)
 
   sampler = Sampler(seed,
                     env,

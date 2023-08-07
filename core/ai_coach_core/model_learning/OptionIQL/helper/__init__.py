@@ -5,7 +5,7 @@ All rights reserved.
 
 from ai_coach_core.model_learning.IQLearn.utils.logger import AGENT_TRAIN_FORMAT
 
-AGENT_TRAIN_FORMAT['miql'] = [
+AGENT_TRAIN_FORMAT['oiql'] = [
     # ('batch_reward', 'BR', 'float'),
     ('actor_loss', 'ALOSS', 'float'),
     ('critic_loss', 'CLOSS', 'float'),
@@ -14,7 +14,7 @@ AGENT_TRAIN_FORMAT['miql'] = [
     ('actor_entropy', 'AENT', 'float')
 ]
 
-AGENT_TRAIN_FORMAT['msac'] = [
+AGENT_TRAIN_FORMAT['osac'] = [
     # ('batch_reward', 'BR', 'float'),
     ('actor_loss', 'ALOSS', 'float'),
     ('critic_loss', 'CLOSS', 'float'),

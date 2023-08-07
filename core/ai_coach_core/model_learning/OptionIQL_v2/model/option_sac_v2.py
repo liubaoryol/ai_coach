@@ -6,17 +6,17 @@ import numpy as np
 from torch.optim import Adam
 from ai_coach_core.model_learning.IQLearn.utils.utils import (soft_update,
                                                               one_hot_w_nan)
-from .mental_policy import MentalPolicy
-from .mental_critic import MentalCritic
+from .option_policy import OptionPolicy
+from .option_critic import OptionCritic
 from aicoach_baselines.option_gail.utils.config import Config
 
 one_hot = one_hot_w_nan  # alias
 
 
-class MentalSAC_V2(nn.Module):
+class OptionSAC_V2(nn.Module):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim,
-               critic: MentalCritic, policy: MentalPolicy) -> None:
+               critic: OptionCritic, policy: OptionPolicy) -> None:
     super().__init__()
 
     self.action_dim = action_dim

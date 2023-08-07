@@ -362,29 +362,30 @@ def iq_update_critic(self,
     expert_batch = (expert_obs, expert_next_obs, policy_action, expert_reward,
                     expert_done)
 
-  batch = get_concat_samples(policy_batch, expert_batch, is_sqil)
-  obs, next_obs, action = batch[0:3]
+  obs, next_obs, action, _, done, is_expert = get_concat_samples(
+      policy_batch, expert_batch, is_sqil)
+  vec_v_args = (obs, )
+  vec_next_v_args = (next_obs, )
+  vec_actions = (action, )
 
   agent = self
-  current_V = self.getV(obs)
-  if use_target:
-    with torch.no_grad():
-      next_V = self.get_targetV(next_obs)
-  else:
-    next_V = self.getV(next_obs)
 
   current_Q = self.critic(obs, action, both=True)
   if isinstance(current_Q, tuple):
-    q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], current_V, next_V, batch,
-                                  method_loss, method_regularize)
-    q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], current_V, next_V, batch,
-                                  method_loss, method_regularize)
+    q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
+                                  vec_next_v_args, vec_actions, done, is_expert,
+                                  use_target, method_loss, method_regularize)
+    q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
+                                  vec_next_v_args, vec_actions, done, is_expert,
+                                  use_target, method_loss, method_regularize)
     critic_loss = 1 / 2 * (q1_loss + q2_loss)
     # merge loss dicts
     loss_dict = average_dicts(loss_dict1, loss_dict2)
   else:
-    critic_loss, loss_dict = iq_loss(agent, current_Q, current_V, next_V, batch,
-                                     method_loss, method_regularize)
+    critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
+                                     vec_next_v_args, vec_actions, done,
+                                     is_expert, use_target, method_loss,
+                                     method_regularize)
 
   # logger.log('train/critic_loss', critic_loss, step)
 

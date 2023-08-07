@@ -56,7 +56,7 @@ default_config = Config({
     "optimizer_lr_discriminator": 3.e-4,
     "use_d_info_gail": False,
 
-    # miql/iql config
+    # oiql/iql config
     "iql_agent_name": "sac",
     "bounded_actor": True,
     "method_loss": "v0",
@@ -69,7 +69,7 @@ default_config = Config({
     "gumbel_temperature": 1.0,
     "use_prev_action_dim": True,
     "use_prev_option_dim": True,
-    "miql_stream": False,
+    "oiql_stream": False,
     "demo_latent_infer_interval": 4096,
     "n_update_rounds": 10,
     "separate_policy_update": False,
@@ -83,6 +83,36 @@ default_config = Config({
     "gail_orig_log_opt": True,
     "clamp_action_logstd": True,  # True: use clamp() / False: use tanh
     "use_nn_logstd": False,
+
+    # miql config
+    # tx
+    "miql_tx_method_loss": "v0",
+    "miql_tx_method_regularize": False,
+    "miql_tx_init_temp": 1e-2,
+    "miql_tx_clip_grad_val": 0.0,
+    "miql_tx_num_critic_update": 1,
+    "miql_tx_num_actor_update": 1,
+    "miql_tx_activation": "relu",
+    "miql_tx_hidden_critic": (64, 64),
+    "miql_tx_optimizer_lr_critic": 3.e-4,
+    # pi
+    "miql_pi_method_loss": "v0",
+    "miql_pi_method_regularize": True,
+    "miql_pi_init_temp": 1e-2,
+    "miql_pi_learn_temp": True,
+    "miql_pi_clip_grad_val": 0.0,
+    "miql_pi_num_critic_update": 1,
+    "miql_pi_num_actor_update": 1,
+    "miql_pi_activation": "relu",
+    "miql_pi_hidden_critic": (64, 64),
+    "miql_pi_hidden_policy": (64, 64),
+    "miql_pi_optimizer_lr_critic": 3.e-4,
+    "miql_pi_optimizer_lr_policy": 3.e-4,
+    "miql_pi_optimizer_lr_alpha": 3.e-4,
+    "miql_pi_log_std_bounds": (-5., 2.),
+    "miql_pi_bounded_actor": True,
+    "miql_pi_use_nn_logstd": True,
+    "miql_pi_clamp_action_logstd": False,  # True: use clamp() / False: use tanh
 })
 
 mujoco_config = default_config.copy()

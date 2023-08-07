@@ -2,7 +2,7 @@ import torch
 import time
 from copy import deepcopy
 from torch.multiprocessing import Process, Pipe, Lock, Value
-from .model.mental_policy import MentalPolicy
+from .model.option_policy import OptionPolicy
 from aicoach_baselines.option_gail.utils.state_filter import StateFilter
 from aicoach_baselines.option_gail.utils.utils import set_seed
 from aicoach_baselines.option_gail.utils.agent import (_Sampler, _SamplerCommon,
@@ -14,7 +14,7 @@ __all__ = ["Sampler"]
 # mujoco: 5000, 1t, 7.2s; 2t, 5.6s; 4t, 4.2s; 6t, 4.2s
 
 
-def mental_loop(env, policy: MentalPolicy, state_filter, fixed):
+def option_loop(env, policy: OptionPolicy, state_filter, fixed):
   with torch.no_grad():
     a_array = []
     c_array = []
@@ -49,8 +49,8 @@ def Sampler(seed,
             policy,
             use_state_filter: bool = True,
             n_thread=4) -> _SamplerCommon:
-  if isinstance(policy, MentalPolicy):
-    loop_func = mental_loop
+  if isinstance(policy, OptionPolicy):
+    loop_func = option_loop
   class_m = _Sampler if n_thread > 1 else _SamplerSS
   return class_m(seed, env, policy, use_state_filter, n_thread, loop_func)
 

@@ -7,15 +7,15 @@ from torch.optim import Adam
 from ai_coach_core.model_learning.IQLearn.utils.utils import (soft_update,
                                                               one_hot,
                                                               one_hot_w_nan)
-from .mental_models import AbstractMentalActor, AbstractMentalThinker
+from .option_models import AbstractOptionActor, AbstractOptionThinker
 from aicoach_baselines.option_gail.utils.config import Config
 
 
-class MentalSAC(object):
+class OptionSAC(object):
 
   def __init__(self, config: Config, obs_dim, action_dim, lat_dim, discrete_obs,
-               critic: nn.Module, actor: AbstractMentalActor,
-               thinker: AbstractMentalThinker):
+               critic: nn.Module, actor: AbstractOptionActor,
+               thinker: AbstractOptionThinker):
     self.gamma = config.gamma
     self.batch_size = config.mini_batch_size
     self.discrete_obs = discrete_obs
@@ -57,12 +57,12 @@ class MentalSAC(object):
     self.separate_policy_update = config.separate_policy_update
 
     NAN = float("nan")
-    self.prev_latent = NAN
+    self.PREV_LATENT = NAN
     if self.use_prev_action_dim:
-      self.prev_action = (NAN if self.actor.is_discrete() else np.full(
+      self.PREV_ACTION = (NAN if self.actor.is_discrete() else np.full(
           self.action_dim, NAN, dtype=float))
     else:
-      self.prev_action = (NAN if self.actor.is_discrete() else np.zeros(
+      self.PREV_ACTION = (NAN if self.actor.is_discrete() else np.zeros(
           self.action_dim, dtype=float))
 
     # optimizers
@@ -165,7 +165,14 @@ class MentalSAC(object):
     # --- convert inputs
     state = self.conv_input(state, self.discrete_obs, self.obs_dim)
     latent = self.conv_input(latent, self.thinker.is_discrete(), self.lat_dim)
-    action = self.conv_input(action, self.actor.is_discrete(), self.action_dim)
+
+    # --- action
+    if not isinstance(action, torch.Tensor):
+      n_col = 1 if self.actor.is_discrete() else self.action_dim
+      action = torch.tensor(np.array(action).reshape(-1, n_col)).to(self.device)
+    else:
+      if action.ndim < 2:
+        action = action.unsqueeze(0)
 
     with torch.no_grad():
       log_prob = self.actor.evaluate_action(state, latent, action)
