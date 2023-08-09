@@ -16,9 +16,9 @@ SESSION_TITLE = {
     PageKey.Interv_A0: 'A0',
     PageKey.Interv_A1: 'A1',
     PageKey.Interv_A2: 'A2',
-    PageKey.Interv_C0: 'C0',
-    PageKey.Interv_C1: 'C1',
-    PageKey.Interv_C2: 'C2',
+    PageKey.Interv_C0: 'B0',
+    PageKey.Interv_C1: 'B1',
+    PageKey.Interv_C2: 'B2',
     PageKey.Interv_T1: 'Interactive Tutorial',
     PageKey.Interv_T3: 'Interactive Tutorial',
 }

@@ -70,3 +70,23 @@ class RescueV2Intervention(RescueGameUserRandom):
                                 self.intervention_strategy, prev_inference,
                                 policy_nxsa, Tx_nxsasx)
     user_game_data.data[Exp1UserData.PREV_INFERENCE] = inf_res
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return ("Please choose your next action.")
+
+  def _get_drawing_order(self, user_game_data: Exp1UserData):
+    dict_game = user_game_data.get_game_ref().get_env_info()
+    drawing_order = []
+    drawing_order.append(self.GAME_BORDER)
+
+    drawing_order = (drawing_order +
+                     self._game_scene_names(dict_game, user_game_data))
+    drawing_order = (drawing_order +
+                     self._game_overlay_names(dict_game, user_game_data))
+    drawing_order = drawing_order + self.ACTION_BUTTONS
+
+    drawing_order.append(self.TEXT_SCORE)
+
+    drawing_order.append(self.TEXT_INSTRUCTION)
+
+    return drawing_order

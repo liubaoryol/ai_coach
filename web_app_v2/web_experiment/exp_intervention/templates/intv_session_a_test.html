@@ -1,25 +1,14 @@
-{% extends 'intv_session_contents.html' %}
-
-{% block header %}
+{% extends 'intv_session_contents.html' %} {% block header %}
 <h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
 <h2>{% block subtitle %}TEST Session {{ session_title }}{% endblock %}</h2>
 <div class="explanation">
   <p>In this task,</p>
   <ul>
-    <li>Your goal is to move all the boxes to the truck as soon as possible.</li>
-    <li>You can only pick up the box circled in red.</li>
+    <li>
+      Your goal is to move all the boxes to the truck as soon as possible.
+    </li>
     <li>You cannot pick up the box alone.</li>
-  </ul>
-
-  <p><b>Special instructions for the test session,</b></p>
-  <ul>
-    <li>
-      You will be periodically prompted to select your destination (red circle).
-    </li>
-    <li>
-      Since you will be selecting the destination, you can use this added
-      flexibility to complete the task faster.
-    </li>
+    <li>You can only pick up the box circled in red.</li>
   </ul>
 </div>
 {% endblock %}

@@ -1,11 +1,12 @@
 from typing import Mapping, Sequence, Any
+import pickle
+import numpy as np
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
 from web_experiment.exp_intervention.helper import task_intervention
 from ai_coach_core.intervention.feedback_strategy import (
     InterventionValueBased, E_CertaintyHandling)
-import pickle
-import numpy as np
+import web_experiment.exp_common.canvas_objects as co
 
 # TODO: encapsulate these variables.
 np_v_values_movers = None
@@ -76,3 +77,23 @@ class BoxPushV2Intervention(BoxPushV2UserRandom):
       user_game_data.data[Exp1UserData.CUR_INFERENCE] = None
 
     user_game_data.data[Exp1UserData.PREV_INFERENCE] = inf_res
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return ("Please choose your next action.")
+
+  def _get_drawing_order(self, user_game_data: Exp1UserData):
+    dict_game = user_game_data.get_game_ref().get_env_info()
+    drawing_order = []
+    drawing_order.append(self.GAME_BORDER)
+
+    drawing_order = (drawing_order +
+                     self._game_scene_names(dict_game, user_game_data))
+    drawing_order = (drawing_order +
+                     self._game_overlay_names(dict_game, user_game_data))
+    drawing_order = drawing_order + co.ACTION_BUTTONS
+
+    drawing_order.append(self.TEXT_SCORE)
+
+    drawing_order.append(self.TEXT_INSTRUCTION)
+
+    return drawing_order
