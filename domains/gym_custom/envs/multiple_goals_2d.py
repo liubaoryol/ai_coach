@@ -24,14 +24,16 @@ class MultiGoals2D(gym.Env):
         shape=(2, ),
         dtype=np.float32)
 
-    self.goals = np.array([(-4, 4), (4, 4), (-4, -4), (4, -4)])
+    self.goals = np.array([(-4, 4), (4, 4), (0, -4)])
+    self.visited = np.zeros(len(self.goals))
     self.tolerance = 0.3
 
     self.reset()
 
   def reset(self):
     self.cur_obstate = self.observation_space.sample()
-    self.cur_goal_idx = np.random.choice(len(self.goals))
+    self.visited = np.zeros(len(self.goals))
+    # self.cur_goal_idx = np.random.choice(len(self.goals))
 
     return self.cur_obstate
 
@@ -46,11 +48,21 @@ class MultiGoals2D(gym.Env):
                           max(self.observation_space.low[1], next_obstate[1]))
     self.cur_obstate = next_obstate
 
-    reward = float(
-        np.linalg.norm(self.goals[self.cur_goal_idx] -
-                       self.cur_obstate) < self.tolerance)
+    PANELTY = -0.1
+    GOAL_POINT = 10
 
-    return self.cur_obstate, reward, False, info
+    reward = PANELTY
+    for idx, goal in enumerate(self.goals):
+      if self.visited[idx] != 0:
+        continue
+
+      if np.linalg.norm(goal - self.cur_obstate) < self.tolerance:
+        reward += GOAL_POINT
+        self.visited[idx] = 1
+
+    done = np.sum(self.visited) == len(self.visited)
+
+    return self.cur_obstate, reward, done, info
 
   def get_canvas(self):
     canvas_sz = 300
@@ -66,10 +78,9 @@ class MultiGoals2D(gym.Env):
     cur_pt = env_pt_2_scr_pt(self.cur_obstate)
 
     for idx, goal in enumerate(self.goals):
-      if idx == self.cur_goal_idx:
-        color = (0, 255, 0)
-      else:
-        color = (0, 0, 255)
+      color = (0, 0, 255)
+      # if idx == self.cur_goal_idx:
+      #   color = (0, 255, 0)
       goal_pt = env_pt_2_scr_pt(goal)
       radius = int(
           canvas_sz * self.tolerance /
@@ -93,12 +104,41 @@ class MultiGoals2D(gym.Env):
 if __name__ == "__main__":
   env = MultiGoals2D()
 
+  def get_action(goal, state):
+    RANDOM = False
+    if RANDOM:
+      vx = np.random.rand() * 2 - 1
+      vy = np.random.rand() * 2 - 1
+      return np.array([vx, vy])
+    else:
+      vec_dir = goal - state
+      len_vec = np.linalg.norm(vec_dir)
+      if len_vec != 0:
+        vec_dir /= len_vec
+      return 0.3 * vec_dir
+
+  def get_new_goal_idx(visited, goals, cur_goal_idx, state, tolerance):
+    if np.sum(visited) == len(visited):
+      return None
+
+    if cur_goal_idx is not None:
+      if np.linalg.norm(goals[cur_goal_idx] - state) > tolerance:
+        return cur_goal_idx
+
+    return np.random.choice(np.where(env.visited == 0)[0])
+
   for _ in range(10):
     state = env.reset()
-    vec_dir = env.goals[env.cur_goal_idx] - state
-    len_vec = np.linalg.norm(vec_dir)
-    if len_vec != 0:
-      vec_dir /= len_vec
-    for _ in range(50):
-      env.step(0.1 * vec_dir)
+    goal_idx = None
+    episode_reward = 0
+    for cnt in range(200):
+      goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state,
+                                  env.tolerance)
+      action = get_action(env.goals[goal_idx], state)
+      next_state, reward, done, info = env.step(action)
+      episode_reward += reward
       env.render()
+      if done:
+        break
+      state = next_state
+    print(episode_reward, cnt)

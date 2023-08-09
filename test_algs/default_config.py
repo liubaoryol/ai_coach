@@ -86,7 +86,7 @@ default_config = Config({
 
     # miql config
     # tx
-    "miql_tx_method_loss": "v0",
+    "miql_tx_method_loss": "value",
     "miql_tx_method_regularize": False,
     "miql_tx_init_temp": 1e-2,
     "miql_tx_clip_grad_val": 0.0,

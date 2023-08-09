@@ -42,6 +42,8 @@ class MentalIQL:
     self.PREV_ACTION = (float("nan") if discrete_act else np.zeros(
         self.action_dim, dtype=np.float32))
 
+    self.demo_latent_infer_interval = config.demo_latent_infer_interval
+
     config_tx, config_pi = get_tx_pi_config(config)
 
     self.tx_agent = IQLOptionSoftQ(config_tx, obs_dim, lat_dim, lat_dim + 1,
@@ -83,20 +85,53 @@ class MentalIQL:
     vec_actions = (action, )
     return vec_v_args, vec_next_v_args, vec_actions, done
 
-  def miql_update(self, policy_batch, expert_batch, logger, step):
+  def pi_update(self, policy_batch, expert_batch, logger, step):
     PI_IS_SQIL, PI_USE_TARGET, PI_DO_SOFT_UPDATE = False, True, True
-    TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, True, True
 
     pi_loss = self.pi_agent.iq_update(policy_batch, expert_batch, logger, step,
                                       PI_IS_SQIL, PI_USE_TARGET,
                                       PI_DO_SOFT_UPDATE,
                                       self.pi_agent.method_loss,
                                       self.pi_agent.method_regularize)
+    return pi_loss
+
+  def tx_update(self, policy_batch, expert_batch, logger, step):
+    TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, True, True
     tx_loss = self.tx_agent.iq_update(policy_batch, expert_batch, logger, step,
                                       TX_IS_SQIL, TX_USE_TARGET,
                                       TX_DO_SOFT_UPDATE,
                                       self.tx_agent.method_loss,
                                       self.tx_agent.method_regularize)
+    return tx_loss
+
+  def miql_update(self, policy_batch, expert_batch, logger, step):
+    # update pi first and then tx
+    ALWAYS_UPDATE_BOTH = 1
+    UPDATE_IN_ORDER = 2
+    UPDATE_ALTERNATIVELY = 3
+
+    RATIO_PI_UPDATE = 0.7
+
+    update_method = ALWAYS_UPDATE_BOTH
+    internal_step = step % self.demo_latent_infer_interval
+
+    tx_loss, pi_loss = {}, {}
+    if update_method == ALWAYS_UPDATE_BOTH:
+      pi_loss = self.pi_update(policy_batch, expert_batch, logger, step)
+      tx_loss = self.tx_update(policy_batch, expert_batch, logger, step)
+    elif update_method == UPDATE_IN_ORDER:
+      if internal_step < RATIO_PI_UPDATE * self.demo_latent_infer_interval:
+        pi_loss = self.pi_update(policy_batch, expert_batch, logger, step)
+      else:
+        tx_loss = self.tx_update(policy_batch, expert_batch, logger, step)
+    elif update_method == UPDATE_ALTERNATIVELY:
+      NUM_PI_UPDATE = 10
+      NUM_TX_UPDATE = 5
+      alternating_step = internal_step % (NUM_PI_UPDATE + NUM_TX_UPDATE)
+      if alternating_step < NUM_PI_UPDATE:
+        pi_loss = self.pi_update(policy_batch, expert_batch, logger, step)
+      else:
+        tx_loss = self.tx_update(policy_batch, expert_batch, logger, step)
 
     return tx_loss, pi_loss
 
