@@ -37,7 +37,7 @@ python3 test_algs/run_algs.py --alg_name miql \
         --env_name MultiGoals2D_2-v0 --n_traj 300 --device "cpu" \
         --tag miql_64_3e-5_value --seed 0 --dim_c 2 \
         --data_path "experts/MultiGoals2D_2-v0_500.pkl" --max_explore_step 3e6 \
-        --mini_batch_size 500 --n_sample 2000  --stream_training True \
+        --mini_batch_size 500 --n_sample 5000  --stream_training True \
         --demo_latent_infer_interval 5000 --n_update_rounds 500 \
         --miql_update_strategy 1 --miql_tx_after_pi True \
         --miql_alter_update_n_pi_tx "(10, 5)" --miql_order_update_pi_ratio 0.7 \

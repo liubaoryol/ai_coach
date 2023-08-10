@@ -49,6 +49,7 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
                            n_thread=n_thread)
   n_epoch = int(max_explore_step / n_sample)
   explore_step = 0
+  best_reward = -float("inf")
   for i in count():
     if explore_step >= max_explore_step:
       break
@@ -70,8 +71,9 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
 
     if (i + 1) % 10 == 0:
       info_dict, cs_sample = reward_validate(sampling_agent, policy)
-
-      # torch.save((policy.state_dict(), sampling_agent.state_dict()),
-      #            save_name_f(explore_step))
+      if best_reward < info_dict["r-avg"]:
+        best_reward = info_dict["r-avg"]
+        torch.save((policy.state_dict(), sampling_agent.state_dict()),
+                   save_name_f(explore_step))
       logger.log_test_info(info_dict, explore_step)
     logger.flush()

@@ -184,6 +184,8 @@ def generate_data(save_dir, env_name, n_traj, render=False):
         break
       state = next_state
 
+    if render:
+      print(episode_reward, cnt)
     states, actions, next_states, rewards, dones = list(zip(*samples))
 
     expert_trajs["states"].append(states)
