@@ -69,12 +69,12 @@ default_config = Config({
     "use_prev_action_dim": True,
     "use_prev_option_dim": True,
     "demo_latent_infer_interval": 4096,
-    "n_update_rounds": 10,
     "separate_policy_update": False,
     "init_temp": 1e-2,
     "learn_temp": False,
     "thinker_clip_grad_val": 0.0,
     "stream_training": False,
+    "n_update_rounds": 256,
 
     # gail debug
     "gail_option_entropy_orig": True,
