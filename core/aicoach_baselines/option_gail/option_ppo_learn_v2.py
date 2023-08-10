@@ -28,7 +28,8 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
     f.write(str(config))
   logger = Logger(log_dir)
 
-  save_name_f = lambda i: os.path.join(save_dir, f"{i}.torch")
+  # save_name_f = lambda i: os.path.join(save_dir, f"{i}.torch")
+  best_model_save_name = os.path.join(save_dir, f"{env_name}_best.torch")
 
   class_Env, _ = env_class_and_demo_fn(env_type)
 
@@ -69,11 +70,11 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
                       n_step=config.n_update_rounds)
     logger.log_loss_info(losses, explore_step)
 
-    if (i + 1) % 10 == 0:
+    if (i + 1) % 5 == 0:
       info_dict, cs_sample = reward_validate(sampling_agent, policy)
       if best_reward < info_dict["r-avg"]:
         best_reward = info_dict["r-avg"]
         torch.save((policy.state_dict(), sampling_agent.state_dict()),
-                   save_name_f(explore_step))
+                   best_model_save_name)
       logger.log_test_info(info_dict, explore_step)
     logger.flush()
