@@ -36,7 +36,8 @@ class OptionSoftQ(AbstractPolicyLeaner):
     self.target_net.load_state_dict(self.q_net.state_dict())
 
     # optimizers
-    self.reset_optimizers(config)
+    self.optimizer_lr_critic = config.optimizer_lr_critic
+    self.reset_optimizers()
 
     self.train()
     self.target_net.train()
@@ -45,10 +46,10 @@ class OptionSoftQ(AbstractPolicyLeaner):
     self.training = training
     self.q_net.train(training)
 
-  def reset_optimizers(self, config):
+  def reset_optimizers(self):
     critic_betas = [0.9, 0.999]
     self.critic_optimizer = Adam(self.q_net.parameters(),
-                                 lr=config.optimizer_lr_critic,
+                                 lr=self.optimizer_lr_critic,
                                  betas=critic_betas)
 
   @property
@@ -71,11 +72,8 @@ class OptionSoftQ(AbstractPolicyLeaner):
     with torch.no_grad():
       q = self.q_net(obs, option)
       dist = F.softmax(q / self.alpha, dim=-1)
-      if sample:
-        dist = Categorical(dist)
-        action = dist.sample()
-      else:
-        action = torch.argmax(dist, dim=-1)
+      dist = Categorical(dist)
+      action = dist.sample()
 
     return action.detach().cpu().numpy()[0]
 

@@ -60,7 +60,7 @@ def learn(config: Config,
   env_type = config.env_type
   use_pretrain = config.use_pretrain
   use_option = config.use_option
-  n_demo = config.n_demo
+  n_traj = config.n_traj
   n_sample = config.n_sample
   n_thread = config.n_thread
   n_iter = config.n_pretrain_epoch
@@ -83,7 +83,7 @@ def learn(config: Config,
 
   env = class_Env(env_name)
   dim_s, dim_a = env.state_action_size()
-  demo, _ = fn_get_demo(config, path=sample_name, n_demo=n_demo, display=False)
+  demo, _ = fn_get_demo(config, path=sample_name, n_traj=n_traj, display=False)
 
   gail, ppo = make_gail(config, dim_s=dim_s, dim_a=dim_a)
   sampling_agent = Sampler(seed,

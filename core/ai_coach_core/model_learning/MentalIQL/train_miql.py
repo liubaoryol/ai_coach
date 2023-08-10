@@ -57,9 +57,8 @@ def train(config: Config,
   env_name = config.env_name
   seed = config.seed
   batch_size = config.mini_batch_size
-  num_latent = config.dim_c
   replay_mem = config.n_sample
-  num_learn_steps = config.max_explore_step
+  max_explore_step = config.max_explore_step
   initial_mem = replay_mem
   output_suffix = ""
   eps_window = 10
@@ -95,7 +94,7 @@ def train(config: Config,
   replay_mem = int(replay_mem)
   initial_mem = int(initial_mem)
   eps_window = int(eps_window)
-  num_learn_steps = int(num_learn_steps)
+  max_explore_step = int(max_explore_step)
 
   agent = fn_make_agent(config, env)
 
@@ -123,7 +122,7 @@ def train(config: Config,
 
   begin_learn = False
   episode_reward = 0
-  learn_steps = 0
+  explore_steps = 0
   expert_data = None
 
   for epoch in count():
@@ -146,16 +145,14 @@ def train(config: Config,
 
       episode_reward += reward
 
-      if learn_steps % eval_interval == 0 and begin_learn:
+      if explore_steps % eval_interval == 0 and begin_learn:
         eval_returns, eval_timesteps = evaluate(agent,
                                                 eval_env,
                                                 num_episodes=num_episodes)
         returns = np.mean(eval_returns)
-        # learn_steps += 1  # To prevent repeated eval at timestep 0
-        # logger.log('eval/episode', epoch, learn_steps)
-        logger.log('eval/episode_reward', returns, learn_steps)
-        logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
-        logger.dump(learn_steps, ty='eval')
+        logger.log('eval/episode_reward', returns, explore_steps)
+        logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
+        logger.dump(explore_steps, ty='eval')
 
         if returns > best_eval_returns:
           # Store best eval returns
@@ -176,21 +173,21 @@ def train(config: Config,
       online_memory_replay.add((prev_lat, prev_act, state, latent, action,
                                 next_state, next_latent, reward, done_no_lim))
 
-      learn_steps += 1
+      explore_steps += 1
       if online_memory_replay.size() >= initial_mem:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        if learn_steps == num_learn_steps:
+        if explore_steps == max_explore_step:
           print('Finished!')
           return
 
         # ##### sample batch
         # infer mental states of expert data
         if (expert_data is None
-            or learn_steps % config.demo_latent_infer_interval == 0):
+            or explore_steps % config.demo_latent_infer_interval == 0):
           mental_states = infer_mental_states_all_demo(
               agent, expert_dataset.trajectories)
           mental_states_after_end = infer_last_next_mental_state(
@@ -213,14 +210,15 @@ def train(config: Config,
         policy_batch = online_memory_replay.get_samples(batch_size,
                                                         agent.device)
 
-        tx_losses, pi_losses = agent.miql_update(policy_batch, expert_batch,
-                                                 logger, learn_steps)
+        tx_losses, pi_losses = agent.miql_update(
+            policy_batch, expert_batch, config.demo_latent_infer_interval,
+            logger, explore_steps)
 
-        if learn_steps % log_interval == 0:
+        if explore_steps % log_interval == 0:
           for key, loss in tx_losses.items():
-            writer.add_scalar("tx_loss/" + key, loss, global_step=learn_steps)
+            writer.add_scalar("tx_loss/" + key, loss, global_step=explore_steps)
           for key, loss in pi_losses.items():
-            writer.add_scalar("pi_loss/" + key, loss, global_step=learn_steps)
+            writer.add_scalar("pi_loss/" + key, loss, global_step=explore_steps)
 
       if done:
         break
@@ -234,7 +232,7 @@ def train(config: Config,
     cnt_steps += episode_step + 1
     if cnt_steps >= log_interval:
       cnt_steps = 0
-      logger.log('train/episode', epoch, learn_steps)
-      logger.log('train/episode_reward', np.mean(rewards_window), learn_steps)
-      logger.log('train/episode_step', np.mean(epi_step_window), learn_steps)
-      logger.dump(learn_steps, save=begin_learn)
+      logger.log('train/episode', epoch, explore_steps)
+      logger.log('train/episode_reward', np.mean(rewards_window), explore_steps)
+      logger.log('train/episode_step', np.mean(epi_step_window), explore_steps)
+      logger.dump(explore_steps, save=begin_learn)

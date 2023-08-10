@@ -133,7 +133,7 @@ def learn(config: Config,
           msg="default"):
 
   env_type = config.env_type
-  n_demo = config.n_demo
+  n_traj = config.n_traj
   n_sample = config.n_sample
   n_thread = config.n_thread
   max_exp_step = config.max_explore_step
@@ -161,7 +161,7 @@ def learn(config: Config,
 
   env = class_Env(env_name)
   dim_s, dim_a = env.state_action_size()
-  demo, _ = fn_get_demo(config, path=sample_name, n_demo=n_demo, display=False)
+  demo, _ = fn_get_demo(config, path=sample_name, n_traj=n_traj, display=False)
 
   critic = OptionCritic(config, dim_s, dim_a, config.dim_c)
   policy = OptionPolicy(config, dim_s, dim_a, config.dim_c)

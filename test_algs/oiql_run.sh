@@ -9,11 +9,11 @@
 ###### for Hopper-v2 #####
 # Option-IQL:
 # python3 test_algs/run_algs.py --alg_name oiql --env_type mujoco \
-#         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
+#         --env_name Hopper-v2 --n_traj 1 --device "cuda:0" \
 #         --bounded_actor True --tag oiqlstrm_64_3e-5_boundnnstd_extraD \
 #         --use_prev_action False --data_path "experts/Hopper-v2_25.pkl" \
 #         --max_explore_step 3e6 --mini_batch_size 64 --clip_grad_val 0 \
-#         --use_nn_logstd True --clamp_action_logstd False --oiql_stream True \
+#         --use_nn_logstd True --clamp_action_logstd False --stream_training True \
 #         --use_prev_action_dim True --use_prev_option_dim True \
 #         --optimizer_lr_policy 3.e-5 --optimizer_lr_critic 3.e-5 --seed 0 \
 #         --optimizer_lr_option 3.e-5 --separate_policy_update True \
@@ -21,11 +21,11 @@
 #         --init_temp 0.2
 
 # python3 test_algs/run_algs.py --alg_name oiqlv2 --env_type mujoco \
-#         --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
+#         --env_name Hopper-v2 --n_traj 1 --device "cuda:0" \
 #         --bounded_actor True --tag oiqlv2_64_3e-5_boundnnstd \
 #         --use_prev_action False --data_path "experts/Hopper-v2_25.pkl" \
 #         --max_explore_step 3e6 --mini_batch_size 64 --clip_grad_val 0 \
-#         --use_nn_logstd True --clamp_action_logstd False --oiql_stream True \
+#         --use_nn_logstd True --clamp_action_logstd False --stream_training True \
 #         --use_prev_action_dim True --use_prev_option_dim True \
 #         --optimizer_lr_policy 3.e-5 --optimizer_lr_critic 3.e-5 --seed 0 \
 #         --optimizer_lr_option 3.e-5 --separate_policy_update True \
@@ -34,11 +34,13 @@
 
 # Mental-IQL:
 python3 test_algs/run_algs.py --alg_name miql --env_type mujoco \
-        --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
-        --tag miql_64_tx3e-4_pi3-5_boundnnstd --seed 0 --dim_c 4 \
-        --data_path "experts/Hopper-v2_25.pkl" --max_explore_step 3e6 \
-        --mini_batch_size 64 --demo_latent_infer_interval 5000 \
-        --miql_tx_optimizer_lr_critic 3.e-4 --miql_tx_init_temp 1e-2 \
+        --env_name MultiGoals2D_2-v0 --n_traj 300 --device "cuda:0" \
+        --tag miql_64_3e-5_value --seed 0 --dim_c 2 \
+        --data_path "experts/MultiGoals2D_2-v0_500.pkl" --max_explore_step 3e6 \
+        --mini_batch_size 64 --demo_latent_infer_interval 5000 --n_sample 4096 \
+        --miql_update_strategy 1 --miql_tx_after_pi True \
+        --miql_alter_update_n_pi_tx "(10, 5)" --miql_order_update_pi_ratio 0.7 \
+        --miql_tx_optimizer_lr_critic 3.e-5 --miql_tx_init_temp 1e-2 \
         --miql_pi_optimizer_lr_critic 3.e-5 --miql_pi_optimizer_lr_alpha 3.e-5 \
         --miql_pi_optimizer_lr_policy 3.e-5 --miql_pi_init_temp 1e-2 \
-        --miql_pi_learn_temp True
+        --miql_pi_learn_temp True --miql_pi_method_loss "value"

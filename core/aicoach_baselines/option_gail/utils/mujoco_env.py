@@ -45,7 +45,7 @@ class MujocoEnv(object):
     return s_dim, a_dim
 
 
-def load_demo(load_path: str, n_demo: int = 2048):
+def load_demo(load_path: str, n_traj: int = 10):
   if not os.path.isfile(load_path):
     return None, None
 
@@ -53,14 +53,13 @@ def load_demo(load_path: str, n_demo: int = 2048):
   samples, filter_state = torch.load(load_path)
   n_current_demo = 0
   sample = []
-  for traj in samples:
+  for idx, traj in enumerate(samples):
+    if idx >= n_traj:
+      break
     sample.append(traj)
     n_current_demo += traj[2].size(0)
-    if n_current_demo >= n_demo:
-      break
-  if n_current_demo < n_demo:
-    print("Warning, demo package contains less demo than required",
-          f"({n_current_demo}/{n_demo})")
+  print(f"Loaded {n_traj} episodes with a total of {n_current_demo} samples.")
+
   return sample, filter_state
 
 
@@ -68,13 +67,11 @@ def generate_demo(mujoco_config: Config,
                   save_path: str,
                   expert_path: Optional[str],
                   config_path: Optional[str] = None,
-                  n_demo: int = 2048,
+                  n_traj: int = 10,
                   display: bool = False):
 
   if config_path is not None and os.path.isfile(config_path):
     mujoco_config.load_saved(config_path)
-
-  # n_demo = 409600
 
   mujoco_config.device = "cpu"
   use_rs = mujoco_config.use_state_filter
@@ -90,8 +87,9 @@ def generate_demo(mujoco_config: Config,
   rs.load_state_dict(filter_state)
 
   sample = []
+  cnt = 0
   n_current_demo = 0
-  while n_current_demo < n_demo:
+  while cnt < n_traj:
     with torch.no_grad():
       s_array = []
       a_array = []
@@ -108,11 +106,15 @@ def generate_demo(mujoco_config: Config,
       s_array = torch.cat(s_array, dim=0)
       r_array = torch.as_tensor(r_array, dtype=torch.float32).unsqueeze(dim=1)
       print(f"R-Sum={r_array.sum()}, L={r_array.size(0)}")
-      keep = input(f"{n_current_demo}/{n_demo} Keep this ? [y|n]>>>")
+      keep = input(f"{cnt}/{n_traj} Keep this ? [y|n]>>>")
       if keep == 'y':
         sample.append((s_array, a_array, r_array))
         n_current_demo += r_array.size(0)
+        cnt += 1
   torch.save((sample, rs.state_dict()), save_path)
+
+  print(
+      f"Generated {n_traj} episodes with a total of {n_current_demo} samples.")
   return sample, filter_state
 
 
@@ -120,15 +122,15 @@ def get_demo(mujoco_config: Config,
              path: str,
              expert_path: Optional[str] = None,
              config_path: Optional[str] = None,
-             n_demo: int = 2048,
+             n_traj: int = 10,
              display: bool = False):
-  sample, filter_state = load_demo(path, n_demo)
+  sample, filter_state = load_demo(path, n_traj)
   if sample is None:
     if expert_path is None:
       raise ValueError("expert path is missing")
 
     sample, filter_state = generate_demo(mujoco_config, path, expert_path,
-                                         config_path, n_demo, display)
+                                         config_path, n_traj, display)
 
   return sample, filter_state
 

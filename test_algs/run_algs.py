@@ -8,13 +8,14 @@ from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
 from default_config import rlbench_config, mujoco_config, default_config
 from iql_helper import (get_dirs, conv_torch_trajs_2_iql_format,
                         conv_iql_trajs_2_optiongail_format)
+import gym_custom
 
 
 def get_pickle_datapath_n_traj(config):
   data_path = os.path.join(config.base_dir, config.data_path)
   num_traj = config.n_traj
   if data_path.endswith("torch"):
-    trajs, _ = load_demo(data_path, config.n_demo)
+    trajs, _ = load_demo(data_path, num_traj)
     data_dir = os.path.dirname(data_path)
     num_traj = len(trajs)
 
@@ -77,12 +78,12 @@ def run_alg(config):
   elif alg_name == "oppov2":
     from aicoach_baselines.option_gail.option_ppo_learn_v2 import learn
     learn(config, log_dir, output_dir, msg)
-  elif alg_name == "oiql" and config.oiql_stream:
+  elif alg_name == "oiql" and config.stream_training:
     from ai_coach_core.model_learning.OptionIQL.train_oiql_stream import (
         train_oiql_stream)
     train_oiql_stream(config, path_iq_data, num_traj, log_dir, output_dir,
                       log_interval, eval_interval)
-  elif alg_name == "oiql" and not config.oiql_stream:
+  elif alg_name == "oiql" and not config.stream_training:
     from ai_coach_core.model_learning.OptionIQL.train_oiql_pond import (
         train_oiql_pond)
     train_oiql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
@@ -97,11 +98,11 @@ def run_alg(config):
   elif alg_name == "sac":
     from ai_coach_core.model_learning.IQLearn.iql import run_sac
     run_sac(config, log_dir, output_dir, log_interval, eval_interval)
-  elif alg_name == "osac" and config.oiql_stream:
+  elif alg_name == "osac" and config.stream_training:
     from ai_coach_core.model_learning.OptionIQL.train_oiql_stream import (
         train_osac_stream)
     train_osac_stream(config, log_dir, output_dir, log_interval, eval_interval)
-  elif alg_name == "osac" and not config.oiql_stream:
+  elif alg_name == "osac" and not config.stream_training:
     from ai_coach_core.model_learning.OptionIQL.train_oiql_pond import (
         train_osac_pond)
     train_osac_pond(config, log_dir, output_dir, log_interval, eval_interval)
@@ -109,8 +110,13 @@ def run_alg(config):
     from sb3_algs import sb3_run
     sb3_run(config, log_dir, output_dir, log_interval, eval_interval,
             alg_name[4:])
-  elif alg_name == "miql":
-    from ai_coach_core.model_learning.MentalIQL.train_miql import (train)
+  elif alg_name == "miql" and config.stream_training:
+    from ai_coach_core.model_learning.MentalIQL.train_miql import train
+    train(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
+          eval_interval)
+  elif alg_name == "miql" and not config.stream_training:
+    from ai_coach_core.model_learning.MentalIQL.train_miql_no_stream import (
+        train)
     train(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
           eval_interval)
   else:

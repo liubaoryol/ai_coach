@@ -51,7 +51,10 @@ class OptionSAC(AbstractPolicyLeaner):
     self.target_entropy = -action_dim
 
     # optimizers
-    self.reset_optimizers(config)
+    self.optimizer_lr_policy = config.optimizer_lr_policy
+    self.optimizer_lr_critic = config.optimizer_lr_critic
+    self.optimizer_lr_alpha = config.optimizer_lr_alpha
+    self.reset_optimizers()
 
     self.train()
     self.critic_target.train()
@@ -61,16 +64,16 @@ class OptionSAC(AbstractPolicyLeaner):
     self.actor.train(training)
     self._critic.train(training)
 
-  def reset_optimizers(self, config):
+  def reset_optimizers(self):
     actor_betas = critic_betas = alpha_betas = [0.9, 0.999]
     self.actor_optimizer = Adam(self.actor.parameters(),
-                                lr=config.optimizer_lr_policy,
+                                lr=self.optimizer_lr_policy,
                                 betas=actor_betas)
     self.critic_optimizer = Adam(self._critic.parameters(),
-                                 lr=config.optimizer_lr_critic,
+                                 lr=self.optimizer_lr_critic,
                                  betas=critic_betas)
     self.log_alpha_optimizer = Adam([self.log_alpha],
-                                    lr=config.optimizer_lr_alpha,
+                                    lr=self.optimizer_lr_alpha,
                                     betas=alpha_betas)
 
   @property

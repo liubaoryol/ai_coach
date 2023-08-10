@@ -9,7 +9,7 @@
 ###### for Hopper-v2 #####
 # Mental-IQL:
 python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
-        --env_name Hopper-v2 --n_demo 1000 --device "cuda:0" \
+        --env_name Hopper-v2 --n_traj 1 --device "cuda:0" \
         --bounded_actor True --tag iql_64_3e-5 \
         --use_prev_action False --data_path "experts/Hopper-v2_25.pkl" \
         --max_explore_step 3e6 --mini_batch_size 64 --use_nn_logstd True \

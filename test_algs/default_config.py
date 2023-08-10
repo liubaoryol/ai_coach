@@ -44,7 +44,6 @@ default_config = Config({
     "lambda_entropy_option": 1.e-2,
 
     # pre-train config
-    "n_demo": 2048,
     "n_pretrain_epoch": 1000,
     "pretrain_log_interval": 500,
 
@@ -69,13 +68,13 @@ default_config = Config({
     "gumbel_temperature": 1.0,
     "use_prev_action_dim": True,
     "use_prev_option_dim": True,
-    "oiql_stream": False,
     "demo_latent_infer_interval": 4096,
     "n_update_rounds": 10,
     "separate_policy_update": False,
     "init_temp": 1e-2,
     "learn_temp": False,
     "thinker_clip_grad_val": 0.0,
+    "stream_training": False,
 
     # gail debug
     "gail_option_entropy_orig": True,
@@ -85,6 +84,11 @@ default_config = Config({
     "use_nn_logstd": False,
 
     # miql config
+    "miql_update_strategy":
+    1,  # 1: always update both / 2: update in order / 3: update alternatively
+    "miql_tx_after_pi": True,
+    "miql_alter_update_n_pi_tx": (10, 5),
+    "miql_order_update_pi_ratio": 0.7,
     # tx
     "miql_tx_method_loss": "value",
     "miql_tx_method_regularize": False,
@@ -122,7 +126,6 @@ mujoco_config.update({
     "env_name": "HalfCheetah-v2",
 
     # pre-train config
-    "n_demo": 5000,
     "n_pretrain_epoch": 1000,
     "pretrain_log_interval": 500,
 })
@@ -135,7 +138,6 @@ rlbench_config.update({
     "env_name": "PlaceHangerOnRack",
 
     # pre-train config
-    "n_demo": 5000,
     "n_pretrain_epoch": 50000,
     "pretrain_log_interval": 500,
 })
@@ -147,7 +149,6 @@ mini_config.update({
     "env_name": "Circle",
 
     # pre-train config
-    "n_demo": 2048,
     "n_pretrain_epoch": 750,
     "pretrain_log_interval": 200,
 })

@@ -37,12 +37,16 @@ class MentalIQL:
     self.action_dim = action_dim
     self.lat_dim = lat_dim
 
+    self.update_strategy = config.miql_update_strategy
+    self.update_tx_after_pi = config.miql_tx_after_pi
+    self.alter_update_n_pi_tx = config.miql_alter_update_n_pi_tx
+    self.order_update_pi_ratio = config.miql_order_update_pi_ratio
+
     self.device = torch.device(config.device)
     self.PREV_LATENT = lat_dim
     self.PREV_ACTION = (float("nan") if discrete_act else np.zeros(
         self.action_dim, dtype=np.float32))
-
-    self.demo_latent_infer_interval = config.demo_latent_infer_interval
+    self.internal_step = 0
 
     config_tx, config_pi = get_tx_pi_config(config)
 
@@ -70,6 +74,10 @@ class MentalIQL:
     self.training = training
     self.tx_agent.train(training)
     self.pi_agent.train(training)
+
+  def reset_optimizers(self):
+    self.tx_agent.reset_optimizers()
+    self.pi_agent.reset_optimizers()
 
   def _get_tx_iq_vars(self, batch):
     prev_lat, _, state, latent, _, next_state, _, _, done = batch
@@ -104,36 +112,48 @@ class MentalIQL:
                                       self.tx_agent.method_regularize)
     return tx_loss
 
-  def miql_update(self, policy_batch, expert_batch, logger, step):
+  def miql_update(self, policy_batch, expert_batch, num_updates_per_cycle,
+                  logger, step):
     # update pi first and then tx
     ALWAYS_UPDATE_BOTH = 1
     UPDATE_IN_ORDER = 2
     UPDATE_ALTERNATIVELY = 3
 
-    RATIO_PI_UPDATE = 0.7
+    if self.internal_step >= num_updates_per_cycle:
+      self.internal_step = 0
 
-    update_method = ALWAYS_UPDATE_BOTH
-    internal_step = step % self.demo_latent_infer_interval
+    self.internal_step += 1
 
-    tx_loss, pi_loss = {}, {}
-    if update_method == ALWAYS_UPDATE_BOTH:
-      pi_loss = self.pi_update(policy_batch, expert_batch, logger, step)
-      tx_loss = self.tx_update(policy_batch, expert_batch, logger, step)
-    elif update_method == UPDATE_IN_ORDER:
-      if internal_step < RATIO_PI_UPDATE * self.demo_latent_infer_interval:
-        pi_loss = self.pi_update(policy_batch, expert_batch, logger, step)
+    num_pi_update, num_tx_update = self.alter_update_n_pi_tx
+
+    if self.update_tx_after_pi:
+      fn_update_1, fn_update_2 = self.tx_update, self.pi_update
+      ratio_1st = (1 - self.order_update_pi_ratio)
+      num_1st = num_tx_update
+    else:
+      fn_update_1, fn_update_2 = self.pi_update, self.tx_update
+      ratio_1st = self.order_update_pi_ratio
+      num_1st = num_pi_update
+
+    loss_1, loss_2 = {}, {}
+    if self.update_strategy == ALWAYS_UPDATE_BOTH:
+      loss_1 = fn_update_1(policy_batch, expert_batch, logger, step)
+      loss_2 = fn_update_2(policy_batch, expert_batch, logger, step)
+    elif self.update_strategy == UPDATE_IN_ORDER:
+      if self.internal_step < ratio_1st * num_updates_per_cycle:
+        loss_1 = fn_update_1(policy_batch, expert_batch, logger, step)
       else:
-        tx_loss = self.tx_update(policy_batch, expert_batch, logger, step)
-    elif update_method == UPDATE_ALTERNATIVELY:
-      NUM_PI_UPDATE = 10
-      NUM_TX_UPDATE = 5
-      alternating_step = internal_step % (NUM_PI_UPDATE + NUM_TX_UPDATE)
-      if alternating_step < NUM_PI_UPDATE:
-        pi_loss = self.pi_update(policy_batch, expert_batch, logger, step)
+        loss_2 = fn_update_2(policy_batch, expert_batch, logger, step)
+    elif self.update_strategy == UPDATE_ALTERNATIVELY:
+      alternating_step = self.internal_step % (num_pi_update + num_tx_update)
+      if alternating_step < num_1st:
+        loss_1 = fn_update_1(policy_batch, expert_batch, logger, step)
       else:
-        tx_loss = self.tx_update(policy_batch, expert_batch, logger, step)
+        loss_2 = fn_update_2(policy_batch, expert_batch, logger, step)
+    else:
+      raise NotImplementedError
 
-    return tx_loss, pi_loss
+    return (loss_1, loss_2) if self.update_tx_after_pi else (loss_2, loss_1)
 
   def choose_action(self, state, prev_option, prev_action, sample=False):
     'for compatibility with OptionIQL evaluate function'
