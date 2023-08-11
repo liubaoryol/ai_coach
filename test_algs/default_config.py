@@ -44,7 +44,6 @@ default_config = Config({
     "lambda_entropy_option": 1.e-2,
 
     # pre-train config
-    "n_demo": 2048,
     "n_pretrain_epoch": 1000,
     "pretrain_log_interval": 500,
 
@@ -57,7 +56,7 @@ default_config = Config({
     "use_d_info_gail": False,
 
     # oiql/iql config
-    "iql_agent_name": "sac",
+    "iql_agent_name": "sac",  # softq \ sac \ sacd
     "bounded_actor": True,
     "method_loss": "v0",
     "n_traj": 1,
@@ -69,13 +68,13 @@ default_config = Config({
     "gumbel_temperature": 1.0,
     "use_prev_action_dim": True,
     "use_prev_option_dim": True,
-    "oiql_stream": False,
     "demo_latent_infer_interval": 4096,
-    "n_update_rounds": 10,
     "separate_policy_update": False,
     "init_temp": 1e-2,
     "learn_temp": False,
     "thinker_clip_grad_val": 0.0,
+    "stream_training": False,
+    "n_update_rounds": 256,
 
     # gail debug
     "gail_option_entropy_orig": True,
@@ -85,9 +84,14 @@ default_config = Config({
     "use_nn_logstd": False,
 
     # miql config
+    "miql_update_strategy":
+    1,  # 1: always update both / 2: update in order / 3: update alternatively
+    "miql_tx_after_pi": True,
+    "miql_alter_update_n_pi_tx": (10, 5),
+    "miql_order_update_pi_ratio": 0.5,
     # tx
-    "miql_tx_method_loss": "v0",
-    "miql_tx_method_regularize": False,
+    "miql_tx_method_loss": "value",
+    "miql_tx_method_regularize": True,
     "miql_tx_init_temp": 1e-2,
     "miql_tx_clip_grad_val": 0.0,
     "miql_tx_num_critic_update": 1,
@@ -96,7 +100,7 @@ default_config = Config({
     "miql_tx_hidden_critic": (64, 64),
     "miql_tx_optimizer_lr_critic": 3.e-4,
     # pi
-    "miql_pi_method_loss": "v0",
+    "miql_pi_method_loss": "value",
     "miql_pi_method_regularize": True,
     "miql_pi_init_temp": 1e-2,
     "miql_pi_learn_temp": True,
@@ -122,7 +126,6 @@ mujoco_config.update({
     "env_name": "HalfCheetah-v2",
 
     # pre-train config
-    "n_demo": 5000,
     "n_pretrain_epoch": 1000,
     "pretrain_log_interval": 500,
 })
@@ -135,7 +138,6 @@ rlbench_config.update({
     "env_name": "PlaceHangerOnRack",
 
     # pre-train config
-    "n_demo": 5000,
     "n_pretrain_epoch": 50000,
     "pretrain_log_interval": 500,
 })
@@ -147,7 +149,6 @@ mini_config.update({
     "env_name": "Circle",
 
     # pre-train config
-    "n_demo": 2048,
     "n_pretrain_epoch": 750,
     "pretrain_log_interval": 200,
 })

@@ -1,3 +1,6 @@
+import os
+import pickle
+from collections import defaultdict
 import gym
 from gym import spaces
 import cv2
@@ -8,7 +11,7 @@ class MultiGoals2D(gym.Env):
   # uncomment below line if you need to render the environment
   metadata = {'render.modes': ['human']}
 
-  def __init__(self):
+  def __init__(self, n_goals):
     super().__init__()
 
     self.action_space = spaces.Box(low=-1,
@@ -24,14 +27,17 @@ class MultiGoals2D(gym.Env):
         shape=(2, ),
         dtype=np.float32)
 
-    self.goals = np.array([(-4, 4), (4, 4), (-4, -4), (4, -4)])
+    possible_goals = np.array([(-4, 4), (4, 4), (0, -4)])
+    self.goals = possible_goals[:n_goals]
+    self.visited = np.zeros(len(self.goals))
     self.tolerance = 0.3
 
     self.reset()
 
   def reset(self):
     self.cur_obstate = self.observation_space.sample()
-    self.cur_goal_idx = np.random.choice(len(self.goals))
+    self.visited = np.zeros(len(self.goals))
+    # self.cur_goal_idx = np.random.choice(len(self.goals))
 
     return self.cur_obstate
 
@@ -46,11 +52,21 @@ class MultiGoals2D(gym.Env):
                           max(self.observation_space.low[1], next_obstate[1]))
     self.cur_obstate = next_obstate
 
-    reward = float(
-        np.linalg.norm(self.goals[self.cur_goal_idx] -
-                       self.cur_obstate) < self.tolerance)
+    PANELTY = -0.1
+    GOAL_POINT = 10
 
-    return self.cur_obstate, reward, False, info
+    reward = PANELTY
+    for idx, goal in enumerate(self.goals):
+      if self.visited[idx] != 0:
+        continue
+
+      if np.linalg.norm(goal - self.cur_obstate) < self.tolerance:
+        reward += GOAL_POINT
+        self.visited[idx] = 1
+
+    done = np.sum(self.visited) == len(self.visited)
+
+    return self.cur_obstate, reward, done, info
 
   def get_canvas(self):
     canvas_sz = 300
@@ -66,10 +82,9 @@ class MultiGoals2D(gym.Env):
     cur_pt = env_pt_2_scr_pt(self.cur_obstate)
 
     for idx, goal in enumerate(self.goals):
-      if idx == self.cur_goal_idx:
-        color = (0, 255, 0)
-      else:
-        color = (0, 0, 255)
+      color = (0, 0, 255)
+      # if idx == self.cur_goal_idx:
+      #   color = (0, 255, 0)
       goal_pt = env_pt_2_scr_pt(goal)
       radius = int(
           canvas_sz * self.tolerance /
@@ -90,15 +105,107 @@ class MultiGoals2D(gym.Env):
     cv2.destroyAllWindows()
 
 
-if __name__ == "__main__":
-  env = MultiGoals2D()
+class MultiGoals2D_1(MultiGoals2D):
 
-  for _ in range(10):
-    state = env.reset()
-    vec_dir = env.goals[env.cur_goal_idx] - state
+  def __init__(self):
+    super().__init__(1)
+
+
+class MultiGoals2D_2(MultiGoals2D):
+
+  def __init__(self):
+    super().__init__(2)
+
+
+class MultiGoals2D_3(MultiGoals2D):
+
+  def __init__(self):
+    super().__init__(3)
+
+
+# synthetic agent
+def get_action(goal, state):
+  nx = 0.1 * (np.random.rand() * 2 - 1)
+  ny = 0.1 * (np.random.rand() * 2 - 1)
+  noise = np.array([nx, ny])
+  RANDOM = False
+  if RANDOM:
+    vx = np.random.rand() * 2 - 1
+    vy = np.random.rand() * 2 - 1
+    return np.array([vx, vy]) + noise
+  else:
+    vec_dir = goal - state
     len_vec = np.linalg.norm(vec_dir)
     if len_vec != 0:
       vec_dir /= len_vec
-    for _ in range(50):
-      env.step(0.1 * vec_dir)
-      env.render()
+    return 0.3 * vec_dir + noise
+
+
+def get_new_goal_idx(visited, goals, cur_goal_idx, state, tolerance):
+  if np.sum(visited) == len(visited):
+    return None
+
+  if cur_goal_idx is not None:
+    if np.linalg.norm(goals[cur_goal_idx] - state) > tolerance:
+      return cur_goal_idx
+
+  return np.random.choice(np.where(visited == 0)[0])
+
+
+def generate_data(save_dir, env_name, n_traj, render=False):
+  expert_trajs = defaultdict(list)
+  if env_name == "MultiGoals2D_1-v0":
+    env = MultiGoals2D_1()
+  elif env_name == "MultiGoals2D_2-v0":
+    env = MultiGoals2D_2()
+  elif env_name == "MultiGoals2D_3-v0":
+    env = MultiGoals2D_3()
+  else:
+    raise NotImplementedError
+
+  for _ in range(n_traj):
+    state = env.reset()
+    goal_idx = None
+    episode_reward = 0
+
+    samples = []
+    for cnt in range(200):
+      goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state,
+                                  env.tolerance)
+      action = get_action(env.goals[goal_idx], state)
+      next_state, reward, done, info = env.step(action)
+
+      samples.append((state, action, next_state, goal_idx, reward, done))
+
+      episode_reward += reward
+      if render:
+        env.render()
+      if done:
+        break
+      state = next_state
+
+    if render:
+      print(episode_reward, cnt)
+    states, actions, next_states, latents, rewards, dones = list(zip(*samples))
+
+    expert_trajs["states"].append(states)
+    expert_trajs["next_states"].append(next_states)
+    expert_trajs["actions"].append(actions)
+    expert_trajs["latents"].append(latents)
+    expert_trajs["rewards"].append(rewards)
+    expert_trajs["dones"].append(dones)
+    expert_trajs["lengths"].append(len(states))
+
+  if save_dir is not None:
+    file_path = os.path.join(save_dir, f"{env_name}_{n_traj}.pkl")
+    with open(file_path, 'wb') as f:
+      pickle.dump(expert_trajs, f)
+
+  return expert_trajs
+
+
+if __name__ == "__main__":
+  cur_dir = os.path.dirname(__file__)
+
+  # traj = generate_data(cur_dir, "MultiGoals2D_3-v0", 500, False)
+  traj = generate_data(None, "MultiGoals2D_2-v0", 10, True)

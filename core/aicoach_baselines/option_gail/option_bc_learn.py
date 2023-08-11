@@ -6,7 +6,7 @@ import torch
 from typing import Union
 import torch.nn.functional as F
 from .model.option_policy import (OptionPolicy, Policy)
-from .utils.utils import (validate, reward_validate, set_seed, 
+from .utils.utils import (validate, reward_validate, set_seed,
                           env_class_and_demo_fn)
 
 from .utils.logger import Logger
@@ -283,7 +283,7 @@ def learn(config: Config,
   use_option = config.use_option
   env_name = config.env_name
   env_type = config.env_type
-  n_demo = config.n_demo
+  n_traj = config.n_traj
   n_iter = config.n_pretrain_epoch
   seed = config.seed
   log_interval = config.pretrain_log_interval
@@ -306,7 +306,7 @@ def learn(config: Config,
 
   demo_sar_array, filter_state = fn_get_demo(config,
                                              path=sample_name,
-                                             n_demo=n_demo,
+                                             n_traj=n_traj,
                                              display=False)
   demo_sa_array = tuple(
       (s.to(policy.device), a.to(policy.device)) for s, a, r in demo_sar_array)

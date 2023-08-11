@@ -19,7 +19,7 @@ class BoxPushApp(AppInterface):
     'define game related variables and objects'
     self.x_grid = GAME_MAP["x_grid"]
     self.y_grid = GAME_MAP["y_grid"]
-    self.game = CleanupSingleSimulator()
+    self.game = CleanupSingleSimulator(False)
     self.game.max_steps = 150
 
     mdp = MDPCleanupSingle(**GAME_MAP)

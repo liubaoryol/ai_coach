@@ -1,10 +1,46 @@
+from typing import Type
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical, Normal
 from ai_coach_core.model_learning.IQLearn.agent.sac_models import (
     SquashedNormal, GumbelSoftmax)
-from aicoach_baselines.option_gail.utils.model_util import (make_module_list,
-                                                            make_activation)
+
+
+def weight_init(m):
+  if isinstance(m, nn.Linear):
+    nn.init.orthogonal_(m.weight.data)
+    if hasattr(m.bias, 'data'):
+      m.bias.data.fill_(0.0)
+
+
+def make_module(in_size,
+                out_size,
+                hidden,
+                activation: Type[nn.Module] = nn.ReLU):
+  n_in = in_size
+  l_hidden = []
+  for h in hidden:
+    l_hidden.append(torch.nn.Linear(n_in, h))
+    l_hidden.append(torch.nn.ReLU())
+    n_in = h
+  l_hidden.append(torch.nn.Linear(n_in, out_size))
+  return torch.nn.Sequential(*l_hidden)
+
+
+def make_module_list(in_size,
+                     out_size,
+                     hidden,
+                     n_net,
+                     activation: Type[nn.Module] = nn.ReLU):
+  return nn.ModuleList([
+      make_module(in_size, out_size, hidden, activation) for _ in range(n_net)
+  ])
+
+
+def make_activation(act_name):
+  return (torch.nn.ReLU if act_name == "relu" else torch.nn.Tanh
+          if act_name == "tanh" else torch.nn.Sigmoid if act_name == "sigmoid"
+          else torch.nn.Softplus if act_name == "softplus" else None)
 
 
 # #############################################################################
@@ -42,6 +78,8 @@ class SimpleOptionQNetwork(OptionSoftQNetwork):
     self.Q1 = make_module_list(obs_dim, action_dim, list_hidden_dims,
                                option_dim, activation)
 
+    self.apply(weight_init)
+
   def forward(self, state, option, *args):
     '''
     if option is None, the shape of return is (n_batch, option_dim, action_dim)
@@ -77,6 +115,8 @@ class DoubleOptionQNetwork(OptionSoftQNetwork):
                                  option_dim, activation)
     self.net2 = make_module_list(obs_dim, action_dim, list_hidden_dims,
                                  option_dim, activation)
+
+    self.apply(weight_init)
 
   def forward(self, state, option, both=False, *args):
     '''
@@ -140,6 +180,8 @@ class DoubleOptionQCritic(SACOptionQCritic):
                                option_dim, activation)
     self.Q2 = make_module_list(obs_dim + action_dim, 1, list_hidden_dims,
                                option_dim, activation)
+
+    self.apply(weight_init)
 
   def forward(self, obs, option, action, both=False, *args):
     '''
@@ -223,6 +265,8 @@ class DiagGaussianOptionActor(AbstractOptionActor):
 
     self.log_std_bounds = log_std_bounds
     self.bounded = bounded
+
+    self.apply(weight_init)
 
   def forward(self, obs, option):
     '''

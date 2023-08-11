@@ -51,7 +51,10 @@ class OptionSAC(AbstractPolicyLeaner):
     self.target_entropy = -action_dim
 
     # optimizers
-    self.reset_optimizers(config)
+    self.optimizer_lr_policy = config.optimizer_lr_policy
+    self.optimizer_lr_critic = config.optimizer_lr_critic
+    self.optimizer_lr_alpha = config.optimizer_lr_alpha
+    self.reset_optimizers()
 
     self.train()
     self.critic_target.train()
@@ -61,16 +64,16 @@ class OptionSAC(AbstractPolicyLeaner):
     self.actor.train(training)
     self._critic.train(training)
 
-  def reset_optimizers(self, config):
+  def reset_optimizers(self):
     actor_betas = critic_betas = alpha_betas = [0.9, 0.999]
     self.actor_optimizer = Adam(self.actor.parameters(),
-                                lr=config.optimizer_lr_policy,
+                                lr=self.optimizer_lr_policy,
                                 betas=actor_betas)
     self.critic_optimizer = Adam(self._critic.parameters(),
-                                 lr=config.optimizer_lr_critic,
+                                 lr=self.optimizer_lr_critic,
                                  betas=critic_betas)
     self.log_alpha_optimizer = Adam([self.log_alpha],
-                                    lr=config.optimizer_lr_alpha,
+                                    lr=self.optimizer_lr_alpha,
                                     betas=alpha_betas)
 
   @property
@@ -174,7 +177,6 @@ class OptionSAC(AbstractPolicyLeaner):
     else:
       critic_loss = F.mse_loss(current_Q, target_Q)
 
-    # logger.log('train/critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -195,10 +197,6 @@ class OptionSAC(AbstractPolicyLeaner):
 
     actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
 
-    # logger.log('train/actor_loss', actor_loss, step)
-    # logger.log('train/target_entropy', self.target_entropy, step)
-    # logger.log('train/actor_entropy', -log_prob.mean(), step)
-
     # optimize the actor
     self.actor_optimizer.zero_grad()
     actor_loss.backward()
@@ -216,8 +214,6 @@ class OptionSAC(AbstractPolicyLeaner):
       self.log_alpha_optimizer.zero_grad()
       alpha_loss = (self.log_alpha *
                     (-log_prob - self.target_entropy).detach()).mean()
-      # logger.log('train/alpha_loss', alpha_loss, step)
-      # logger.log('train/alpha_value', self.alpha, step)
 
       alpha_loss.backward()
       self.log_alpha_optimizer.step()

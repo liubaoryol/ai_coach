@@ -42,7 +42,7 @@ class Memory(object):
 
   def load(self, path, num_trajs, sample_freq, seed):
     # If path has no extension add npy
-    if not path.endswith("pkl"):
+    if not (path.endswith("pkl") or path.endswith("npy")):
       path += '.npy'
     data = ExpertDataset(path, num_trajs, sample_freq, seed)
     # data = np.load(path, allow_pickle=True)

@@ -8,7 +8,6 @@ from .option_sac import OptionSAC
 from ..helper.utils import get_concat_samples
 import time
 
-DEBUG_TIME = True
 
 
 class OptionIQL(OptionSAC):

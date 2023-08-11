@@ -14,5 +14,5 @@ setup(name="ai_coach_domain",
       python_requires='>=3.8',
       install_requires=[
           'numpy', 'matplotlib', 'click', 'mujoco-py<2.2,>=2.1', 'gym',
-          'opencv-python'
+          'opencv-python', 'Box2D'
       ])

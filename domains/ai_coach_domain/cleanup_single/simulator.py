@@ -1,6 +1,7 @@
 from typing import Hashable, Mapping, Tuple, Sequence
 import os
 import numpy as np
+import random
 from ai_coach_domain.simulator import Simulator
 from ai_coach_domain.agent import SimulatorAgent, InteractiveAgent
 from ai_coach_domain.box_push import (EventType, AGENT_ACTIONSPACE,
@@ -13,10 +14,11 @@ Coord = Tuple[int, int]
 class CleanupSingleSimulator(Simulator):
   AGENT_ID = 0
 
-  def __init__(self) -> None:
+  def __init__(self, fix_init: bool = False) -> None:
     #  input1: agent idx
     super().__init__(0)
     self.agent = None
+    self.fix_init = fix_init
 
   def init_game(self,
                 x_grid: int,
@@ -37,6 +39,13 @@ class CleanupSingleSimulator(Simulator):
     self.drops = drops
     self.wall_dir = wall_dir
 
+    self.possible_positions = []
+    for x in range(x_grid):
+      for y in range(y_grid):
+        pos = (x, y)
+        if pos not in walls and pos not in goals and pos not in boxes:
+          self.possible_positions.append(pos)
+
     self.reset_game()
 
   def get_state(self):
@@ -50,7 +59,11 @@ class CleanupSingleSimulator(Simulator):
     self.current_step = 0
     self.history = []
 
-    self.agent_pos = self.init_pos
+    if self.fix_init:
+      self.agent_pos = self.init_pos
+    else:
+      self.agent_pos = random.choice(self.possible_positions)
+
     # starts with their original locations
     self.box_states = [0] * len(self.boxes)
 
@@ -77,8 +90,7 @@ class CleanupSingleSimulator(Simulator):
 
     cur_state = tuple(self.get_state())
 
-    state = [self.current_step, *cur_state, agent_action, agent_lat]
-    self.history.append(state)
+    cur_info = [self.current_step, *cur_state, agent_action, agent_lat]
 
     self._transition(agent_action)
     self.current_step += 1
@@ -96,6 +108,9 @@ class CleanupSingleSimulator(Simulator):
     # update mental model
     self.agent.update_mental_state(cur_state, tuple_actions, self.get_state())
     self.changed_state.add("agent_latent")
+
+    cur_info.append(self.get_score())
+    self.history.append(cur_info)
 
   def _transition(self, agent_action):
     list_next_env = self._get_transition_distribution(agent_action)
@@ -173,7 +188,7 @@ class CleanupSingleSimulator(Simulator):
       txtfile.write('# cur_step, box_state, agent_pos, agent_act, agent_latent')
       txtfile.write('\n')
 
-      for step, bstt, a_pos, a_act, a_lat in self.history:
+      for step, bstt, a_pos, a_act, a_lat, scr in self.history:
         txtfile.write('%d; ' % (step, ))  # cur step
         # box states
         for idx in range(len(bstt) - 1):
@@ -201,12 +216,14 @@ class CleanupSingleSimulator(Simulator):
     if super().is_finished():
       return True
 
+    return self.check_task_done()
+
+  def check_task_done(self):
     n_drops = len(self.drops)
 
     for state in self.box_states:
       if conv_box_idx_2_state(state, n_drops)[0] != BoxState.OnGoalLoc:
         return False
-
     return True
 
   @classmethod
