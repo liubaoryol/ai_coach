@@ -88,7 +88,7 @@ default_config = Config({
     1,  # 1: always update both / 2: update in order / 3: update alternatively
     "miql_tx_after_pi": True,
     "miql_alter_update_n_pi_tx": (10, 5),
-    "miql_order_update_pi_ratio": 0.7,
+    "miql_order_update_pi_ratio": 0.5,
     # tx
     "miql_tx_method_loss": "value",
     "miql_tx_method_regularize": False,

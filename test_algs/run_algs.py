@@ -55,7 +55,7 @@ def run_alg(config):
   with open(config_path, "w") as outfile:
     outfile.write(str(config))
 
-  log_interval, eval_interval = 500, 10000
+  log_interval, eval_interval = 1000, 20000
   if (config.data_path.endswith("torch") or config.data_path.endswith("pt")
       or config.data_path.endswith("pkl") or config.data_path.endswith("npy")):
     sample_name = get_torch_datapath(config)
