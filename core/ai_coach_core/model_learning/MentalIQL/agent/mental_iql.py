@@ -36,6 +36,7 @@ class MentalIQL:
     self.obs_dim = obs_dim
     self.action_dim = action_dim
     self.lat_dim = lat_dim
+    self.discrete_act = discrete_act
 
     self.update_strategy = config.miql_update_strategy
     self.update_tx_after_pi = config.miql_tx_after_pi
@@ -47,6 +48,8 @@ class MentalIQL:
     self.PREV_ACTION = (float("nan") if discrete_act else np.zeros(
         self.action_dim, dtype=np.float32))
     self.internal_step = 0
+    self.pi_update_count = 0
+    self.tx_update_count = 0
 
     config_tx, config_pi = get_tx_pi_config(config)
 
@@ -94,22 +97,28 @@ class MentalIQL:
     return vec_v_args, vec_next_v_args, vec_actions, done
 
   def pi_update(self, policy_batch, expert_batch, logger, step):
-    PI_IS_SQIL, PI_USE_TARGET, PI_DO_SOFT_UPDATE = False, True, True
+    PI_IS_SQIL = False
+    if self.discrete_act:
+      pi_use_target, pi_soft_update = False, False
+    else:
+      pi_use_target, pi_soft_update = True, True
 
-    pi_loss = self.pi_agent.iq_update(policy_batch, expert_batch, logger, step,
-                                      PI_IS_SQIL, PI_USE_TARGET,
-                                      PI_DO_SOFT_UPDATE,
+    pi_loss = self.pi_agent.iq_update(policy_batch, expert_batch, logger,
+                                      self.pi_update_count, PI_IS_SQIL,
+                                      pi_use_target, pi_soft_update,
                                       self.pi_agent.method_loss,
                                       self.pi_agent.method_regularize)
+    self.pi_update_count += 1
     return pi_loss
 
   def tx_update(self, policy_batch, expert_batch, logger, step):
-    TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, True, True
-    tx_loss = self.tx_agent.iq_update(policy_batch, expert_batch, logger, step,
-                                      TX_IS_SQIL, TX_USE_TARGET,
-                                      TX_DO_SOFT_UPDATE,
+    TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False, False
+    tx_loss = self.tx_agent.iq_update(policy_batch, expert_batch, logger,
+                                      self.tx_update_count, TX_IS_SQIL,
+                                      TX_USE_TARGET, TX_DO_SOFT_UPDATE,
                                       self.tx_agent.method_loss,
                                       self.tx_agent.method_regularize)
+    self.tx_update_count += 1
     return tx_loss
 
   def miql_update(self, policy_batch, expert_batch, num_updates_per_cycle,

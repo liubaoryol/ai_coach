@@ -56,7 +56,7 @@ default_config = Config({
     "use_d_info_gail": False,
 
     # oiql/iql config
-    "iql_agent_name": "sac",
+    "iql_agent_name": "sac",  # softq \ sac \ sacd
     "bounded_actor": True,
     "method_loss": "v0",
     "n_traj": 1,
@@ -91,7 +91,7 @@ default_config = Config({
     "miql_order_update_pi_ratio": 0.5,
     # tx
     "miql_tx_method_loss": "value",
-    "miql_tx_method_regularize": False,
+    "miql_tx_method_regularize": True,
     "miql_tx_init_temp": 1e-2,
     "miql_tx_clip_grad_val": 0.0,
     "miql_tx_num_critic_update": 1,
@@ -100,7 +100,7 @@ default_config = Config({
     "miql_tx_hidden_critic": (64, 64),
     "miql_tx_optimizer_lr_critic": 3.e-4,
     # pi
-    "miql_pi_method_loss": "v0",
+    "miql_pi_method_loss": "value",
     "miql_pi_method_regularize": True,
     "miql_pi_init_temp": 1e-2,
     "miql_pi_learn_temp": True,

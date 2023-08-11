@@ -130,7 +130,6 @@ class OptionSoftQ(AbstractPolicyLeaner):
       y = reward + (1 - done) * self.gamma * next_v
 
     critic_loss = F.mse_loss(self.critic(obs, option, action), y)
-    # logger.log('train_critic/loss', critic_loss, step)
 
     self.critic_optimizer.zero_grad()
     critic_loss.backward()

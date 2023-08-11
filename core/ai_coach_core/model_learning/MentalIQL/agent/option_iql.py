@@ -22,7 +22,7 @@ class IQMixin:
                        policy_batch,
                        expert_batch,
                        logger,
-                       step,
+                       update_count,
                        is_sqil=False,
                        use_target=False,
                        method_loss="value",
@@ -69,7 +69,7 @@ class IQMixin:
                 policy_batch,
                 expert_batch,
                 logger,
-                step,
+                update_count,
                 is_sqil=False,
                 use_target=False,
                 do_soft_update=False,
@@ -77,9 +77,9 @@ class IQMixin:
                 method_regularize=True):
 
     for _ in range(self.num_critic_update):
-      losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
-                                     is_sqil, use_target, method_loss,
-                                     method_regularize)
+      losses = self.iq_update_critic(policy_batch, expert_batch, logger,
+                                     update_count, is_sqil, use_target,
+                                     method_loss, method_regularize)
 
     # args
     vdice_actor = False
@@ -103,14 +103,15 @@ class IQMixin:
 
         for i in range(self.num_actor_update):
           actor_alpha_losses = self.update_actor_and_alpha(
-              *vec_v_args, logger, step)
+              *vec_v_args, logger, update_count)
 
         losses.update(actor_alpha_losses)
 
-    if do_soft_update:
-      soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
-    else:
-      hard_update(self.critic_net, self.critic_target_net)
+    if update_count % self.critic_target_update_frequency == 0:
+      if do_soft_update:
+        soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
+      else:
+        hard_update(self.critic_net, self.critic_target_net)
     return losses
 
 

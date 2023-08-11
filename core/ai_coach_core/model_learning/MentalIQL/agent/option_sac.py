@@ -177,7 +177,6 @@ class OptionSAC(AbstractPolicyLeaner):
     else:
       critic_loss = F.mse_loss(current_Q, target_Q)
 
-    # logger.log('train/critic_loss', critic_loss, step)
 
     # Optimize the critic
     self.critic_optimizer.zero_grad()
@@ -198,10 +197,6 @@ class OptionSAC(AbstractPolicyLeaner):
 
     actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
 
-    # logger.log('train/actor_loss', actor_loss, step)
-    # logger.log('train/target_entropy', self.target_entropy, step)
-    # logger.log('train/actor_entropy', -log_prob.mean(), step)
-
     # optimize the actor
     self.actor_optimizer.zero_grad()
     actor_loss.backward()
@@ -219,8 +214,6 @@ class OptionSAC(AbstractPolicyLeaner):
       self.log_alpha_optimizer.zero_grad()
       alpha_loss = (self.log_alpha *
                     (-log_prob - self.target_entropy).detach()).mean()
-      # logger.log('train/alpha_loss', alpha_loss, step)
-      # logger.log('train/alpha_value', self.alpha, step)
 
       alpha_loss.backward()
       self.log_alpha_optimizer.step()

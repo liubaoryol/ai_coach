@@ -135,9 +135,6 @@ def train(config: Config,
 
     for episode_step in count():
       with eval_mode(agent):
-        # if not begin_learn:
-        #   action = env.action_space.sample()
-        # else:
         action = agent.choose_policy_action(state, latent, sample=True)
 
         next_state, reward, done, info = env.step(action)
@@ -206,9 +203,9 @@ def train(config: Config,
 
         ######
         # IQ-Learn Modification
-        expert_batch = get_samples(batch_size, expert_data)
         policy_batch = online_memory_replay.get_samples(batch_size,
                                                         agent.device)
+        expert_batch = get_samples(batch_size, expert_data)
 
         tx_losses, pi_losses = agent.miql_update(
             policy_batch, expert_batch, config.demo_latent_infer_interval,
