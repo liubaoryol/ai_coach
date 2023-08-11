@@ -213,7 +213,10 @@ def get_expert_batch(expert_traj,
     dict_batch['next_latents'] = []
 
   for i_e in range(num_samples):
-    dict_batch['states'].append(np.array(expert_traj["states"][i_e]))
+    length = len(expert_traj["rewards"][i_e])
+
+    dict_batch['states'].append(
+        np.array(expert_traj["states"][i_e]).reshape(length, -1))
 
     dict_batch['prev_latents'].append(init_latent)
     dict_batch['prev_latents'].append(
@@ -223,7 +226,8 @@ def get_expert_batch(expert_traj,
     dict_batch['prev_actions'].append(
         np.array(expert_traj["actions"][i_e][:-1]).reshape(-1, action_dim))
 
-    dict_batch['next_states'].append(np.array(expert_traj["next_states"][i_e]))
+    dict_batch['next_states'].append(
+        np.array(expert_traj["next_states"][i_e]).reshape(length, -1))
     dict_batch['latents'].append(np.array(mental_states[i_e]).reshape(-1, 1))
     dict_batch['actions'].append(
         np.array(expert_traj["actions"][i_e]).reshape(-1, action_dim))

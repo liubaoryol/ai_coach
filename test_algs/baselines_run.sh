@@ -29,13 +29,26 @@
 #         --use_option True \
 #         --mini_batch_size 500 --n_sample 5000 
 
-# LunarLander-v2
+# # LunarLander-v2
+# python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
+#         --env_name LunarLander-v2 --n_traj 10 --device "cuda:0" \
+#         --bounded_actor True --tag iql_64_3e-5 --n_sample 5000 \
+#         --iql_agent_name "softq" --method_regularize True --method_loss "value" \
+#         --data_path "experts/LunarLander-v2_1000.npy" \
+#         --max_explore_step 3e6 --mini_batch_size 256 --clip_grad_val 0 \
+#         --optimizer_lr_policy 1.e-4 --optimizer_lr_critic 1.e-4 --seed 0 \
+#         --learn_temp True --optimizer_lr_alpha 1.e-4 \
+#         --init_temp 1e-2 \
+#         --hidden_policy "(64, 64)" --hidden_critic "(64, 64)"
+
+
+# CleanupSingle-v0
 python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
-        --env_name LunarLander-v2 --n_traj 10 --device "cuda:0" \
-        --bounded_actor True --tag iql_64_3e-5 --n_sample 5000 \
+        --env_name CleanupSingle-v0 --n_traj 100 --device "cpu" \
+        --bounded_actor True --tag iql_256_3e-5 --n_sample 5000 \
         --iql_agent_name "softq" --method_regularize True --method_loss "value" \
-        --data_path "experts/LunarLander-v2_1000.npy" \
-        --max_explore_step 3e6 --mini_batch_size 256 --clip_grad_val 0 \
+        --data_path "experts/CleanupSingle-v0_100.pkl" \
+        --max_explore_step 1e6 --mini_batch_size 256 --clip_grad_val 0 \
         --optimizer_lr_policy 1.e-4 --optimizer_lr_critic 1.e-4 --seed 0 \
         --learn_temp True --optimizer_lr_alpha 1.e-4 \
         --init_temp 1e-2 \

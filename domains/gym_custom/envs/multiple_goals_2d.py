@@ -175,7 +175,7 @@ def generate_data(save_dir, env_name, n_traj, render=False):
       action = get_action(env.goals[goal_idx], state)
       next_state, reward, done, info = env.step(action)
 
-      samples.append((state, action, next_state, reward, done))
+      samples.append((state, action, next_state, goal_idx, reward, done))
 
       episode_reward += reward
       if render:
@@ -186,11 +186,12 @@ def generate_data(save_dir, env_name, n_traj, render=False):
 
     if render:
       print(episode_reward, cnt)
-    states, actions, next_states, rewards, dones = list(zip(*samples))
+    states, actions, next_states, latents, rewards, dones = list(zip(*samples))
 
     expert_trajs["states"].append(states)
     expert_trajs["next_states"].append(next_states)
     expert_trajs["actions"].append(actions)
+    expert_trajs["latents"].append(latents)
     expert_trajs["rewards"].append(rewards)
     expert_trajs["dones"].append(dones)
     expert_trajs["lengths"].append(len(states))

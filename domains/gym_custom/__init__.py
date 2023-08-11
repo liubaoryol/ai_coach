@@ -36,6 +36,6 @@ register(id='AntPush-v1',
 #          entry_point='gym_custom.envs.ant_maze_env_ex:AntMazeEnv_v1',
 #          max_episode_steps=1000)
 
-register(id='cleanupsingle-v0',
+register(id='CleanupSingle-v0',
          entry_point='gym_custom.envs.mdp_env:CleanupSingleEnv_v0',
          max_episode_steps=200)
