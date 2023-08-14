@@ -75,6 +75,7 @@ default_config = Config({
     "thinker_clip_grad_val": 0.0,
     "stream_training": False,
     "n_update_rounds": 256,
+    "iql_single_critic": True,
 
     # gail debug
     "gail_option_entropy_orig": True,
@@ -117,6 +118,7 @@ default_config = Config({
     "miql_pi_bounded_actor": True,
     "miql_pi_use_nn_logstd": True,
     "miql_pi_clamp_action_logstd": False,  # True: use clamp() / False: use tanh
+    "miql_pi_single_critic": True,
 })
 
 mujoco_config = default_config.copy()

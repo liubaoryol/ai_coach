@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from aicoach_baselines.option_gail.utils.config import Config
 from .nn_models import (SimpleOptionQNetwork, DoubleOptionQCritic,
-                        DiagGaussianOptionActor)
+                        SingleOptionQCritic, DiagGaussianOptionActor)
 # from .option_softq import OptionSoftQ
 # from .option_sac import OptionSAC
 from .option_iql import IQLOptionSAC, IQLOptionSoftQ
@@ -62,13 +62,17 @@ class MentalIQL:
                                      discrete_obs, SimpleOptionQNetwork,
                                      self._get_pi_iq_vars)
     else:
+      if config.miql_pi_single_critic:
+        critic_base = SingleOptionQCritic
+      else:
+        critic_base = DoubleOptionQCritic
       actor = DiagGaussianOptionActor(
           obs_dim, action_dim, lat_dim, config_pi.hidden_policy,
           config_pi.activation, config_pi.log_std_bounds,
           config_pi.bounded_actor, config_pi.use_nn_logstd,
           config_pi.clamp_action_logstd)
       self.pi_agent = IQLOptionSAC(config_pi, obs_dim, action_dim, lat_dim,
-                                   discrete_obs, DoubleOptionQCritic, actor,
+                                   discrete_obs, critic_base, actor,
                                    self._get_pi_iq_vars)
 
     self.train()

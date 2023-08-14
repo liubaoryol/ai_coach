@@ -5,7 +5,7 @@ from ai_coach_core.model_learning.IQLearn.agent.sac import SAC
 from ai_coach_core.model_learning.IQLearn.agent.sac_discrete import SAC_Discrete
 from ai_coach_core.model_learning.IQLearn.agent.softq import SoftQ
 from .softq_models import SimpleQNetwork, SingleQCriticDiscrete
-from .sac_models import DoubleQCritic
+from .sac_models import DoubleQCritic, SingleQCritic
 from aicoach_baselines.option_gail.utils.config import Config
 
 
@@ -35,7 +35,10 @@ def make_softq_agent(config: Config, env: gym.Env):
 def make_sac_agent(config: Config, env: gym.Env):
   'discrete observation may not work well'
 
-  critic_base = DoubleQCritic
+  if config.iql_single_critic:
+    critic_base = SingleQCritic
+  else:
+    critic_base = DoubleQCritic
   if isinstance(env.observation_space, Discrete):
     obs_dim = env.observation_space.n
     discrete_obs = True

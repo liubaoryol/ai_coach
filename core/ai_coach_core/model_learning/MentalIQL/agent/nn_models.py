@@ -206,6 +206,41 @@ class DoubleOptionQCritic(SACOptionQCritic):
       return torch.min(q1, q2)
 
 
+class SingleOptionQCritic(SACOptionQCritic):
+
+  def __init__(self,
+               obs_dim,
+               action_dim,
+               option_dim,
+               list_hidden_dims,
+               activation,
+               gamma=0.99,
+               use_tanh: bool = False):
+    super().__init__(obs_dim, action_dim, option_dim, list_hidden_dims,
+                     activation, gamma, use_tanh)
+
+    activation = make_activation(activation)
+    self.Q1 = make_module_list(obs_dim + action_dim, 1, list_hidden_dims,
+                               option_dim, activation)
+
+    self.apply(weight_init)
+
+  def forward(self, obs, option, action, both=False, *args):
+    '''
+    if option is None, the shape of return is (n_batch, option_dim, 1)
+    otherwise, the shape of return is (n_batch, 1)
+    '''
+    obs_action = torch.cat([obs, action], dim=-1)
+    q1 = torch.cat([m(obs_action) for m in self.Q1], dim=-1)
+
+    if option is not None:
+      q1 = q1.gather(dim=-1, index=option.long())
+
+    if self.use_tanh:
+      q1 = torch.tanh(q1) * 1 / (1 - self.gamma)
+
+    return q1
+
 # #############################################################################
 # Actor models
 
