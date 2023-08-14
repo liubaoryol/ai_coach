@@ -93,7 +93,6 @@ def trainer_impl(config: Config,
   num_latent = config.dim_c
   replay_mem = config.n_sample
   max_explore_step = config.max_explore_step
-  initial_mem = replay_mem
   output_suffix = ""
   load_path = None
   is_sqil = False
@@ -110,8 +109,6 @@ def trainer_impl(config: Config,
 
   # constants
   num_episodes = 10
-  if initial_mem is None:
-    initial_mem = replay_mem
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -135,7 +132,6 @@ def trainer_impl(config: Config,
   eval_env.seed(seed + 10)
 
   replay_mem = int(replay_mem)
-  initial_mem = int(initial_mem)
 
   agent = fn_make_agent(config, env)
 

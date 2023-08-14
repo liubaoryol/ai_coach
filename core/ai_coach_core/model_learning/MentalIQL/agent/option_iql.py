@@ -107,7 +107,7 @@ class IQMixin:
 
         losses.update(actor_alpha_losses)
 
-    if update_count % self.critic_target_update_frequency == 0:
+    if use_target and update_count % self.critic_target_update_frequency == 0:
       if do_soft_update:
         soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
       else:

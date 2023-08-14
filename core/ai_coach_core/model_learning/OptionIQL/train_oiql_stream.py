@@ -54,7 +54,6 @@ def trainer_impl(config: Config,
   num_latent = config.dim_c
   replay_mem = config.n_sample
   num_learn_steps = config.max_explore_step
-  initial_mem = replay_mem
   output_suffix = ""
   load_path = None
   method_loss = config.method_loss
@@ -75,8 +74,7 @@ def trainer_impl(config: Config,
   # constants
   num_episodes = 10
 
-  if initial_mem is None:
-    initial_mem = batch_size
+  initial_mem = batch_size * 5
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"

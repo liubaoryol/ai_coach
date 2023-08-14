@@ -10,6 +10,7 @@ from ai_coach_core.model_learning.IQLearn.utils.utils import one_hot
 from aicoach_baselines.option_gail.utils.config import Config
 from .option_abstract import AbstractPolicyLeaner
 
+USE_TARGET = True
 
 class OptionSoftQ(AbstractPolicyLeaner):
 
@@ -29,18 +30,20 @@ class OptionSoftQ(AbstractPolicyLeaner):
     self.q_net = q_net_base(num_inputs, action_dim, option_dim,
                             config.hidden_critic, config.activation, self.gamma,
                             use_tanh).to(self.device)
-    self.target_net = q_net_base(num_inputs, action_dim, option_dim,
-                                 config.hidden_critic, config.activation,
-                                 self.gamma, use_tanh).to(self.device)
+    if USE_TARGET:
+      self.target_net = q_net_base(num_inputs, action_dim, option_dim,
+                                  config.hidden_critic, config.activation,
+                                  self.gamma, use_tanh).to(self.device)
 
-    self.target_net.load_state_dict(self.q_net.state_dict())
+      self.target_net.load_state_dict(self.q_net.state_dict())
 
     # optimizers
     self.optimizer_lr_critic = config.optimizer_lr_critic
     self.reset_optimizers()
 
     self.train()
-    self.target_net.train()
+    if USE_TARGET:
+      self.target_net.train()
 
   def train(self, training=True):
     self.training = training

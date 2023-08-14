@@ -59,7 +59,6 @@ def train(config: Config,
   batch_size = config.mini_batch_size
   replay_mem = config.n_sample
   max_explore_step = config.max_explore_step
-  initial_mem = replay_mem
   output_suffix = ""
   eps_window = 10
   is_sqil = False
@@ -67,8 +66,7 @@ def train(config: Config,
 
   fn_make_agent = make_miql_agent
   alg_type = 'sqil' if is_sqil else 'iq'
-  if initial_mem is None:
-    initial_mem = batch_size
+  initial_mem = batch_size * 5
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"

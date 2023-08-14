@@ -75,7 +75,6 @@ def trainer_impl(config: Config,
   replay_mem = config.n_sample
   eps_window = 10
   num_learn_steps = config.max_explore_step
-  initial_mem = replay_mem
   agent_name = config.iql_agent_name
   output_suffix = ""
   load_path = None
@@ -85,8 +84,7 @@ def trainer_impl(config: Config,
   save_interval = 10
   is_sqil = False
   only_expert_states = False
-  if initial_mem is None:
-    initial_mem = batch_size
+  initial_mem = batch_size * 5
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
