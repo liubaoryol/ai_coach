@@ -2,6 +2,24 @@ import math
 import torch
 from torch import nn
 from typing import Type
+from ai_coach_core.model_learning.IQLearn.utils.utils import one_hot
+import numpy as np
+
+
+def conv_nn_input(batch_input, is_onehot_needed, dim, device):
+  if is_onehot_needed:
+    if not isinstance(batch_input, torch.Tensor):
+      batch_input = torch.tensor(batch_input,
+                                 dtype=torch.float).reshape(-1).to(device)
+    else:
+      batch_input = batch_input.reshape(-1)
+    batch_input = one_hot(batch_input, dim)
+  else:
+    if not isinstance(batch_input, torch.Tensor):
+      batch_input = torch.tensor(np.array(batch_input).reshape(-1, dim),
+                                 dtype=torch.float).to(device)
+
+  return batch_input
 
 
 def init_layer(module, gain=math.sqrt(2)):

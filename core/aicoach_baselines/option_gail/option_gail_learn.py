@@ -15,11 +15,15 @@ from .utils.config import Config
 from .utils.pre_train import pretrain
 
 
-def make_gail(config: Config, dim_s, dim_a):
+def make_gail(config: Config, dim_s, dim_a, discrete_s, discrete_a):
   use_option = config.use_option
 
   if use_option:
-    gail = OptionGAIL(config, dim_s=dim_s, dim_a=dim_a)
+    gail = OptionGAIL(config,
+                      dim_s=dim_s,
+                      dim_a=dim_a,
+                      discrete_s=discrete_s,
+                      discrete_a=discrete_a)
     ppo = OptionPPO(config, gail.policy)
   else:
     gail = GAIL(config, dim_s=dim_s, dim_a=dim_a)
@@ -83,9 +87,15 @@ def learn(config: Config,
 
   env = class_Env(env_name)
   dim_s, dim_a = env.state_action_size()
+  discrete_s, discrete_a = env.is_discrete_state_action()
+
   demo, _ = fn_get_demo(config, path=sample_name, n_traj=n_traj, display=False)
 
-  gail, ppo = make_gail(config, dim_s=dim_s, dim_a=dim_a)
+  gail, ppo = make_gail(config,
+                        dim_s=dim_s,
+                        dim_a=dim_a,
+                        discrete_s=discrete_s,
+                        discrete_a=discrete_a)
   sampling_agent = Sampler(seed,
                            env,
                            gail.policy,
@@ -139,7 +149,7 @@ def learn(config: Config,
     train_g(ppo, sample_sxar, factor_lr=1.)
 
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
-    if (i + 1) % 10 == 0:
+    if (i + 1) % 5 == 0:
       v_l, cs_demo = validate(gail.policy,
                               [(tr[0], tr[-2]) for tr in demo_sxar])
       logger.log_test("expert_logp", v_l, explore_step)

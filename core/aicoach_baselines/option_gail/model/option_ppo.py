@@ -122,7 +122,8 @@ class OptionPPO(torch.nn.Module):
 
     self.critic_lo = OptionCritic(config,
                                   dim_s=self.policy.dim_s,
-                                  dim_c=self.policy.dim_c)
+                                  dim_c=self.policy.dim_c,
+                                  discrete_s=policy.discrete_s)
 
   def _calc_adv(self, sample_scar, train_policy=True, train_option=True):
     with torch.no_grad():

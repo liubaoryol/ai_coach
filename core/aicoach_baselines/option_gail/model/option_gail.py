@@ -115,7 +115,12 @@ class GAIL(torch.nn.Module):
 
 class OptionGAIL(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self,
+               config: Config,
+               dim_s=2,
+               dim_a=2,
+               discrete_s=False,
+               discrete_a=False):
     super(OptionGAIL, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
@@ -125,8 +130,16 @@ class OptionGAIL(torch.nn.Module):
     self.use_d_info_gail = config.use_d_info_gail
     self.device = torch.device(config.device)
 
-    self.discriminator = OptionDiscriminator(config, dim_s=dim_s, dim_a=dim_a)
-    self.policy = OptionPolicy(config, dim_s=self.dim_s, dim_a=self.dim_a)
+    self.discriminator = OptionDiscriminator(config,
+                                             dim_s=dim_s,
+                                             dim_a=dim_a,
+                                             discrete_s=discrete_s,
+                                             discrete_a=discrete_a)
+    self.policy = OptionPolicy(config,
+                               dim_s=self.dim_s,
+                               dim_a=self.dim_a,
+                               discrete_s=discrete_s,
+                               discrete_a=discrete_a)
 
     self.optim = torch.optim.Adam(self.discriminator.parameters(),
                                   weight_decay=1.e-3)

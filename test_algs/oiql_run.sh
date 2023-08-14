@@ -52,7 +52,7 @@
 # Walker2d-v2
 python3 test_algs/run_algs.py --alg_name miql \
         --env_name Walker2d-v2 --n_traj 5 --device "cuda:0" \
-        --tag miql_m50k_1Q_txregval_notemp --seed 0 --dim_c 4 \
+        --tag miql_1Q_notemp_m50k_txregval --seed 0 --dim_c 4 \
         --data_path "experts/Walker2d-v2_25.pkl" --max_explore_step 1e6 \
         --mini_batch_size 256 --n_sample 50000  --stream_training True \
         --demo_latent_infer_interval 5000 --n_update_rounds 500 \
