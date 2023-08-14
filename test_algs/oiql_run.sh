@@ -52,9 +52,9 @@
 # Walker2d-v2
 python3 test_algs/run_algs.py --alg_name miql \
         --env_name Walker2d-v2 --n_traj 5 --device "cuda:0" \
-        --tag miql_256_3e-5 --seed 0 --dim_c 4 \
+        --tag miql_m500k_txreg --seed 0 --dim_c 4 \
         --data_path "experts/Walker2d-v2_25.pkl" --max_explore_step 1e6 \
-        --mini_batch_size 256 --n_sample 10000  --stream_training True \
+        --mini_batch_size 256 --n_sample 500000  --stream_training True \
         --demo_latent_infer_interval 5000 --n_update_rounds 500 \
         --miql_update_strategy 1 --miql_tx_after_pi True \
         --miql_tx_method_loss "value" --miql_tx_method_regularize True \

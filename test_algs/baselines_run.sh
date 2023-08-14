@@ -58,8 +58,8 @@
 
 # Walker2d-v2
 python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
-        --env_name Walker2d-v2 --n_traj 5 --device "cpu" \
-        --bounded_actor True --tag iql_256_3e-5 --n_sample 5000 \
+        --env_name Walker2d-v2 --n_traj 5 --device "cuda:0" \
+        --bounded_actor True --tag iql_m500k --n_sample 500000 \
         --iql_agent_name "sac" --method_regularize True --method_loss "v0" \
         --data_path "experts/Walker2d-v2_25.pkl" \
         --max_explore_step 1e6 --mini_batch_size 256 --clip_grad_val 0 \
