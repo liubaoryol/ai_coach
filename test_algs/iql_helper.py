@@ -70,6 +70,12 @@ def conv_iql_trajs_2_optiongail_format(trajectories, path: str):
                               dtype=torch.float32).reshape(n_steps, -1)
     r_array = torch.as_tensor(trajectories["rewards"][epi],
                               dtype=torch.float32).reshape(n_steps, -1)
-    sample.append((s_array, a_array, r_array))
+    if "latents" in trajectories:
+      x_array = torch.as_tensor(trajectories["latents"][epi],
+                                dtype=torch.float32).reshape(n_steps, -1)
+    else:
+      x_array = None
+
+    sample.append((s_array, a_array, r_array, x_array))
 
   torch.save((sample, rs.state_dict()), path)

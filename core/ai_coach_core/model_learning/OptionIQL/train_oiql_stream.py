@@ -14,6 +14,8 @@ from .helper.option_memory import OptionMemory
 from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
                            infer_mental_states)
 from aicoach_baselines.option_gail.utils.config import Config
+from ai_coach_core.model_learning.MentalIQL.train_miql import (
+    load_expert_data_w_labels)
 
 
 def train_osac_stream(config: Config,
@@ -114,9 +116,13 @@ def trainer_impl(config: Config,
       print("[Attention]: Did not find checkpoint {}".format(load_path))
 
   if imitation:
-    # Load expert data
-    expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
-    print(f'--> Expert memory size: {len(expert_dataset)}')
+    # # Load expert data
+    # expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
+    # print(f'--> Expert memory size: {len(expert_dataset)}')
+    n_labeled = int(num_trajs * config.supervision)
+    expert_dataset, traj_labels, cnt_label = load_expert_data_w_labels(
+        demo_path, num_trajs, n_labeled, seed)
+    output_suffix = f"_n{num_trajs}_l{cnt_label}"
 
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
 
@@ -171,7 +177,7 @@ def trainer_impl(config: Config,
         logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
         logger.dump(learn_steps, ty='eval')
 
-        if returns > best_eval_returns:
+        if returns >= best_eval_returns:
           # Store best eval returns
           best_eval_returns = returns
           save(agent,
@@ -208,7 +214,7 @@ def trainer_impl(config: Config,
               or learn_steps % config.demo_latent_infer_interval == 0):
             inferred_latents = infer_mental_states(agent,
                                                    expert_dataset.trajectories,
-                                                   num_latent)
+                                                   num_latent, traj_labels)
             exb = get_expert_batch(expert_dataset.trajectories,
                                    inferred_latents, agent.device,
                                    agent.PREV_LATENT, agent.PREV_ACTION)

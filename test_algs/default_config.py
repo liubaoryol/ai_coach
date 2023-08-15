@@ -11,6 +11,7 @@ default_config = Config({
     "n_epoch": 5000,
     "max_explore_step": 5e4,
     "base_dir": os.path.dirname(__file__),
+    "supervision": 0.3,
 
     # global task config
     "env_type": "mujoco",
@@ -73,7 +74,7 @@ default_config = Config({
     "init_temp": 1e-2,
     "learn_temp": False,
     "thinker_clip_grad_val": 0.0,
-    "stream_training": False,
+    "stream_training": True,
     "n_update_rounds": 256,
     "iql_single_critic": True,
 

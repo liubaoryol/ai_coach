@@ -68,7 +68,7 @@ def run_alg(config):
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ogail":
     from aicoach_baselines.option_gail.option_gail_learn import learn
-    learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
+    learn(config, log_dir, output_dir, path_iq_data, pretrain_name, msg)
   elif alg_name == "ogailv2":
     from aicoach_baselines.option_gail.option_gail_learn_v2 import learn
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)

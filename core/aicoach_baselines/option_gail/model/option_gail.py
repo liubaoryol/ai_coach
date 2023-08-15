@@ -201,13 +201,17 @@ class OptionGAIL(torch.nn.Module):
   def step(self, sample_sar, demo_sar, n_step=10):
     return self.step_original_gan(sample_sar, demo_sar, n_step)
 
-  def convert_demo(self, demo_sa):
+  def convert_demo(self, demo_sa, demo_labels):
     with torch.no_grad():
       out_sample = []
       r_sum_avg = 0.
-      for s_array, a_array in demo_sa:
+      for idx, item in enumerate(demo_sa):
+        s_array, a_array = item
         if self.with_c:
-          c_array, _ = self.policy.viterbi_path(s_array, a_array)
+          if demo_labels[idx] is None:
+            c_array, _ = self.policy.viterbi_path(s_array, a_array)
+          else:
+            c_array = demo_labels[idx]
         else:
           c_array = torch.zeros(s_array.size(0) + 1,
                                 1,

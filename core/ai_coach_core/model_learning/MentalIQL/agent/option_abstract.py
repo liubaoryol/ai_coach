@@ -17,8 +17,11 @@ class AbstractPolicyLeaner(abc.ABC):
 
   def conv_input(self, batch_input, is_onehot_needed, dimension):
     if is_onehot_needed:
-      batch_input = torch.tensor(batch_input,
-                                 dtype=torch.float).reshape(-1).to(self.device)
+      if not isinstance(batch_input, torch.Tensor):
+        batch_input = torch.tensor(
+            batch_input, dtype=torch.float).reshape(-1).to(self.device)
+      else:
+        batch_input = batch_input.reshape(-1)
       batch_input = one_hot(batch_input, dimension)
     else:
       if not isinstance(batch_input, torch.Tensor):

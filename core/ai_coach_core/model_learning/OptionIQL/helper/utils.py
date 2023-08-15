@@ -141,7 +141,10 @@ def evaluate(agent: OptionSAC, env: Env, num_episodes=10, vis=True):
   return total_returns, total_timesteps
 
 
-def infer_mental_states(agent: OptionSAC, expert_traj, num_latent):
+def infer_mental_states(agent: OptionSAC,
+                        expert_traj,
+                        num_latent,
+                        traj_labels=None):
   num_samples = len(expert_traj["states"])
 
   def fit_shape_2_latent(val):
@@ -173,12 +176,16 @@ def infer_mental_states(agent: OptionSAC, expert_traj, num_latent):
 
   mental_states = []
   for i_e in range(num_samples):
-    expert_states = expert_traj["states"][i_e]
-    expert_actions = expert_traj["actions"][i_e]
-    x_sequence = most_probable_sequence_v2(expert_states, expert_actions, 1,
-                                           num_latent, policy_action_prob,
-                                           gather_trans_x, x_prior)
-    mental_states.append(x_sequence[0])
+    if traj_labels is None or traj_labels[i_e] is None:
+      expert_states = expert_traj["states"][i_e]
+      expert_actions = expert_traj["actions"][i_e]
+      x_sequence = most_probable_sequence_v2(expert_states, expert_actions, 1,
+                                             num_latent, policy_action_prob,
+                                             gather_trans_x, x_prior)[0]
+    else:
+      x_sequence = traj_labels[i_e]
+
+    mental_states.append(x_sequence)
 
   return mental_states
 

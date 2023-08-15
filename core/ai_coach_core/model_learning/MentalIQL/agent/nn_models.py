@@ -241,6 +241,7 @@ class SingleOptionQCritic(SACOptionQCritic):
 
     return q1
 
+
 # #############################################################################
 # Actor models
 

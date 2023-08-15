@@ -2,7 +2,8 @@ from typing import Type
 import gym
 from gym.spaces import Discrete, Box
 from .option_models import (SoftDiscreteOptionActor, DiagGaussianOptionActor,
-                            SoftDiscreteOptionThinker, OptionDoubleQCritic)
+                            SoftDiscreteOptionThinker, OptionDoubleQCritic,
+                            OptionSingleQCritic)
 from .option_iql import OptionIQL, OptionSAC
 from aicoach_baselines.option_gail.utils.config import Config
 
@@ -31,7 +32,10 @@ def make_oiql_agent(config: Config, env: gym.Env):
     actor = DiagGaussianOptionActor(config, obs_dim, action_dim, latent_dim)
 
   thinker = SoftDiscreteOptionThinker(config, obs_dim, action_dim, latent_dim)
-  critic = OptionDoubleQCritic(config, obs_dim, action_dim, latent_dim)
+  if config.iql_single_critic:
+    critic = OptionSingleQCritic(config, obs_dim, action_dim, latent_dim)
+  else:
+    critic = OptionDoubleQCritic(config, obs_dim, action_dim, latent_dim)
 
   agent = OptionIQL(config, obs_dim, action_dim, latent_dim, discrete_obs,
                     critic, actor, thinker)

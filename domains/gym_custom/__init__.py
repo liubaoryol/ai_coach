@@ -39,3 +39,11 @@ register(id='AntPush-v1',
 register(id='CleanupSingle-v0',
          entry_point='gym_custom.envs.mdp_env:CleanupSingleEnv_v0',
          max_episode_steps=200)
+
+register(id='EnvMovers-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvMovers_v0',
+         max_episode_steps=200)
+
+register(id='EnvCleanup-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvCleanup_v0',
+         max_episode_steps=200)

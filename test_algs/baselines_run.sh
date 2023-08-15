@@ -56,23 +56,27 @@
 #         --init_temp 1e-2 \
 #         --hidden_policy "(64, 64)" --hidden_critic "(64, 64)"
 
-# Walker2d-v2
-python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
-        --env_name Walker2d-v2 --n_traj 5 --device "cuda:0" \
-        --bounded_actor True --tag iql_m50k_1Q_notemp --n_sample 50000 \
-        --iql_agent_name "sac" --method_regularize True --method_loss "v0" \
-        --data_path "experts/Walker2d-v2_25.pkl" \
-        --max_explore_step 1e6 --mini_batch_size 256 --clip_grad_val 0 \
-        --optimizer_lr_policy 3.e-5 --optimizer_lr_critic 3.e-4 --seed 0 \
-        --learn_temp False --optimizer_lr_alpha 3.e-4 \
-        --init_temp 1e-2 --iql_single_critic True\
-        --hidden_policy "(256, 256)" --hidden_critic "(256, 256)"
+# # Walker2d-v2
+# python3 test_algs/run_algs.py --alg_name iql --env_type mujoco \
+#         --env_name Walker2d-v2 --n_traj 5 --device "cuda:0" \
+#         --bounded_actor True --tag iql_m50k_1Q_notemp --n_sample 50000 \
+#         --iql_agent_name "sac" --method_regularize True --method_loss "v0" \
+#         --data_path "experts/Walker2d-v2_25.pkl" \
+#         --max_explore_step 1e6 --mini_batch_size 256 --clip_grad_val 0 \
+#         --optimizer_lr_policy 3.e-5 --optimizer_lr_critic 3.e-4 --seed 0 \
+#         --learn_temp False --optimizer_lr_alpha 3.e-4 \
+#         --init_temp 1e-2 --iql_single_critic True\
+#         --hidden_policy "(256, 256)" --hidden_critic "(256, 256)"
 
 
-# option-gail
-# python3 test_algs/run_algs.py --alg_name ogail \
-#         --env_name MultiGoals2D_2-v0 --n_traj 300 --device "cpu" \
-#         --tag ogail_64_3e-5_value --seed 0 --dim_c 2 \
-#         --data_path "experts/MultiGoals2D_2-v0_500.pkl" --max_explore_step 3e6 \
-#         --use_option True \
-#         --mini_batch_size 500 --n_sample 5000 
+# EnvMovers-v0
+python3 test_algs/run_algs.py --alg_name iql \
+        --env_name EnvMovers-v0 --n_traj 44 --device "cuda:0" \
+        --tag iql_256_value --seed 0 \
+        --data_path "experts/EnvMovers_v0_44.pkl" --max_explore_step 1e6 \
+        --mini_batch_size 256 --n_sample 5000  \
+        --iql_agent_name "softq" --method_regularize True --method_loss "value" \
+        --demo_latent_infer_interval 3000 --n_update_rounds 500 \
+        --optimizer_lr_policy 1.e-4 --optimizer_lr_critic 1.e-4 --seed 0 \
+        --supervision 0.0 \
+        --hidden_policy "(64, 64)" --hidden_critic "(64, 64)"
