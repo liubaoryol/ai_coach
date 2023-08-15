@@ -137,12 +137,12 @@ if __name__ == "__main__":
   DATA_DIR = "/home/sangwon/Projects/ai_coach/misc/BTIL_results/aws_data_test/"
 
   env_movers = EnvMovers_v0()
-  movers_data = glob.glob(os.path.join(DATA_DIR + "domain1", '*.txt'))
-  traj = conv_human_data_2_iql_format(
-      env_movers.mdp, env_movers.robot_agent.agent_model.get_reference_mdp(),
-      movers_data[:1], None, "EnvMovers_v0")
-  print(traj)
+  print(env_movers.mdp.num_latents)
 
+  # movers_data = glob.glob(os.path.join(DATA_DIR + "domain1", '*.txt'))
+  # traj = conv_human_data_2_iql_format(
+  #     env_movers.mdp, env_movers.robot_agent.agent_model.get_reference_mdp(),
+  #     movers_data[:1], None, "EnvMovers_v0")
   # num_train = 44
   # conv_human_data_2_iql_format(
   #     env_movers.mdp, env_movers.robot_agent.agent_model.get_reference_mdp(),
@@ -154,7 +154,8 @@ if __name__ == "__main__":
   #     env_movers.mdp, env_movers.robot_agent.agent_model.get_reference_mdp(),
   #     movers_data[num_train:], cur_dir, "EnvMovers_v0")
 
-  # env_cleanup = EnvCleanup_v0()
+  env_cleanup = EnvCleanup_v0()
+  print(env_cleanup.mdp.num_latents)
   # cleanup_data = glob.glob(os.path.join(DATA_DIR + "domain2", '*.txt'))
   # num_train = 66
   # conv_human_data_2_iql_format(

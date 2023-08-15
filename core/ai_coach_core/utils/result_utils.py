@@ -3,6 +3,10 @@ import numpy as np
 
 
 def norm_hamming_distance(seq1, seq2):
+  return hamming_distance(seq1, seq2) / len(seq1)
+
+
+def hamming_distance(seq1, seq2):
   assert len(seq1) == len(seq2)
 
   count = 0
@@ -10,7 +14,7 @@ def norm_hamming_distance(seq1, seq2):
     if elem != seq2[idx]:
       count += 1
 
-  return count / len(seq1)
+  return count
 
 
 def alignment_sequence(seq1, seq2):

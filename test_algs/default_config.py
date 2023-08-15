@@ -147,3 +147,44 @@ mujoco_config.update({
     "miql_pi_method_regularize": True,
     "miql_pi_single_critic": True,
 })
+
+simple2d_config = default_config.copy()
+simple2d_config.update({
+    # global task config
+    "env_type": "mujoco",
+    "device": "cuda:0",
+    "max_explore_step": 5e4,
+    "mini_batch_size": 64,
+    "demo_latent_infer_interval": 1000,
+
+    # ----
+    "seed": 0,
+    "supervision": 0.0,
+    # ----
+
+    # gail
+    "hidden_policy": (128, 128),
+    "hidden_option": (128, 128),
+    "hidden_critic": (128, 128),
+    "hidden_discriminator": (256, 256),
+
+    # oiql/miql
+    "stream_training": True,
+
+    # oiql only
+
+    # miql only
+    "miql_tx_tx_batch_size": 64,
+    "miql_tx_optimizer_lr_critic": 1.e-4,
+    "miql_pi_optimizer_lr_critic": 1.e-4,
+    "miql_pi_optimizer_lr_policy": 3.e-5,
+    "miql_tx_hidden_critic": (32, 32),
+    "miql_pi_hidden_critic": (32, 32),
+    "miql_pi_hidden_policy": (32, 32),
+    "miql_tx_init_temp": 1e-4,
+    "miql_pi_init_temp": 1e-4,
+    "miql_pi_learn_temp": False,
+    "miql_tx_method_regularize": True,
+    "miql_pi_method_regularize": True,
+    "miql_pi_single_critic": True,
+})

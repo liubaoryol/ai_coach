@@ -98,6 +98,7 @@ def learn(config: Config,
           save_dir,
           demo_path,
           pretrain_name,
+          eval_interval,
           msg="default"):
 
   env_type = config.env_type
@@ -182,6 +183,7 @@ def learn(config: Config,
   explore_step = 0
   LOG_PLOT = False
   best_reward = -float("inf")
+  cnt_evals = 0
   for i in count():
     if explore_step >= max_exp_step:
       break
@@ -199,8 +201,12 @@ def learn(config: Config,
     # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
     train_g(ppo, sample_sxar, factor_lr=1.)
 
-    explore_step += sum([len(traj[0]) for traj in sample_sxar])
-    if (i + 1) % 5 == 0:
+    new_explore_step = sum([len(traj[0]) for traj in sample_sxar])
+    explore_step += new_explore_step
+    cnt_evals += new_explore_step
+    # if (i + 1) % 5 == 0:
+    if cnt_evals >= eval_interval:
+      cnt_evals = 0
       v_l, cs_demo = validate(gail.policy,
                               [(tr[0], tr[-2]) for tr in demo_sxar])
       logger.log_test("expert_logp", v_l, explore_step)

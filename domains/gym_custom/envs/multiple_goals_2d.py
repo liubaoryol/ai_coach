@@ -11,7 +11,7 @@ class MultiGoals2D(gym.Env):
   # uncomment below line if you need to render the environment
   metadata = {'render.modes': ['human']}
 
-  def __init__(self, n_goals):
+  def __init__(self, possible_goals):
     super().__init__()
 
     self.action_space = spaces.Box(low=-1,
@@ -27,8 +27,8 @@ class MultiGoals2D(gym.Env):
         shape=(2, ),
         dtype=np.float32)
 
-    possible_goals = np.array([(-4, 4), (4, 4), (0, -4)])
-    self.goals = possible_goals[:n_goals]
+    # possible_goals = np.array([(-4, 4), (4, 4), (0, -4), (-4, -4)])
+    self.goals = possible_goals
     self.visited = np.zeros(len(self.goals))
     self.tolerance = 0.3
 
@@ -108,19 +108,31 @@ class MultiGoals2D(gym.Env):
 class MultiGoals2D_1(MultiGoals2D):
 
   def __init__(self):
-    super().__init__(1)
+    super().__init__([(-4, 4)])
 
 
 class MultiGoals2D_2(MultiGoals2D):
 
   def __init__(self):
-    super().__init__(2)
+    super().__init__([(-4, 4), (4, 4)])
 
 
 class MultiGoals2D_3(MultiGoals2D):
 
   def __init__(self):
-    super().__init__(3)
+    super().__init__([(-4, 4), (4, 4), (0, -4)])
+
+
+class MultiGoals2D_4(MultiGoals2D):
+
+  def __init__(self):
+    super().__init__([(-4, 4), (4, 4), (4, -4), (-4, -4)])
+
+
+class MultiGoals2D_5(MultiGoals2D):
+
+  def __init__(self):
+    super().__init__([(-2.5, 4), (2.5, 4), (0, -4), (-4, -0.5), (4, -0.5)])
 
 
 # synthetic agent
@@ -160,6 +172,10 @@ def generate_data(save_dir, env_name, n_traj, render=False):
     env = MultiGoals2D_2()
   elif env_name == "MultiGoals2D_3-v0":
     env = MultiGoals2D_3()
+  elif env_name == "MultiGoals2D_4-v0":
+    env = MultiGoals2D_4()
+  elif env_name == "MultiGoals2D_5-v0":
+    env = MultiGoals2D_5()
   else:
     raise NotImplementedError
 
@@ -207,5 +223,6 @@ def generate_data(save_dir, env_name, n_traj, render=False):
 if __name__ == "__main__":
   cur_dir = os.path.dirname(__file__)
 
-  # traj = generate_data(cur_dir, "MultiGoals2D_3-v0", 500, False)
-  traj = generate_data(None, "MultiGoals2D_2-v0", 10, True)
+  for idx in range(1, 6):
+    traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 500, False)
+  # traj = generate_data(None, "MultiGoals2D_5-v0", 10, True)
