@@ -91,7 +91,6 @@ def train(config: Config,
 
   fn_make_agent = make_miql_agent
   alg_type = 'sqil' if is_sqil else 'iq'
-  initial_mem = batch_size * 5
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -115,7 +114,6 @@ def train(config: Config,
   eval_env.seed(seed + 10)
 
   replay_mem = int(replay_mem)
-  initial_mem = int(initial_mem)
   eps_window = int(eps_window)
   max_explore_step = int(max_explore_step)
 
@@ -128,6 +126,10 @@ def train(config: Config,
 
   output_suffix = f"_n{num_trajs}_l{cnt_label}"
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
+
+  batch_size = min(batch_size, len(expert_dataset))
+  initial_mem = min(batch_size * 5, replay_mem)
+  initial_mem = int(initial_mem)
 
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)

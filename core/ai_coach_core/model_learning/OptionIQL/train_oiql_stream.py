@@ -76,8 +76,6 @@ def trainer_impl(config: Config,
   # constants
   num_episodes = 8
 
-  initial_mem = batch_size * 5
-
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
   cuda_deterministic = False
@@ -100,7 +98,6 @@ def trainer_impl(config: Config,
   eval_env.seed(seed + 10)
 
   replay_mem = int(replay_mem)
-  initial_mem = int(initial_mem)
   eps_window = int(eps_window)
   num_learn_steps = int(num_learn_steps)
 
@@ -123,9 +120,12 @@ def trainer_impl(config: Config,
     expert_dataset, traj_labels, cnt_label = load_expert_data_w_labels(
         demo_path, num_trajs, n_labeled, seed)
     output_suffix = f"_n{num_trajs}_l{cnt_label}"
+    batch_size = min(batch_size, len(expert_dataset))
 
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
 
+  initial_mem = min(batch_size * 5, replay_mem)
+  initial_mem = int(initial_mem)
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
