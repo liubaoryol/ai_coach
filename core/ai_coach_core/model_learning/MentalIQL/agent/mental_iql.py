@@ -42,6 +42,8 @@ class MentalIQL:
     self.update_tx_after_pi = config.miql_tx_after_pi
     self.alter_update_n_pi_tx = config.miql_alter_update_n_pi_tx
     self.order_update_pi_ratio = config.miql_order_update_pi_ratio
+    self.tx_batch_size = min(config.miql_tx_tx_batch_size,
+                             config.mini_batch_size)
 
     self.device = torch.device(config.device)
     self.PREV_LATENT = lat_dim
@@ -117,7 +119,8 @@ class MentalIQL:
 
   def tx_update(self, policy_batch, expert_batch, logger, step):
     TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False, False
-    tx_loss = self.tx_agent.iq_update(policy_batch, expert_batch, logger,
+    tx_loss = self.tx_agent.iq_update(policy_batch[:self.tx_batch_size],
+                                      expert_batch[:self.tx_batch_size], logger,
                                       self.tx_update_count, TX_IS_SQIL,
                                       TX_USE_TARGET, TX_DO_SOFT_UPDATE,
                                       self.tx_agent.method_loss,

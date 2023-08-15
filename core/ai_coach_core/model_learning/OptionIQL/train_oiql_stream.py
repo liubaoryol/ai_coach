@@ -74,7 +74,7 @@ def trainer_impl(config: Config,
     raise NotImplementedError
 
   # constants
-  num_episodes = 10
+  num_episodes = 8
 
   initial_mem = batch_size * 5
 

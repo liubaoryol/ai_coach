@@ -5,7 +5,7 @@ from aicoach_baselines.option_gail.utils.config import ARGConfig
 from aicoach_baselines.option_gail.utils.mujoco_env import load_demo
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     read_file)
-from default_config import rlbench_config, mujoco_config, default_config
+from default_config import mujoco_config, default_config
 from iql_helper import (get_dirs, conv_torch_trajs_2_iql_format,
                         conv_iql_trajs_2_optiongail_format)
 import gym_custom
@@ -55,7 +55,7 @@ def run_alg(config):
   with open(config_path, "w") as outfile:
     outfile.write(str(config))
 
-  log_interval, eval_interval = 1000, 10000
+  log_interval, eval_interval = 1000, 20000
   if (config.data_path.endswith("torch") or config.data_path.endswith("pt")
       or config.data_path.endswith("pkl") or config.data_path.endswith("npy")):
     sample_name = get_torch_datapath(config)
@@ -148,13 +148,7 @@ if __name__ == "__main__":
   if arg.miql_tx_clip_grad_val == 0:
     arg.miql_tx_clip_grad_val = None
 
-  if arg.env_type == "rlbench":
-    config = rlbench_config
-  elif arg.env_type == "mujoco":
-    config = mujoco_config
-  else:
-    raise ValueError(
-        "mini for circle env; rlbench for rlbench env; mujoco for mujoco env")
+  config = default_config
 
   config.base_dir = os.path.dirname(__file__)
 

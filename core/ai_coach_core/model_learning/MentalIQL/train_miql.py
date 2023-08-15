@@ -87,7 +87,7 @@ def train(config: Config,
   max_explore_step = config.max_explore_step
   eps_window = 10
   is_sqil = False
-  num_episodes = 10
+  num_episodes = 8
 
   fn_make_agent = make_miql_agent
   alg_type = 'sqil' if is_sqil else 'iq'

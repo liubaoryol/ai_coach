@@ -11,7 +11,7 @@ default_config = Config({
     "n_epoch": 5000,
     "max_explore_step": 5e4,
     "base_dir": os.path.dirname(__file__),
-    "supervision": 0.3,
+    "supervision": 0.0,
 
     # global task config
     "env_type": "mujoco",
@@ -56,6 +56,13 @@ default_config = Config({
     "optimizer_lr_discriminator": 3.e-4,
     "use_d_info_gail": False,
 
+    # gail debug
+    "gail_option_entropy_orig": True,
+    "gail_option_sample_orig": True,
+    "gail_orig_log_opt": True,
+    "clamp_action_logstd": True,  # True: use clamp() / False: use tanh
+    "use_nn_logstd": False,
+
     # oiql/iql config
     "iql_agent_name": "sac",  # softq \ sac \ sacd
     "bounded_actor": True,
@@ -78,13 +85,6 @@ default_config = Config({
     "n_update_rounds": 256,
     "iql_single_critic": True,
 
-    # gail debug
-    "gail_option_entropy_orig": True,
-    "gail_option_sample_orig": True,
-    "gail_orig_log_opt": True,
-    "clamp_action_logstd": True,  # True: use clamp() / False: use tanh
-    "use_nn_logstd": False,
-
     # miql config
     "miql_update_strategy":
     1,  # 1: always update both / 2: update in order / 3: update alternatively
@@ -94,13 +94,14 @@ default_config = Config({
     # tx
     "miql_tx_method_loss": "value",
     "miql_tx_method_regularize": True,
-    "miql_tx_init_temp": 1e-2,
+    "miql_tx_init_temp": 1e-4,
     "miql_tx_clip_grad_val": 0.0,
     "miql_tx_num_critic_update": 1,
     "miql_tx_num_actor_update": 1,
     "miql_tx_activation": "relu",
     "miql_tx_hidden_critic": (64, 64),
     "miql_tx_optimizer_lr_critic": 3.e-4,
+    "miql_tx_tx_batch_size": 64,
     # pi
     "miql_pi_method_loss": "value",
     "miql_pi_method_regularize": True,
@@ -126,32 +127,23 @@ mujoco_config = default_config.copy()
 mujoco_config.update({
     # global task config
     "env_type": "mujoco",
-    "env_name": "HalfCheetah-v2",
-
-    # pre-train config
-    "n_pretrain_epoch": 1000,
-    "pretrain_log_interval": 500,
-})
-
-rlbench_config = default_config.copy()
-rlbench_config.update({
-    # global task config
-    "n_thread": 3,
-    "env_type": "rlbench",
-    "env_name": "PlaceHangerOnRack",
-
-    # pre-train config
-    "n_pretrain_epoch": 50000,
-    "pretrain_log_interval": 500,
-})
-
-mini_config = default_config.copy()
-mini_config.update({
-    # global task config
-    "env_type": "mini",
-    "env_name": "Circle",
-
-    # pre-train config
-    "n_pretrain_epoch": 750,
-    "pretrain_log_interval": 200,
+    "n_traj": 1,
+    "dim_c": 4,
+    "device": "cuda:0",
+    "max_explore_step": 1e6,
+    "mini_batch_size": 256,
+    "miql_tx_tx_batch_size": 64,
+    "demo_latent_infer_interval": 5000,
+    "stream_training": True,
+    "miql_tx_optimizer_lr_critic": 1.e-4,
+    "miql_pi_optimizer_lr_critic": 3.e-4,
+    "miql_pi_optimizer_lr_policy": 3.e-5,
+    "miql_tx_hidden_critic": (32, 32),
+    "miql_pi_hidden_critic": (64, 64),
+    "miql_pi_hidden_policy": (64, 64),
+    "miql_tx_init_temp": 1e-4,
+    "miql_pi_learn_temp": False,
+    "miql_tx_method_regularize": True,
+    "miql_pi_method_regularize": True,
+    "miql_pi_single_critic": True,
 })
