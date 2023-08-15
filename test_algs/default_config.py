@@ -132,7 +132,7 @@ mujoco_config.update({
     "device": "cuda:0",
     "max_explore_step": 1e6,
     "mini_batch_size": 256,
-    "miql_tx_tx_batch_size": 64,
+    "miql_tx_tx_batch_size": 256,
     "demo_latent_infer_interval": 5000,
     "stream_training": True,
     "miql_tx_optimizer_lr_critic": 3.e-4,
