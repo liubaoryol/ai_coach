@@ -163,10 +163,10 @@ simple2d_config.update({
     # ----
 
     # gail
-    "hidden_policy": (128, 128),
-    "hidden_option": (128, 128),
-    "hidden_critic": (128, 128),
-    "hidden_discriminator": (128, 128),
+    "hidden_policy": (256, 256),
+    "hidden_option": (256, 256),
+    "hidden_critic": (256, 256),
+    "hidden_discriminator": (256, 256),
 
     # oiql/miql
     "stream_training": True,

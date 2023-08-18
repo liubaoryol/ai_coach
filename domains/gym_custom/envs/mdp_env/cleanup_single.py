@@ -49,6 +49,7 @@ if __name__ == "__main__":
   sim.set_autonomous_agent(agent)
 
   print(mdp_task.num_latents)
+  print(mdp_task.num_states)
 
   # generate data
   ############################################################################
