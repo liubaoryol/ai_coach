@@ -3,7 +3,8 @@ from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
 
 
-class BoxPushV2Demo(BoxPushV2UserRandom):
+class DemoMixin():
+
   def _on_game_finished(self, user_game_data: Exp1UserData):
 
     user_game_data.data[Exp1UserData.GAME_DONE] = True
@@ -25,17 +26,16 @@ class BoxPushV2Demo(BoxPushV2UserRandom):
     return "Time Taken: " + str(score)
 
 
-class RescueDemo(RescueGameUserRandom):
-  def _on_game_finished(self, user_game_data: Exp1UserData):
-    user_game_data.data[Exp1UserData.GAME_DONE] = True
+class BoxPushV2Demo(DemoMixin, BoxPushV2UserRandom):
 
-    game = user_game_data.get_game_ref()
-    # update score
-    user_game_data.data[Exp1UserData.SCORE] = game.current_step
+  def __init__(self, domain_type, partial_obs, latent_collection=True) -> None:
+    super().__init__(domain_type, partial_obs, latent_collection)
 
-    # move to start page
-    user_game_data.data[Exp1UserData.PAGE_IDX] = 0
-    self.init_user_data(user_game_data)
+
+class RescueDemo(DemoMixin, RescueGameUserRandom):
+
+  def __init__(self, partial_obs, latent_collection=True) -> None:
+    super().__init__(partial_obs, latent_collection)
 
   def _get_score_text(self, user_data: Exp1UserData):
     game = user_data.get_game_ref()
