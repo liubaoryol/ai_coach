@@ -84,7 +84,6 @@ def trainer_impl(config: Config,
   save_interval = 10
   is_sqil = False
   only_expert_states = False
-  initial_mem = batch_size * 5
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -106,11 +105,6 @@ def trainer_impl(config: Config,
   # Seed envs
   env.seed(seed)
   eval_env.seed(seed + 10)
-
-  replay_mem = int(replay_mem)
-  initial_mem = int(initial_mem)
-  eps_window = int(eps_window)
-  num_learn_steps = int(num_learn_steps)
 
   if agent_name == "softq":
     use_target = False
@@ -142,9 +136,17 @@ def trainer_impl(config: Config,
                               num_trajs=num_trajs,
                               sample_freq=subsample_freq,
                               seed=seed + 42)
+    batch_size = min(batch_size, expert_memory_replay.size())
     print(f'--> Expert memory size: {expert_memory_replay.size()}')
 
   online_memory_replay = Memory(replay_mem, seed + 1)
+
+  initial_mem = min(batch_size * 5, replay_mem)
+
+  replay_mem = int(replay_mem)
+  initial_mem = int(initial_mem)
+  eps_window = int(eps_window)
+  num_learn_steps = int(num_learn_steps)
 
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)
