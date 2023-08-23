@@ -55,6 +55,8 @@ def option_loop(env, policy, state_filter, fixed):
                      device=policy.device).fill_(policy.dim_c)
     c_array.append(ct)
     while not done:
+      if policy.discrete_s:
+        s = [s]
       st = torch.as_tensor(state_filter(s, fixed),
                            dtype=torch.float32,
                            device=policy.device).unsqueeze(0)
@@ -63,7 +65,12 @@ def option_loop(env, policy, state_filter, fixed):
       s_array.append(st)
       c_array.append(ct)
       a_array.append(at)
-      s, r, done = env.step(at.cpu().squeeze(dim=0).numpy())
+
+      at = at.cpu().squeeze(dim=0).numpy()
+      if policy.discrete_a:
+        at = at[0]
+
+      s, r, done = env.step(at)
       r_array.append(r)
     a_array = torch.cat(a_array, dim=0)
     c_array = torch.cat(c_array, dim=0)

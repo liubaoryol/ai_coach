@@ -18,13 +18,39 @@ from .agent.make_agent import MentalIQL
 from .agent.make_agent import make_miql_agent
 
 
-def infer_mental_states_all_demo(agent: MentalIQL, expert_traj):
+def load_expert_data_w_labels(demo_path, num_trajs, n_labeled, seed):
+  expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
+  print(f'--> Expert memory size: {len(expert_dataset)}')
+
+  cnt_label = 0
+  traj_labels = []
+  for i_e in range(num_trajs):
+    if "latents" in expert_dataset.trajectories:
+      expert_latents = expert_dataset.trajectories["latents"][i_e]
+    else:
+      expert_latents = None
+
+    if i_e < n_labeled:
+      traj_labels.append(expert_latents)
+      cnt_label += 1
+    else:
+      traj_labels.append(None)
+
+  print("num_labeled:", cnt_label)
+  return expert_dataset, traj_labels, cnt_label
+
+
+def infer_mental_states_all_demo(agent: MentalIQL, expert_traj, traj_labels):
   num_samples = len(expert_traj["states"])
   list_mental_states = []
   for i_e in range(num_samples):
-    expert_states = expert_traj["states"][i_e]
-    expert_actions = expert_traj["actions"][i_e]
-    mental_array, _ = agent.infer_mental_states(expert_states, expert_actions)
+    if traj_labels[i_e] is None:
+      expert_states = expert_traj["states"][i_e]
+      expert_actions = expert_traj["actions"][i_e]
+      mental_array, _ = agent.infer_mental_states(expert_states, expert_actions)
+    else:
+      mental_array = traj_labels[i_e]
+
     list_mental_states.append(mental_array)
 
   return list_mental_states
@@ -59,16 +85,12 @@ def train(config: Config,
   batch_size = config.mini_batch_size
   replay_mem = config.n_sample
   max_explore_step = config.max_explore_step
-  initial_mem = replay_mem
-  output_suffix = ""
   eps_window = 10
   is_sqil = False
-  num_episodes = 10
+  num_episodes = 8
 
   fn_make_agent = make_miql_agent
   alg_type = 'sqil' if is_sqil else 'iq'
-  if initial_mem is None:
-    initial_mem = batch_size
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -92,17 +114,22 @@ def train(config: Config,
   eval_env.seed(seed + 10)
 
   replay_mem = int(replay_mem)
-  initial_mem = int(initial_mem)
   eps_window = int(eps_window)
   max_explore_step = int(max_explore_step)
 
   agent = fn_make_agent(config, env)
 
   # Load expert data
-  expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
-  print(f'--> Expert memory size: {len(expert_dataset)}')
+  n_labeled = int(num_trajs * config.supervision)
+  expert_dataset, traj_labels, cnt_label = load_expert_data_w_labels(
+      demo_path, num_trajs, n_labeled, seed)
 
+  output_suffix = f"_n{num_trajs}_l{cnt_label}"
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
+
+  batch_size = min(batch_size, len(expert_dataset))
+  initial_mem = min(batch_size * 5, replay_mem)
+  initial_mem = int(initial_mem)
 
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)
@@ -151,7 +178,7 @@ def train(config: Config,
         logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
         logger.dump(explore_steps, ty='eval')
 
-        if returns > best_eval_returns:
+        if returns >= best_eval_returns:
           # Store best eval returns
           best_eval_returns = returns
           save(agent,
@@ -186,7 +213,7 @@ def train(config: Config,
         if (expert_data is None
             or explore_steps % config.demo_latent_infer_interval == 0):
           mental_states = infer_mental_states_all_demo(
-              agent, expert_dataset.trajectories)
+              agent, expert_dataset.trajectories, traj_labels)
           mental_states_after_end = infer_last_next_mental_state(
               agent, expert_dataset.trajectories, mental_states)
           exb = get_expert_batch(

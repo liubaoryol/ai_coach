@@ -1,5 +1,6 @@
 import torch
-from ..utils.model_util import make_module, make_module_list, make_activation
+from ..utils.model_util import (make_module, make_module_list, make_activation,
+                                conv_nn_input)
 from ..utils.config import Config
 
 # This file should be included by option_gail.py and never be used otherwise
@@ -41,11 +42,18 @@ class Discriminator(torch.nn.Module):
 
 class OptionDiscriminator(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self,
+               config: Config,
+               dim_s=2,
+               dim_a=2,
+               discrete_s=False,
+               discrete_a=False):
     super(OptionDiscriminator, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
     self.dim_c = config.dim_c
+    self.discrete_s = discrete_s
+    self.discrete_a = discrete_a
     self.with_c = config.use_c_in_discriminator
     self.is_shared = config.shared_discriminator
     self.device = torch.device(config.device)
@@ -65,6 +73,8 @@ class OptionDiscriminator(torch.nn.Module):
     self.to(self.device)
 
   def get_unnormed_d(self, st, ct_1, at, ct):
+    st = conv_nn_input(st, self.discrete_s, self.dim_s, self.device)
+    at = conv_nn_input(at, self.discrete_a, self.dim_a, self.device)
     s_a = torch.cat((st, at), dim=-1)
     if not self.is_shared and self.with_c:
       d = torch.cat([m(s_a) for m in self.discriminator], dim=-1)

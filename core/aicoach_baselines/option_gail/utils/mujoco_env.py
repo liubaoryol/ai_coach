@@ -6,6 +6,7 @@ import gym
 from ..model.option_policy import Policy
 from .config import Config
 from .state_filter import StateFilter
+from gym.spaces import Discrete, Box
 
 
 class MujocoEnv(object):
@@ -35,14 +36,54 @@ class MujocoEnv(object):
 
   def state_action_size(self):
     if self.env is not None:
-      s_dim = self.env.observation_space.shape[0]
-      a_dim = self.env.action_space.shape[0]
+      if isinstance(self.env.observation_space, Discrete):
+        s_dim = self.env.observation_space.n
+      else:
+        s_dim = self.env.observation_space.shape[0]
+
+      if isinstance(self.env.action_space, Discrete):
+        a_dim = self.env.action_space.n
+      else:
+        a_dim = self.env.action_space.shape[0]
     else:
       env = gym.make(self.task_name)
-      s_dim = env.observation_space.shape[0]
-      a_dim = env.action_space.shape[0]
+      if isinstance(env.observation_space, Discrete):
+        s_dim = env.observation_space.n
+      else:
+        s_dim = env.observation_space.shape[0]
+
+      if isinstance(env.action_space, Discrete):
+        a_dim = env.action_space.n
+      else:
+        a_dim = env.action_space.shape[0]
       env.close()
     return s_dim, a_dim
+
+  def is_discrete_state_action(self):
+    if self.env is not None:
+      if isinstance(self.env.observation_space, Discrete):
+        discrete_s = True
+      else:
+        discrete_s = False
+
+      if isinstance(self.env.action_space, Discrete):
+        discrete_a = True
+      else:
+        discrete_a = False
+    else:
+      env = gym.make(self.task_name)
+      if isinstance(env.observation_space, Discrete):
+        discrete_s = True
+      else:
+        discrete_s = False
+
+      if isinstance(env.action_space, Discrete):
+        discrete_a = True
+      else:
+        discrete_a = False
+
+      env.close()
+    return discrete_s, discrete_a
 
 
 def load_demo(load_path: str, n_traj: int = 10):

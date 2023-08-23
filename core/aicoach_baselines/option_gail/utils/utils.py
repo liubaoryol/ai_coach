@@ -69,11 +69,8 @@ def lr_factor_func(i_iter, end_iter, start=1., end=0.):
 
 
 def env_class_and_demo_fn(env_type):
-  if env_type == "mujoco":
-    from .mujoco_env import MujocoEnv as RLEnv, get_demo
-    return RLEnv, get_demo
-  else:
-    raise KeyError(f"Unknown envir type {env_type}")
+  from .mujoco_env import MujocoEnv as RLEnv, get_demo
+  return RLEnv, get_demo
 
 
 def set_seed(seed):

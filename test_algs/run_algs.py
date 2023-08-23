@@ -5,7 +5,7 @@ from aicoach_baselines.option_gail.utils.config import ARGConfig
 from aicoach_baselines.option_gail.utils.mujoco_env import load_demo
 from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
     read_file)
-from default_config import rlbench_config, mujoco_config, default_config
+from default_config import mujoco_config, default_config
 from iql_helper import (get_dirs, conv_torch_trajs_2_iql_format,
                         conv_iql_trajs_2_optiongail_format)
 import gym_custom
@@ -41,7 +41,7 @@ def get_torch_datapath(config):
   return data_path
 
 
-def run_alg(config):
+def run_alg(config, log_interval=1000, eval_interval=20000):
   alg_name = config.alg_name
   msg = f"{config.tag}"
 
@@ -55,7 +55,6 @@ def run_alg(config):
   with open(config_path, "w") as outfile:
     outfile.write(str(config))
 
-  log_interval, eval_interval = 1000, 20000
   if (config.data_path.endswith("torch") or config.data_path.endswith("pt")
       or config.data_path.endswith("pkl") or config.data_path.endswith("npy")):
     sample_name = get_torch_datapath(config)
@@ -68,7 +67,8 @@ def run_alg(config):
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ogail":
     from aicoach_baselines.option_gail.option_gail_learn import learn
-    learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
+    learn(config, log_dir, output_dir, path_iq_data, pretrain_name,
+          eval_interval, msg)
   elif alg_name == "ogailv2":
     from aicoach_baselines.option_gail.option_gail_learn_v2 import learn
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
@@ -148,13 +148,7 @@ if __name__ == "__main__":
   if arg.miql_tx_clip_grad_val == 0:
     arg.miql_tx_clip_grad_val = None
 
-  if arg.env_type == "rlbench":
-    config = rlbench_config
-  elif arg.env_type == "mujoco":
-    config = mujoco_config
-  else:
-    raise ValueError(
-        "mini for circle env; rlbench for rlbench env; mujoco for mujoco env")
+  config = default_config
 
   config.base_dir = os.path.dirname(__file__)
 

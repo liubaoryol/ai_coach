@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from aicoach_baselines.option_gail.utils.config import Config
 from .nn_models import (SimpleOptionQNetwork, DoubleOptionQCritic,
-                        DiagGaussianOptionActor)
+                        SingleOptionQCritic, DiagGaussianOptionActor)
 # from .option_softq import OptionSoftQ
 # from .option_sac import OptionSAC
 from .option_iql import IQLOptionSAC, IQLOptionSoftQ
@@ -42,6 +42,8 @@ class MentalIQL:
     self.update_tx_after_pi = config.miql_tx_after_pi
     self.alter_update_n_pi_tx = config.miql_alter_update_n_pi_tx
     self.order_update_pi_ratio = config.miql_order_update_pi_ratio
+    self.tx_batch_size = min(config.miql_tx_tx_batch_size,
+                             config.mini_batch_size)
 
     self.device = torch.device(config.device)
     self.PREV_LATENT = lat_dim
@@ -62,13 +64,17 @@ class MentalIQL:
                                      discrete_obs, SimpleOptionQNetwork,
                                      self._get_pi_iq_vars)
     else:
+      if config.miql_pi_single_critic:
+        critic_base = SingleOptionQCritic
+      else:
+        critic_base = DoubleOptionQCritic
       actor = DiagGaussianOptionActor(
           obs_dim, action_dim, lat_dim, config_pi.hidden_policy,
           config_pi.activation, config_pi.log_std_bounds,
           config_pi.bounded_actor, config_pi.use_nn_logstd,
           config_pi.clamp_action_logstd)
       self.pi_agent = IQLOptionSAC(config_pi, obs_dim, action_dim, lat_dim,
-                                   discrete_obs, DoubleOptionQCritic, actor,
+                                   discrete_obs, critic_base, actor,
                                    self._get_pi_iq_vars)
 
     self.train()
@@ -113,7 +119,8 @@ class MentalIQL:
 
   def tx_update(self, policy_batch, expert_batch, logger, step):
     TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False, False
-    tx_loss = self.tx_agent.iq_update(policy_batch, expert_batch, logger,
+    tx_loss = self.tx_agent.iq_update(policy_batch[:self.tx_batch_size],
+                                      expert_batch[:self.tx_batch_size], logger,
                                       self.tx_update_count, TX_IS_SQIL,
                                       TX_USE_TARGET, TX_DO_SOFT_UPDATE,
                                       self.tx_agent.method_loss,
@@ -179,6 +186,10 @@ class MentalIQL:
   def save(self, path):
     self.tx_agent.save(path, "_tx")
     self.pi_agent.save(path, "_pi")
+  
+  def load(self, path):
+    self.tx_agent.load(path + "_tx")
+    self.pi_agent.load(path + "_pi")
 
   def infer_mental_states(self, state, action):
     '''

@@ -196,12 +196,16 @@ class OptionSAC(object):
         action, _ = self.actor.sample(state, latent)
         action_item = action.detach().cpu().numpy()[0]
       else:
-        latent = self.thinker.exploit(state, prev_latent, prev_action)
+        # latent = self.thinker.exploit(state, prev_latent, prev_action)
+        latent, _ = self.thinker.sample(state, prev_latent, prev_action)
         latent_item = latent.detach().cpu().numpy()[0]
         if self.thinker.is_discrete():
           latent = one_hot(latent, self.lat_dim)
 
-        action = self.actor.exploit(state, latent)
+        if self.actor.is_discrete():
+          action, _ = self.actor.sample(state, latent)
+        else:
+          action = self.actor.exploit(state, latent)
         action_item = action.detach().cpu().numpy()[0]
 
     return latent_item, action_item

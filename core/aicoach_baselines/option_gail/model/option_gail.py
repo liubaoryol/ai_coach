@@ -115,7 +115,12 @@ class GAIL(torch.nn.Module):
 
 class OptionGAIL(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self,
+               config: Config,
+               dim_s=2,
+               dim_a=2,
+               discrete_s=False,
+               discrete_a=False):
     super(OptionGAIL, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
@@ -125,8 +130,16 @@ class OptionGAIL(torch.nn.Module):
     self.use_d_info_gail = config.use_d_info_gail
     self.device = torch.device(config.device)
 
-    self.discriminator = OptionDiscriminator(config, dim_s=dim_s, dim_a=dim_a)
-    self.policy = OptionPolicy(config, dim_s=self.dim_s, dim_a=self.dim_a)
+    self.discriminator = OptionDiscriminator(config,
+                                             dim_s=dim_s,
+                                             dim_a=dim_a,
+                                             discrete_s=discrete_s,
+                                             discrete_a=discrete_a)
+    self.policy = OptionPolicy(config,
+                               dim_s=self.dim_s,
+                               dim_a=self.dim_a,
+                               discrete_s=discrete_s,
+                               discrete_a=discrete_a)
 
     self.optim = torch.optim.Adam(self.discriminator.parameters(),
                                   weight_decay=1.e-3)
@@ -188,13 +201,17 @@ class OptionGAIL(torch.nn.Module):
   def step(self, sample_sar, demo_sar, n_step=10):
     return self.step_original_gan(sample_sar, demo_sar, n_step)
 
-  def convert_demo(self, demo_sa):
+  def convert_demo(self, demo_sa, demo_labels):
     with torch.no_grad():
       out_sample = []
       r_sum_avg = 0.
-      for s_array, a_array in demo_sa:
+      for idx, item in enumerate(demo_sa):
+        s_array, a_array = item
         if self.with_c:
-          c_array, _ = self.policy.viterbi_path(s_array, a_array)
+          if demo_labels[idx] is None:
+            c_array, _ = self.policy.viterbi_path(s_array, a_array)
+          else:
+            c_array = demo_labels[idx]
         else:
           c_array = torch.zeros(s_array.size(0) + 1,
                                 1,

@@ -14,6 +14,8 @@ from .helper.option_memory import OptionMemory
 from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
                            infer_mental_states)
 from aicoach_baselines.option_gail.utils.config import Config
+from ai_coach_core.model_learning.MentalIQL.train_miql import (
+    load_expert_data_w_labels)
 
 
 def train_osac_stream(config: Config,
@@ -54,7 +56,6 @@ def trainer_impl(config: Config,
   num_latent = config.dim_c
   replay_mem = config.n_sample
   num_learn_steps = config.max_explore_step
-  initial_mem = replay_mem
   output_suffix = ""
   load_path = None
   method_loss = config.method_loss
@@ -73,10 +74,7 @@ def trainer_impl(config: Config,
     raise NotImplementedError
 
   # constants
-  num_episodes = 10
-
-  if initial_mem is None:
-    initial_mem = batch_size
+  num_episodes = 8
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -100,7 +98,6 @@ def trainer_impl(config: Config,
   eval_env.seed(seed + 10)
 
   replay_mem = int(replay_mem)
-  initial_mem = int(initial_mem)
   eps_window = int(eps_window)
   num_learn_steps = int(num_learn_steps)
 
@@ -116,12 +113,19 @@ def trainer_impl(config: Config,
       print("[Attention]: Did not find checkpoint {}".format(load_path))
 
   if imitation:
-    # Load expert data
-    expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
-    print(f'--> Expert memory size: {len(expert_dataset)}')
+    # # Load expert data
+    # expert_dataset = ExpertDataset(demo_path, num_trajs, 1, seed + 42)
+    # print(f'--> Expert memory size: {len(expert_dataset)}')
+    n_labeled = int(num_trajs * config.supervision)
+    expert_dataset, traj_labels, cnt_label = load_expert_data_w_labels(
+        demo_path, num_trajs, n_labeled, seed)
+    output_suffix = f"_n{num_trajs}_l{cnt_label}"
+    batch_size = min(batch_size, len(expert_dataset))
 
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
 
+  initial_mem = min(batch_size * 5, replay_mem)
+  initial_mem = int(initial_mem)
   # Setup logging
   log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
@@ -173,7 +177,7 @@ def trainer_impl(config: Config,
         logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
         logger.dump(learn_steps, ty='eval')
 
-        if returns > best_eval_returns:
+        if returns >= best_eval_returns:
           # Store best eval returns
           best_eval_returns = returns
           save(agent,
@@ -210,7 +214,7 @@ def trainer_impl(config: Config,
               or learn_steps % config.demo_latent_infer_interval == 0):
             inferred_latents = infer_mental_states(agent,
                                                    expert_dataset.trajectories,
-                                                   num_latent)
+                                                   num_latent, traj_labels)
             exb = get_expert_batch(expert_dataset.trajectories,
                                    inferred_latents, agent.device,
                                    agent.PREV_LATENT, agent.PREV_ACTION)

@@ -1,7 +1,8 @@
 import math
 import torch
 import torch.nn.functional as F
-from ..utils.model_util import make_module, make_module_list, make_activation
+from ..utils.model_util import (make_module, make_module_list, make_activation,
+                                conv_nn_input)
 from ..utils.config import Config
 
 # this policy uses one-step option, the initial option is fixed as o=dim_c
@@ -62,11 +63,18 @@ class Policy(torch.nn.Module):
 
 class OptionPolicy(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self,
+               config: Config,
+               dim_s=2,
+               dim_a=2,
+               discrete_s=False,
+               discrete_a=False):
     super(OptionPolicy, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a
     self.dim_c = config.dim_c
+    self.discrete_s = discrete_s
+    self.discrete_a = discrete_a
     self.device = torch.device(config.device)
     self.log_clamp = config.log_std_bounds
     self.is_shared = config.shared_policy
@@ -100,6 +108,7 @@ class OptionPolicy(torch.nn.Module):
     self.to(self.device)
 
   def a_mean_logstd(self, st, ct=None):
+    st = conv_nn_input(st, self.discrete_s, self.dim_s, self.device)
     # ct: None or long(N x 1)
     # ct: None for all c, return (N x dim_c x dim_a); else return (N x dim_a)
     # s: N x dim_s, c: N x 1, c should always < dim_c
@@ -118,6 +127,7 @@ class OptionPolicy(torch.nn.Module):
                                              self.log_clamp[1])
 
   def switcher(self, s):
+    s = conv_nn_input(s, self.discrete_s, self.dim_s, self.device)
     if self.is_shared:
       return self.option_policy(s).view(-1, self.dim_c + 1, self.dim_c)
     else:
@@ -147,26 +157,53 @@ class OptionPolicy(torch.nn.Module):
                             index=ct_1.view(-1, 1, 1).expand(
                                 -1, 1, self.dim_c)).squeeze(dim=-2)
 
+  def a_log_softmax(self, st, ct):
+    st = conv_nn_input(st, self.discrete_s, self.dim_s, self.device)
+    if self.is_shared:
+      logits = self.policy(st).view(-1, self.dim_c, self.dim_a)
+    else:
+      logits = torch.stack([m(st) for m in self.policy], dim=-2)
+    log_pas = logits.log_softmax(dim=-1)
+    if ct is not None:
+      log_pas = log_pas.gather(dim=-2,
+                               index=ct.view(-1, 1, 1).expand(
+                                   -1, 1, self.dim_a)).squeeze(dim=-2)
+    return log_pas
+
   def log_prob_action(self, st, ct, at):
     # if c is None, return (N x dim_c x 1), else return (N x 1)
-    mean, logstd = self.a_mean_logstd(st, ct)
-    if ct is None:
-      at = at.view(-1, 1, self.dim_a)
-    return (-((at - mean).square()) / (2 * (logstd * 2).exp()) - logstd -
-            math.log(math.sqrt(2 * math.pi))).sum(dim=-1, keepdim=True)
+    if self.discrete_a:
+      log_pas = self.a_log_softmax(st, ct)
+      at = at.long()
+      if ct is None:
+        at = at.view(-1, 1, 1).expand(-1, self.dim_c, 1)
+      return log_pas.gather(dim=-1, index=at)
+    else:
+      mean, logstd = self.a_mean_logstd(st, ct)
+      if ct is None:
+        at = at.view(-1, 1, self.dim_a)
+      return (-((at - mean).square()) / (2 * (logstd * 2).exp()) - logstd -
+              math.log(math.sqrt(2 * math.pi))).sum(dim=-1, keepdim=True)
 
   def log_prob_option(self, st, ct_1, ct):
     log_tr = self.log_trans(st, ct_1)
     return log_tr.gather(dim=-1, index=ct)
 
   def sample_action(self, st, ct, fixed=False):
-    action_mean, action_log_std = self.a_mean_logstd(st, ct)
-    if fixed:
-      action = action_mean
+    if self.discrete_a:
+      log_pas = self.a_log_softmax(st, ct)
+      if fixed:
+        return log_pas.argmax(dim=-1, keepdim=True)
+      else:
+        return F.gumbel_softmax(log_pas, hard=False).multinomial(1).long()
     else:
-      eps = torch.empty_like(action_mean).normal_()
-      action = action_mean + action_log_std.exp() * eps
-    return action
+      action_mean, action_log_std = self.a_mean_logstd(st, ct)
+      if fixed:
+        action = action_mean
+      else:
+        eps = torch.empty_like(action_mean).normal_()
+        action = action_mean + action_log_std.exp() * eps
+      return action
 
   def sample_option(self, st, ct_1, fixed=False):
     log_tr = self.log_trans(st, ct_1)
@@ -176,9 +213,13 @@ class OptionPolicy(torch.nn.Module):
       return F.gumbel_softmax(log_tr, hard=False).multinomial(1).long()
 
   def policy_entropy(self, st, ct):
-    _, log_std = self.a_mean_logstd(st, ct)
-    entropy = 0.5 + 0.5 * math.log(2 * math.pi) + log_std
-    return entropy.sum(dim=-1, keepdim=True)
+    if self.discrete_a:
+      raise NotImplementedError
+
+    else:
+      _, log_std = self.a_mean_logstd(st, ct)
+      entropy = 0.5 + 0.5 * math.log(2 * math.pi) + log_std
+      return entropy.sum(dim=-1, keepdim=True)
 
   def option_entropy(self, st, ct_1):
     log_tr = self.log_trans(st, ct_1)
@@ -186,11 +227,15 @@ class OptionPolicy(torch.nn.Module):
     return entropy
 
   def policy_log_prob_entropy(self, st, ct, at):
-    mean, logstd = self.a_mean_logstd(st, ct)
-    log_prob = (-(at - mean).pow(2) / (2 * (logstd * 2).exp()) - logstd -
-                0.5 * math.log(2 * math.pi)).sum(dim=-1, keepdim=True)
-    entropy = (0.5 + 0.5 * math.log(2 * math.pi) + logstd).sum(dim=-1,
-                                                               keepdim=True)
+    if self.discrete_a:
+      log_prob = self.log_prob_action(st, ct, at)
+      entropy = -log_prob.mean()
+    else:
+      mean, logstd = self.a_mean_logstd(st, ct)
+      log_prob = (-(at - mean).pow(2) / (2 * (logstd * 2).exp()) - logstd -
+                  0.5 * math.log(2 * math.pi)).sum(dim=-1, keepdim=True)
+      entropy = (0.5 + 0.5 * math.log(2 * math.pi) + logstd).sum(dim=-1,
+                                                                 keepdim=True)
     return log_prob, entropy
 
   def option_log_prob_entropy(self, st, ct_1, ct):

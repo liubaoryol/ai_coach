@@ -8,17 +8,10 @@ register(id='circleworld-v0',
          entry_point='gym_custom.envs:CircleWorld',
          max_episode_steps=50)
 
-register(id='MultiGoals2D_1-v0',
-         entry_point='gym_custom.envs:MultiGoals2D_1',
-         max_episode_steps=200)
-
-register(id='MultiGoals2D_2-v0',
-         entry_point='gym_custom.envs:MultiGoals2D_2',
-         max_episode_steps=200)
-
-register(id='MultiGoals2D_3-v0',
-         entry_point='gym_custom.envs:MultiGoals2D_3',
-         max_episode_steps=200)
+for idx in range(1, 6):
+  register(id=f'MultiGoals2D_{idx}-v0',
+           entry_point=f'gym_custom.envs:MultiGoals2D_{idx}',
+           max_episode_steps=200)
 
 register(id='AntPush-v0',
          entry_point='gym_custom.envs.ant_maze_env_ex:AntPushEnv_v0',
@@ -38,4 +31,12 @@ register(id='AntPush-v1',
 
 register(id='CleanupSingle-v0',
          entry_point='gym_custom.envs.mdp_env:CleanupSingleEnv_v0',
+         max_episode_steps=200)
+
+register(id='EnvMovers-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvMovers_v0',
+         max_episode_steps=200)
+
+register(id='EnvCleanup-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvCleanup_v0',
          max_episode_steps=200)

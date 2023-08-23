@@ -1,5 +1,5 @@
 import torch
-from ..utils.model_util import make_module, make_module_list, make_activation
+from ..utils.model_util import make_module, make_module_list, make_activation, conv_nn_input
 from ..utils.config import Config
 
 # This file should be included by option_ppo.py and never be used otherwise
@@ -28,10 +28,12 @@ class Critic(torch.nn.Module):
 
 class OptionCritic(torch.nn.Module):
 
-  def __init__(self, config, dim_s, dim_c):
+  def __init__(self, config, dim_s, dim_c,
+               discrete_s=False):
     super(OptionCritic, self).__init__()
     self.dim_s = dim_s
     self.dim_c = dim_c
+    self.discrete_s = discrete_s
     self.device = torch.device(config.device)
     self.is_shared = config.shared_critic
 
@@ -47,6 +49,7 @@ class OptionCritic(torch.nn.Module):
     self.to(self.device)
 
   def get_value(self, s, c=None):
+    s = conv_nn_input(s, self.discrete_s, self.dim_s, self.device)
     # c could be None for directly output value on each c
     if self.is_shared:
       vs = self.value(s)

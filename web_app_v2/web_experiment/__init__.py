@@ -71,9 +71,9 @@ def create_app(debug=False, test_config=None):
   app.register_blueprint(feedback_bp)
   app.register_blueprint(demo_bp)
 
-  app.add_url_rule('/', 'index', consent, methods=("GET", "POST"))
-  # from web_experiment.demo.views import demo
-  # app.add_url_rule('/', 'index', demo, methods=("GET", "POST"))
+  # app.add_url_rule('/', 'index', consent, methods=("GET", "POST"))
+  from web_experiment.demo.views import demo
+  app.add_url_rule('/', 'index', demo, methods=("GET", "POST"))
 
   socketio.init_app(app, cors_allowed_origins="*")
 
