@@ -1,7 +1,7 @@
 from typing import Optional, Sequence
 import numpy as np
-from ai_coach_core.models.policy import CachedPolicyInterface, PolicyInterface
-from ai_coach_core.models.agent_model import AgentModel
+from aic_core.models.policy import CachedPolicyInterface, PolicyInterface
+from aic_core.models.agent_model import AgentModel
 from ai_coach_domain.agent import AIAgent_Abstract
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
 from ai_coach_domain.cleanup_single.mdp import MDPCleanupSingle
@@ -73,8 +73,7 @@ class AM_CleanupSingle(AgentModel):
 
 class Agent_CleanupSingle(AIAgent_Abstract):
 
-  def __init__(self,
-               policy_model: CachedPolicyInterface) -> None:
+  def __init__(self, policy_model: CachedPolicyInterface) -> None:
     super().__init__(policy_model, True, agent_idx=0)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):

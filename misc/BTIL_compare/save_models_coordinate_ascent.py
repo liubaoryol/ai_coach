@@ -4,8 +4,8 @@ import click
 import logging
 import random
 import numpy as np
-# from ai_coach_core.model_learning.BTIL import BTIL
-from ai_coach_core.model_learning.BTIL.btil_decentral import BTIL_Decen
+# from aic_ml.BTIL import BTIL
+from aic_ml.BTIL.btil_decentral import BTIL_Decen
 from ai_coach_domain.helper import TrueModelConverter
 
 

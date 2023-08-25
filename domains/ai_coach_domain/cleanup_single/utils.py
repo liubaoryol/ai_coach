@@ -1,5 +1,5 @@
 import numpy as np
-from ai_coach_core.utils.data_utils import Trajectories
+from aic_core.utils.data_utils import Trajectories
 from ai_coach_domain.cleanup_single.simulator import CleanupSingleSimulator
 from ai_coach_domain.cleanup_single.mdp import MDPCleanupSingle
 

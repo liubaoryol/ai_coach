@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import time
 
-from ai_coach_core.model_learning.DeepIL.env import make_env
+from aic_ml.DeepIL.env import make_env
 import latent_config as lc
 
 

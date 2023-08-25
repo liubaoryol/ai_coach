@@ -4,8 +4,8 @@ import pickle
 import logging
 import click
 from tqdm import tqdm
-from ai_coach_core.intervention.full_mdp import FullMDP
-from ai_coach_core.models.mdp import v_value_from_policy
+from aic_core.intervention.full_mdp import FullMDP
+from aic_core.models.mdp import v_value_from_policy
 
 from ai_coach_domain.box_push_v2 import EventType
 from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task, MDP_Movers_Agent

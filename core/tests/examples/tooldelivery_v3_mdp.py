@@ -1,7 +1,7 @@
 import numpy as np
-from ai_coach_core.models.mdp import MDP
-from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
-from ai_coach_core.utils.exceptions import InvalidTransitionError
+from aic_core.models.mdp import MDP
+from aic_core.utils.mdp_utils import StateSpace, ActionSpace
+from aic_core.utils.exceptions import InvalidTransitionError
 import tests.examples.tooldelivery_v3_state_action as T3SA
 
 

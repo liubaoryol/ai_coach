@@ -7,7 +7,7 @@ import click
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3, gail_w_ppo
+from aic_baselines.sb3_algorithms import behavior_cloning_sb3, gail_w_ppo
 from datetime import datetime
 
 

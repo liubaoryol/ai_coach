@@ -1,7 +1,7 @@
 from typing import Sequence, Optional
 import numpy as np
-from ai_coach_core.models.agent_model import AgentModel
-from ai_coach_core.models.policy import PolicyInterface, CachedPolicyInterface
+from aic_core.models.agent_model import AgentModel
+from aic_core.models.policy import PolicyInterface, CachedPolicyInterface
 from ai_coach_domain.agent import AIAgent_PartialObs
 from ai_coach_domain.rescue_v2 import is_work_done, Location, E_Type
 from ai_coach_domain.rescue_v2.mdp import MDP_Rescue

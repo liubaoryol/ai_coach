@@ -4,7 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_learning.BTIL.btil_svi import BTIL_SVI
+from aic_ml.BTIL.btil_svi import BTIL_SVI
 
 
 # yapf: disable

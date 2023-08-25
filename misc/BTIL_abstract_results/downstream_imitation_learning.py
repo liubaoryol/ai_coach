@@ -4,9 +4,9 @@ import glob
 import click
 from tqdm import tqdm
 import random
-from ai_coach_core.latent_inference.decoding import (smooth_inference_max_z,
-                                                     smooth_inference_zx)
-from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3
+from aic_core.utils.decoding import (smooth_inference_max_z,
+                                     smooth_inference_zx)
+from aic_baselines.sb3_algorithms import behavior_cloning_sb3
 import numpy as np
 from datetime import datetime
 # rl algorithm
@@ -126,7 +126,7 @@ def main(domain):
   #     traj_sa.append((s, a))
 
   #   traj_sa_joint.append(traj_sa)
-  from ai_coach_core.gym.envs.env_aicoaching import EnvFromLearnedModels
+  from gym_custom.envs.mdp_env.env_aicoaching import EnvFromLearnedModels
   env = EnvFromLearnedModels(MDP_TASK,
                              np_abs,
                              list_np_pi,

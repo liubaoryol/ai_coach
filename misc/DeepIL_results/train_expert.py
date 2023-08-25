@@ -3,14 +3,13 @@ import argparse
 import torch
 
 from datetime import datetime
-from ai_coach_core.model_learning.DeepIL.env import make_env
-from ai_coach_core.model_learning.DeepIL.algo.algo import ALGOS
-from ai_coach_core.model_learning.DeepIL.trainer import Trainer
-from ai_coach_core.model_learning.DeepIL.utils import state_action_size
-from ai_coach_core.model_learning.DeepIL.buffer import RolloutBuffer
-from ai_coach_core.model_learning.DeepIL.network import (DiscretePolicy,
-                                                         ContinousPolicy,
-                                                         StateFunction)
+from aic_ml.DeepIL.env import make_env
+from aic_ml.DeepIL.algo.algo import ALGOS
+from aic_ml.DeepIL.trainer import Trainer
+from aic_ml.DeepIL.utils import state_action_size
+from aic_ml.DeepIL.buffer import RolloutBuffer
+from aic_ml.DeepIL.network import (DiscretePolicy, ContinousPolicy,
+                                   StateFunction)
 import latent_config as lc
 
 

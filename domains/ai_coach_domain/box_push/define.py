@@ -1,6 +1,6 @@
 from typing import Tuple
 from enum import Enum
-from ai_coach_core.utils.mdp_utils import ActionSpace
+from aic_core.utils.mdp_utils import ActionSpace
 
 
 class EventType(Enum):

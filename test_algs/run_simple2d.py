@@ -1,5 +1,5 @@
 import os
-from aicoach_baselines.option_gail.utils.config import ARGConfig
+from aic_baselines.option_gail.utils.config import ARGConfig
 from default_config import simple2d_config
 from run_algs import run_alg
 import gym_custom

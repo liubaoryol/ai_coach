@@ -4,8 +4,8 @@ import pickle
 import logging
 import click
 from tqdm import tqdm
-from ai_coach_core.intervention.full_mdp import FullMDP
-from ai_coach_core.models.mdp import v_value_from_policy
+from aic_core.intervention.full_mdp import FullMDP
+from aic_core.models.mdp import v_value_from_policy
 
 from ai_coach_domain.rescue_v2 import E_EventType
 from ai_coach_domain.rescue_v2 import is_work_done

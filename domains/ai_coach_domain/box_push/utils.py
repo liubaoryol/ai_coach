@@ -1,6 +1,6 @@
 import numpy as np
 from ai_coach_domain.box_push.simulator import BoxPushSimulator
-from ai_coach_core.utils.data_utils import Trajectories
+from aic_core.utils.data_utils import Trajectories
 from ai_coach_domain.box_push.mdp import BoxPushTeamMDP, BoxPushMDP
 
 

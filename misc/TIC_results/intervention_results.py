@@ -2,8 +2,9 @@ import os
 import numpy as np
 import pickle
 from tqdm import tqdm
-from ai_coach_core.intervention.feedback_strategy import (
-    InterventionValueBased, InterventionRuleBased, E_CertaintyHandling)
+from aic_core.intervention.feedback_strategy import (InterventionValueBased,
+                                                     InterventionRuleBased,
+                                                     E_CertaintyHandling)
 import ai_coach_domain.intervention_simulator as intervention_simulator
 import pandas as pd
 

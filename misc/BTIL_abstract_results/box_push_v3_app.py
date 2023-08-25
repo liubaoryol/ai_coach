@@ -13,7 +13,7 @@ from ai_coach_domain.box_push_v2.agent import (
 from ai_coach_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
-from ai_coach_core.utils.mdp_utils import StateSpace
+from aic_core.utils.mdp_utils import StateSpace
 
 num_train = 1000
 num_x = 4

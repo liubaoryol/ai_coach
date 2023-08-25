@@ -4,8 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_learning.BTIL.bayesian_abstraction import (
-    Bayes_Abstraction)
+from aic_ml.BTIL.bayesian_abstraction import (Bayes_Abstraction)
 
 
 # yapf: disable

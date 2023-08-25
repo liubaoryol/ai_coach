@@ -1,7 +1,7 @@
 import numpy as np
-from ai_coach_core.utils.feature_utils import (get_gridworld_astar_distance,
+from aic_core.utils.feature_utils import (get_gridworld_astar_distance,
                                                manhattan_distance)
-from ai_coach_core.models.policy import CachedPolicyInterface
+from aic_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.agent import SimulatorAgent, AIAgent_Abstract
 from ai_coach_domain.box_push.agent_model import (BoxPushAM, BoxPushAM_Alone,
                                                   BoxPushAM_Together,

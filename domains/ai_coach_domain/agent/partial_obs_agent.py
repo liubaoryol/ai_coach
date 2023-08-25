@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from ai_coach_core.models.policy import CachedPolicyInterface
+from aic_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.agent import AIAgent_Abstract
 
 
 class AIAgent_PartialObs(AIAgent_Abstract):
+
   def __init__(self,
                init_tup_states,
                policy_model: CachedPolicyInterface,

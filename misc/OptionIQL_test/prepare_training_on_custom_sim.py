@@ -1,9 +1,8 @@
 import os
 import glob
 import random
-from ai_coach_core.model_learning.OptionIQL.helper.utils import (
-    conv_trajectories_2_iql_format)
-import ai_coach_core.gym  # noqa: F401
+from aic_ml.OptionIQL.helper.utils import (conv_trajectories_2_iql_format)
+import aic_core.gym  # noqa: F401
 
 
 def prepare_training_on_custom_sim(domain):

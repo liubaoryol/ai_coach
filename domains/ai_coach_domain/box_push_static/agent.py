@@ -1,7 +1,7 @@
 from typing import Sequence
 import os
 import numpy as np
-from ai_coach_core.models.policy import CachedPolicyInterface
+from aic_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.box_push.agent_model import BoxPushAM
 from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
 from ai_coach_domain.agent import AIAgent_Abstract
@@ -13,6 +13,7 @@ policy_static_list = []
 
 
 class StaticBoxPushPolicy(CachedPolicyInterface):
+
   def __init__(self, mdp: StaticBoxPushMDP, temperature: float,
                agent_idx: int) -> None:
     cur_dir = os.path.dirname(__file__)
@@ -25,6 +26,7 @@ class StaticBoxPushPolicy(CachedPolicyInterface):
 
 
 class StaticBoxPushAM(BoxPushAM):
+
   def initial_mental_distribution(self, obstate_idx: int) -> np.ndarray:
     mdp = self.get_reference_mdp()  # type: StaticBoxPushMDP
 
@@ -39,6 +41,7 @@ class StaticBoxPushAM(BoxPushAM):
 
 
 class StaticBoxPushAgent(AIAgent_Abstract):
+
   def __init__(self, policy_model: CachedPolicyInterface, agent_idx) -> None:
     self.agent_idx = agent_idx
     super().__init__(policy_model, has_mind=True)

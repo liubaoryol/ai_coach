@@ -1,5 +1,5 @@
 import os
-from ai_coach_core.models.policy import CachedPolicyInterface
+from aic_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.cleanup_single.mdp import MDPCleanupSingle
 
 policy_cleanupsingle_list = []

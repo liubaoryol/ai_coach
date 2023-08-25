@@ -4,9 +4,8 @@ import os
 import glob
 from flask import current_app
 from flask_socketio import emit
-from ai_coach_core.latent_inference.decoding import (forward_inference,
-                                                     most_probable_sequence)
-from ai_coach_core.utils.data_utils import Trajectories
+from aic_core.utils.decoding import (forward_inference, most_probable_sequence)
+from aic_core.utils.data_utils import Trajectories
 from ai_coach_domain.box_push.agent_model import (
     assumed_initial_mental_distribution)
 

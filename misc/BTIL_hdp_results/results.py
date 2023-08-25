@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import click
-from ai_coach_core.utils.mdp_utils import StateSpace
+from aic_core.utils.mdp_utils import StateSpace
 
 
 # yapf: disable

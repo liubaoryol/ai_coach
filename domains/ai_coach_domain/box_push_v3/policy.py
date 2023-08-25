@@ -1,5 +1,5 @@
 import os
-from ai_coach_core.models.policy import CachedPolicyInterface
+from aic_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.box_push.policy import PolicyFromIdenticalAgentMDP_BoxPush
 from ai_coach_domain.box_push_v2.mdp import MDP_BoxPushV2
 

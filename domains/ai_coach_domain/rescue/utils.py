@@ -1,12 +1,13 @@
 from typing import Callable, Tuple
 import numpy as np
-from ai_coach_core.utils.data_utils import Trajectories
+from aic_core.utils.data_utils import Trajectories
 from ai_coach_domain.rescue.define import AGENT_ACTIONSPACE
 from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task
 
 
 class RescueTrajectories(Trajectories):
+
   def __init__(self, task_mdp: MDP_Rescue_Task, tup_num_latents: Tuple[int,
                                                                        ...],
                cb_conv_latent_to_idx: Callable[[int, int], int]) -> None:

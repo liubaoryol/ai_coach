@@ -3,9 +3,9 @@ import abc
 import pickle
 from typing import Sequence, Tuple, Union
 import numpy as np
-from ai_coach_core.models.mdp import MDP
-from ai_coach_core.utils.mdp_utils import StateSpace
-from ai_coach_core.RL.planning import value_iteration
+from aic_core.models.mdp import MDP
+from aic_core.utils.mdp_utils import StateSpace
+from aic_core.RL.planning import value_iteration
 from ai_coach_domain.box_push_v2 import BoxState, AGENT_ACTIONSPACE
 from ai_coach_domain.box_push_v2 import (conv_box_state_2_idx,
                                          conv_box_idx_2_state)

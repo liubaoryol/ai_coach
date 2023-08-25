@@ -164,7 +164,7 @@ def get_agent_switched_boxstates(box_states, num_drops, num_goals):
 if __name__ == "__main__":
   import os
   import pickle
-  import ai_coach_core.RL.planning as plan_lib
+  import aic_core.RL.planning as plan_lib
   from ai_coach_domain.box_push.maps import TEST_MAP3
   game_map = TEST_MAP3
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
   VALUE_ITER = True
 
   if CHECK_VALIDITY:
-    from ai_coach_core.utils.test_utils import check_transition_validity
+    from aic_core.utils.test_utils import check_transition_validity
     assert check_transition_validity(box_push_mdp)
 
   if VALUE_ITER:

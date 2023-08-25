@@ -1,9 +1,9 @@
 from typing import Sequence, Optional, Callable
 import numpy as np
-from ai_coach_core.models.policy import PolicyInterface
-from ai_coach_core.models.agent_model import AgentModel
-from ai_coach_core.models.mdp import LatentMDP
-from ai_coach_core.utils.mdp_utils import StateSpace
+from aic_core.models.policy import PolicyInterface
+from aic_core.models.agent_model import AgentModel
+from aic_core.models.mdp import LatentMDP
+from aic_core.utils.mdp_utils import StateSpace
 
 
 class BTILCachedPolicy(PolicyInterface):

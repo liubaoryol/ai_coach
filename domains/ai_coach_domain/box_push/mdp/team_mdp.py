@@ -7,6 +7,7 @@ from ai_coach_domain.box_push.mdp import BoxPushMDP
 
 
 class BoxPushTeamMDP(BoxPushMDP):
+
   def init_actionspace(self):
     self.dict_factored_actionspace = {}
     self.a1_a_space = AGENT_ACTIONSPACE
@@ -38,6 +39,7 @@ class BoxPushTeamMDP(BoxPushMDP):
 
 
 class BoxPushTeamMDP_AloneOrTogether(BoxPushTeamMDP):
+
   def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
     return transition_alone_and_together(box_states, a1_pos, a2_pos, a1_action,
                                          a2_action, self.boxes, self.goals,
@@ -102,6 +104,7 @@ class BoxPushTeamMDP_AloneOrTogether(BoxPushTeamMDP):
 
 
 class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
+
   def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
     return transition_always_together(box_states, a1_pos, a2_pos, a1_action,
                                       a2_action, self.boxes, self.goals,
@@ -187,6 +190,7 @@ class BoxPushTeamMDP_AlwaysTogether(BoxPushTeamMDP):
 
 
 class BoxPushTeamMDP_AlwaysAlone(BoxPushTeamMDP):
+
   def _transition_impl(self, box_states, a1_pos, a2_pos, a1_action, a2_action):
     return transition_always_alone(box_states, a1_pos, a2_pos, a1_action,
                                    a2_action, self.boxes, self.goals,
@@ -208,7 +212,7 @@ class BoxPushTeamMDP_AlwaysAlone(BoxPushTeamMDP):
 if __name__ == "__main__":
   import os
   import pickle
-  import ai_coach_core.RL.planning as plan_lib
+  import aic_core.RL.planning as plan_lib
   from ai_coach_domain.box_push.maps import TUTORIAL_MAP
 
   game_map = TUTORIAL_MAP
@@ -221,7 +225,7 @@ if __name__ == "__main__":
   QLEARN = False
 
   if CHECK_VALIDITY:
-    from ai_coach_core.utils.test_utils import check_transition_validity
+    from aic_core.utils.test_utils import check_transition_validity
     assert check_transition_validity(box_push_mdp)
 
   cur_dir = os.path.dirname(__file__)
@@ -246,7 +250,7 @@ if __name__ == "__main__":
 
   if QLEARN:
     from tqdm import tqdm
-    import ai_coach_core.RL.qlearning as qlearn_lib
+    import aic_core.RL.qlearning as qlearn_lib
     NUM_TRAIN = 1000
     ALPHA = 0.1
     box_push_qlearn = qlearn_lib.QLearningSoftmax(

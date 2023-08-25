@@ -1,7 +1,7 @@
 from typing import Union, Sequence, Tuple
 from enum import Enum
 from dataclasses import dataclass, field
-from ai_coach_core.utils.mdp_utils import ActionSpace
+from aic_core.utils.mdp_utils import ActionSpace
 
 T_RouteId = int
 T_PlaceId = int

@@ -4,7 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_learning.BTIL.btil_abstraction import BTIL_Abstraction
+from aic_ml.BTIL.btil_abstraction import BTIL_Abstraction
 
 
 # yapf: disable

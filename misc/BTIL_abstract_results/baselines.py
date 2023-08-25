@@ -6,9 +6,9 @@ import click
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from aicoach_baselines.sb3_algorithms import gail_w_ppo
-from aicoach_baselines.ikostrikov_gail import bc_dnn
-from ai_coach_core.model_learning.IQLearn.iql import run_iql
+from aic_baselines.sb3_algorithms import gail_w_ppo
+from aic_baselines.ikostrikov_gail import bc_dnn
+from aic_ml.IQLearn.iql import run_iql
 from datetime import datetime
 
 

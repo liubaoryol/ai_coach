@@ -5,7 +5,7 @@ import torch
 import datetime
 import time
 from collections import defaultdict
-from aicoach_baselines.option_gail.utils.state_filter import StateFilter
+from aic_baselines.option_gail.utils.state_filter import StateFilter
 
 
 def get_dirs(base_dir="",

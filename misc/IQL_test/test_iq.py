@@ -7,11 +7,10 @@ from scipy.stats import spearmanr, pearsonr
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, evaluate
-from ai_coach_core.model_learning.IQLearn.agent import make_agent
-from ai_coach_core.model_learning.IQLearn.agent.softq_models import (
-    SimpleQNetwork)
-import ai_coach_core.gym
+from aic_ml.IQLearn.utils.utils import make_env, evaluate
+from aic_ml.IQLearn.agent import make_agent
+from aic_ml.IQLearn.agent.softq_models import (SimpleQNetwork)
+import aic_core.gym
 
 
 @click.command()

@@ -5,7 +5,7 @@ import click
 from tqdm import tqdm
 import random
 
-from aicoach_baselines.ikostrikov_gail import bc_dnn
+from aic_baselines.ikostrikov_gail import bc_dnn
 import numpy as np
 from datetime import datetime
 

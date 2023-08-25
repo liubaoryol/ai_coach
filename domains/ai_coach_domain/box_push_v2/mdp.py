@@ -1,5 +1,5 @@
 import numpy as np
-from ai_coach_core.utils.mdp_utils import StateSpace
+from aic_core.utils.mdp_utils import StateSpace
 from ai_coach_domain.box_push.mdp import BoxPushMDP
 from ai_coach_domain.box_push_v2 import BoxState, EventType, AGENT_ACTIONSPACE
 from ai_coach_domain.box_push_v2 import get_possible_latent_states

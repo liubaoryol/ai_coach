@@ -1,9 +1,10 @@
-from ai_coach_core.utils.mdp_utils import StateSpace
+from aic_core.utils.mdp_utils import StateSpace
 from ai_coach_domain.box_push.mdp import BoxPushTeamMDP_AloneOrTogether
 from ai_coach_domain.box_push import BoxState, EventType
 
 
 class StaticBoxPushMDP(BoxPushTeamMDP_AloneOrTogether):
+
   def init_latentspace(self):
     latent_states = []
     latent_states.append(("alone", 0))

@@ -6,21 +6,19 @@ import time
 import datetime
 import torch
 from collections import deque
-from ai_coach_core.model_learning.IQLearn.utils.utils import make_env, eval_mode
+from aic_ml.IQLearn.utils.utils import make_env, eval_mode
 
-from ai_coach_core.model_learning.IQLearn.agent import (make_softq_agent,
-                                                        make_sac_agent,
-                                                        make_sacd_agent)
-from ai_coach_core.model_learning.IQLearn.agent.softq_models import (
-    SimpleQNetwork, SingleQCriticDiscrete)
-from ai_coach_core.model_learning.IQLearn.agent.sac_models import (
-    DoubleQCritic, SingleQCritic)
-from ai_coach_core.model_learning.IQLearn.dataset.memory import Memory
+from aic_ml.IQLearn.agent import (make_softq_agent, make_sac_agent,
+                                  make_sacd_agent)
+from aic_ml.IQLearn.agent.softq_models import (SimpleQNetwork,
+                                               SingleQCriticDiscrete)
+from aic_ml.IQLearn.agent.sac_models import (DoubleQCritic, SingleQCritic)
+from aic_ml.IQLearn.dataset.memory import Memory
 from torch.utils.tensorboard import SummaryWriter
-from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
+from aic_ml.IQLearn.utils.logger import Logger
 from itertools import count
 import types
-import ai_coach_core.gym
+import aic_core.gym
 
 
 def save(agent,

@@ -1,6 +1,6 @@
 from typing import Sequence
 import numpy as np
-from ai_coach_core.models.policy import CachedPolicyInterface
+from aic_core.models.policy import CachedPolicyInterface
 from ai_coach_domain.agent import (AIAgent_PartialObs, AIAgent_Abstract,
                                    BTILCachedAgentModel)
 from ai_coach_domain.agent.cached_agent import NoMindCachedPolicy

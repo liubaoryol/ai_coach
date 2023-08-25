@@ -1,7 +1,7 @@
 import abc
-from ai_coach_core.models.policy import CachedPolicyInterface
-from ai_coach_core.models.agent_model import AgentModel
-from ai_coach_core.models.mdp import LatentMDP
+from aic_core.models.policy import CachedPolicyInterface
+from aic_core.models.agent_model import AgentModel
+from aic_core.models.mdp import LatentMDP
 
 
 class SimulatorAgent:

@@ -1,7 +1,7 @@
 from typing import List, Union, Callable
 import numpy as np
-from ai_coach_core.intervention.feedback_strategy import InterventionAbstract
-from ai_coach_core.latent_inference.decoding import forward_inference
+from aic_core.intervention.feedback_strategy import InterventionAbstract
+from aic_core.utils.decoding import forward_inference
 from ai_coach_domain.box_push_v2 import BoxPushSimulatorV2
 from ai_coach_domain.rescue.simulator import RescueSimulator
 from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2

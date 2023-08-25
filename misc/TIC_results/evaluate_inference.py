@@ -3,7 +3,7 @@ import glob
 import numpy as np
 import random
 import pandas as pd
-from ai_coach_core.latent_inference.decoding import forward_inference
+from aic_core.utils.decoding import forward_inference
 
 
 def prediction_result(domain_name: str,

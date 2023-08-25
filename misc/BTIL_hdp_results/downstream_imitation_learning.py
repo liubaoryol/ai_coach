@@ -4,10 +4,10 @@ import glob
 import click
 from tqdm import tqdm
 import random
-from ai_coach_core.latent_inference.decoding import smooth_inference_sa
+from aic_core.utils.decoding import smooth_inference_sa
 
 # from aicoach_baselines.sb3_algorithms import behavior_cloning_sb3
-from aicoach_baselines.ikostrikov_gail import bc_dnn
+from aic_baselines.ikostrikov_gail import bc_dnn
 import numpy as np
 from datetime import datetime
 # rl algorithm

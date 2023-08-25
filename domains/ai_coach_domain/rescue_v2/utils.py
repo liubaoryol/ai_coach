@@ -1,6 +1,6 @@
 from typing import Callable, Tuple
 import numpy as np
-from ai_coach_core.utils.data_utils import Trajectories
+from aic_core.utils.data_utils import Trajectories
 from ai_coach_domain.rescue_v2.define import AGENT_ACTIONSPACE
 from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
 from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Task

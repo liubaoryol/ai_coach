@@ -1,8 +1,8 @@
 from typing import Sequence, Mapping, Tuple
 import itertools
 import numpy as np
-from ai_coach_core.models.mdp.latent_mdp import LatentMDP
-from ai_coach_core.utils.mdp_utils import StateSpace
+from aic_core.models.mdp.latent_mdp import LatentMDP
+from aic_core.utils.mdp_utils import StateSpace
 from ai_coach_domain.rescue import (Route, E_EventType, E_Type, Location, Work,
                                     Place, T_Connections, AGENT_ACTIONSPACE,
                                     is_work_done)

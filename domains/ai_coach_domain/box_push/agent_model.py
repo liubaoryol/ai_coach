@@ -1,7 +1,7 @@
 from typing import Sequence, Optional
 import numpy as np
-from ai_coach_core.models.agent_model import AgentModel
-from ai_coach_core.models.policy import PolicyInterface
+from aic_core.models.agent_model import AgentModel
+from aic_core.models.policy import PolicyInterface
 from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
 from ai_coach_domain.box_push.mdp import BoxPushMDP
 

@@ -2,16 +2,16 @@ import os
 import torch
 import gym
 from gym import spaces
-from aicoach_baselines.slm_lab.agent.net.mlp import MLPNet
-from aicoach_baselines.slm_lab.agent.net.q_net import QMLPNet
-from aicoach_baselines.slm_lab.agent.algorithm.sac import SoftActorCritic
-from aicoach_baselines.slm_lab.agent.memory.replay import Replay
-from aicoach_baselines.slm_lab.agent.algorithm import policy_util
-from ai_coach_core.model_learning.IQLearn.utils.utils import make_env
+from aic_baselines.slm_lab.agent.net.mlp import MLPNet
+from aic_baselines.slm_lab.agent.net.q_net import QMLPNet
+from aic_baselines.slm_lab.agent.algorithm.sac import SoftActorCritic
+from aic_baselines.slm_lab.agent.memory.replay import Replay
+from aic_baselines.slm_lab.agent.algorithm import policy_util
+from aic_ml.IQLearn.utils.utils import make_env
 import numpy as np
 import random
 from torch.utils.tensorboard import SummaryWriter
-from ai_coach_core.model_learning.IQLearn.utils.logger import Logger
+from aic_ml.IQLearn.utils.logger import Logger
 import datetime
 import time
 from itertools import count

@@ -4,6 +4,22 @@ All rights reserved.
 '''
 from gym.envs.registration import register
 
+register(id='envfrommdp-v0',
+         entry_point='gym_custom.envs.mdp_envs:EnvFromMDP',
+         max_episode_steps=200)
+register(id='envfromcallbacks-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvFromCallbacks',
+         max_episode_steps=200)
+register(id='envfromlatentmdp-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvFromLatentMDP',
+         max_episode_steps=200)
+register(id='envaicoaching-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvFromLearnedModels',
+         max_episode_steps=200)
+register(id='envaicoachingnoop-v0',
+         entry_point='gym_custom.envs.mdp_env:EnvFromLearnedModelsNoop',
+         max_episode_steps=200)
+
 register(id='circleworld-v0',
          entry_point='gym_custom.envs:CircleWorld',
          max_episode_steps=50)

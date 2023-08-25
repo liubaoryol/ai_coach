@@ -10,7 +10,7 @@ from ai_coach_domain.rescue.agent import (AIAgent_Rescue_PartialObs,
 from ai_coach_domain.rescue.policy import Policy_Rescue
 from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 import pickle
-from ai_coach_core.intervention.feedback_strategy import (
+from aic_core.intervention.feedback_strategy import (
     get_combos_sorted_by_simulated_values)
 
 GAME_MAP = MAP_RESCUE

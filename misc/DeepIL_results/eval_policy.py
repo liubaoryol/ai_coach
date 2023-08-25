@@ -1,10 +1,9 @@
 import argparse
 import torch
 
-from ai_coach_core.model_learning.DeepIL.env import make_env
-from ai_coach_core.model_learning.DeepIL.algo.algo import EXP_ALGOS
-from ai_coach_core.model_learning.DeepIL.utils import (evaluation,
-                                                       state_action_size)
+from aic_ml.DeepIL.env import make_env
+from aic_ml.DeepIL.algo.algo import EXP_ALGOS
+from aic_ml.DeepIL.utils import (evaluation, state_action_size)
 import latent_config as lc
 
 

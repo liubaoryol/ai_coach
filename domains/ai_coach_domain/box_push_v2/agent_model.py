@@ -1,7 +1,7 @@
 from typing import Sequence, Optional
 import numpy as np
-from ai_coach_core.models.agent_model import AgentModel
-from ai_coach_core.models.policy import PolicyInterface
+from aic_core.models.agent_model import AgentModel
+from aic_core.models.policy import PolicyInterface
 from ai_coach_domain.box_push.agent_model import get_holding_box_and_floor_boxes
 from ai_coach_domain.box_push_v2 import conv_box_idx_2_state, BoxState
 from ai_coach_domain.box_push_v2.mdp import MDP_BoxPushV2
@@ -58,6 +58,7 @@ def assumed_initial_mental_distribution(agent_idx: int, obstate_idx: int,
 
 
 class AM_BoxPushV2(AgentModel):
+
   def __init__(self,
                agent_idx: int,
                policy_model: Optional[PolicyInterface] = None) -> None:
@@ -75,6 +76,7 @@ class AM_BoxPushV2(AgentModel):
 
 
 class AM_BoxPushV2_Movers(AM_BoxPushV2):
+
   def get_np_Tx_team_impl(self,
                           latstate_idx,
                           my_box_cur,
@@ -161,6 +163,7 @@ class AM_BoxPushV2_Movers(AM_BoxPushV2):
 
 
 class AM_BoxPushV2_Cleanup(AM_BoxPushV2):
+
   def transition_mental_state(self, latstate_idx: int, obstate_idx: int,
                               tuple_action_idx: Sequence[int],
                               obstate_next_idx: int) -> np.ndarray:
