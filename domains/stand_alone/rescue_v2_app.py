@@ -1,14 +1,14 @@
 from typing import Hashable, Tuple, Mapping, Sequence
 from stand_alone.app import AppInterface
-from ai_coach_domain.rescue_v2 import (E_EventType, Location, Place, Route,
-                                       E_Type, T_Connections)
-from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
-from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
-from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+from aic_domain.rescue_v2 import (E_EventType, Location, Place, Route, E_Type,
+                                  T_Connections)
+from aic_domain.rescue_v2.maps import MAP_RESCUE
+from aic_domain.rescue_v2.simulator import RescueSimulatorV2
+from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+from aic_domain.rescue_v2.policy import Policy_Rescue
+from aic_domain.rescue_v2.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 import pickle
-from ai_coach_core.intervention.feedback_strategy import (
+from aic_core.intervention.feedback_strategy import (
     get_combos_sorted_by_simulated_values)
 
 GAME_MAP = MAP_RESCUE

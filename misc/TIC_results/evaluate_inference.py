@@ -3,7 +3,7 @@ import glob
 import numpy as np
 import random
 import pandas as pd
-from ai_coach_core.latent_inference.decoding import forward_inference
+from aic_core.utils.decoding import forward_inference
 
 
 def prediction_result(domain_name: str,
@@ -37,13 +37,13 @@ def prediction_result(domain_name: str,
 
   # =========== LOAD ENV ============
   if domain_name == "movers":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v2.policy import Policy_Movers
-    from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v2.policy import Policy_Movers
+    from aic_domain.box_push_v2.mdp import MDP_Movers_Agent
+    from aic_domain.box_push_v2.mdp import MDP_Movers_Task
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push.utils import BoxPushTrajectories
     game_map = MAP_MOVERS
     temperature = 0.3
 
@@ -63,13 +63,13 @@ def prediction_result(domain_name: str,
     test_data_handler = BoxPushTrajectories(MDP_Task, MDP_Agent)
 
   elif domain_name == "cleanup_v2":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V2
+    from aic_domain.box_push_v2.policy import Policy_Cleanup
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Agent
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push.utils import BoxPushTrajectories
     game_map = MAP_CLEANUP_V2
     temperature = 0.3
 
@@ -89,13 +89,13 @@ def prediction_result(domain_name: str,
     test_data_handler = BoxPushTrajectories(MDP_Task, MDP_Agent)
 
   elif domain_name == "cleanup_v3":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3
+    from aic_domain.box_push_v2.policy import Policy_Cleanup
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Agent
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push.utils import BoxPushTrajectories
     game_map = MAP_CLEANUP_V3
     temperature = 0.3
 
@@ -115,12 +115,12 @@ def prediction_result(domain_name: str,
     test_data_handler = BoxPushTrajectories(MDP_Task, MDP_Agent)
 
   elif domain_name == "rescue_2":
-    from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue.maps import MAP_RESCUE
-    from ai_coach_domain.rescue.policy import Policy_Rescue
-    from ai_coach_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue.simulator import RescueSimulator
-    from ai_coach_domain.rescue.utils import RescueTrajectories
+    from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue.maps import MAP_RESCUE
+    from aic_domain.rescue.policy import Policy_Rescue
+    from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue.simulator import RescueSimulator
+    from aic_domain.rescue.utils import RescueTrajectories
     game_map = MAP_RESCUE
     temperature = 0.3
 
@@ -150,12 +150,12 @@ def prediction_result(domain_name: str,
         conv_latent_to_idx)
 
   elif domain_name == "rescue_3":
-    from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
-    from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-    from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
-    from ai_coach_domain.rescue_v2.utils import RescueV2Trajectories
+    from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue_v2.maps import MAP_RESCUE
+    from aic_domain.rescue_v2.policy import Policy_Rescue
+    from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue_v2.simulator import RescueSimulatorV2
+    from aic_domain.rescue_v2.utils import RescueV2Trajectories
     game_map = MAP_RESCUE
     temperature = 0.3
 

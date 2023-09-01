@@ -1,10 +1,9 @@
 import os
 import torch
 import json
-from aicoach_baselines.option_gail.utils.config import ARGConfig
-from aicoach_baselines.option_gail.utils.mujoco_env import load_demo
-from ai_coach_core.model_learning.IQLearn.dataset.expert_dataset import (
-    read_file)
+from aic_ml.baselines.option_gail.utils.config import ARGConfig
+from aic_ml.baselines.option_gail.utils.mujoco_env import load_demo
+from aic_ml.IQLearn.dataset.expert_dataset import (read_file)
 from default_config import mujoco_config, default_config
 from iql_helper import (get_dirs, conv_torch_trajs_2_iql_format,
                         conv_iql_trajs_2_optiongail_format)
@@ -63,60 +62,55 @@ def run_alg(config, log_interval=1000, eval_interval=20000):
     print(f"Data path not exists: {config.data_path}")
 
   if alg_name == "obc":
-    from aicoach_baselines.option_gail.option_bc_learn import learn
+    from aic_ml.baselines.option_gail.option_bc_learn import learn
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ogail":
-    from aicoach_baselines.option_gail.option_gail_learn import learn
+    from aic_ml.baselines.option_gail.option_gail_learn import learn
     learn(config, log_dir, output_dir, path_iq_data, pretrain_name,
           eval_interval, msg)
   elif alg_name == "ogailv2":
-    from aicoach_baselines.option_gail.option_gail_learn_v2 import learn
+    from aic_ml.baselines.option_gail.option_gail_learn_v2 import learn
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "oppo":
-    from aicoach_baselines.option_gail.option_ppo_learn import learn
+    from aic_ml.baselines.option_gail.option_ppo_learn import learn
     learn(config, log_dir, output_dir, msg)
   elif alg_name == "oppov2":
-    from aicoach_baselines.option_gail.option_ppo_learn_v2 import learn
+    from aic_ml.baselines.option_gail.option_ppo_learn_v2 import learn
     learn(config, log_dir, output_dir, msg)
   elif alg_name == "oiql" and config.stream_training:
-    from ai_coach_core.model_learning.OptionIQL.train_oiql_stream import (
-        train_oiql_stream)
+    from aic_ml.OptionIQL.train_oiql_stream import (train_oiql_stream)
     train_oiql_stream(config, path_iq_data, num_traj, log_dir, output_dir,
                       log_interval, eval_interval)
   elif alg_name == "oiql" and not config.stream_training:
-    from ai_coach_core.model_learning.OptionIQL.train_oiql_pond import (
-        train_oiql_pond)
+    from aic_ml.OptionIQL.train_oiql_pond import (train_oiql_pond)
     train_oiql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
                     log_interval, eval_interval)
   elif alg_name == "oiqlv2":
-    from ai_coach_core.model_learning.OptionIQL_v2.train_oiql_v2 import (learn)
+    from aic_ml.OptionIQL_v2.train_oiql_v2 import (learn)
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "iql":
-    from ai_coach_core.model_learning.IQLearn.iql import run_iql
+    from aic_ml.IQLearn.iql import run_iql
     run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
             eval_interval)
   elif alg_name == "sac":
-    from ai_coach_core.model_learning.IQLearn.iql import run_sac
+    from aic_ml.IQLearn.iql import run_sac
     run_sac(config, log_dir, output_dir, log_interval, eval_interval)
   elif alg_name == "osac" and config.stream_training:
-    from ai_coach_core.model_learning.OptionIQL.train_oiql_stream import (
-        train_osac_stream)
+    from aic_ml.OptionIQL.train_oiql_stream import (train_osac_stream)
     train_osac_stream(config, log_dir, output_dir, log_interval, eval_interval)
   elif alg_name == "osac" and not config.stream_training:
-    from ai_coach_core.model_learning.OptionIQL.train_oiql_pond import (
-        train_osac_pond)
+    from aic_ml.OptionIQL.train_oiql_pond import (train_osac_pond)
     train_osac_pond(config, log_dir, output_dir, log_interval, eval_interval)
   elif alg_name[:3] == "sb3":
     from sb3_algs import sb3_run
     sb3_run(config, log_dir, output_dir, log_interval, eval_interval,
             alg_name[4:])
   elif alg_name == "miql" and config.stream_training:
-    from ai_coach_core.model_learning.MentalIQL.train_miql import train
+    from aic_ml.MentalIQL.train_miql import train
     train(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
           eval_interval)
   elif alg_name == "miql" and not config.stream_training:
-    from ai_coach_core.model_learning.MentalIQL.train_miql_no_stream import (
-        train)
+    from aic_ml.MentalIQL.train_miql_no_stream import (train)
     train(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
           eval_interval)
   else:

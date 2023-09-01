@@ -1,7 +1,7 @@
 from typing import Hashable, Tuple
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
-from ai_coach_domain.simulator import Simulator
+from aic_domain.simulator import Simulator
 
 
 # TODO: game configuration ui / logic

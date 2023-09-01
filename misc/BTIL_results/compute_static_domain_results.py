@@ -5,20 +5,19 @@ import pickle
 import click
 import logging
 
-import ai_coach_core.model_learning.BTIL.btil_static as var_infer
-from ai_coach_core.latent_inference.static_inference import (
-    bayesian_mental_state_inference)
-from ai_coach_core.model_learning.IRL.maxent_irl import MaxEntIRL
-from aicoach_baselines.tabular_bc import tabular_behavior_cloning
-from ai_coach_core.utils.data_utils import Trajectories
-from ai_coach_core.utils.result_utils import cal_latent_policy_error
-import aicoach_baselines.ikostrikov_gail as ikostrikov
+import aic_ml.BTIL.btil_static as var_infer
+from aic_core.utils.static_inference import (bayesian_mental_state_inference)
+from aic_ml.IRL.maxent_irl import MaxEntIRL
+from aic_ml.baselines.tabular_bc import tabular_behavior_cloning
+from aic_core.utils.data_utils import Trajectories
+from aic_core.utils.result_utils import cal_latent_policy_error
+import aic_ml.baselines.ikostrikov_gail as ikostrikov
 
-from ai_coach_domain.box_push.maps import TUTORIAL_MAP
-from ai_coach_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
-from ai_coach_domain.box_push_static.mdp import StaticBoxPushMDP
-from ai_coach_domain.box_push_static.agent import (StaticBoxPushPolicy,
-                                                   StaticBoxPushAgent)
+from aic_domain.box_push.maps import TUTORIAL_MAP
+from aic_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
+from aic_domain.box_push_static.mdp import StaticBoxPushMDP
+from aic_domain.box_push_static.agent import (StaticBoxPushPolicy,
+                                              StaticBoxPushAgent)
 import matplotlib.pyplot as plt
 
 BoxPushSimulator = BoxPushSimulator_AloneOrTogether
@@ -75,6 +74,7 @@ def print_conf(conf):
 
 
 class StaticBoxPushTrajectories(Trajectories):
+
   def __init__(self, num_latents: int) -> None:
     super().__init__(num_state_factors=1,
                      num_action_factors=2,
@@ -392,7 +392,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
         [[0] * len(sim.box_states), sim.a1_init, sim.a2_init])
 
     if magail:
-      from aicoach_baselines.magail import magail_w_ppo
+      from aic_ml.baselines.magail import magail_w_ppo
 
       def magail_by_latent(trajectories, latent_labels, init_state):
         n_traj = len(trajectories)
@@ -511,7 +511,7 @@ def main(gen_trainset, gen_testset, show_true, show_bc, dnn_bc, show_sl,
         logging.info(policy_errors)
 
     if magail_latent:
-      from aicoach_baselines.latent_magail import lmagail_w_ppo
+      from aic_ml.baselines.latent_magail import lmagail_w_ppo
       for idx in list_idx:
         logging.info("#########")
         logging.info("LatentMAGAIL %d" % (idx, ))

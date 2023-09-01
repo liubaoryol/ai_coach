@@ -1,9 +1,9 @@
-from ai_coach_domain.rescue.simulator import RescueSimulator
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
-from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
-from ai_coach_domain.rescue.policy import Policy_Rescue
-from ai_coach_domain.rescue.maps import MAP_RESCUE
+from aic_domain.rescue.simulator import RescueSimulator
+from aic_domain.agent import InteractiveAgent
+from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
+from aic_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+from aic_domain.rescue.policy import Policy_Rescue
+from aic_domain.rescue.maps import MAP_RESCUE
 from web_experiment.models import db, User
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.helper import (get_file_name,

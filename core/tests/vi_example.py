@@ -4,9 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import time
-from ai_coach_core.model_learning.BTIL.btil_static import BTILStatic
-from ai_coach_core.latent_inference.static_inference import (
-    bayesian_mental_state_inference)
+from aic_ml.BTIL.btil_static import BTILStatic
+from aic_core.utils.static_inference import (bayesian_mental_state_inference)
 from tests.examples.environment import RequestEnvironment
 from tests.examples.tooldelivery_v3_env import ToolDeliveryEnv_V3
 

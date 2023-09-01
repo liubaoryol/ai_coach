@@ -4,7 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_learning.BTIL.btil_abstraction import BTIL_Abstraction
+from aic_ml.BTIL.btil_abstraction import BTIL_Abstraction
 
 
 # yapf: disable
@@ -41,13 +41,13 @@ def main(domain, num_training_data, supervision, gem_prior, tx_prior, pi_prior,
   # define the domain where trajectories were generated
   ##################################################
   if domain == "movers":
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Team
-    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
-    from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
-                                                 MDP_MoversV3_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_Team
+    from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v3.policy import Policy_MoversV3
+    from aic_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
+                                            MDP_MoversV3_Task)
     sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS

@@ -4,21 +4,20 @@ import os
 import glob
 from flask import current_app
 from flask_socketio import emit
-from ai_coach_core.latent_inference.decoding import (forward_inference,
-                                                     most_probable_sequence)
-from ai_coach_core.utils.data_utils import Trajectories
-from ai_coach_domain.box_push.agent_model import (
-    assumed_initial_mental_distribution)
+from aic_core.utils.decoding import (forward_inference, most_probable_sequence)
+from aic_core.utils.data_utils import Trajectories
+from aic_domain.box_push.agent_model import (assumed_initial_mental_distribution
+                                             )
 
-from ai_coach_domain.box_push_v2 import get_possible_latent_states
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2 as MAP_CLEANUP
-from ai_coach_domain.box_push_v2.mdp import (MDP_BoxPushV2, MDP_Cleanup_Agent,
-                                             MDP_Cleanup_Task, MDP_Movers_Agent,
-                                             MDP_Movers_Task)
-from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-from ai_coach_domain.rescue.simulator import RescueSimulator
-from ai_coach_domain.rescue.maps import MAP_RESCUE
+from aic_domain.box_push_v2 import get_possible_latent_states
+from aic_domain.box_push_v2.maps import MAP_MOVERS
+from aic_domain.box_push_v2.maps import MAP_CLEANUP_V2 as MAP_CLEANUP
+from aic_domain.box_push_v2.mdp import (MDP_BoxPushV2, MDP_Cleanup_Agent,
+                                        MDP_Cleanup_Task, MDP_Movers_Agent,
+                                        MDP_Movers_Task)
+from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+from aic_domain.rescue.simulator import RescueSimulator
+from aic_domain.rescue.maps import MAP_RESCUE
 
 from web_experiment.define import EMode, EDomainType, get_domain_type
 import web_experiment.exp_common.events_impl as event_impl

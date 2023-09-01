@@ -8,20 +8,20 @@ import warnings
 import matplotlib.pyplot as plt
 import time
 
-from ai_coach_core.model_learning.BTIL.btil_for_two import BTILforTwo
-from ai_coach_core.latent_inference.decoding import (most_probable_sequence)
-from ai_coach_core.utils.result_utils import (norm_hamming_distance,
-                                              alignment_sequence,
-                                              cal_latent_policy_error)
+from aic_ml.BTIL.btil_for_two import BTILforTwo
+from aic_core.utils.decoding import (most_probable_sequence)
+from aic_core.utils.result_utils import (norm_hamming_distance,
+                                         alignment_sequence,
+                                         cal_latent_policy_error)
 
-from ai_coach_domain.helper import TrueModelConverter
-import ai_coach_domain.box_push.maps as bp_maps
-import ai_coach_domain.box_push.simulator as bp_sim
-import ai_coach_domain.box_push.mdp as bp_mdp
-import ai_coach_domain.box_push.policy as bp_policy
-import ai_coach_domain.box_push.agent as bp_agent
-from ai_coach_domain.box_push.utils import BoxPushTrajectories
-from ai_coach_domain.box_push.agent_model import get_holding_box_and_floor_boxes
+from aic_domain.helper import TrueModelConverter
+import aic_domain.box_push.maps as bp_maps
+import aic_domain.box_push.simulator as bp_sim
+import aic_domain.box_push.mdp as bp_mdp
+import aic_domain.box_push.policy as bp_policy
+import aic_domain.box_push.agent as bp_agent
+from aic_domain.box_push.utils import BoxPushTrajectories
+from aic_domain.box_push.agent_model import get_holding_box_and_floor_boxes
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
 
@@ -82,6 +82,7 @@ def get_suboptimal_stats(traj_labeled_ver, is_team):
 
 def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
                cb_get_np_init_latent_ns, test_samples):
+
   def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
     return cb_get_np_policy_nxs(nidx, xidx, sidx)[tuple_aidx[nidx]]
 
@@ -111,6 +112,7 @@ def get_result(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
 
 def get_result_ul(cb_get_np_policy_nxs, cb_get_np_Tx_nxsas,
                   cb_get_np_init_latent_ns, test_samples):
+
   def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
     return cb_get_np_policy_nxs(nidx, xidx, sidx)[tuple_aidx[nidx]]
 
@@ -181,6 +183,7 @@ def transition_s(sidx, aidx1, aidx2, sidx_n=None):
 
 
 class BTILConverter:
+
   def __init__(self, var_inf_obj: BTILforTwo) -> None:
     self.var_inf_obj = var_inf_obj
 
@@ -406,7 +409,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
             (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
 
         if dnn_bc:
-          import aicoach_baselines.ikostrikov_gail as ikostrikov
+          import aic_ml.baselines.ikostrikov_gail as ikostrikov
           logging.info("BC by DNN")
           train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
@@ -434,7 +437,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
           #                                      MDP_AGENT.num_states,
           #                                      joint_action_num[1])
         else:
-          from aicoach_baselines.tabular_bc import tabular_behavior_cloning
+          from aic_ml.baselines.tabular_bc import tabular_behavior_cloning
           train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
               include_next_state=False)
@@ -615,7 +618,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
       logging.info(policy_errors)
 
     if magail:
-      from aicoach_baselines.latent_magail import lmagail_w_ppo
+      from aic_ml.baselines.latent_magail import lmagail_w_ppo
       for idx in list_idx:
         logging.info("#########")
         logging.info("LatentMAGAIL %d" % (idx, ))

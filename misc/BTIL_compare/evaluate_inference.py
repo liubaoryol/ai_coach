@@ -4,10 +4,9 @@ import numpy as np
 import random
 import pandas as pd
 from tqdm import tqdm
-from ai_coach_core.latent_inference.decoding import (forward_inference,
-                                                     smooth_inference_zx,
-                                                     smooth_inference_max_z,
-                                                     smooth_inference_sa)
+from aic_core.utils.decoding import (forward_inference, smooth_inference_zx,
+                                     smooth_inference_max_z,
+                                     smooth_inference_sa)
 import click
 
 
@@ -79,13 +78,13 @@ def prediction_result(domain_name: str,
 
   # =========== LOAD ENV ============
   if domain_name == "movers":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Team
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
-    from ai_coach_domain.box_push_v3.mdp import MDP_MoversV3_Agent
-    from ai_coach_domain.box_push_v3.mdp import MDP_MoversV3_Task
-    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_Team
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v3.policy import Policy_MoversV3
+    from aic_domain.box_push_v3.mdp import MDP_MoversV3_Agent
+    from aic_domain.box_push_v3.mdp import MDP_MoversV3_Task
+    from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from aic_domain.box_push.utils import BoxPushTrajectories
     game_map = MAP_MOVERS
     temperature = 0.3
 

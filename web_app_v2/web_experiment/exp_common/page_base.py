@@ -1,6 +1,6 @@
 import abc
 from typing import Mapping, Any
-from ai_coach_domain.simulator import Simulator
+from aic_domain.simulator import Simulator
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import EDomainType
 

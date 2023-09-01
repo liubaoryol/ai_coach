@@ -4,7 +4,7 @@ import click
 import logging
 import random
 import numpy as np
-from ai_coach_core.model_learning.BTIL.btil_abstraction import BTIL_Abstraction
+from aic_ml.BTIL.btil_abstraction import BTIL_Abstraction
 
 
 # yapf: disable
@@ -43,13 +43,13 @@ def main(domain, num_training_data, gem_prior, tx_prior, pi_prior, abs_prior,
   # define the domain where trajectories were generated
   ##################################################
   if domain == "movers":
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
-    from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
-    from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
-                                                 MDP_MoversV3_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from aic_domain.box_push_v3.policy import Policy_MoversV3
+    from aic_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
+                                            MDP_MoversV3_Task)
     sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
@@ -69,13 +69,13 @@ def main(domain, num_training_data, gem_prior, tx_prior, pi_prior, abs_prior,
     AGENTS = [AGENT_1, AGENT_2]
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
   elif domain == "cleanup_v3":
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
-    from ai_coach_domain.box_push_v3.policy import Policy_CleanupV3
-    from ai_coach_domain.box_push_v3.mdp import (MDP_CleanupV3_Agent,
-                                                 MDP_CleanupV3_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3
+    from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from aic_domain.box_push_v3.policy import Policy_CleanupV3
+    from aic_domain.box_push_v3.mdp import (MDP_CleanupV3_Agent,
+                                            MDP_CleanupV3_Task)
     sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_CLEANUP_V3
@@ -95,12 +95,12 @@ def main(domain, num_training_data, gem_prior, tx_prior, pi_prior, abs_prior,
     AGENTS = [AGENT_1, AGENT_2]
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
   elif domain == "rescue_2":
-    from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue.simulator import RescueSimulator
-    from ai_coach_domain.rescue.maps import MAP_RESCUE
-    from ai_coach_domain.rescue.policy import Policy_Rescue
-    from ai_coach_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue.utils import RescueTrajectories
+    from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue.simulator import RescueSimulator
+    from aic_domain.rescue.maps import MAP_RESCUE
+    from aic_domain.rescue.policy import Policy_Rescue
+    from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue.utils import RescueTrajectories
     sim = RescueSimulator()
     sim.max_steps = 30
     TEMPERATURE = 0.3
@@ -129,12 +129,12 @@ def main(domain, num_training_data, gem_prior, tx_prior, pi_prior, abs_prior,
         MDP_TASK, (MDP_AGENT.num_latents, MDP_AGENT.num_latents),
         conv_latent_to_idx)
   elif domain == "rescue_3":
-    from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
-    from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
-    from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-    from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue_v2.utils import RescueV2Trajectories
+    from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue_v2.simulator import RescueSimulatorV2
+    from aic_domain.rescue_v2.maps import MAP_RESCUE
+    from aic_domain.rescue_v2.policy import Policy_Rescue
+    from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue_v2.utils import RescueV2Trajectories
     sim = RescueSimulatorV2()
     sim.max_steps = 15
 

@@ -1,19 +1,15 @@
 import os
-from ai_coach_core.model_learning.MentalIQL.agent.make_agent import (
-    make_miql_agent)
-from ai_coach_core.model_learning.OptionIQL.agent.make_agent import (
-    make_oiql_agent)
-from aicoach_baselines.option_gail.utils.config import Config
-from ai_coach_core.model_learning.IQLearn.utils.utils import make_env
-from ai_coach_core.model_learning.MentalIQL.train_miql import (
-    load_expert_data_w_labels)
+from aic_ml.MentalIQL.agent.make_agent import (make_miql_agent)
+from aic_ml.OptionIQL.agent.make_agent import (make_oiql_agent)
+from aic_ml.baselines.option_gail.utils.config import Config
+from aic_ml.IQLearn.utils.utils import make_env
+from aic_ml.MentalIQL.train_miql import (load_expert_data_w_labels)
 import gym_custom
 import importlib.util
 import sys
 import numpy as np
-from ai_coach_core.utils.result_utils import hamming_distance
-from ai_coach_core.model_learning.OptionIQL.helper.utils import (
-    infer_mental_states)
+from aic_core.utils.result_utils import hamming_distance
+from aic_ml.OptionIQL.helper.utils import (infer_mental_states)
 
 spec = importlib.util.spec_from_file_location(
     "default_config",

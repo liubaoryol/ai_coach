@@ -2,10 +2,10 @@ from typing import Mapping, Any, Sequence
 import copy
 import os
 import time
-from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
-                                                BoxPushSimulator_AlwaysAlone,
-                                                BoxPushSimulator)
-from ai_coach_domain.box_push import EventType
+from aic_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
+                                           BoxPushSimulator_AlwaysAlone,
+                                           BoxPushSimulator)
+from aic_domain.box_push import EventType
 from web_experiment.models import db, User
 import web_experiment.experiment1.canvas_objects as co
 import web_experiment.experiment1.page_base as pg
@@ -76,6 +76,7 @@ def get_valid_box_to_pickup(game: BoxPushSimulator):
 
 
 class CanvasPageGame(pg.CanvasPageBase):
+
   def __init__(self,
                is_movers,
                manual_latent_selection,

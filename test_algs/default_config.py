@@ -1,5 +1,5 @@
 import os
-from aicoach_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 default_config = Config({
     # global program config

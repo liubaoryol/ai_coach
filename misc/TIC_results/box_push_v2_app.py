@@ -1,20 +1,19 @@
 import numpy as np
-from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
-from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
-                                             MDP_Cleanup_Task,
-                                             MDP_Cleanup_Agent)
-from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
-from ai_coach_domain.box_push_v2.agent import (
+from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+from aic_domain.box_push_v2.maps import MAP_MOVERS
+from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
+from aic_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
+                                        MDP_Cleanup_Task, MDP_Cleanup_Agent)
+from aic_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
+from aic_domain.box_push_v2.agent import (
     BoxPushAIAgent_PO_Team, BoxPushAIAgent_PO_Indv, BoxPushAIAgent_BTIL,
     BoxPushAIAgent_BTIL_ABS, BoxPushAIAgent_Team, BoxPushAIAgent_Indv)
-from ai_coach_domain.agent import BTILCachedPolicy
+from aic_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
-from ai_coach_core.intervention.feedback_strategy import (
+from aic_core.intervention.feedback_strategy import (
     get_combos_sorted_by_simulated_values)
-from ai_coach_core.utils.mdp_utils import StateSpace
+from aic_core.utils.mdp_utils import StateSpace
 
 TEST_BTIL_AGENT = False
 TEST_BTIL_USE_TRUE_TX = False

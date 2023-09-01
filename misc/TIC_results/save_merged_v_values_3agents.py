@@ -4,17 +4,17 @@ import pickle
 import logging
 import click
 from tqdm import tqdm
-from ai_coach_core.intervention.full_mdp import FullMDP
-from ai_coach_core.models.mdp import v_value_from_policy
+from aic_core.intervention.full_mdp import FullMDP
+from aic_core.models.mdp import v_value_from_policy
 
-from ai_coach_domain.rescue_v2 import E_EventType
-from ai_coach_domain.rescue_v2 import is_work_done
-from ai_coach_domain.rescue_v2.transition import find_location_index
-from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
-from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Agent
-from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Task
-from ai_coach_domain.rescue_v2.agent import RescueAM
+from aic_domain.rescue_v2 import E_EventType
+from aic_domain.rescue_v2 import is_work_done
+from aic_domain.rescue_v2.transition import find_location_index
+from aic_domain.rescue_v2.maps import MAP_RESCUE
+from aic_domain.rescue_v2.policy import Policy_Rescue
+from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent
+from aic_domain.rescue_v2.mdp import MDP_Rescue_Task
+from aic_domain.rescue_v2.agent import RescueAM
 
 
 class FullMDP_Rescue2(FullMDP):

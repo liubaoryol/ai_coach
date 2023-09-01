@@ -1,9 +1,9 @@
 import numpy as np
 import logging
-import ai_coach_core.models.mdp as mdp_lib
-import ai_coach_core.RL.planning as plan_lib
-from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
-import ai_coach_core.utils.test_utils as test_utils
+import aic_core.models.mdp as mdp_lib
+import aic_core.RL.planning as plan_lib
+from aic_core.utils.mdp_utils import StateSpace, ActionSpace
+import aic_core.utils.test_utils as test_utils
 
 
 ###############################################################################
