@@ -5,7 +5,7 @@ from tqdm import tqdm
 from aic_core.intervention.feedback_strategy import (InterventionValueBased,
                                                      InterventionRuleBased,
                                                      E_CertaintyHandling)
-import ai_coach_domain.intervention_simulator as intervention_simulator
+import aic_domain.intervention_simulator as intervention_simulator
 import pandas as pd
 
 
@@ -67,14 +67,14 @@ def intervention_result(domain_name,
               f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
 
   if domain_name == "movers":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_BTIL
-    from ai_coach_domain.agent import BTILCachedPolicy
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push.agent_model import (
-        get_holding_box_and_floor_boxes)
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_BTIL
+    from aic_domain.agent import BTILCachedPolicy
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v2.mdp import MDP_Movers_Agent
+    from aic_domain.box_push_v2.mdp import MDP_Movers_Task
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push.agent_model import (get_holding_box_and_floor_boxes
+                                                 )
     game_map = MAP_MOVERS
     MDP_Task = MDP_Movers_Task(**game_map)
     MDP_Agent = MDP_Movers_Agent(**game_map)

@@ -14,14 +14,14 @@ from aic_core.utils.result_utils import (norm_hamming_distance,
                                          alignment_sequence,
                                          cal_latent_policy_error)
 
-from ai_coach_domain.helper import TrueModelConverter
-import ai_coach_domain.box_push.maps as bp_maps
-import ai_coach_domain.box_push.simulator as bp_sim
-import ai_coach_domain.box_push.mdp as bp_mdp
-import ai_coach_domain.box_push.policy as bp_policy
-import ai_coach_domain.box_push.agent as bp_agent
-from ai_coach_domain.box_push.utils import BoxPushTrajectories
-from ai_coach_domain.box_push.agent_model import get_holding_box_and_floor_boxes
+from aic_domain.helper import TrueModelConverter
+import aic_domain.box_push.maps as bp_maps
+import aic_domain.box_push.simulator as bp_sim
+import aic_domain.box_push.mdp as bp_mdp
+import aic_domain.box_push.policy as bp_policy
+import aic_domain.box_push.agent as bp_agent
+from aic_domain.box_push.utils import BoxPushTrajectories
+from aic_domain.box_push.agent_model import get_holding_box_and_floor_boxes
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
 
@@ -409,7 +409,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
             (MDP_AGENT.num_latents, MDP_AGENT.num_states, joint_action_num[1]))
 
         if dnn_bc:
-          import aic_baselines.ikostrikov_gail as ikostrikov
+          import aic_ml.baselines.ikostrikov_gail as ikostrikov
           logging.info("BC by DNN")
           train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
@@ -437,7 +437,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
           #                                      MDP_AGENT.num_states,
           #                                      joint_action_num[1])
         else:
-          from aic_baselines.tabular_bc import tabular_behavior_cloning
+          from aic_ml.baselines.tabular_bc import tabular_behavior_cloning
           train_data.set_num_samples_to_use(idx)
           list_frag_traj = train_data.get_trajectories_fragmented_by_latent(
               include_next_state=False)
@@ -618,7 +618,7 @@ def main(is_team, is_test, gen_trainset, gen_testset, show_random, show_bc,
       logging.info(policy_errors)
 
     if magail:
-      from aic_baselines.latent_magail import lmagail_w_ppo
+      from aic_ml.baselines.latent_magail import lmagail_w_ppo
       for idx in list_idx:
         logging.info("#########")
         logging.info("LatentMAGAIL %d" % (idx, ))

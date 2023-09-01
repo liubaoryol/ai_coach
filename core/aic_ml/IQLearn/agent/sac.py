@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from .sac_models import AbstractActor
 from ..utils.utils import soft_update, one_hot
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 
 class SAC(object):

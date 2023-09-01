@@ -6,13 +6,12 @@ import numpy as np
 from aic_core.models.mdp import MDP
 from aic_core.utils.mdp_utils import StateSpace
 from aic_core.RL.planning import value_iteration
-from ai_coach_domain.box_push_v2 import BoxState, AGENT_ACTIONSPACE
-from ai_coach_domain.box_push_v2 import (conv_box_state_2_idx,
-                                         conv_box_idx_2_state)
-from ai_coach_domain.box_push_v2.transition import transition_mixed
-from ai_coach_domain.box_push_v2.maps import (MAP_MOVERS, MAP_CLEANUP_V2,
-                                              MAP_CLEANUP_V3)
-from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+from aic_domain.box_push_v2 import BoxState, AGENT_ACTIONSPACE
+from aic_domain.box_push_v2 import (conv_box_state_2_idx, conv_box_idx_2_state)
+from aic_domain.box_push_v2.transition import transition_mixed
+from aic_domain.box_push_v2.maps import (MAP_MOVERS, MAP_CLEANUP_V2,
+                                         MAP_CLEANUP_V3)
+from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
 
 
 class MMDP_BoxPush(MDP):

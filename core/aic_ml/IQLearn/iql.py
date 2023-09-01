@@ -20,7 +20,7 @@ from .utils.logger import Logger
 from itertools import count
 import types
 from .iq import iq_loss
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 
 def run_sac(config: Config,

@@ -1,5 +1,5 @@
 import os
-from aic_baselines.option_gail.utils.config import ARGConfig
+from aic_ml.baselines.option_gail.utils.config import ARGConfig
 from default_config import mujoco_config
 from run_algs import run_alg
 import gym_custom

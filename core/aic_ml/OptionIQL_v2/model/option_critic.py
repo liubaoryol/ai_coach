@@ -1,8 +1,8 @@
 import torch
-from aic_baselines.option_gail.utils.model_util import (make_module,
-                                                            make_module_list,
-                                                            make_activation)
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.model_util import (make_module,
+                                                           make_module_list,
+                                                           make_activation)
+from aic_ml.baselines.option_gail.utils.config import Config
 
 
 class OptionCritic(torch.nn.Module):

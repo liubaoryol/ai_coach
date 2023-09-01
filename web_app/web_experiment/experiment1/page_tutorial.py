@@ -5,9 +5,9 @@ from web_experiment.experiment1.page_exp1_common import CanvasPageStart
 import web_experiment.experiment1.canvas_objects as co
 from web_experiment.models import db, User
 
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.box_push.agent import BoxPushSimpleAgent
-from ai_coach_domain.box_push import conv_box_state_2_idx
+from aic_domain.agent import InteractiveAgent
+from aic_domain.box_push.agent import BoxPushSimpleAgent
+from aic_domain.box_push import conv_box_state_2_idx
 
 
 class CanvasPageTutorialStart(pg.CanvasPageBase):
@@ -47,6 +47,7 @@ class CanvasPageTutorialStart(pg.CanvasPageBase):
 
 
 class CanvasPageInstruction(CanvasPageStart):
+
   def _get_init_drawing_objects(self,
                                 game_env=None,
                                 flags: pg.GameFlags = None,
@@ -94,6 +95,7 @@ class CanvasPageInstruction(CanvasPageStart):
 
 
 class CanvasPageTutorialGameStart(CanvasPageStart):
+
   def _get_init_drawing_objects(self,
                                 game_env=None,
                                 flags: pg.GameFlags = None,
@@ -131,6 +133,7 @@ class CanvasPageTutorialGameStart(CanvasPageStart):
 
 
 class CanvasPageTutorialBase(pgg.CanvasPageGame):
+
   def __init__(self,
                is_movers,
                manual_latent_selection,
@@ -195,6 +198,7 @@ class CanvasPageTutorialBase(pgg.CanvasPageGame):
 
 
 class CanvasPageJoystick(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -261,6 +265,7 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
 
 
 class CanvasPageInvalidAction(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -270,6 +275,7 @@ class CanvasPageInvalidAction(CanvasPageTutorialBase):
 
 
 class CanvasPageJoystickShort(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -281,6 +287,7 @@ class CanvasPageJoystickShort(CanvasPageTutorialBase):
 
 
 class CanvasPageOnlyHuman(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -292,6 +299,7 @@ class CanvasPageOnlyHuman(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToTarget(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -329,6 +337,7 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
 
 
 class CanvasPagePickUpTarget(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -432,6 +441,7 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToGoal(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -500,6 +510,7 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
 
 
 class CanvasPageScore(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -536,6 +547,7 @@ class CanvasPageScore(CanvasPageTutorialBase):
 
 
 class CanvasPageTrapped(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -576,6 +588,7 @@ class CanvasPageTrapped(CanvasPageTutorialBase):
 
 
 class CanvasPageTargetHint(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, False, False)
 
@@ -604,6 +617,7 @@ class CanvasPageTargetHint(CanvasPageTutorialBase):
 
 
 class CanvasPageTargetNoHint(CanvasPageTargetHint):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, game_map)
 
@@ -615,6 +629,7 @@ class CanvasPageTargetNoHint(CanvasPageTargetHint):
 
 
 class CanvasPageLatent(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, True, game_map, True, True)
 
@@ -657,6 +672,7 @@ class CanvasPageLatent(CanvasPageTutorialBase):
 
 
 class CanvasPageSelResult(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map, is_2nd) -> None:
     super().__init__(is_movers, False, game_map, True, True)
     self._IS_2ND = is_2nd
@@ -689,6 +705,7 @@ class CanvasPageSelResult(CanvasPageTutorialBase):
 
 
 class CanvasPageSelPrompt(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, False, game_map, True, True)
 
@@ -716,6 +733,7 @@ class CanvasPageSelPrompt(CanvasPageTutorialBase):
 
 
 class CanvasPageMiniGame(CanvasPageTutorialBase):
+
   def __init__(self, is_movers, game_map) -> None:
     super().__init__(is_movers, True, game_map, True, True)
 

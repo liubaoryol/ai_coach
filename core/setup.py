@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 with open("README.md", "r", encoding="utf-8") as fh:
   long_description = fh.read()
 
-setup(name="ai_coach_algs",
+setup(name="aic_algorithms",
       version="0.0.1",
       author="Sangwon Seo",
       author_email="sangwon.seo@rice.edu",

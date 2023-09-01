@@ -6,7 +6,7 @@ import random
 import numpy as np
 # from aic_ml.BTIL import BTIL
 from aic_ml.BTIL.btil_decentral import BTIL_Decen
-from ai_coach_domain.helper import TrueModelConverter
+from aic_domain.helper import TrueModelConverter
 
 import helper
 
@@ -41,15 +41,14 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
   # define the domain where trajectories were generated
   ##################################################
   if domain == "movers":
-    from ai_coach_domain.box_push.agent_model import (
+    from aic_domain.box_push.agent_model import (
         assumed_initial_mental_distribution)
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v2.policy import Policy_Movers
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Agent,
-                                                 MDP_Movers_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v2.policy import Policy_Movers
+    from aic_domain.box_push_v2.mdp import (MDP_Movers_Agent, MDP_Movers_Task)
     sim = BoxPushSimulatorV2(0)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
@@ -70,15 +69,14 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
     assumed_init_mental_dist = assumed_initial_mental_distribution
   elif domain == "cleanup_v2":
-    from ai_coach_domain.box_push.agent_model import (
+    from aic_domain.box_push.agent_model import (
         assumed_initial_mental_distribution)
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Cleanup_Agent,
-                                                 MDP_Cleanup_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V2
+    from aic_domain.box_push_v2.policy import Policy_Cleanup
+    from aic_domain.box_push_v2.mdp import (MDP_Cleanup_Agent, MDP_Cleanup_Task)
     sim = BoxPushSimulatorV2(0)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_CLEANUP_V2
@@ -99,15 +97,14 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
     assumed_init_mental_dist = assumed_initial_mental_distribution
   elif domain == "cleanup_v3":
-    from ai_coach_domain.box_push.agent_model import (
+    from aic_domain.box_push.agent_model import (
         assumed_initial_mental_distribution)
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Cleanup_Agent,
-                                                 MDP_Cleanup_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3
+    from aic_domain.box_push_v2.policy import Policy_Cleanup
+    from aic_domain.box_push_v2.mdp import (MDP_Cleanup_Agent, MDP_Cleanup_Task)
     sim = BoxPushSimulatorV2(0)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_CLEANUP_V3
@@ -128,14 +125,13 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
     assumed_init_mental_dist = assumed_initial_mental_distribution
   elif domain == "rescue_2":
-    from ai_coach_domain.rescue.agent import (
-        assumed_initial_mental_distribution)
-    from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue.simulator import RescueSimulator
-    from ai_coach_domain.rescue.maps import MAP_RESCUE
-    from ai_coach_domain.rescue.policy import Policy_Rescue
-    from ai_coach_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue.utils import RescueTrajectories
+    from aic_domain.rescue.agent import (assumed_initial_mental_distribution)
+    from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue.simulator import RescueSimulator
+    from aic_domain.rescue.maps import MAP_RESCUE
+    from aic_domain.rescue.policy import Policy_Rescue
+    from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue.utils import RescueTrajectories
     sim = RescueSimulator()
     sim.max_steps = 30
     TEMPERATURE = 0.3
@@ -165,14 +161,13 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
         conv_latent_to_idx)
     assumed_init_mental_dist = assumed_initial_mental_distribution
   elif domain == "rescue_3":
-    from ai_coach_domain.rescue_v2.agent import (
-        assumed_initial_mental_distribution)
-    from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
-    from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
-    from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-    from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue_v2.utils import RescueV2Trajectories
+    from aic_domain.rescue_v2.agent import (assumed_initial_mental_distribution)
+    from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue_v2.simulator import RescueSimulatorV2
+    from aic_domain.rescue_v2.maps import MAP_RESCUE
+    from aic_domain.rescue_v2.policy import Policy_Rescue
+    from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue_v2.utils import RescueV2Trajectories
     sim = RescueSimulatorV2()
     sim.max_steps = 15
 

@@ -9,7 +9,7 @@ from torch.distributions import Categorical
 from ..utils.utils import one_hot
 from ..utils.atari_wrapper import LazyFrames
 from ..dataset.memory import Memory
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 
 class SoftQ(object):

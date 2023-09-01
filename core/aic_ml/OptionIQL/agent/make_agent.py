@@ -5,7 +5,7 @@ from .option_models import (SoftDiscreteOptionActor, DiagGaussianOptionActor,
                             SoftDiscreteOptionThinker, OptionDoubleQCritic,
                             OptionSingleQCritic)
 from .option_iql import OptionIQL, OptionSAC
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 
 def make_oiql_agent(config: Config, env: gym.Env):

@@ -11,7 +11,7 @@ from aic_ml.IQLearn.utils.logger import Logger
 from aic_ml.OptionIQL.helper.option_memory import (OptionMemory)
 from aic_ml.OptionIQL.helper.utils import (get_expert_batch, evaluate, save,
                                            get_samples)
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 from .agent.make_agent import MentalIQL
 from .agent.make_agent import make_miql_agent
 

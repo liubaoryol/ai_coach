@@ -2,8 +2,8 @@ import abc
 from typing import Optional, List, Mapping, Set
 from dataclasses import dataclass, field
 import numpy as np
-from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState
-from ai_coach_domain.box_push.simulator import BoxPushSimulator
+from aic_domain.box_push import conv_box_idx_2_state, BoxState
+from aic_domain.box_push.simulator import BoxPushSimulator
 import web_experiment.experiment1.canvas_objects as co
 
 
@@ -18,6 +18,7 @@ class GameFlags:
 
 
 class UserGameData:
+
   def __init__(self, user) -> None:
     self.game = None  # type: Optional[BoxPushSimulator]
     self.cur_page_idx = 0

@@ -1,5 +1,5 @@
 from typing import Sequence, Tuple, Optional
-from ai_coach_domain.rescue import PlaceName
+from aic_domain.rescue import PlaceName
 
 CANVAS_WIDTH = 900
 CANVAS_HEIGHT = 600

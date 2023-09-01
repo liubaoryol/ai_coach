@@ -5,7 +5,7 @@ from tqdm import tqdm
 from aic_core.intervention.feedback_strategy import (InterventionValueBased,
                                                      InterventionRuleBased,
                                                      E_CertaintyHandling)
-import ai_coach_domain.intervention_simulator as intervention_simulator
+import aic_domain.intervention_simulator as intervention_simulator
 import pandas as pd
 
 
@@ -67,14 +67,14 @@ def intervention_result(domain_name,
               f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
 
   if domain_name == "movers":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v2.policy import Policy_Movers
-    from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push.agent_model import (
-        get_holding_box_and_floor_boxes)
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v2.policy import Policy_Movers
+    from aic_domain.box_push_v2.mdp import MDP_Movers_Agent
+    from aic_domain.box_push_v2.mdp import MDP_Movers_Task
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push.agent_model import (get_holding_box_and_floor_boxes
+                                                 )
     game_map = MAP_MOVERS
     MDP_Task = MDP_Movers_Task(**game_map)
     MDP_Agent = MDP_Movers_Agent(**game_map)
@@ -118,12 +118,12 @@ def intervention_result(domain_name,
     fn_valid_latent = valid_latent2
 
   elif domain_name == "cleanup_v2":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V2
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V2
+    from aic_domain.box_push_v2.policy import Policy_Cleanup
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Agent
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
     game_map = MAP_CLEANUP_V2
     MDP_Task = MDP_Cleanup_Task(**game_map)
     MDP_Agent = MDP_Cleanup_Agent(**game_map)
@@ -144,12 +144,12 @@ def intervention_result(domain_name,
       return (bstt, a1pos, a2pos), (a1act, a2act)
 
   elif domain_name == "cleanup_v3":
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3
+    from aic_domain.box_push_v2.policy import Policy_Cleanup
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Agent
+    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
     game_map = MAP_CLEANUP_V3
     MDP_Task = MDP_Cleanup_Task(**game_map)
     MDP_Agent = MDP_Cleanup_Agent(**game_map)
@@ -169,11 +169,11 @@ def intervention_result(domain_name,
       step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
       return (bstt, a1pos, a2pos), (a1act, a2act)
   elif domain_name == "rescue_2":
-    from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue.maps import MAP_RESCUE
-    from ai_coach_domain.rescue.policy import Policy_Rescue
-    from ai_coach_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue.simulator import RescueSimulator
+    from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue.maps import MAP_RESCUE
+    from aic_domain.rescue.policy import Policy_Rescue
+    from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue.simulator import RescueSimulator
     game_map = MAP_RESCUE
     temperature = 0.3
 
@@ -195,11 +195,11 @@ def intervention_result(domain_name,
       step, score, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
       return (wstt, a1pos, a2pos), (a1act, a2act)
   elif domain_name == "rescue_3":
-    from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-    from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
-    from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-    from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
+    from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+    from aic_domain.rescue_v2.maps import MAP_RESCUE
+    from aic_domain.rescue_v2.policy import Policy_Rescue
+    from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+    from aic_domain.rescue_v2.simulator import RescueSimulatorV2
     game_map = MAP_RESCUE
     temperature = 0.3
 

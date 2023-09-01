@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 from .nn_models import (SimpleOptionQNetwork, DoubleOptionQCritic,
                         SingleOptionQCritic, DiagGaussianOptionActor)
 # from .option_softq import OptionSoftQ
@@ -186,7 +186,7 @@ class MentalIQL:
   def save(self, path):
     self.tx_agent.save(path, "_tx")
     self.pi_agent.save(path, "_pi")
-  
+
   def load(self, path):
     self.tx_agent.load(path + "_tx")
     self.pi_agent.load(path + "_pi")

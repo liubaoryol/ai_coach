@@ -1,8 +1,8 @@
 import os
 import torch
 import json
-from aic_baselines.option_gail.utils.config import ARGConfig
-from aic_baselines.option_gail.utils.mujoco_env import load_demo
+from aic_ml.baselines.option_gail.utils.config import ARGConfig
+from aic_ml.baselines.option_gail.utils.mujoco_env import load_demo
 from aic_ml.IQLearn.dataset.expert_dataset import (read_file)
 from default_config import mujoco_config, default_config
 from iql_helper import (get_dirs, conv_torch_trajs_2_iql_format,
@@ -62,20 +62,20 @@ def run_alg(config, log_interval=1000, eval_interval=20000):
     print(f"Data path not exists: {config.data_path}")
 
   if alg_name == "obc":
-    from aic_baselines.option_gail.option_bc_learn import learn
+    from aic_ml.baselines.option_gail.option_bc_learn import learn
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "ogail":
-    from aic_baselines.option_gail.option_gail_learn import learn
+    from aic_ml.baselines.option_gail.option_gail_learn import learn
     learn(config, log_dir, output_dir, path_iq_data, pretrain_name,
           eval_interval, msg)
   elif alg_name == "ogailv2":
-    from aic_baselines.option_gail.option_gail_learn_v2 import learn
+    from aic_ml.baselines.option_gail.option_gail_learn_v2 import learn
     learn(config, log_dir, output_dir, sample_name, pretrain_name, msg)
   elif alg_name == "oppo":
-    from aic_baselines.option_gail.option_ppo_learn import learn
+    from aic_ml.baselines.option_gail.option_ppo_learn import learn
     learn(config, log_dir, output_dir, msg)
   elif alg_name == "oppov2":
-    from aic_baselines.option_gail.option_ppo_learn_v2 import learn
+    from aic_ml.baselines.option_gail.option_ppo_learn_v2 import learn
     learn(config, log_dir, output_dir, msg)
   elif alg_name == "oiql" and config.stream_training:
     from aic_ml.OptionIQL.train_oiql_stream import (train_oiql_stream)

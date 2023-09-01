@@ -1,7 +1,7 @@
 from typing import Mapping, Any, Sequence, List
 import copy
-from ai_coach_domain.box_push.simulator import BoxPushSimulator
-from ai_coach_domain.box_push import conv_box_idx_2_state, BoxState, EventType
+from aic_domain.box_push.simulator import BoxPushSimulator
+from aic_domain.box_push import conv_box_idx_2_state, BoxState, EventType
 from web_experiment.define import EDomainType
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_base import Exp1UserData, ExperimentPageBase
@@ -166,8 +166,8 @@ class BoxPushGamePageBase(ExperimentPageBase):
           "It can be the same destination as you had previously selected.")
     else:
       return (
-          "Please choose your next action. "+
-          "You can only pick up or drop a box at the place circled in red. "+
+          "Please choose your next action. " +
+          "You can only pick up or drop a box at the place circled in red. " +
           "If your destination has changed, " +
           "please update it using the \"Select Destination\" button.")
 

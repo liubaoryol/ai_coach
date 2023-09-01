@@ -1,7 +1,7 @@
 import os
 from aic_ml.MentalIQL.agent.make_agent import (make_miql_agent)
 from aic_ml.OptionIQL.agent.make_agent import (make_oiql_agent)
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.IQLearn.utils.utils import make_env
 from aic_ml.MentalIQL.train_miql import (load_expert_data_w_labels)
 import gym_custom

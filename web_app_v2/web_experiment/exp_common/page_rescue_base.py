@@ -1,9 +1,9 @@
 from typing import Mapping, Any, Sequence, List
 import copy
 import numpy as np
-from ai_coach_domain.rescue import (E_EventType, Location, E_Type, Place,
-                                    T_Connections, Route)
-from ai_coach_domain.rescue.simulator import RescueSimulator
+from aic_domain.rescue import (E_EventType, Location, E_Type, Place,
+                               T_Connections, Route)
+from aic_domain.rescue.simulator import RescueSimulator
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData

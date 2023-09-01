@@ -1,10 +1,10 @@
 import torch
 from aic_ml.IQLearn.agent.sac_models import (GumbelSoftmax, SquashedNormal)
 from torch.distributions import Normal
-from aic_baselines.option_gail.utils.model_util import (make_module,
-                                                        make_module_list,
-                                                        make_activation)
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.model_util import (make_module,
+                                                           make_module_list,
+                                                           make_activation)
+from aic_ml.baselines.option_gail.utils.config import Config
 
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 

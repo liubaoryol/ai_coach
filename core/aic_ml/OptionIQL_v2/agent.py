@@ -3,10 +3,10 @@ import time
 from copy import deepcopy
 from torch.multiprocessing import Process, Pipe, Lock, Value
 from .model.option_policy import OptionPolicy
-from aic_baselines.option_gail.utils.state_filter import StateFilter
-from aic_baselines.option_gail.utils.utils import set_seed
-from aic_baselines.option_gail.utils.agent import (_Sampler, _SamplerCommon,
-                                                       _SamplerSS)
+from aic_ml.baselines.option_gail.utils.state_filter import StateFilter
+from aic_ml.baselines.option_gail.utils.utils import set_seed
+from aic_ml.baselines.option_gail.utils.agent import (_Sampler, _SamplerCommon,
+                                                      _SamplerSS)
 
 __all__ = ["Sampler"]
 

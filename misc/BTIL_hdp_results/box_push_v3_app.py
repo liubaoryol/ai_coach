@@ -1,19 +1,17 @@
 import numpy as np
 import os
-from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
-from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Task,
-                                             MDP_MoversV3_Agent,
-                                             MDP_CleanupV3_Task,
-                                             MDP_CleanupV3_Agent)
-from ai_coach_domain.box_push_v3.policy import Policy_MoversV3, Policy_CleanupV3
-from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
-                                               BoxPushAIAgent_PO_Indv,
-                                               BoxPushAIAgent_BTIL,
-                                               BoxPushAIAgent_Team,
-                                               BoxPushAIAgent_Indv)
-from ai_coach_domain.agent import BTILCachedPolicy
+from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
+from aic_domain.box_push_v2.maps import MAP_MOVERS
+from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
+from aic_domain.box_push_v3.mdp import (MDP_MoversV3_Task, MDP_MoversV3_Agent,
+                                        MDP_CleanupV3_Task, MDP_CleanupV3_Agent)
+from aic_domain.box_push_v3.policy import Policy_MoversV3, Policy_CleanupV3
+from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
+                                          BoxPushAIAgent_PO_Indv,
+                                          BoxPushAIAgent_BTIL,
+                                          BoxPushAIAgent_Team,
+                                          BoxPushAIAgent_Indv)
+from aic_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
 from aic_core.utils.mdp_utils import StateSpace

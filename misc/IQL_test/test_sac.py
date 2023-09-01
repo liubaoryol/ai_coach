@@ -18,7 +18,6 @@ from torch.utils.tensorboard import SummaryWriter
 from aic_ml.IQLearn.utils.logger import Logger
 from itertools import count
 import types
-import aic_core.gym
 
 
 def save(agent,

@@ -1,5 +1,5 @@
 import os
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 default_config = Config({
     # global program config
@@ -7,7 +7,7 @@ default_config = Config({
     "tag": "default",
     "device": "cuda:0",
     "n_thread": 1,
-    "n_sample": 4096,
+    "n_sample": 4096,  # replay buffer size
     "max_explore_step": 5e4,
     "base_dir": os.path.dirname(__file__),
 

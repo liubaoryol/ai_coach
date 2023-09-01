@@ -1,13 +1,12 @@
-from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-from ai_coach_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
-                                             MDP_Cleanup_Task,
-                                             MDP_Cleanup_Agent)
-from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
-                                               BoxPushAIAgent_PO_Team)
+from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+from aic_domain.box_push_v2.mdp import (MDP_Movers_Task, MDP_Movers_Agent,
+                                        MDP_Cleanup_Task, MDP_Cleanup_Agent)
+from aic_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
+from aic_domain.box_push_v2.maps import MAP_MOVERS
+from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
+from aic_domain.agent import InteractiveAgent
+from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
+                                          BoxPushAIAgent_PO_Team)
 from web_experiment.models import db, User
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import Exp1UserData

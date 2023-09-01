@@ -1,16 +1,16 @@
 from typing import Optional, Sequence
 from gym_custom.envs.mdp_env.env_from_mdp import EnvFromMDP
 from aic_core.models.mdp import MDP
-from ai_coach_domain.box_push.maps import EXP1_MAP
-from ai_coach_domain.box_push.policy import (BoxPushPolicyTeamExp1,
-                                             BoxPushPolicyIndvExp1)
-from ai_coach_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
-                                                BoxPushSimulator_AlwaysAlone)
-from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
-                                          BoxPushTeamMDP_AlwaysAlone,
-                                          BoxPushAgentMDP_AlwaysAlone)
-from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Indv2,
-                                            BoxPushAIAgent_Team2)
+from aic_domain.box_push.maps import EXP1_MAP
+from aic_domain.box_push.policy import (BoxPushPolicyTeamExp1,
+                                        BoxPushPolicyIndvExp1)
+from aic_domain.box_push.simulator import (BoxPushSimulator_AlwaysTogether,
+                                           BoxPushSimulator_AlwaysAlone)
+from aic_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
+                                     BoxPushTeamMDP_AlwaysAlone,
+                                     BoxPushAgentMDP_AlwaysAlone)
+from aic_domain.box_push.agent import (BoxPushAIAgent_Indv2,
+                                       BoxPushAIAgent_Team2)
 from gym import spaces
 import numpy as np
 
@@ -89,7 +89,7 @@ class EnvCleanup_v0(EnvBoxPush):
 
 
 if __name__ == "__main__":
-  from ai_coach_domain.box_push.utils import BoxPushTrajectories
+  from aic_domain.box_push.utils import BoxPushTrajectories
   from collections import defaultdict
   import numpy as np
   import os

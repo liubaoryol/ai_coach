@@ -3,8 +3,8 @@ import os
 import warnings
 import logging
 import pickle
-from ai_coach_domain.box_push.mdp import BoxPushMDP
-from ai_coach_domain.rescue.mdp import MDP_Rescue
+from aic_domain.box_push.mdp import BoxPushMDP
+from aic_domain.rescue.mdp import MDP_Rescue
 
 g_loaded_transition_model = None
 

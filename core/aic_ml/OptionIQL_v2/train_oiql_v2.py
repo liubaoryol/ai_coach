@@ -5,10 +5,10 @@ import os
 import torch
 import random
 from itertools import count
-from aic_baselines.option_gail.utils.utils import env_class_and_demo_fn
-from aic_baselines.option_gail.utils.logger import Logger
-from aic_baselines.option_gail.utils.config import Config
-from aic_baselines.option_gail.utils.agent import _SamplerCommon
+from aic_ml.baselines.option_gail.utils.utils import env_class_and_demo_fn
+from aic_ml.baselines.option_gail.utils.logger import Logger
+from aic_ml.baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.agent import _SamplerCommon
 from .model.option_critic import OptionCritic
 from .model.option_policy import OptionPolicy
 from .model.option_iql_v2 import OptionIQL_V2

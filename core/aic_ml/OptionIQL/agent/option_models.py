@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.distributions import Normal
 from torch.autograd import Variable, grad
 from aic_ml.IQLearn.utils.utils import mlp, weight_init
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 
 class OptionSACQCritic(nn.Module):

@@ -1,11 +1,11 @@
 from typing import Hashable, Tuple
 from stand_alone.app import AppInterface
-from ai_coach_domain.box_push import EventType, BoxState, conv_box_idx_2_state
-import ai_coach_domain.box_push.maps as bp_maps
-import ai_coach_domain.box_push.simulator as bp_sim
-import ai_coach_domain.box_push.mdp as bp_mdp
-import ai_coach_domain.box_push.policy as bp_policy
-import ai_coach_domain.box_push.agent as bp_agent
+from aic_domain.box_push import EventType, BoxState, conv_box_idx_2_state
+import aic_domain.box_push.maps as bp_maps
+import aic_domain.box_push.simulator as bp_sim
+import aic_domain.box_push.mdp as bp_mdp
+import aic_domain.box_push.policy as bp_policy
+import aic_domain.box_push.agent as bp_agent
 
 IS_TESTMAP = False
 IS_TEAM = False
@@ -26,6 +26,7 @@ else:
 
 
 class BoxPushApp(AppInterface):
+
   def __init__(self) -> None:
     super().__init__()
 

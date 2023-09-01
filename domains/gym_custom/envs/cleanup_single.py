@@ -1,6 +1,6 @@
 from gym_custom.envs.mdp_env.env_from_mdp import EnvFromMDP
-from ai_coach_domain.cleanup_single.mdp import MDPCleanupSingle
-from ai_coach_domain.cleanup_single.maps import MAP_SINGLE_V1
+from aic_domain.cleanup_single.mdp import MDPCleanupSingle
+from aic_domain.cleanup_single.maps import MAP_SINGLE_V1
 
 
 class CleanupSingleEnv_v0(EnvFromMDP):
@@ -29,11 +29,11 @@ class CleanupSingleEnv_v0(EnvFromMDP):
 
 
 if __name__ == "__main__":
-  from ai_coach_domain.cleanup_single.simulator import CleanupSingleSimulator
-  from ai_coach_domain.cleanup_single.maps import MAP_SINGLE_V1
-  from ai_coach_domain.cleanup_single.policy import Policy_CleanupSingle
-  from ai_coach_domain.cleanup_single.mdp import MDPCleanupSingle
-  from ai_coach_domain.cleanup_single.agent import Agent_CleanupSingle
+  from aic_domain.cleanup_single.simulator import CleanupSingleSimulator
+  from aic_domain.cleanup_single.maps import MAP_SINGLE_V1
+  from aic_domain.cleanup_single.policy import Policy_CleanupSingle
+  from aic_domain.cleanup_single.mdp import MDPCleanupSingle
+  from aic_domain.cleanup_single.agent import Agent_CleanupSingle
   from collections import defaultdict
   import os
   import pickle

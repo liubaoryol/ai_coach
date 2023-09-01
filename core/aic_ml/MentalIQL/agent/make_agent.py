@@ -1,6 +1,6 @@
 import gym
 from gym.spaces import Discrete, Box
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 from .mental_iql import MentalIQL
 
 

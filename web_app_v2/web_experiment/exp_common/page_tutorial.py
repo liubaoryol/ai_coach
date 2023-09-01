@@ -6,11 +6,11 @@ from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2GamePage
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.models import db, ExpDataCollection, ExpIntervention
 from web_experiment.define import ExpType, EDomainType
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.box_push_v2 import (conv_box_state_2_idx, EventType,
-                                         BoxState, BoxPushSimulatorV2)
-from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
-                                               BoxPushAIAgent_PO_Team)
+from aic_domain.agent import InteractiveAgent
+from aic_domain.box_push_v2 import (conv_box_state_2_idx, EventType, BoxState,
+                                    BoxPushSimulatorV2)
+from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
+                                          BoxPushAIAgent_PO_Team)
 
 
 class CanvasPageTutorialStart(ExperimentPageBase):

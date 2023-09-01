@@ -7,20 +7,20 @@ from tqdm import tqdm
 from aic_core.intervention.full_mdp import FullMDP
 from aic_core.models.mdp import v_value_from_policy
 
-from ai_coach_domain.box_push_v2 import EventType
-from ai_coach_domain.box_push_v2.mdp import MDP_Movers_Task, MDP_Movers_Agent
-from ai_coach_domain.box_push_v2.mdp import MDP_Cleanup_Task, MDP_Cleanup_Agent
-from ai_coach_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V3
-from ai_coach_domain.box_push_v2.agent import AM_BoxPushV2_Movers
-from ai_coach_domain.box_push_v2.agent import AM_BoxPushV2_Cleanup
-from ai_coach_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
+from aic_domain.box_push_v2 import EventType
+from aic_domain.box_push_v2.mdp import MDP_Movers_Task, MDP_Movers_Agent
+from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task, MDP_Cleanup_Agent
+from aic_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V3
+from aic_domain.box_push_v2.agent import AM_BoxPushV2_Movers
+from aic_domain.box_push_v2.agent import AM_BoxPushV2_Cleanup
+from aic_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
 
-from ai_coach_domain.rescue.maps import MAP_RESCUE
-from ai_coach_domain.rescue.policy import Policy_Rescue
-from ai_coach_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-from ai_coach_domain.rescue.agent import RescueAM
-from ai_coach_domain.rescue import E_EventType, is_work_done
-from ai_coach_domain.rescue.transition import find_location_index
+from aic_domain.rescue.maps import MAP_RESCUE
+from aic_domain.rescue.policy import Policy_Rescue
+from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
+from aic_domain.rescue.agent import RescueAM
+from aic_domain.rescue import E_EventType, is_work_done
+from aic_domain.rescue.transition import find_location_index
 
 
 class FullMDP_Rescue(FullMDP):

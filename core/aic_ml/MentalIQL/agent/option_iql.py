@@ -1,7 +1,7 @@
 from typing import Type, Callable
 import torch
 import torch.nn as nn
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.IQLearn.utils.utils import (average_dicts, soft_update, hard_update)
 from aic_ml.IQLearn.iq import iq_loss
 from aic_ml.OptionIQL.helper.utils import (get_concat_samples)

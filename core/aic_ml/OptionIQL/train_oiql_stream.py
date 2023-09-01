@@ -12,7 +12,7 @@ from .agent.make_agent import make_oiql_agent, make_osac_agent
 from .helper.option_memory import OptionMemory
 from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
                            infer_mental_states)
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.MentalIQL.train_miql import (load_expert_data_w_labels)
 
 

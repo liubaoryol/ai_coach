@@ -6,7 +6,7 @@ from aic_ml.IQLearn.agent.sac_discrete import SAC_Discrete
 from aic_ml.IQLearn.agent.softq import SoftQ
 from .softq_models import SimpleQNetwork, SingleQCriticDiscrete
 from .sac_models import DoubleQCritic, SingleQCritic
-from aic_baselines.option_gail.utils.config import Config
+from aic_ml.baselines.option_gail.utils.config import Config
 
 
 def make_softq_agent(config: Config, env: gym.Env):

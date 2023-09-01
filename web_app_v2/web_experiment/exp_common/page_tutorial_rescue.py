@@ -4,9 +4,9 @@ from web_experiment.exp_common.page_rescue_game import RescueGamePage
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import ExpType
 from web_experiment.models import ExpDataCollection, ExpIntervention, db
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue import E_EventType
-from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
+from aic_domain.agent import InteractiveAgent
+from aic_domain.rescue import E_EventType
+from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
 
 MAX_STEP = str(30)
 

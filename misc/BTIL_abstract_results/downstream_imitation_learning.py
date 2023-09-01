@@ -6,7 +6,7 @@ from tqdm import tqdm
 import random
 from aic_core.utils.decoding import (smooth_inference_max_z,
                                      smooth_inference_zx)
-from aic_baselines.sb3_algorithms import behavior_cloning_sb3
+from aic_ml.baselines.sb3_algorithms import behavior_cloning_sb3
 import numpy as np
 from datetime import datetime
 # rl algorithm
@@ -23,13 +23,13 @@ def main(domain):
   # define the domain where trajectories were generated
   ##################################################
   if domain == "movers":
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Team
-    from ai_coach_domain.box_push_v2.maps import MAP_MOVERS
-    from ai_coach_domain.box_push_v3.simulator import BoxPushSimulatorV3
-    from ai_coach_domain.box_push_v3.policy import Policy_MoversV3
-    from ai_coach_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
-                                                 MDP_MoversV3_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_Team
+    from aic_domain.box_push_v2.maps import MAP_MOVERS
+    from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
+    from aic_domain.box_push_v3.policy import Policy_MoversV3
+    from aic_domain.box_push_v3.mdp import (MDP_MoversV3_Agent,
+                                            MDP_MoversV3_Task)
     sim = BoxPushSimulatorV3(False)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_MOVERS
@@ -45,13 +45,12 @@ def main(domain):
     AGENTS = [AGENT_1, AGENT_2]
     train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
   elif domain == "cleanup_v3":
-    from ai_coach_domain.box_push.utils import BoxPushTrajectories
-    from ai_coach_domain.box_push_v2.agent import BoxPushAIAgent_Indv
-    from ai_coach_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from ai_coach_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from ai_coach_domain.box_push_v2.policy import Policy_Cleanup
-    from ai_coach_domain.box_push_v2.mdp import (MDP_Cleanup_Agent,
-                                                 MDP_Cleanup_Task)
+    from aic_domain.box_push.utils import BoxPushTrajectories
+    from aic_domain.box_push_v2.agent import BoxPushAIAgent_Indv
+    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
+    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3
+    from aic_domain.box_push_v2.policy import Policy_Cleanup
+    from aic_domain.box_push_v2.mdp import (MDP_Cleanup_Agent, MDP_Cleanup_Task)
     sim = BoxPushSimulatorV2(0)
     TEMPERATURE = 0.3
     GAME_MAP = MAP_CLEANUP_V3

@@ -7,12 +7,12 @@ from aic_core.models.mdp import MDP
 from aic_core.utils.mdp_utils import StateSpace
 from aic_core.RL.planning import value_iteration
 
-from ai_coach_domain.rescue import (Route, E_EventType, E_Type, Location, Work,
-                                    Place, T_Connections, AGENT_ACTIONSPACE,
-                                    is_work_done)
-from ai_coach_domain.rescue.transition import transition, find_location_index
-from ai_coach_domain.rescue.maps import MAP_RESCUE
-from ai_coach_domain.rescue.simulator import RescueSimulator
+from aic_domain.rescue import (Route, E_EventType, E_Type, Location, Work,
+                               Place, T_Connections, AGENT_ACTIONSPACE,
+                               is_work_done)
+from aic_domain.rescue.transition import transition, find_location_index
+from aic_domain.rescue.maps import MAP_RESCUE
+from aic_domain.rescue.simulator import RescueSimulator
 
 
 class MMDP_Rescue(MDP):
