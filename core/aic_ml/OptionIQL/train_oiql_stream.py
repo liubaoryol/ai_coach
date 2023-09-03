@@ -125,14 +125,12 @@ def trainer_impl(config: Config,
   initial_mem = min(batch_size * 5, replay_mem)
   initial_mem = int(initial_mem)
   # Setup logging
-  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
                   log_frequency=log_interval,
                   writer=writer,
-                  save_tb=True,
-                  agent=agent_name)
+                  save_tb=True)
 
   # track mean reward and scores
   best_eval_returns = -np.inf
@@ -182,7 +180,6 @@ def trainer_impl(config: Config,
                epoch,
                1,
                env_name,
-               agent_name,
                alg_type,
                output_dir=output_dir,
                suffix=output_suffix + "_best")

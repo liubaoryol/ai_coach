@@ -100,7 +100,6 @@ def train(config: Config,
           eval_interval=5000,
           env_kwargs={}):
 
-  agent_name = "miql"
   env_name = config.env_name
   seed = config.seed
   batch_size = config.mini_batch_size
@@ -159,14 +158,12 @@ def train(config: Config,
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
 
   # Setup logging
-  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
                   log_frequency=log_interval,
                   writer=writer,
-                  save_tb=True,
-                  agent=agent_name)
+                  save_tb=True)
 
   # track mean reward and scores
   best_eval_returns = -np.inf
@@ -263,7 +260,6 @@ def train(config: Config,
              epoch,
              1,
              env_name,
-             agent_name,
              alg_type,
              output_dir=output_dir,
              suffix=output_suffix + "_best")

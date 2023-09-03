@@ -2,31 +2,10 @@ import os
 import pickle
 import numpy as np
 import torch
-import datetime
-import time
 from collections import defaultdict
 from aic_ml.baselines.option_gail.utils.state_filter import StateFilter
-
-
-def get_dirs(base_dir="",
-             exp_type="gail",
-             env_type="mujoco",
-             env_name="HalfCheetah-v2",
-             msg="default"):
-  assert env_type in ("mini", "mujoco",
-                      "rlbench"), f"Error, env_type {env_type} not supported"
-
-  base_log_dir = os.path.join(base_dir, "result/")
-
-  ts_str = datetime.datetime.fromtimestamp(
-      time.time()).strftime("%Y-%m-%d_%H-%M-%S")
-  log_dir_root = os.path.join(base_log_dir, env_name, exp_type, msg, ts_str)
-  save_dir = os.path.join(log_dir_root, "model")
-  log_dir = os.path.join(log_dir_root, "log")
-  os.makedirs(save_dir)
-  os.makedirs(log_dir)
-
-  return log_dir, save_dir, log_dir_root
+from aic_ml.baselines.option_gail.utils.mujoco_env import load_demo
+from aic_ml.IQLearn.dataset.expert_dataset import read_file
 
 
 def conv_torch_trajs_2_iql_format(sar_trajectories, path: str):
@@ -79,3 +58,33 @@ def conv_iql_trajs_2_optiongail_format(trajectories, path: str):
     sample.append((s_array, a_array, r_array, x_array))
 
   torch.save((sample, rs.state_dict()), path)
+
+
+def get_pickle_datapath_n_traj(config):
+  data_path = os.path.join(config.base_dir, config.data_path)
+  num_traj = config.n_traj
+  if data_path.endswith("torch"):
+    trajs, _ = load_demo(data_path, num_traj)
+    data_dir = os.path.dirname(data_path)
+    num_traj = len(trajs)
+
+    data_path = os.path.join(data_dir, f"temp_{config.env_name}_{num_traj}.pkl")
+    conv_torch_trajs_2_iql_format(trajs, data_path)
+
+  return data_path, num_traj
+
+
+def get_torch_datapath(config):
+  data_path = os.path.join(config.base_dir, config.data_path)
+  if not data_path.endswith("torch"):
+    with open(data_path, 'rb') as f:
+      trajs = read_file(data_path, f)
+    num_traj = len(trajs["states"])
+
+    data_dir = os.path.dirname(data_path)
+    data_path = os.path.join(data_dir,
+                             f"temp_{config.env_name}_{num_traj}.torch")
+
+    conv_iql_trajs_2_optiongail_format(trajs, data_path)
+
+  return data_path

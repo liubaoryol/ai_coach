@@ -5,7 +5,9 @@ import os
 import torch
 import random
 from itertools import count
-from aic_ml.baselines.option_gail.utils.utils import env_class_and_demo_fn
+from aic_ml.baselines.option_gail.utils.utils import (env_class, set_seed,
+                                                      reward_validate,
+                                                      load_n_convert_data)
 from aic_ml.baselines.option_gail.utils.logger import Logger
 from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.baselines.option_gail.utils.agent import _SamplerCommon
@@ -13,28 +15,6 @@ from .model.option_critic import OptionCritic
 from .model.option_policy import OptionPolicy
 from .model.option_iql_v2 import OptionIQL_V2
 from .agent import Sampler
-
-
-def reward_validate(sampler: _SamplerCommon,
-                    policy: OptionPolicy,
-                    n_sample=-8,
-                    do_print=True):
-  trajs = sampler.collect(policy.state_dict(), n_sample, fixed=True)
-  rsums = [tr[-1].sum().item() for tr in trajs]
-  steps = [tr[-1].size(0) for tr in trajs]
-
-  info_dict = {
-      "r-max": np.max(rsums),
-      "r-min": np.min(rsums),
-      "r-avg": np.mean(rsums),
-      "step-max": np.max(steps),
-      "step-min": np.min(steps),
-  }
-  if do_print:
-    print(f"R: [ {info_dict['r-min']:.02f} ~ {info_dict['r-max']:.02f},",
-          f"avg: {info_dict['r-avg']:.02f} ],",
-          f"L: [ {info_dict['step-min']} ~ {info_dict['step-max']} ]")
-  return info_dict
 
 
 def train_iql(agent: OptionIQL_V2,
@@ -128,7 +108,7 @@ def sample_batch(agent: OptionIQL_V2, sampler: _SamplerCommon, n_sample: int,
 def learn(config: Config,
           log_dir,
           save_dir,
-          sample_name,
+          demo_path,
           pretrain_name,
           msg="default"):
 
@@ -148,20 +128,22 @@ def learn(config: Config,
   method_loss = config.method_loss
   method_regularize = config.method_regularize
 
-  random.seed(seed)
-  np.random.seed(seed)
-  torch.random.manual_seed(seed)
+  set_seed(seed)
 
-  with open(os.path.join(save_dir, "config.log"), 'w') as f:
-    f.write(str(config))
   logger = Logger(log_dir)
-  save_name_f = lambda i: os.path.join(save_dir, f"oiql_v2_{i}.torch")
 
-  class_Env, fn_get_demo = env_class_and_demo_fn(env_type)
+  class_Env = env_class(env_type)
 
   env = class_Env(env_name)
   dim_s, dim_a = env.state_action_size()
-  demo, _ = fn_get_demo(config, path=sample_name, n_traj=n_traj, display=False)
+
+  # ----- prepare demo
+  n_labeled = int(n_traj * config.supervision)
+  device = torch.device(config.device)
+  dim_c = config.dim_c
+
+  demo_sa_array, demo_labels, cnt_label = load_n_convert_data(
+      demo_path, n_traj, n_labeled, device, dim_c, seed)
 
   critic = OptionCritic(config, dim_s, dim_a, config.dim_c)
   policy = OptionPolicy(config, dim_s, dim_a, config.dim_c)
@@ -173,9 +155,6 @@ def learn(config: Config,
                     agent.policy,
                     use_state_filter=use_state_filter,
                     n_thread=n_thread)
-
-  demo_sa_array = tuple(
-      (s.to(agent.device), a.to(agent.device)) for s, a, r in demo)
 
   explore_step = 0
   for i in count():
@@ -195,7 +174,7 @@ def learn(config: Config,
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
 
     if (i + 1) % 10 == 0:
-      info_dict = reward_validate(sampler, agent.policy, do_print=True)
+      info_dict, _ = reward_validate(sampler, agent.policy, do_print=True)
 
       # torch.save((agent.state_dict(), sampler.state_dict()),
       #            save_name_f(explore_step))

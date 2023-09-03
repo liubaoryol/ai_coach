@@ -5,6 +5,8 @@ import numpy as np
 from typing import Union
 import os
 import random
+from aic_ml.IQLearn.dataset.expert_dataset import ExpertDataset
+from .agent import _SamplerCommon
 
 
 def sample_batch(policy: Union[OptionPolicy, Policy], agent, n_step):
@@ -30,7 +32,7 @@ def validate(policy: Union[OptionPolicy, Policy], sa_array):
   return log_pi, cs
 
 
-def reward_validate(agent,
+def reward_validate(agent: _SamplerCommon,
                     policy: Union[OptionPolicy, Policy],
                     n_sample=-8,
                     do_print=True):
@@ -68,12 +70,48 @@ def lr_factor_func(i_iter, end_iter, start=1., end=0.):
     return end
 
 
-def env_class_and_demo_fn(env_type):
-  from .mujoco_env import MujocoEnv as RLEnv, get_demo
-  return RLEnv, get_demo
+def env_class(env_type):
+  from .mujoco_env import MujocoEnv as RLEnv
+  return RLEnv
 
 
 def set_seed(seed):
   random.seed(seed)
   np.random.seed(seed)
   torch.random.manual_seed(seed)
+
+
+def load_n_convert_data(demo_path, n_traj, n_labeled, device, dim_c, seed):
+  expert_dataset = ExpertDataset(demo_path, n_traj, 1, seed + 42)
+  trajectories = expert_dataset.trajectories
+
+  cnt_label = 0
+  demo_labels = []
+  demo_sa_array = []
+  for epi in range(n_traj):
+    n_steps = len(trajectories["rewards"][epi])
+    s_array = torch.as_tensor(trajectories["states"][epi],
+                              dtype=torch.float32).reshape(n_steps, -1)
+    a_array = torch.as_tensor(trajectories["actions"][epi],
+                              dtype=torch.float32).reshape(n_steps, -1)
+    r_array = torch.as_tensor(trajectories["rewards"][epi],
+                              dtype=torch.float32).reshape(n_steps, -1)
+    if "latents" in trajectories:
+      x_array = torch.zeros(n_steps + 1, 1, dtype=torch.long, device=device)
+      x_array[1:] = torch.as_tensor(trajectories["latents"][epi],
+                                    dtype=torch.float32).reshape(n_steps, -1)
+      x_array[0] = dim_c
+    else:
+      x_array = None
+
+    demo_sa_array.append((s_array.to(device), a_array.to(device)))
+    if epi < n_labeled:
+      demo_labels.append(x_array.to(device))
+      cnt_label += 1
+    else:
+      demo_labels.append(None)
+
+  demo_sa_array = tuple(demo_sa_array)
+  print("num_labeled:", cnt_label)
+
+  return demo_sa_array, demo_labels, cnt_label

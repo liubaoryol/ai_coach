@@ -55,7 +55,6 @@ def save(agent: OptionSAC,
          epoch,
          save_interval,
          env_name,
-         agent_name,
          alg_type: str,
          output_dir='results',
          suffix=""):
@@ -64,7 +63,7 @@ def save(agent: OptionSAC,
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)
-    file_path = os.path.join(output_dir, f'{agent_name}_{name}' + suffix)
+    file_path = os.path.join(output_dir, f'{name}' + suffix)
     agent.save(file_path)
 
 

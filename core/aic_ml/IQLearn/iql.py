@@ -149,7 +149,6 @@ def trainer_impl(config: Config,
   num_learn_steps = int(num_learn_steps)
 
   # Setup logging
-  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
@@ -201,7 +200,6 @@ def trainer_impl(config: Config,
                epoch,
                1,
                env_name,
-               agent_name,
                is_sqil,
                imitate,
                output_dir=output_dir,
@@ -269,7 +267,6 @@ def save(agent,
          epoch,
          save_interval,
          env_name,
-         agent_name,
          is_sqil: bool,
          imitate: bool,
          output_dir='results',
@@ -285,7 +282,7 @@ def save(agent,
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)
-    file_path = os.path.join(output_dir, f'{agent_name}_{name}' + suffix)
+    file_path = os.path.join(output_dir, f'{name}' + suffix)
     agent.save(file_path)
 
 

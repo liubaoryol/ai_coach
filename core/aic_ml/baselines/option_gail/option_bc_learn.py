@@ -6,8 +6,8 @@ import torch
 from typing import Union
 import torch.nn.functional as F
 from .model.option_policy import (OptionPolicy, Policy)
-from .utils.utils import (validate, reward_validate, set_seed,
-                          env_class_and_demo_fn)
+from .utils.utils import (validate, reward_validate, set_seed, env_class,
+                          load_n_convert_data)
 
 from .utils.logger import Logger
 from .utils.state_filter import StateFilter
@@ -276,7 +276,7 @@ def make_policy(config: Config, dim_s, dim_a):
 def learn(config: Config,
           log_dir,
           save_dir,
-          sample_name,
+          demo_path,
           pretrain_name,
           msg="default"):
 
@@ -298,18 +298,21 @@ def learn(config: Config,
   logger = Logger(log_dir)
   save_name_f = lambda i: os.path.join(save_dir, f"{i}.torch")
 
-  class_RLEnv, fn_get_demo = env_class_and_demo_fn(env_type)
+  class_RLEnv = env_class(env_type)
 
   env = class_RLEnv(env_name)
   dim_s, dim_a = env.state_action_size()
   policy = make_policy(config, dim_s=dim_s, dim_a=dim_a)
 
-  demo_sar_array, filter_state = fn_get_demo(config,
-                                             path=sample_name,
-                                             n_traj=n_traj,
-                                             display=False)
-  demo_sa_array = tuple(
-      (s.to(policy.device), a.to(policy.device)) for s, a, r in demo_sar_array)
+  # ----- prepare demo
+  n_labeled = int(n_traj * config.supervision)
+  device = torch.device(config.device)
+  dim_c = config.dim_c
+
+  demo_sa_array, demo_labels, cnt_label = load_n_convert_data(
+      demo_path, n_traj, n_labeled, device, dim_c, seed)
+
+  filter_state = StateFilter(False)
 
   sampler = Sampler(seed,
                     env,
