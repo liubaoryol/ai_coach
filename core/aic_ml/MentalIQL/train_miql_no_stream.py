@@ -5,9 +5,9 @@ import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
 from collections import deque
-from aic_ml.IQLearn.utils.utils import make_env, eval_mode
-from aic_ml.IQLearn.dataset.expert_dataset import (ExpertDataset)
-from aic_ml.IQLearn.utils.logger import Logger
+from aic_ml.baselines.IQLearn.utils.utils import make_env, eval_mode
+from aic_ml.baselines.IQLearn.dataset.expert_dataset import (ExpertDataset)
+from aic_ml.baselines.IQLearn.utils.logger import Logger
 from aic_ml.OptionIQL.helper.option_memory import (OptionMemory)
 from aic_ml.OptionIQL.helper.utils import (get_expert_batch, evaluate, save,
                                            get_samples)

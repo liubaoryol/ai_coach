@@ -4,7 +4,8 @@ import torch.nn.functional as F
 import torch.nn as nn
 import copy
 from torch.optim import Adam
-from aic_ml.IQLearn.utils.utils import (soft_update, one_hot, one_hot_w_nan)
+from aic_ml.baselines.IQLearn.utils.utils import (soft_update, one_hot,
+                                                  one_hot_w_nan)
 from .option_models import AbstractOptionActor, AbstractOptionThinker
 from aic_ml.baselines.option_gail.utils.config import Config
 

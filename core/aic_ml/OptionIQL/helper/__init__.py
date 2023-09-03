@@ -3,7 +3,7 @@ Copyright (c) 2020. Sangwon Seo, Vaibhav Unhelkar.
 All rights reserved.
 '''
 
-from aic_ml.IQLearn.utils.logger import AGENT_TRAIN_FORMAT
+from aic_ml.baselines.IQLearn.utils.logger import AGENT_TRAIN_FORMAT
 
 AGENT_TRAIN_FORMAT['oiql'] = [
     # ('batch_reward', 'BR', 'float'),

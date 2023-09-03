@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 from gym import Env
 from aic_core.utils.decoding import most_probable_sequence_v2
-from aic_ml.IQLearn.utils.utils import eval_mode
+from aic_ml.baselines.IQLearn.utils.utils import eval_mode
 from ..agent.option_sac import OptionSAC
 
 

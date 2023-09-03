@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from aic_ml.baselines.sb3_algorithms import gail_w_ppo
 from aic_ml.baselines.ikostrikov_gail import bc_dnn
-from aic_ml.IQLearn.iql import run_iql
+from aic_ml.baselines.IQLearn.iql import run_iql
 from datetime import datetime
 
 

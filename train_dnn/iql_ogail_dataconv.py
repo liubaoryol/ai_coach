@@ -5,7 +5,7 @@ import torch
 from collections import defaultdict
 from aic_ml.baselines.option_gail.utils.state_filter import StateFilter
 from aic_ml.baselines.option_gail.utils.mujoco_env import load_demo
-from aic_ml.IQLearn.dataset.expert_dataset import read_file
+from aic_ml.baselines.IQLearn.dataset.expert_dataset import read_file
 
 
 def conv_torch_trajs_2_iql_format(sar_trajectories, path: str):

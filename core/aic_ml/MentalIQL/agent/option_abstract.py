@@ -1,7 +1,7 @@
 import abc
 import torch
 import numpy as np
-from aic_ml.IQLearn.utils.utils import one_hot
+from aic_ml.baselines.IQLearn.utils.utils import one_hot
 from aic_ml.baselines.option_gail.utils.config import Config
 
 

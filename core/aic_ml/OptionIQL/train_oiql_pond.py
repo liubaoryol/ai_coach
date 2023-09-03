@@ -4,9 +4,9 @@ import numpy as np
 import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
-from aic_ml.IQLearn.utils.utils import make_env, eval_mode
-from aic_ml.IQLearn.dataset.expert_dataset import (ExpertDataset)
-from aic_ml.IQLearn.utils.logger import Logger
+from aic_ml.baselines.IQLearn.utils.utils import make_env, eval_mode
+from aic_ml.baselines.IQLearn.dataset.expert_dataset import (ExpertDataset)
+from aic_ml.baselines.IQLearn.utils.logger import Logger
 from .agent.make_agent import make_oiql_agent, make_osac_agent
 from .agent.option_iql import OptionIQL
 from .agent.option_sac import OptionSAC

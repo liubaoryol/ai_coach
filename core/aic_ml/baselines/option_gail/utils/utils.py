@@ -5,7 +5,7 @@ import numpy as np
 from typing import Union
 import os
 import random
-from aic_ml.IQLearn.dataset.expert_dataset import ExpertDataset
+from aic_ml.baselines.IQLearn.dataset.expert_dataset import ExpertDataset
 from .agent import _SamplerCommon
 
 
