@@ -2,7 +2,7 @@
 
 max_explore_step: 3e5
 
-n_sample: 5000
+n_sample: 3000
 mini_batch_size: 256
 demo_latent_infer_interval: 1000
 # tx
