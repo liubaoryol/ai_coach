@@ -7,50 +7,12 @@ import matplotlib.pyplot as plt
 from itertools import count
 from .model.option_ppo import OptionPPO, PPO
 from .model.option_gail import OptionGAIL, GAIL
-from .utils.utils import (env_class_and_demo_fn, validate, reward_validate,
-                          set_seed)
+from .utils.utils import (env_class, validate, reward_validate, set_seed,
+                          load_n_convert_data)
 from .utils.agent import Sampler
 from .utils.logger import Logger
 from .utils.config import Config
 from .utils.pre_train import pretrain
-from aic_ml.IQLearn.dataset.expert_dataset import (
-    ExpertDataset)
-
-
-def load_n_convert_data(demo_path, n_traj, n_labeled, device, dim_c, seed):
-  expert_dataset = ExpertDataset(demo_path, n_traj, 1, seed + 42)
-  trajectories = expert_dataset.trajectories
-
-  cnt_label = 0
-  demo_labels = []
-  demo_sa_array = []
-  for epi in range(n_traj):
-    n_steps = len(trajectories["rewards"][epi])
-    s_array = torch.as_tensor(trajectories["states"][epi],
-                              dtype=torch.float32).reshape(n_steps, -1)
-    a_array = torch.as_tensor(trajectories["actions"][epi],
-                              dtype=torch.float32).reshape(n_steps, -1)
-    r_array = torch.as_tensor(trajectories["rewards"][epi],
-                              dtype=torch.float32).reshape(n_steps, -1)
-    if "latents" in trajectories:
-      x_array = torch.zeros(n_steps + 1, 1, dtype=torch.long, device=device)
-      x_array[1:] = torch.as_tensor(trajectories["latents"][epi],
-                                    dtype=torch.float32).reshape(n_steps, -1)
-      x_array[0] = dim_c
-    else:
-      x_array = None
-
-    demo_sa_array.append((s_array.to(device), a_array.to(device)))
-    if epi < n_labeled:
-      demo_labels.append(x_array.to(device))
-      cnt_label += 1
-    else:
-      demo_labels.append(None)
-
-  demo_sa_array = tuple(demo_sa_array)
-  print("num_labeled:", cnt_label)
-
-  return demo_sa_array, demo_labels, cnt_label
 
 
 def make_gail(config: Config, dim_s, dim_a, discrete_s, discrete_a):
@@ -117,13 +79,10 @@ def learn(config: Config,
 
   set_seed(seed)
 
-  with open(os.path.join(save_dir, "config.log"), 'w') as f:
-    f.write(str(config))
   logger = Logger(log_dir)
   save_name_pre_f = lambda i: os.path.join(save_dir, f"pre_{i}.torch")
-  save_name_f = lambda i: os.path.join(save_dir, f"gail_{i}.torch")
 
-  class_Env, fn_get_demo = env_class_and_demo_fn(env_type)
+  class_Env = env_class(env_type)
 
   env = class_Env(env_name)
   dim_s, dim_a = env.state_action_size()
@@ -136,12 +95,6 @@ def learn(config: Config,
 
   demo_sa_array, demo_labels, cnt_label = load_n_convert_data(
       demo_path, n_traj, n_labeled, device, dim_c, seed)
-
-  # sample.append((s_array, a_array, r_array, x_array))
-
-  # demo, _ = fn_get_demo(config, path=sample_name, n_traj=n_traj, display=False)
-  # demo_sa_array = tuple(
-  #     (s.to(gail.device), a.to(gail.device)) for s, a, r in demo)
 
   best_model_save_name = os.path.join(
       save_dir, f"{env_name}_n{n_traj}_l{cnt_label}_best.torch")
@@ -226,8 +179,6 @@ def learn(config: Config,
         best_reward = info_dict["r-avg"]
         torch.save((gail.state_dict(), sampling_agent.state_dict()),
                    best_model_save_name)
-      # torch.save((gail.state_dict(), sampling_agent.state_dict()),
-      #            save_name_f(explore_step))
       logger.log_test_info(info_dict, explore_step)
 
     logger.flush()

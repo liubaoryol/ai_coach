@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 from gym import Env
 from aic_core.utils.decoding import most_probable_sequence_v2
-from aic_ml.IQLearn.utils.utils import eval_mode
+from aic_ml.baselines.IQLearn.utils.utils import eval_mode
 from ..agent.option_sac import OptionSAC
 
 
@@ -55,7 +55,6 @@ def save(agent: OptionSAC,
          epoch,
          save_interval,
          env_name,
-         agent_name,
          alg_type: str,
          output_dir='results',
          suffix=""):
@@ -64,7 +63,7 @@ def save(agent: OptionSAC,
 
     if not os.path.exists(output_dir):
       os.mkdir(output_dir)
-    file_path = os.path.join(output_dir, f'{agent_name}_{name}' + suffix)
+    file_path = os.path.join(output_dir, f'{name}' + suffix)
     agent.save(file_path)
 
 

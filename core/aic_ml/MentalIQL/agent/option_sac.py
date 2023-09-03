@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
-from aic_ml.IQLearn.utils.utils import (one_hot, soft_update)
+from aic_ml.baselines.IQLearn.utils.utils import (one_hot, soft_update)
 from aic_ml.baselines.option_gail.utils.config import Config
 from .nn_models import AbstractOptionActor
 from .option_abstract import AbstractPolicyLeaner

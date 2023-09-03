@@ -1,5 +1,6 @@
 import torch
-from aic_ml.IQLearn.agent.sac_models import (GumbelSoftmax, SquashedNormal)
+from aic_ml.baselines.IQLearn.agent.sac_models import (GumbelSoftmax,
+                                                       SquashedNormal)
 from torch.distributions import Normal
 from aic_ml.baselines.option_gail.utils.model_util import (make_module,
                                                            make_module_list,

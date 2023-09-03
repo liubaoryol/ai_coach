@@ -1,0 +1,6 @@
+# @package _global_
+
+hidden_policy: [256, 256]
+hidden_option: [256, 256]
+hidden_critic: [256, 256]
+hidden_discriminator: [256, 256]

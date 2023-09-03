@@ -5,9 +5,9 @@ import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
 from collections import deque
-from aic_ml.IQLearn.utils.utils import make_env, eval_mode
-from aic_ml.IQLearn.dataset.expert_dataset import (ExpertDataset)
-from aic_ml.IQLearn.utils.logger import Logger
+from aic_ml.baselines.IQLearn.utils.utils import make_env, eval_mode
+from aic_ml.baselines.IQLearn.dataset.expert_dataset import (ExpertDataset)
+from aic_ml.baselines.IQLearn.utils.logger import Logger
 from aic_ml.OptionIQL.helper.option_memory import (OptionMemory)
 from aic_ml.OptionIQL.helper.utils import (get_expert_batch, evaluate, save,
                                            get_samples)
@@ -77,7 +77,6 @@ def train(config: Config,
           eval_interval=5000,
           env_kwargs={}):
 
-  agent_name = "miql"
   env_name = config.env_name
   seed = config.seed
   batch_size = config.mini_batch_size
@@ -130,14 +129,12 @@ def train(config: Config,
   initial_mem = int(initial_mem)
 
   # Setup logging
-  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
                   log_frequency=log_interval,
                   writer=writer,
-                  save_tb=True,
-                  agent=agent_name)
+                  save_tb=True)
 
   # track mean reward and scores
   best_eval_returns = -np.inf
@@ -183,7 +180,6 @@ def train(config: Config,
                epoch,
                1,
                env_name,
-               agent_name,
                alg_type,
                output_dir=output_dir,
                suffix=output_suffix + "_best")

@@ -2,7 +2,7 @@ import math
 import torch
 from torch import nn
 from typing import Type
-from aic_ml.IQLearn.utils.utils import one_hot
+from aic_ml.baselines.IQLearn.utils.utils import one_hot
 import numpy as np
 
 

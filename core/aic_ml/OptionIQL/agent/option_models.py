@@ -1,9 +1,9 @@
-import aic_ml.IQLearn.agent.sac_models as iqlm
+import aic_ml.baselines.IQLearn.agent.sac_models as iqlm
 import torch
 import torch.nn as nn
 from torch.distributions import Normal
 from torch.autograd import Variable, grad
-from aic_ml.IQLearn.utils.utils import mlp, weight_init
+from aic_ml.baselines.IQLearn.utils.utils import mlp, weight_init
 from aic_ml.baselines.option_gail.utils.config import Config
 
 

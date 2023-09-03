@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
-from aic_ml.IQLearn.utils.utils import (average_dicts, soft_update, hard_update)
+from aic_ml.baselines.IQLearn.utils.utils import (average_dicts, soft_update,
+                                                  hard_update)
 from .option_sac_v2 import OptionSAC_V2
 from aic_ml.OptionIQL.helper.utils import (get_concat_samples)
-from aic_ml.IQLearn.iq import iq_loss
+from aic_ml.baselines.IQLearn.iq import iq_loss
 
 
 class OptionIQL_V2(OptionSAC_V2):

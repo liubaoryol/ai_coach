@@ -4,9 +4,9 @@ import numpy as np
 import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
-from aic_ml.IQLearn.utils.utils import make_env, eval_mode
-from aic_ml.IQLearn.dataset.expert_dataset import (ExpertDataset)
-from aic_ml.IQLearn.utils.logger import Logger
+from aic_ml.baselines.IQLearn.utils.utils import make_env, eval_mode
+from aic_ml.baselines.IQLearn.dataset.expert_dataset import (ExpertDataset)
+from aic_ml.baselines.IQLearn.utils.logger import Logger
 from .agent.make_agent import make_oiql_agent, make_osac_agent
 from .agent.option_iql import OptionIQL
 from .agent.option_sac import OptionSAC
@@ -149,14 +149,12 @@ def trainer_impl(config: Config,
   online_memory_replay = OptionMemory(replay_mem, seed + 1, use_deque=False)
 
   # Setup logging
-  log_dir = os.path.join(log_dir, agent_name)
   writer = SummaryWriter(log_dir=log_dir)
   print(f'--> Saving logs at: {log_dir}')
   logger = Logger(log_dir,
                   log_frequency=log_interval,
                   writer=writer,
-                  save_tb=True,
-                  agent=agent_name)
+                  save_tb=True)
 
   # track mean reward and scores
   best_eval_returns = -np.inf
@@ -258,7 +256,6 @@ def trainer_impl(config: Config,
              epoch,
              1,
              env_name,
-             agent_name,
              alg_type,
              output_dir=output_dir,
              suffix=output_suffix + "_best")

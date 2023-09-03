@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
 from torch.distributions import Categorical
-from aic_ml.IQLearn.utils.utils import one_hot
+from aic_ml.baselines.IQLearn.utils.utils import one_hot
 from aic_ml.baselines.option_gail.utils.config import Config
 from .option_abstract import AbstractPolicyLeaner
 

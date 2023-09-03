@@ -2,8 +2,9 @@ from typing import Type, Callable
 import torch
 import torch.nn as nn
 from aic_ml.baselines.option_gail.utils.config import Config
-from aic_ml.IQLearn.utils.utils import (average_dicts, soft_update, hard_update)
-from aic_ml.IQLearn.iq import iq_loss
+from aic_ml.baselines.IQLearn.utils.utils import (average_dicts, soft_update,
+                                                  hard_update)
+from aic_ml.baselines.IQLearn.iq import iq_loss
 from aic_ml.OptionIQL.helper.utils import (get_concat_samples)
 from .option_softq import OptionSoftQ
 from .option_sac import OptionSAC

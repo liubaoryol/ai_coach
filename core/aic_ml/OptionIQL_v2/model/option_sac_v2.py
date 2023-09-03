@@ -4,7 +4,7 @@ import torch
 from torch.functional import F
 import numpy as np
 from torch.optim import Adam
-from aic_ml.IQLearn.utils.utils import (soft_update, one_hot_w_nan)
+from aic_ml.baselines.IQLearn.utils.utils import (soft_update, one_hot_w_nan)
 from .option_policy import OptionPolicy
 from .option_critic import OptionCritic
 from aic_ml.baselines.option_gail.utils.config import Config
