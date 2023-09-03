@@ -2,3 +2,4 @@
 
 max_explore_step: 5e4
 mini_batch_size: 64
+n_traj: 50

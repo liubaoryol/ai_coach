@@ -1,0 +1,9 @@
+# @package _global_
+
+max_explore_step: 3e5
+
+n_sample: 10000
+
+optimizer_lr_critic: 3e-4
+optimizer_lr_policy: 3e-5
+optimizer_lr_option: 3e-5
