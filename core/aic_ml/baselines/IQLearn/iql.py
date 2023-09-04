@@ -141,10 +141,12 @@ def trainer_impl(config: Config,
 
   online_memory_replay = Memory(replay_mem, seed + 1)
 
-  initial_mem = min(batch_size * 5, replay_mem)
+  initial_mem = config.init_sample
 
   replay_mem = int(replay_mem)
   initial_mem = int(initial_mem)
+  assert initial_mem <= replay_mem
+
   eps_window = int(eps_window)
   num_learn_steps = int(num_learn_steps)
 
