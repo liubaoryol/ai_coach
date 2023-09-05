@@ -25,6 +25,7 @@ human_data/
 result*/
 experts/
 outputs/
+profile*
 
 *.png
 *.log
