@@ -13,6 +13,8 @@ from .utils.agent import Sampler
 from .utils.logger import Logger
 from .utils.config import Config
 from .utils.pre_train import pretrain
+import wandb
+import omegaconf
 
 
 def make_gail(config: Config, dim_s, dim_a, discrete_s, discrete_a):
@@ -77,6 +79,17 @@ def learn(config: Config,
   use_state_filter = config.use_state_filter
   use_d_info_gail = config.use_d_info_gail
 
+  dict_config = omegaconf.OmegaConf.to_container(config,
+                                                 resolve=True,
+                                                 throw_on_missing=True)
+
+  wandb.init(project=env_name,
+             name=f"{config.alg_name}_{config.tag}",
+             entity='sangwon-seo',
+             sync_tensorboard=True,
+             reinit=True,
+             config=dict_config)
+
   set_seed(seed)
 
   logger = Logger(log_dir)
@@ -139,16 +152,17 @@ def learn(config: Config,
   cnt_evals = 0
   for i in count():
     if explore_step >= max_exp_step:
-      break
+      wandb.finish()
+      return
 
     sample_sxar, demo_sxar, sample_r, demo_r, sample_avgstep = sample_batch(
         gail, sampling_agent, n_sample, demo_sa_array, demo_labels)
 
-    logger.log_train("r-sample-avg", sample_r, explore_step)
+    logger.log_train("episode_reward", sample_r, explore_step)
     logger.log_train("r-demo-avg", demo_r, explore_step)
-    logger.log_train("step-sample-avg", sample_avgstep, explore_step)
-    print(f"{explore_step}: r-sample-avg={sample_r}, d-demo-avg={demo_r}, "
-          f"step-sample-avg={sample_avgstep} ; {msg}")
+    logger.log_train("episode_step", sample_avgstep, explore_step)
+    print(f"{explore_step}: episode_reward={sample_r}, d-demo-avg={demo_r}, "
+          f"episode_step={sample_avgstep} ; {msg}")
 
     train_d(gail, sample_sxar, demo_sxar)
     # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
@@ -175,8 +189,9 @@ def learn(config: Config,
         a.gca().plot(cs_sample[0][1:])
         logger.log_test_fig("sample_c", a, explore_step)
 
-      if best_reward <= info_dict["r-avg"]:
-        best_reward = info_dict["r-avg"]
+      if best_reward <= info_dict["episode_reward"]:
+        best_reward = info_dict["episode_reward"]
+        wandb.run.summary["best_returns"] = best_reward
         torch.save((gail.state_dict(), sampling_agent.state_dict()),
                    best_model_save_name)
       logger.log_test_info(info_dict, explore_step)

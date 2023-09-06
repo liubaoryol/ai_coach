@@ -3,7 +3,7 @@ device: cuda:0
 n_thread: 1
 base_dir: ""
 pretrain_path: ""
-tag: ""
+tag: default
 env_type: mujoco
 dim_c: 4
 n_traj: 1

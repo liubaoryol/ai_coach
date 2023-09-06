@@ -14,6 +14,8 @@ from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
                            infer_mental_states)
 from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.MentalIQL.train_miql import (load_expert_data_w_labels)
+import wandb
+import omegaconf
 
 
 def train_osac_stream(config: Config,
@@ -59,6 +61,17 @@ def trainer_impl(config: Config,
   method_loss = config.method_loss
   method_regularize = config.method_regularize
   eps_window = 10
+
+  dict_config = omegaconf.OmegaConf.to_container(config,
+                                                 resolve=True,
+                                                 throw_on_missing=True)
+
+  wandb.init(project=env_name,
+             name=f"{config.alg_name}_{config.tag}",
+             entity='sangwon-seo',
+             sync_tensorboard=True,
+             reinit=True,
+             config=dict_config)
 
   is_sqil = False
   alg_type = "rl"
@@ -176,6 +189,7 @@ def trainer_impl(config: Config,
         if returns >= best_eval_returns:
           # Store best eval returns
           best_eval_returns = returns
+          wandb.run.summary["best_returns"] = best_eval_returns
           save(agent,
                epoch,
                1,
@@ -200,6 +214,7 @@ def trainer_impl(config: Config,
 
         if learn_steps == num_learn_steps:
           print('Finished!')
+          wandb.finish()
           return
 
         if imitation:

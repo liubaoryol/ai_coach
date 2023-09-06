@@ -14,6 +14,8 @@ from aic_ml.OptionIQL.helper.utils import (get_expert_batch, evaluate, save,
 from aic_ml.baselines.option_gail.utils.config import Config
 from .agent.make_agent import MentalIQL
 from .agent.make_agent import make_miql_agent
+import wandb
+import omegaconf
 
 
 def load_expert_data_w_labels(demo_path, num_trajs, n_labeled, seed):
@@ -85,6 +87,17 @@ def train(config: Config,
   eps_window = 10
   is_sqil = False
   num_episodes = 8
+
+  dict_config = omegaconf.OmegaConf.to_container(config,
+                                                 resolve=True,
+                                                 throw_on_missing=True)
+
+  wandb.init(project=env_name,
+             name=f"{config.alg_name}_{config.tag}",
+             entity='sangwon-seo',
+             sync_tensorboard=True,
+             reinit=True,
+             config=dict_config)
 
   fn_make_agent = make_miql_agent
   alg_type = 'sqil' if is_sqil else 'iq'
@@ -176,6 +189,7 @@ def train(config: Config,
         if returns >= best_eval_returns:
           # Store best eval returns
           best_eval_returns = returns
+          wandb.run.summary["best_returns"] = best_eval_returns
           save(agent,
                epoch,
                1,
@@ -200,6 +214,7 @@ def train(config: Config,
 
         if explore_steps == max_explore_step:
           print('Finished!')
+          wandb.finish()
           return
 
         # ##### sample batch

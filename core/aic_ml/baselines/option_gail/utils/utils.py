@@ -50,16 +50,16 @@ def reward_validate(agent: _SamplerCommon,
   info_dict = {
       "r-max": np.max(rsums),
       "r-min": np.min(rsums),
-      "r-avg": np.mean(rsums),
+      "episode_reward": np.mean(rsums),
       "step-max": np.max(steps),
-      "step-avg": np.mean(steps),
+      "episode_step": np.mean(steps),
       "step-min": np.min(steps),
   }
   if do_print:
     print(f"R: [ {info_dict['r-min']:.02f} ~ {info_dict['r-max']:.02f},",
-          f"avg: {info_dict['r-avg']:.02f} ],",
+          f"avg: {info_dict['episode_reward']:.02f} ],",
           f"L: [ {info_dict['step-min']} ~ {info_dict['step-max']}, ",
-          f"avg: {info_dict['step-avg']:.02f} ]")
+          f"avg: {info_dict['episode_step']:.02f} ]")
   return info_dict, css
 
 

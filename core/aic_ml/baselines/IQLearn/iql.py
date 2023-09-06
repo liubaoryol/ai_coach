@@ -21,6 +21,8 @@ from itertools import count
 import types
 from .iq import iq_loss
 from aic_ml.baselines.option_gail.utils.config import Config
+import wandb
+import omegaconf
 
 
 def run_sac(config: Config,
@@ -78,6 +80,17 @@ def trainer_impl(config: Config,
   agent_name = config.iql_agent_name
   output_suffix = ""
   load_path = None
+
+  dict_config = omegaconf.OmegaConf.to_container(config,
+                                                 resolve=True,
+                                                 throw_on_missing=True)
+
+  wandb.init(project=env_name,
+             name=f"{config.alg_name}_{config.tag}",
+             entity='sangwon-seo',
+             sync_tensorboard=True,
+             reinit=True,
+             config=dict_config)
 
   # constants
   num_episodes = 10
@@ -198,6 +211,7 @@ def trainer_impl(config: Config,
         if returns > best_eval_returns:
           # Store best eval returns
           best_eval_returns = returns
+          wandb.run.summary["best_returns"] = best_eval_returns
           save(agent,
                epoch,
                1,
@@ -222,6 +236,7 @@ def trainer_impl(config: Config,
 
         if learn_steps >= num_learn_steps:
           print('Finished!')
+          wandb.finish()
           return
 
         ######

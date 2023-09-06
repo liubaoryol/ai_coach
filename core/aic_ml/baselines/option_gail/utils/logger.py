@@ -13,41 +13,41 @@ class Logger(object):
     self.writer = SummaryWriter(self.logdir)
 
   def log_loss(self, tag, v, i):
-    self.writer.add_scalar(f"Loss/{tag}", v, i)
+    self.writer.add_scalar(f"loss/{tag}", v, i)
 
   def log_loss_info(self, info_dict, i):
     for k in info_dict:
-      self.writer.add_scalar(f"Loss/{k}", info_dict[k], i)
+      self.writer.add_scalar(f"loss/{k}", info_dict[k], i)
 
   def log_train(self, tag, v, i):
-    self.writer.add_scalar(f"Train/{tag}", v, i)
+    self.writer.add_scalar(f"train/{tag}", v, i)
 
   def log_train_fig(self, tag, fig, i):
-    self.writer.add_figure(f"Train/{tag}", fig, i, close=True)
+    self.writer.add_figure(f"train/{tag}", fig, i, close=True)
 
   def log_train_info(self, info_dict, i):
     for k in info_dict:
-      self.writer.add_scalar(f"Train/{k}", info_dict[k], i)
+      self.writer.add_scalar(f"train/{k}", info_dict[k], i)
 
   def log_test(self, tag, v, i):
-    self.writer.add_scalar(f"Test/{tag}", v, i)
+    self.writer.add_scalar(f"test/{tag}", v, i)
 
   def log_test_fig(self, tag, fig, i):
-    self.writer.add_figure(f"Test/{tag}", fig, i, close=True)
+    self.writer.add_figure(f"test/{tag}", fig, i, close=True)
 
   def log_test_info(self, info_dict, i):
     for k in info_dict:
-      self.writer.add_scalar(f"Test/{k}", info_dict[k], i)
+      self.writer.add_scalar(f"test/{k}", info_dict[k], i)
 
   def log_pretrain(self, tag, v, i):
-    self.writer.add_scalar(f"Pre-Train/{tag}", v, i)
+    self.writer.add_scalar(f"pretrain/{tag}", v, i)
 
   def log_pretrain_fig(self, tag, fig, i):
-    self.writer.add_figure(f"Pre-Train/{tag}", fig, i, close=True)
+    self.writer.add_figure(f"pretrain/{tag}", fig, i, close=True)
 
   def log_pretrain_info(self, info_dict, i):
     for k in info_dict:
-      self.writer.add_scalar(f"Pre-Train/{k}", info_dict[k], i)
+      self.writer.add_scalar(f"pretrain/{k}", info_dict[k], i)
 
   def flush(self):
     self.writer.flush()
