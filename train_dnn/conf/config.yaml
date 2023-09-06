@@ -22,5 +22,5 @@ defaults:
   - _self_
   - alg: iql
   - env: CleanupSingle-v0
-  - optional base_setting: "" # just to save a special_setting name to enable OmegaConf interpolation
-  - optional special_setting: ${alg}/${base_setting} # actual yaml path for a special setting
+  - optional base: "" # just to save a special_setting name to enable OmegaConf interpolation
+  - optional special_setting: ${alg}/${base} # actual yaml path for a special setting
