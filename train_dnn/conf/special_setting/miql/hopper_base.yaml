@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - mujoco_base
+  - miql/mujoco_base
 
 miql_tx_init_temp: 0.01
 miql_pi_init_temp: 0.02
