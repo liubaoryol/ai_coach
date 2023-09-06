@@ -2,7 +2,7 @@
 ########################### Mental-IQL:
 # Hopper-v2
 python3 train_dnn/run_algs.py alg=miql env=Hopper-v2 base=hopper_base \
-        tag=txlr1e-4 miql_tx_optimizer_lr_critic=1e-4
+        tag=txtemp10 miql_tx_init_temp=10 init_sample=500
 
 # python3 train_dnn/run_algs.py alg=miql env=Hopper-v2 base=hopper_base \
 #         tag=txlr3e-4 miql_tx_optimizer_lr_critic=3e-4
