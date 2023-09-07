@@ -1,1 +1,12 @@
 # @package _global_
+
+max_explore_step: 3e5
+
+n_sample: 3000
+init_sample: 1000
+mini_batch_size: 256
+
+optimizer_lr_policy: 3.e-5
+init_temp: 1e-2
+learn_temp: False
+method_loss: v0
