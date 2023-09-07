@@ -76,7 +76,7 @@ def trainer_impl(config: Config,
   batch_size = config.mini_batch_size
   replay_mem = config.n_sample
   eps_window = 10
-  num_learn_steps = config.max_explore_step
+  num_explore_steps = config.max_explore_step
   agent_name = config.iql_agent_name
   output_suffix = ""
   load_path = None
@@ -161,7 +161,7 @@ def trainer_impl(config: Config,
   assert initial_mem <= replay_mem
 
   eps_window = int(eps_window)
-  num_learn_steps = int(num_learn_steps)
+  num_explore_steps = int(num_explore_steps)
 
   # Setup logging
   writer = SummaryWriter(log_dir=log_dir)
@@ -180,7 +180,7 @@ def trainer_impl(config: Config,
 
   begin_learn = False
   episode_reward = 0
-  learn_steps = 0
+  explore_steps = 0
 
   for epoch in count():
     state = env.reset()
@@ -197,16 +197,16 @@ def trainer_impl(config: Config,
       next_state, reward, done, info = env.step(action)
       episode_reward += reward
 
-      if learn_steps % eval_interval == 0 and begin_learn:
+      if explore_steps % eval_interval == 0 and begin_learn:
         eval_returns, eval_timesteps = evaluate(agent,
                                                 eval_env,
                                                 num_episodes=num_episodes)
         returns = np.mean(eval_returns)
-        # learn_steps += 1  # To prevent repeated eval at timestep 0
-        logger.log('eval/episode', epoch, learn_steps)
-        logger.log('eval/episode_reward', returns, learn_steps)
-        logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
-        logger.dump(learn_steps, ty='eval')
+        # explore_steps += 1  # To prevent repeated eval at timestep 0
+        logger.log('eval/episode', epoch, explore_steps)
+        logger.log('eval/episode_reward', returns, explore_steps)
+        logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
+        logger.dump(explore_steps, ty='eval')
 
         if returns > best_eval_returns:
           # Store best eval returns
@@ -227,33 +227,36 @@ def trainer_impl(config: Config,
         done_no_lim = 0
       online_memory_replay.add((state, next_state, action, reward, done_no_lim))
 
-      learn_steps += 1
+      explore_steps += 1
       if online_memory_replay.size() >= initial_mem:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        if learn_steps >= num_learn_steps:
+        if explore_steps >= num_explore_steps:
           print('Finished!')
           wandb.finish()
           return
 
         ######
-        if imitate:
-          # IQ-Learn Modification
-          agent.iq_update = types.MethodType(iq_update, agent)
-          agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
-          losses = agent.iq_update(online_memory_replay, expert_memory_replay,
-                                   logger, learn_steps, only_expert_states,
-                                   is_sqil, use_target, do_soft_update,
-                                   config.method_loss, config.method_regularize)
-        else:
-          losses = agent.update(online_memory_replay, logger, learn_steps)
+        losses = {}
+        if explore_steps % config.update_interval == 0:
+          if imitate:
+            # IQ-Learn Modification
+            agent.iq_update = types.MethodType(iq_update, agent)
+            agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
+            losses = agent.iq_update(online_memory_replay, expert_memory_replay,
+                                     logger, explore_steps, only_expert_states,
+                                     is_sqil, use_target, do_soft_update,
+                                     config.method_loss,
+                                     config.method_regularize)
+          else:
+            losses = agent.update(online_memory_replay, logger, explore_steps)
 
-        if learn_steps % log_interval == 0:
+        if explore_steps % log_interval == 0:
           for key, loss in losses.items():
-            writer.add_scalar("loss/" + key, loss, global_step=learn_steps)
+            writer.add_scalar("loss/" + key, loss, global_step=explore_steps)
 
       if done:
         break
@@ -264,10 +267,10 @@ def trainer_impl(config: Config,
     cnt_steps += episode_step + 1
     if cnt_steps >= log_interval:
       cnt_steps = 0
-      logger.log('train/episode', epoch, learn_steps)
-      logger.log('train/episode_reward', np.mean(rewards_window), learn_steps)
-      logger.log('train/episode_step', np.mean(epi_step_window), learn_steps)
-      logger.dump(learn_steps, save=begin_learn)
+      logger.log('train/episode', epoch, explore_steps)
+      logger.log('train/episode_reward', np.mean(rewards_window), explore_steps)
+      logger.log('train/episode_step', np.mean(epi_step_window), explore_steps)
+      logger.dump(explore_steps, save=begin_learn)
 
     # save(agent,
     #      epoch,
@@ -451,7 +454,7 @@ def iq_update(self,
 
       losses.update(actor_alpha_losses)
 
-  if step % self.critic_target_update_frequency == 0:
+  if use_target and step % self.critic_target_update_frequency == 0:
     if do_soft_update:
       soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
     else:

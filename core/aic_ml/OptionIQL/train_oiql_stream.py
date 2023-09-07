@@ -55,7 +55,7 @@ def trainer_impl(config: Config,
   batch_size = config.mini_batch_size
   num_latent = config.dim_c
   replay_mem = config.n_sample
-  num_learn_steps = config.max_explore_step
+  num_explore_steps = config.max_explore_step
   output_suffix = ""
   load_path = None
   method_loss = config.method_loss
@@ -112,7 +112,7 @@ def trainer_impl(config: Config,
   replay_mem = int(replay_mem)
   assert initial_mem <= replay_mem
   eps_window = int(eps_window)
-  num_learn_steps = int(num_learn_steps)
+  num_explore_steps = int(num_explore_steps)
 
   use_target = True
   do_soft_update = True
@@ -153,7 +153,7 @@ def trainer_impl(config: Config,
 
   begin_learn = False
   episode_reward = 0
-  learn_steps = 0
+  explore_steps = 0
   expert_data = None
 
   for epoch in count():
@@ -175,16 +175,16 @@ def trainer_impl(config: Config,
       next_state, reward, done, info = env.step(action)
       episode_reward += reward
 
-      if learn_steps % eval_interval == 0 and begin_learn:
+      if explore_steps % eval_interval == 0 and begin_learn:
         eval_returns, eval_timesteps = evaluate(agent,
                                                 eval_env,
                                                 num_episodes=num_episodes)
         returns = np.mean(eval_returns)
-        # learn_steps += 1  # To prevent repeated eval at timestep 0
-        # logger.log('eval/episode', epoch, learn_steps)
-        logger.log('eval/episode_reward', returns, learn_steps)
-        logger.log('eval/episode_step', np.mean(eval_timesteps), learn_steps)
-        logger.dump(learn_steps, ty='eval')
+        # explore_steps += 1  # To prevent repeated eval at timestep 0
+        # logger.log('eval/episode', epoch, explore_steps)
+        logger.log('eval/episode_reward', returns, explore_steps)
+        logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
+        logger.dump(explore_steps, ty='eval')
 
         if returns >= best_eval_returns:
           # Store best eval returns
@@ -205,50 +205,51 @@ def trainer_impl(config: Config,
       online_memory_replay.add((state, prev_lat, prev_act, next_state, latent,
                                 action, reward, done_no_lim))
 
-      learn_steps += 1
+      explore_steps += 1
       if online_memory_replay.size() >= initial_mem:
         # Start learning
         if begin_learn is False:
           print('Learn begins!')
           begin_learn = True
 
-        if learn_steps == num_learn_steps:
+        if explore_steps == num_explore_steps:
           print('Finished!')
           wandb.finish()
           return
 
-        if imitation:
           # ##### sample batch
           # infer mental states of expert data
-          if (expert_data is None
-              or learn_steps % config.demo_latent_infer_interval == 0):
-            inferred_latents = infer_mental_states(agent,
-                                                   expert_dataset.trajectories,
-                                                   num_latent, traj_labels)
-            exb = get_expert_batch(expert_dataset.trajectories,
-                                   inferred_latents, agent.device,
-                                   agent.PREV_LATENT, agent.PREV_ACTION)
-            expert_data = (exb["states"], exb["prev_latents"],
-                           exb["prev_actions"], exb["next_states"],
-                           exb["latents"], exb["actions"], exb["rewards"],
-                           exb["dones"])
-
-          expert_batch = get_samples(batch_size, expert_data)
-          policy_batch = online_memory_replay.get_samples(
-              batch_size, agent.device)
+        if imitation and (expert_data is None or explore_steps %
+                          config.demo_latent_infer_interval == 0):
+          inferred_latents = infer_mental_states(agent,
+                                                 expert_dataset.trajectories,
+                                                 num_latent, traj_labels)
+          exb = get_expert_batch(expert_dataset.trajectories, inferred_latents,
+                                 agent.device, agent.PREV_LATENT,
+                                 agent.PREV_ACTION)
+          expert_data = (exb["states"], exb["prev_latents"],
+                         exb["prev_actions"], exb["next_states"],
+                         exb["latents"], exb["actions"], exb["rewards"],
+                         exb["dones"])
 
           ######
           # IQ-Learn Modification
-          losses = agent.iq_update(policy_batch, expert_batch, logger,
-                                   learn_steps, is_sqil, use_target,
-                                   do_soft_update, method_loss,
-                                   method_regularize)
-        else:
-          losses = agent.update(online_memory_replay, logger, learn_steps)
+        losses = {}
+        if explore_steps % config.update_interval == 0:
+          if imitation:
+            expert_batch = get_samples(batch_size, expert_data)
+            policy_batch = online_memory_replay.get_samples(
+                batch_size, agent.device)
+            losses = agent.iq_update(policy_batch, expert_batch, logger,
+                                     explore_steps, is_sqil, use_target,
+                                     do_soft_update, method_loss,
+                                     method_regularize)
+          else:
+            losses = agent.update(online_memory_replay, logger, explore_steps)
 
-        if learn_steps % log_interval == 0:
+        if explore_steps % log_interval == 0:
           for key, loss in losses.items():
-            writer.add_scalar("loss/" + key, loss, global_step=learn_steps)
+            writer.add_scalar("loss/" + key, loss, global_step=explore_steps)
 
       if done:
         break
@@ -261,7 +262,7 @@ def trainer_impl(config: Config,
     cnt_steps += episode_step + 1
     if cnt_steps >= log_interval:
       cnt_steps = 0
-      logger.log('train/episode', epoch, learn_steps)
-      logger.log('train/episode_reward', np.mean(rewards_window), learn_steps)
-      logger.log('train/episode_step', np.mean(epi_step_window), learn_steps)
-      logger.dump(learn_steps, save=begin_learn)
+      logger.log('train/episode', epoch, explore_steps)
+      logger.log('train/episode_reward', np.mean(rewards_window), explore_steps)
+      logger.log('train/episode_step', np.mean(epi_step_window), explore_steps)
+      logger.dump(explore_steps, save=begin_learn)

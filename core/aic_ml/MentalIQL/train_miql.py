@@ -238,14 +238,16 @@ def train(config: Config,
                          exb["rewards"], exb["dones"])
 
         ######
-        # IQ-Learn Modification
-        policy_batch = online_memory_replay.get_samples(batch_size,
-                                                        agent.device)
-        expert_batch = get_samples(batch_size, expert_data)
+        # IQ-Learn
+        tx_losses = pi_losses = {}
+        if explore_steps % config.update_interval == 0:
+          policy_batch = online_memory_replay.get_samples(
+              batch_size, agent.device)
+          expert_batch = get_samples(batch_size, expert_data)
 
-        tx_losses, pi_losses = agent.miql_update(
-            policy_batch, expert_batch, config.demo_latent_infer_interval,
-            logger, explore_steps)
+          tx_losses, pi_losses = agent.miql_update(
+              policy_batch, expert_batch, config.demo_latent_infer_interval,
+              logger, explore_steps)
 
         if explore_steps % log_interval == 0:
           for key, loss in tx_losses.items():
