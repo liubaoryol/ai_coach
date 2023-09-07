@@ -27,6 +27,7 @@ experts/
 outputs/
 profile*
 wandb/
+venv/
 
 *.png
 *.log
