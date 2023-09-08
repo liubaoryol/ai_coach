@@ -99,7 +99,9 @@ def load_demo(load_path: str, n_traj: int = 10):
       break
     sample.append(traj)
     n_current_demo += traj[2].size(0)
-  print(f"Loaded {n_traj} episodes with a total of {n_current_demo} samples.")
+  print(
+      f"Loaded {len(sample)} episodes with a total of {n_current_demo} samples."
+  )
 
   return sample, filter_state
 

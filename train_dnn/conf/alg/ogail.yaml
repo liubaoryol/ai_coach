@@ -3,7 +3,6 @@
 alg_name: ogail
 n_epoch: 5000
 use_state_filter: False
-use_option: True
 activation: relu
 use_d_info_gail: False
 clip_grad_val: null
@@ -16,11 +15,12 @@ hidden_policy: [64, 64]
 optimizer_lr_policy: 3.e-4
 shared_policy: False
 train_policy: True
-log_std_bounds: [-5., 2.]
+log_std_bounds: [-20., 0.]
 # option
 hidden_option: [64, 64]
 optimizer_lr_option: 3.e-4
 train_option: True
+use_option: True
 # discriminator
 hidden_discriminator: [256, 256]
 optimizer_lr_discriminator: 3.e-4

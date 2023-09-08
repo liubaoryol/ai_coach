@@ -1,7 +1,6 @@
 # @package _global_
 
 n_sample: 4096
-demo_latent_infer_interval: 1000
 log_std_bounds: [-20, 0]
 
 n_demo: 50000
