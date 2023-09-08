@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
 from aic_domain.box_push_v2.maps import MAP_MOVERS
 from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
@@ -16,7 +17,7 @@ from stand_alone.box_push_app import BoxPushApp
 
 TEST_LEARNED_AGENT = True
 IS_MOVERS = True
-DATA_DIR = "misc/BTIL_abstract_results/data"
+DATA_DIR = os.path.dirname(__file__) + "/data"
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS
   POLICY = Policy_MoversV3

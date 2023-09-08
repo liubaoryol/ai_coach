@@ -16,7 +16,7 @@ from aic_core.intervention.feedback_strategy import (
 GAME_MAP = MAP_RESCUE
 
 TEST_BTIL_AGENT = True
-DATA_DIR = "misc/BTIL_feedback_results/data/"
+DATA_DIR = "analysis/TIC_results/data/"
 V_VAL_FILE_NAME = "rescue_2_500_0,30_30_merged_v_values_learned.pickle"
 # V_VAL_FILE_NAME = None
 
@@ -52,7 +52,7 @@ class RescueApp(AppInterface):
       policy2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 1)
       agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
     else:
-      data_dir = "misc/BTIL_feedback_results/data/learned_models/"  # noqa: E501
+      data_dir = "analysis/TIC_results/data/learned_models/"  # noqa: E501
       np_policy_1 = np.load(
           data_dir + "rescue_2_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy")
       test_policy_1 = BTILCachedPolicy(np_policy_1, task_mdp, 0,

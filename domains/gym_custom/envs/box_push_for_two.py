@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
     return expert_trajs
 
-  DATA_DIR = "/home/sangwon/Projects/ai_coach/misc/BTIL_results/aws_data_test/"
+  DATA_DIR = "/home/sangwon/Projects/ai_coach/analysis/BTIL_results/aws_data_test/"
 
   env_movers = EnvMovers_v0()
   print(env_movers.mdp.num_latents)

@@ -6,8 +6,8 @@ from aic_domain.box_push import AGENT_ACTIONSPACE
 from web_experiment.define import EDomainType
 import random
 import numpy as np
-from ai_coach_core.latent_inference.decoding import forward_inference
-from ai_coach_core.intervention.feedback_strategy import InterventionAbstract
+from aic_core.utils.decoding import forward_inference
+from aic_core.intervention.feedback_strategy import InterventionAbstract
 
 
 def task_intervention(game_history, game: BoxPushSimulator,

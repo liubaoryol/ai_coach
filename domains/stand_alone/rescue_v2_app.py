@@ -14,7 +14,7 @@ from aic_core.intervention.feedback_strategy import (
 GAME_MAP = MAP_RESCUE
 
 TEST_BTIL_AGENT = False
-DATA_DIR = "misc/BTIL_feedback_results/data/"
+DATA_DIR = "analysis/TIC_results/data/"
 V_VAL_FILE_NAME = "rescue_3_500_0,30_15_merged_v_values_learned.pickle"
 
 

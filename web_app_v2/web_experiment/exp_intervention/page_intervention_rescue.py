@@ -3,8 +3,8 @@ from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
 from web_experiment.exp_intervention.helper import task_intervention
-from ai_coach_core.intervention.feedback_strategy import (
-    InterventionValueBased, E_CertaintyHandling)
+from aic_core.intervention.feedback_strategy import (InterventionValueBased,
+                                                     E_CertaintyHandling)
 import pickle
 import numpy as np
 
@@ -19,7 +19,7 @@ class RescueV2Intervention(RescueGameUserRandom):
   def __init__(self, partial_obs) -> None:
     super().__init__(partial_obs, latent_collection=False)
 
-    data_dir = "../misc/TIC_results/data/"
+    data_dir = "../analysis/TIC_results/data/"
     model_dir = data_dir + "learned_models/"
     v_value_file = "rescue_2_500_0,30_30_merged_v_values_learned.pickle"
 

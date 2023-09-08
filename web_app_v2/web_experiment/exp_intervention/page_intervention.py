@@ -4,7 +4,7 @@ import numpy as np
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
 from web_experiment.exp_intervention.helper import task_intervention
-from ai_coach_core.intervention.feedback_strategy import (
+from aic_core.intervention.feedback_strategy import (
     InterventionValueBased, E_CertaintyHandling)
 import web_experiment.exp_common.canvas_objects as co
 
@@ -19,7 +19,7 @@ class BoxPushV2Intervention(BoxPushV2UserRandom):
   def __init__(self, domain_type, partial_obs) -> None:
     super().__init__(domain_type, partial_obs, latent_collection=False)
 
-    data_dir = "../misc/TIC_results/data/"
+    data_dir = "../analysis/TIC_results/data/"
     model_dir = data_dir + "learned_models/"
     v_value_movers_file = "movers_500_0,30_500_merged_v_values_learned.pickle"
 

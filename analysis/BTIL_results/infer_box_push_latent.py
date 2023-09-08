@@ -5,6 +5,7 @@ from aic_domain.box_push.agent_model import (assumed_initial_mental_distribution
 
 if __name__ == "__main__":
   import glob
+  import os
   from aic_domain.box_push.utils import BoxPushTrajectories
 
   import aic_domain.box_push.maps as bp_maps
@@ -26,7 +27,7 @@ if __name__ == "__main__":
 
   # load test trajectories
   ############################################################################
-  traj_dir = "misc/BTIL_results/data/exp1_team_box_push_test/"
+  traj_dir = os.path.dirname(__file__) + "/data/exp1_team_box_push_test/"
   test_file_names = glob.glob(traj_dir + '*.txt')
 
   trajories = BoxPushTrajectories(sim, MDP_TASK, MDP_AGENT)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
 
   # load models
   ############################################################################
-  model_dir = "misc/BTIL_results/data/learned_models/"
+  model_dir = os.path.dirname(__file__) + "/data/learned_models/"
 
   policy_file = model_dir + "exp1_team_btil_policy_human_woTx_66_1.00_a1.npy"
   policy = np.load(policy_file)
