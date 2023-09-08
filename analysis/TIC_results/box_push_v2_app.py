@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
 from aic_domain.box_push_v2.maps import MAP_MOVERS
 from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP
@@ -18,7 +19,7 @@ from aic_core.utils.mdp_utils import StateSpace
 TEST_BTIL_AGENT = False
 TEST_BTIL_USE_TRUE_TX = False
 IS_MOVERS = True
-DATA_DIR = "misc/BTIL_feedback_results/data/"
+DATA_DIR = os.path.dirname(__file__) + "/data/"
 V_VAL_FILE_NAME = None
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS

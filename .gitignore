@@ -25,6 +25,8 @@ human_data/
 result*/
 experts/
 outputs/
+wandb/
+profile*
 
 *.png
 *.log
