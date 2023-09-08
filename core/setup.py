@@ -3,11 +3,11 @@ from setuptools import setup, find_packages
 with open("README.md", "r", encoding="utf-8") as fh:
   long_description = fh.read()
 
-setup(name="ai_coach_core",
+setup(name="aic_algorithms",
       version="0.0.1",
       author="Sangwon Seo",
       author_email="sangwon.seo@rice.edu",
-      description="Core Algorithms for AI Coach",
+      description="Algorithms for AI Coach",
       long_description=long_description,
       long_description_content_type="text/markdown",
       packages=find_packages(
@@ -18,8 +18,8 @@ setup(name="ai_coach_core",
           'tqdm',
           'scipy',
           'sparse',
-          'gym[classic_control]==0.19.0',
           'torch',
-          "scikit-learn>=0.21.2",
-          "stable-baselines3>=1.1.0",
+          'termcolor',
+          'tensorboard',
+          "stable-baselines3<=1.8.0,>=1.1.0",
       ])

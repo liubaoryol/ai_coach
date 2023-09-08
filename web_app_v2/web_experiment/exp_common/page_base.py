@@ -1,6 +1,6 @@
 import abc
 from typing import Mapping, Any
-from ai_coach_domain.simulator import Simulator
+from aic_domain.simulator import Simulator
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import EDomainType
 
@@ -14,6 +14,7 @@ class UserData:
   SESSION_NAME = "session_name"
   USER = "user"
   EXP_TYPE = "exp_type"
+  GROUP_ID = "group_id"
   SESSION_DONE = "session_done"
 
   def __init__(self, user) -> None:
@@ -23,7 +24,8 @@ class UserData:
         self.SESSION_NAME: "",
         self.USER: user,
         self.EXP_TYPE: "",
-        self.SESSION_DONE: False
+        self.SESSION_DONE: False,
+        self.GROUP_ID: None
     }
 
   def go_to_next_page(self):
@@ -138,6 +140,8 @@ class Exp1UserData(UserData):
   SAVE_PATH = "save_path"
   SHOW_LATENT = "show_latent"
   COLLECT_LATENT = "collect_latent"
+  USER_LABELS = "user_labels"
+  USER_LABEL_PATH = "user_label_path"
   PREV_INFERENCE = "prev_inference"
   CUR_INFERENCE = "cur_inference"
   DURING_INTERVENTION = "during_intervention"
@@ -153,6 +157,8 @@ class Exp1UserData(UserData):
     self.data[Exp1UserData.SAVE_PATH] = ""
     self.data[Exp1UserData.SHOW_LATENT] = False
     self.data[Exp1UserData.COLLECT_LATENT] = True
+    self.data[Exp1UserData.USER_LABELS] = []
+    self.data[Exp1UserData.USER_LABEL_PATH] = ""
     self.data[Exp1UserData.PREV_INFERENCE] = None
     self.data[Exp1UserData.CUR_INFERENCE] = None
     self.data[Exp1UserData.DURING_INTERVENTION] = False

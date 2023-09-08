@@ -1005,7 +1005,6 @@ class GameData {
         const obj = this.dict_drawing_objs[item];
         if (obj.interactive) {
           if (obj.isPointInObject(context, x_mouse, y_mouse)) {
-            console.log(obj.name);
             socket.emit("button_clicked", { name: obj.name });
             this.spinning_circle.on();
           }

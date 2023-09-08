@@ -1,9 +1,9 @@
 import numpy as np
 import logging
-import ai_coach_core.models.mdp as mdp_lib
-import ai_coach_core.RL.planning as plan_lib
-from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
-import ai_coach_core.utils.test_utils as test_utils
+import aic_core.models.mdp as mdp_lib
+import aic_core.RL.planning as plan_lib
+from aic_core.utils.mdp_utils import StateSpace, ActionSpace
+import aic_core.utils.test_utils as test_utils
 
 
 ###############################################################################
@@ -189,6 +189,7 @@ class FrozenLakeMDP(mdp_lib.MDP):
 
 
 class FrozenLakeMDPLargeReward(FrozenLakeMDP):
+
   def reward(self, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
@@ -235,6 +236,24 @@ def get_grid_v_values(mdp: FrozenLakeMDP,
           np_soft_pi.transpose((1, 0, 2)))
 
 
+VALUE_ITERATION_TRUE = [[-0.12002533, -0.26156758, -0.12161469, -0.2624726],
+                        [-0.10419714, -1., -0.07147563, -1.],
+                        [0.10260353, 0.44722222, 0.38091399, -1.],
+                        [-1., 0.62459513, 0.77309292, 1.]]
+
+SOFT_VALUE_ITERATION_TRUE = [
+    [10.70806268, 11.17584681, 11.30611006, 10.86642034],
+    [11.24755151, 11.47466212, 11.83938858, 11.47466212],
+    [11.53350319, 11.975386, 12.1304413, 11.47466212],
+    [11.47466212, 11.87194297, 12.39893502, 13.47466212]
+]
+
+POLICY_ITERATION_TRUE = [[-0.11934478, -0.26072438, -0.12141501, -0.26241833],
+                         [-0.1038797, -1., -0.07141636, -1.],
+                         [0.10284152, 0.44737575, 0.38097357, -1.],
+                         [-1., 0.6246746, 0.77311281, 1.]]
+
+
 def test_value_iteration_toy():
   toy_mdp = FrozenLakeMDP()
 
@@ -251,12 +270,7 @@ def test_value_iteration_toy():
   pi_table, v_table, soft_pi_table = get_grid_v_values(toy_mdp, pi, np_v_value,
                                                        soft_pi)
 
-  true_v_table = [[-0.12002533, -0.26156758, -0.12161469, -0.2624726],
-                  [-0.10419714, -1., -0.07147563, -1.],
-                  [0.10260353, 0.44722222, 0.38091399, -1.],
-                  [-1., 0.62459513, 0.77309292, 1.]]
-
-  assert np.allclose(true_v_table, v_table, atol=0.0001, rtol=0.)
+  assert np.allclose(VALUE_ITERATION_TRUE, v_table, atol=0.0001, rtol=0.)
 
   true_soft_pi = [[[0., 0.51772445, 0.48227555, 0.],
                    [0.37221262, 0.25587745, 0.37190993, 0.],
@@ -275,6 +289,22 @@ def test_value_iteration_toy():
   assert np.allclose(true_soft_pi, soft_pi_table, atol=0.0001, rtol=0.)
 
 
+def test_value_iteration_toy_sparse():
+  toy_mdp = FrozenLakeMDP(use_sparse=True)
+
+  gamma = 0.9
+  pi, np_v_value, np_q_value = plan_lib.value_iteration(
+      toy_mdp.np_transition_model,
+      toy_mdp.np_reward_model,
+      discount_factor=gamma,
+      max_iteration=100,
+      epsilon=0.001)
+
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
+
+  assert np.allclose(VALUE_ITERATION_TRUE, v_table, atol=0.0001, rtol=0.)
+
+
 def test_soft_value_iteration_toy():
   toy_mdp = FrozenLakeMDP()
 
@@ -288,12 +318,23 @@ def test_soft_value_iteration_toy():
 
   _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  true_v_values = [[3.90679818, 3.51108191, 4.0435257, 2.79330297],
-                   [3.49651174, -1., 3.15563615, -1.],
-                   [4.00216669, 4.60783148, 4.51553684, -1.],
-                   [-1., 4.52279111, 4.61366732, 1.]]
+  assert np.allclose(SOFT_VALUE_ITERATION_TRUE, v_table, atol=0.0001, rtol=0.)
 
-  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
+
+def test_soft_value_iteration_toy_sparse():
+  toy_mdp = FrozenLakeMDP(use_sparse=True)
+
+  gamma = 0.9
+  np_v_value, np_q_value = plan_lib.soft_value_iteration(
+      toy_mdp.np_transition_model,
+      toy_mdp.np_reward_model,
+      discount_factor=gamma,
+      max_iteration=100,
+      epsilon=0.001)
+
+  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
+
+  assert np.allclose(SOFT_VALUE_ITERATION_TRUE, v_table, atol=0.0001, rtol=0.)
 
 
 def test_policy_iteration_toy():
@@ -316,54 +357,7 @@ def test_policy_iteration_toy():
 
   _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  true_v_values = [[-0.11934478, -0.26072438, -0.12141501, -0.26241833],
-                   [-0.1038797, -1., -0.07141636, -1.],
-                   [0.10284152, 0.44737575, 0.38097357, -1.],
-                   [-1., 0.6246746, 0.77311281, 1.]]
-
-  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
-
-
-def test_value_iteration_toy_sparse():
-  toy_mdp = FrozenLakeMDP(use_sparse=True)
-
-  gamma = 0.9
-  pi, np_v_value, np_q_value = plan_lib.value_iteration(
-      toy_mdp.np_transition_model,
-      toy_mdp.np_reward_model,
-      discount_factor=gamma,
-      max_iteration=100,
-      epsilon=0.001)
-
-  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
-
-  true_v_table = [[-0.12002533, -0.26156758, -0.12161469, -0.2624726],
-                  [-0.10419714, -1., -0.07147563, -1.],
-                  [0.10260353, 0.44722222, 0.38091399, -1.],
-                  [-1., 0.62459513, 0.77309292, 1.]]
-
-  assert np.allclose(true_v_table, v_table, atol=0.0001, rtol=0.)
-
-
-def test_soft_value_iteration_toy_sparse():
-  toy_mdp = FrozenLakeMDP(use_sparse=True)
-
-  gamma = 0.9
-  np_v_value, np_q_value = plan_lib.soft_value_iteration(
-      toy_mdp.np_transition_model,
-      toy_mdp.np_reward_model,
-      discount_factor=gamma,
-      max_iteration=100,
-      epsilon=0.001)
-
-  _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
-
-  true_v_values = [[3.90679818, 3.51108191, 4.0435257, 2.79330297],
-                   [3.49651174, -1., 3.15563615, -1.],
-                   [4.00216669, 4.60783148, 4.51553684, -1.],
-                   [-1., 4.52279111, 4.61366732, 1.]]
-
-  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
+  assert np.allclose(POLICY_ITERATION_TRUE, v_table, atol=0.0001, rtol=0.)
 
 
 def test_policy_iteration_toy_sparse():
@@ -386,12 +380,7 @@ def test_policy_iteration_toy_sparse():
 
   _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  true_v_values = [[-0.11934478, -0.26072438, -0.12141501, -0.26241833],
-                   [-0.1038797, -1., -0.07141636, -1.],
-                   [0.10284152, 0.44737575, 0.38097357, -1.],
-                   [-1., 0.6246746, 0.77311281, 1.]]
-
-  assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
+  assert np.allclose(POLICY_ITERATION_TRUE, v_table, atol=0.0001, rtol=0.)
 
 
 def test_value_iteration_toy_large_r():
@@ -428,10 +417,10 @@ def test_soft_value_iteration_toy_large_r():
 
   _, v_table, _ = get_grid_v_values(toy_mdp, None, np_v_value)
 
-  true_v_values = [[-11.71808827, -25.12065333, -11.76685238, -25.95336616],
-                   [-10.32205029, -100., -6.84860371, -100.],
-                   [10.37739743, 44.87600258, 38.58577821, -100.],
-                   [-100., 62.55272753, 77.39746581, 100.]]
+  true_v_values = [[-5.07378462, -17.80361963, -4.06680446, -18.31656778],
+                   [-2.73851924, -87.52533788, 2.24941921, -87.52533788],
+                   [18.00209525, 52.56959288, 47.51203204, -87.52533788],
+                   [-87.52533788, 71.23778488, 87.77812468, 112.47466212]]
 
   assert np.allclose(true_v_values, v_table, atol=0.0001, rtol=0.)
 

@@ -1,12 +1,13 @@
-from ai_coach_domain.rescue.simulator import RescueSimulator
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue.agent import AIAgent_Rescue_PartialObs
-from ai_coach_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
-from ai_coach_domain.rescue.policy import Policy_Rescue
-from ai_coach_domain.rescue.maps import MAP_RESCUE
+from aic_domain.rescue.simulator import RescueSimulator
+from aic_domain.agent import InteractiveAgent
+from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
+from aic_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+from aic_domain.rescue.policy import Policy_Rescue
+from aic_domain.rescue.maps import MAP_RESCUE
 from web_experiment.models import db, User
 from web_experiment.exp_common.page_base import Exp1UserData
-from web_experiment.exp_common.helper import get_file_name
+from web_experiment.exp_common.helper import (get_file_name,
+                                              store_user_label_locally)
 from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 
 TEMPERATURE = 0.3
@@ -47,6 +48,11 @@ class RescueGamePage(RescueGamePageBase):
     header += str(self._GAME_MAP)
     game.save_history(file_name, header)
 
+    user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
+    user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
+    store_user_label_locally(user_label_path, user_id, session_name,
+                             user_labels)
+
     # update score
     best_score = user.best_c
 
@@ -72,7 +78,7 @@ class RescueGamePage(RescueGamePageBase):
     best_score = user_data.data[Exp1UserData.USER].best_c
 
     text_score = "Time Taken: " + str(time_taken) + "\n"
-    text_score += "Score: " + str(score) + "\n"
+    text_score += "People Rescued: " + str(score) + "\n"
     text_score += "(Your Best: " + str(best_score) + ")"
 
     return text_score

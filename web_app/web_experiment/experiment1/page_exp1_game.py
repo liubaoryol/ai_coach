@@ -1,18 +1,19 @@
 from typing import Mapping, Sequence, Any
 import random
-from ai_coach_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
-                                          BoxPushTeamMDP_AlwaysAlone,
-                                          BoxPushAgentMDP_AlwaysAlone)
-from ai_coach_domain.box_push.policy import (BoxPushPolicyTeamExp1,
-                                             BoxPushPolicyIndvExp1)
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.box_push.agent import (BoxPushAIAgent_Indv2,
-                                            BoxPushAIAgent_Team2,
-                                            BoxPushAIAgent_Host)
+from aic_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
+                                     BoxPushTeamMDP_AlwaysAlone,
+                                     BoxPushAgentMDP_AlwaysAlone)
+from aic_domain.box_push.policy import (BoxPushPolicyTeamExp1,
+                                        BoxPushPolicyIndvExp1)
+from aic_domain.agent import InteractiveAgent
+from aic_domain.box_push.agent import (BoxPushAIAgent_Indv2,
+                                       BoxPushAIAgent_Team2,
+                                       BoxPushAIAgent_Host)
 import web_experiment.experiment1.page_game as pgg
 
 
 class CanvasPageMoversTellAligned(pgg.CanvasPageGame):
+
   def __init__(self, game_map) -> None:
     super().__init__(True, False, game_map, False, False, 5)
 
@@ -74,6 +75,7 @@ class CanvasPageMoversTellAligned(pgg.CanvasPageGame):
 
 
 class CanvasPageMoversUserRandom(pgg.CanvasPageGame):
+
   def __init__(self, game_map) -> None:
     super().__init__(True, True, game_map, True, True, 5)
 
@@ -93,6 +95,7 @@ class CanvasPageMoversUserRandom(pgg.CanvasPageGame):
 
 
 class CanvasPageCleanUpTellAligned(pgg.CanvasPageGame):
+
   def __init__(self, game_map) -> None:
     super().__init__(False, False, game_map, False, False, 5)
 
@@ -238,6 +241,7 @@ class CanvasPageCleanUpTellAligned(pgg.CanvasPageGame):
 
 
 class CanvasPageCleanUpTellRandom(pgg.CanvasPageGame):
+
   def __init__(self, game_map) -> None:
     super().__init__(False, False, game_map, False, False, 5)
 
@@ -409,6 +413,7 @@ class CanvasPageCleanUpTellRandom(pgg.CanvasPageGame):
 
 
 class CanvasPageCleanUpUserRandom(pgg.CanvasPageGame):
+
   def __init__(self, game_map) -> None:
     super().__init__(False, True, game_map, True, True, 5)
 

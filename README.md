@@ -5,7 +5,7 @@ We recommend you use `conda` environment. You can set up the virtual environment
 
 
 ## Execution
-* Please read the README files in `domains/` and `web_app/` directory.
+* Please read the README files in `domains/` and `web_app_v2/` directory.
 
 
 ## Development

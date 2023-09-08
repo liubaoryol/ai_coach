@@ -3,7 +3,7 @@ from web_experiment.experiment1.page_base import CanvasPageBase
 import web_experiment.experiment1.page_exp1_common as pgc
 import web_experiment.experiment1.page_exp1_game as pge
 import web_experiment.experiment1.page_tutorial as pgt
-from ai_coach_domain.box_push.maps import EXP1_MAP, TUTORIAL_MAP
+from aic_domain.box_push.maps import EXP1_MAP, TUTORIAL_MAP
 
 SESSION_A1 = 'session_a1'
 SESSION_A2 = 'session_a2'

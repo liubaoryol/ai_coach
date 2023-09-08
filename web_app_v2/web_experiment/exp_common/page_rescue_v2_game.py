@@ -1,9 +1,9 @@
-from ai_coach_domain.rescue_v2.simulator import RescueSimulatorV2
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-from ai_coach_domain.rescue_v2.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
-from ai_coach_domain.rescue_v2.policy import Policy_Rescue
-from ai_coach_domain.rescue_v2.maps import MAP_RESCUE
+from aic_domain.rescue_v2.simulator import RescueSimulatorV2
+from aic_domain.agent import InteractiveAgent
+from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+from aic_domain.rescue_v2.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+from aic_domain.rescue_v2.policy import Policy_Rescue
+from aic_domain.rescue_v2.maps import MAP_RESCUE
 from web_experiment.models import db, User
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.helper import get_file_name
@@ -84,9 +84,13 @@ class RescueV2GamePage(RescueV2GamePageBase):
 
 class RescueV2GameUserRandom(RescueV2GamePage):
 
-  def __init__(self, partial_obs) -> None:
+  def __init__(self, partial_obs, latent_collection=True) -> None:
     super().__init__(True, True, True, 5)
     self._PARTIAL_OBS = partial_obs
+    self._LATENT_COLLECTION = latent_collection
+    if not self._LATENT_COLLECTION:
+      self._AUTO_PROMPT = False
+      self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -102,6 +106,9 @@ class RescueV2GameUserRandom(RescueV2GamePage):
 
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent(agent1, agent2, agent3)
-    user_game_data.data[Exp1UserData.SELECT] = True
-    user_game_data.data[Exp1UserData.SHOW_LATENT] = True
+    if not self._LATENT_COLLECTION:
+      user_game_data.data[Exp1UserData.SELECT] = False
+      user_game_data.data[Exp1UserData.SHOW_LATENT] = False
+      user_game_data.data[Exp1UserData.COLLECT_LATENT] = False
+
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS

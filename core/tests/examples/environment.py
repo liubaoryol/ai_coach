@@ -1,7 +1,7 @@
 import abc
 import os
 import numpy as np
-from ai_coach_core.utils.exceptions import NoPolicyError
+from aic_core.utils.exceptions import NoPolicyError
 
 
 class MMDPPolicy:

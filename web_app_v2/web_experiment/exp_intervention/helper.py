@@ -1,8 +1,8 @@
 import json
 from flask_socketio import emit
 from web_experiment.review.util import predict_human_latent
-from ai_coach_domain.box_push.simulator import (BoxPushSimulator)
-from ai_coach_domain.box_push import AGENT_ACTIONSPACE
+from aic_domain.box_push.simulator import (BoxPushSimulator)
+from aic_domain.box_push import AGENT_ACTIONSPACE
 from web_experiment.define import EDomainType
 import random
 import numpy as np

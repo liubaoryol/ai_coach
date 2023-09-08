@@ -4,19 +4,16 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import click
-from ai_coach_core.model_learning.IRL.maxent_irl import (MaxEntIRL,
-                                                         compute_relative_freq,
-                                                         cal_reward_error,
-                                                         cal_policy_error)
-from ai_coach_core.model_learning.IRL.cg_maxent_irl import CGMaxEntIRL
-from ai_coach_core.model_learning.IRL.constraints import (Equation,
-                                                          NumericalRelation,
-                                                          RewardConstraints)
-from ai_coach_core.models.mdp import MDP
-from ai_coach_core.RL.planning import value_iteration
-from ai_coach_core.utils.mdp_utils import StateSpace, ActionSpace
-from ai_coach_core.utils.exceptions import InvalidTransitionError
-from ai_coach_core.utils.data_utils import Trajectories
+from aic_ml.IRL.maxent_irl import (MaxEntIRL, compute_relative_freq,
+                                   cal_reward_error, cal_policy_error)
+from aic_ml.IRL.cg_maxent_irl import CGMaxEntIRL
+from aic_ml.IRL.constraints import (Equation, NumericalRelation,
+                                    RewardConstraints)
+from aic_core.models.mdp import MDP
+from aic_core.RL.planning import value_iteration
+from aic_core.utils.mdp_utils import StateSpace, ActionSpace
+from aic_core.utils.exceptions import InvalidTransitionError
+from aic_core.utils.data_utils import Trajectories
 
 DANGER_GRIDS = [(1, 3), (4, 1), (4, 2)]
 TERMINAL_STATE = -1
@@ -38,6 +35,7 @@ def get_neighborhood(stt, set_state):
 
 
 class ToyMDP(MDP):
+
   def __init__(self):
     super().__init__(use_sparse=False)
 
@@ -342,6 +340,7 @@ def feature_extract_full_state(mdp, s_idx, a_idx):
 
 
 class ToyMDPTrajectories(Trajectories):
+
   def __init__(self) -> None:
     super().__init__(num_state_factors=1, num_action_factors=1)
 
@@ -555,7 +554,7 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
     ax2.set_ylabel('policy_error')
 
   if tabular_bc:
-    from aicoach_baselines.tabular_bc import tabular_behavior_cloning
+    from aic_ml.baselines.tabular_bc import tabular_behavior_cloning
     pi_bc = tabular_behavior_cloning(trajectories, num_ostates, num_actions)
     kl_bc = cal_policy_error(rel_freq, toy_mdp, lambda s, a: pi_bc[s, a],
                              sto_pi)
@@ -564,7 +563,7 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
   sa_trajs = train_data.get_as_row_lists(no_latent_label=False,
                                          include_terminal=True)
 
-  import aicoach_baselines.sb3_algorithms as sb3_algs
+  import aic_ml.baselines.sb3_algorithms as sb3_algs
   if dnn_bc:
 
     pi_bc_sb3 = sb3_algs.behavior_cloning_sb3(sa_trajs, num_ostates,
@@ -609,7 +608,7 @@ def main(gen_data, maxent_irl, cg_maxent_irl, tabular_bc, dnn_bc, sb3_gail,
 
     # gail
     else:
-      import aicoach_baselines.ikostrikov_gail as ikostrikov
+      import aic_ml.baselines.ikostrikov_gail as ikostrikov
       pi_gail_torch = ikostrikov.gail_w_ppo(toy_mdp, [sid],
                                             trajectories,
                                             num_processes=4,

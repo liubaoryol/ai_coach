@@ -1,9 +1,9 @@
 from typing import Mapping, Any, Sequence, List
 import copy
 import numpy as np
-from ai_coach_domain.rescue import (E_EventType, Location, E_Type, Place,
-                                    T_Connections, Route)
-from ai_coach_domain.rescue.simulator import RescueSimulator
+from aic_domain.rescue import (E_EventType, Location, E_Type, Place,
+                               T_Connections, Route)
+from aic_domain.rescue.simulator import RescueSimulator
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
@@ -78,6 +78,7 @@ class RescueGamePageBase(ExperimentPageBase):
     game.set_autonomous_agent()
 
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+    user_game_data.data[Exp1UserData.USER_LABELS] = []
 
   def get_updated_drawing_info(self,
                                user_data: Exp1UserData,
@@ -128,6 +129,8 @@ class RescueGamePageBase(ExperimentPageBase):
         game.event_input(self._AGENT1, E_EventType.Set_Latent, latent)
         user_game_data.data[Exp1UserData.SELECT] = False
         user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+        user_game_data.data[Exp1UserData.USER_LABELS].append(
+            (game.current_step, latent))
         return
 
     return super().button_clicked(user_game_data, clicked_btn)

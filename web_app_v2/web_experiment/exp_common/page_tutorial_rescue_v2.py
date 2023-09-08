@@ -4,9 +4,9 @@ from web_experiment.exp_common.page_rescue_v2_game import RescueV2GamePage
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import ExpType
 from web_experiment.models import ExpDataCollection, ExpIntervention, db
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.rescue_v2 import E_EventType
-from ai_coach_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
+from aic_domain.agent import InteractiveAgent
+from aic_domain.rescue_v2 import E_EventType
+from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
 
 MAX_STEP = str(15)
 
@@ -395,7 +395,7 @@ class RescueV2TutorialPartialObs(RescueV2TutorialBase):
         "observe the fire engine unless it is at each landmark or at the " +
         "same location as you (police car). Therefore, to do the task " +
         "efficiently you will need to guess where the fire engine will go. " +
-        "Similarly, the fire engine CANNOT fully observe you.")
+        "Similarly, the fire engine CANNOT always observe you.")
 
 
 class RescueV2TutorialDestination(RescueV2TutorialBase):

@@ -1,8 +1,8 @@
-import ai_coach_domain.box_push.maps as bp_maps
-from ai_coach_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
-import ai_coach_domain.box_push_static.mdp as bps_mdp
-from ai_coach_domain.box_push_static.agent import (StaticBoxPushPolicy,
-                                                   StaticBoxPushAgent)
+import aic_domain.box_push.maps as bp_maps
+from aic_domain.box_push.simulator import BoxPushSimulator_AloneOrTogether
+import aic_domain.box_push_static.mdp as bps_mdp
+from aic_domain.box_push_static.agent import (StaticBoxPushPolicy,
+                                              StaticBoxPushAgent)
 from stand_alone.box_push_app import BoxPushApp
 
 GAME_MAP = bp_maps.TUTORIAL_MAP
@@ -10,6 +10,7 @@ MDP_AGENT = bps_mdp.StaticBoxPushMDP(**GAME_MAP)
 
 
 class TEST_StaticBoxPushSimulator(BoxPushSimulator_AloneOrTogether):
+
   def take_a_step(self, map_agent_2_action):
     a1_action = None
     if BoxPushSimulator_AloneOrTogether.AGENT1 in map_agent_2_action:
@@ -43,6 +44,7 @@ class TEST_StaticBoxPushSimulator(BoxPushSimulator_AloneOrTogether):
 
 
 class StaticBoxPushApp(BoxPushApp):
+
   def __init__(self) -> None:
     super().__init__()
 

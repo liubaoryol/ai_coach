@@ -6,11 +6,11 @@ from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2GamePage
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.models import db, ExpDataCollection, ExpIntervention
 from web_experiment.define import ExpType, EDomainType
-from ai_coach_domain.agent import InteractiveAgent
-from ai_coach_domain.box_push_v2 import (conv_box_state_2_idx, EventType,
-                                         BoxState, BoxPushSimulatorV2)
-from ai_coach_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
-                                               BoxPushAIAgent_PO_Team)
+from aic_domain.agent import InteractiveAgent
+from aic_domain.box_push_v2 import (conv_box_state_2_idx, EventType, BoxState,
+                                    BoxPushSimulatorV2)
+from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
+                                          BoxPushAIAgent_PO_Team)
 
 
 class CanvasPageTutorialStart(ExperimentPageBase):
@@ -46,6 +46,7 @@ class CanvasPageTutorialStart(ExperimentPageBase):
 
 
 class CanvasPageInstruction(CanvasPageStart):
+
   def _get_init_drawing_objects(
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
@@ -89,6 +90,7 @@ class CanvasPageInstruction(CanvasPageStart):
 
 
 class CanvasPageTutorialGameStart(CanvasPageStart):
+
   def _get_init_drawing_objects(
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
@@ -131,7 +133,8 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
     super().__init__(domain_type, manual_latent_selection, auto_prompt,
                      prompt_on_change, 5)
 
-  def init_user_data(self, user_game_data: Exp1UserData):
+  # _base methods: to avoid using super() method at downstream classes
+  def _base_init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
@@ -145,7 +148,7 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
     user_game_data.data[Exp1UserData.SHOW_LATENT] = True
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
 
-  def _get_init_drawing_objects(
+  def _base_get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_game_data)
 
@@ -154,6 +157,30 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
     dict_objs[btn_next.name] = btn_next
 
     return dict_objs
+
+  def _base_button_clicked(self, user_game_data: Exp1UserData,
+                           clicked_btn: str):
+    return super().button_clicked(user_game_data, clicked_btn)
+
+  def _base_get_updated_drawing_objects(
+      self,
+      user_data: Exp1UserData,
+      dict_prev_game: Mapping[str,
+                              Any] = None) -> Mapping[str, co.DrawingObject]:
+    return super()._get_updated_drawing_objects(user_data, dict_prev_game)
+
+  def _base_on_action_taken(self, user_game_data: Exp1UserData,
+                            dict_prev_game: Mapping[str, Any],
+                            tuple_actions: Sequence[Any]):
+    return super()._on_action_taken(user_game_data, dict_prev_game,
+                                    tuple_actions)
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    self._base_init_user_data(user_game_data)
+
+  def _get_init_drawing_objects(
+      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
+    return self._base_get_init_drawing_objects(user_game_data)
 
   def _get_drawing_order(self, user_game_data: Exp1UserData):
     drawing_order = []
@@ -190,11 +217,12 @@ class CanvasPageTutorialBase(BoxPushV2GamePage):
 
 
 class CanvasPageJoystick(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[self.CLICKED_BTNS] = set()
     user_game_data.data[Exp1UserData.SELECT] = False
@@ -204,7 +232,7 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     dict_objs[co.BTN_NEXT].disable = True
 
@@ -217,18 +245,18 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("During the task, you control the human player. " +
             "You can move the human player by clicking the motion buttons. " +
-            "Once you have pressed all five buttons " +
-            "(left, right, up, down, and wait), " +
-            "please click on the “Next” button to continue.")
+            "Once you have tested each motion button " +
+            "(left, right, up, and down), " +
+            "please click on the \"Next\" button to continue.")
 
   def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
-    if clicked_btn in co.JOYSTICK_BUTTONS:
+    if clicked_btn in co.JOYSTICK_BUTTONS and clicked_btn != co.BTN_STAY:
       user_game_data.data[self.CLICKED_BTNS].add(clicked_btn)
 
-    return super().button_clicked(user_game_data, clicked_btn)
+    return self._base_button_clicked(user_game_data, clicked_btn)
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
-    if clicked_btn in co.JOYSTICK_BUTTONS:
+    if clicked_btn in co.JOYSTICK_BUTTONS and clicked_btn != co.BTN_STAY:
       return {"delete": [self.SPOTLIGHT]}
 
     return None
@@ -238,14 +266,15 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
       user_data: Exp1UserData,
       dict_prev_game: Mapping[str,
                               Any] = None) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_updated_drawing_objects(user_data, dict_prev_game)
+    dict_objs = self._base_get_updated_drawing_objects(user_data,
+                                                       dict_prev_game)
 
     btn_prev, btn_next = self._get_btn_prev_next(False, True)
     dict_objs[btn_prev.name] = btn_prev
     dict_objs[btn_next.name] = btn_next
 
     clicked_btns = user_data.data[self.CLICKED_BTNS]  # type: set
-    if len(clicked_btns) != 5:
+    if len(clicked_btns) == 0:
       for obj_name in clicked_btns:
         obj = dict_objs[obj_name]  # type: co.JoystickObject
         obj.fill_color = "LightGreen"
@@ -256,9 +285,50 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
     return dict_objs
 
 
+class CanvsPageWaitBtn(CanvasPageJoystick):
+
+  def _get_init_drawing_objects(
+      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
+
+    dict_objs[co.BTN_NEXT].disable = True
+
+    obj = dict_objs[co.BTN_STAY]  # type: co.JoystickStay
+    obj = self._get_spotlight(*obj.pos, int(obj.width * 0.8))
+    dict_objs[obj.name] = obj
+
+    return dict_objs
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return ("You can wait by clicking on the circular button. " +
+            "Once you test the wait button, " +
+            "please click on the \"Next\" button to continue.")
+
+  def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
+    if clicked_btn == co.BTN_STAY:
+      user_game_data.data[self.CLICKED_BTNS].add(clicked_btn)
+
+    return self._base_button_clicked(user_game_data, clicked_btn)
+
+  def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
+    if clicked_btn == co.BTN_STAY:
+      return {"delete": [self.SPOTLIGHT]}
+
+    return None
+
+
 class CanvasPageInvalidAction(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    self._base_init_user_data(user_game_data)
+
+    user_game_data.data[Exp1UserData.SELECT] = False
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
+    game = user_game_data.get_game_ref()
+    game.event_input(self._AGENT1, EventType.SET_LATENT, None)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("If you take an invalid action (e.g., try to move into a wall), " +
@@ -266,11 +336,12 @@ class CanvasPageInvalidAction(CanvasPageTutorialBase):
 
 
 class CanvasPageJoystickShort(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
     game.event_input(self._AGENT1, EventType.SET_LATENT, None)
@@ -283,8 +354,17 @@ class CanvasPageJoystickShort(CanvasPageTutorialBase):
 
 
 class CanvasPageOnlyHuman(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    self._base_init_user_data(user_game_data)
+
+    user_game_data.data[Exp1UserData.SELECT] = False
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
+    game = user_game_data.get_game_ref()
+    game.event_input(self._AGENT1, EventType.SET_LATENT, None)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
@@ -294,6 +374,7 @@ class CanvasPageOnlyHuman(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToTarget(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -308,7 +389,7 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
     return dict_objs
@@ -316,7 +397,7 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
+    self._base_on_action_taken(user_game_data, dict_prev_game, tuple_actions)
 
     game = user_game_data.get_game_ref()
     game_env = game.get_env_info()
@@ -331,11 +412,12 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
 
 
 class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
 
@@ -348,7 +430,7 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     obj = dict_objs[co.BTN_PICK_UP]  # type: co.ButtonRect
     obj = self._get_spotlight(*obj.pos, int(obj.size[0] * 0.6))
@@ -369,7 +451,7 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
               "You will notice that you cannot pick up the box alone. " +
               "You have to pick it up together with the robot. " +
               "Once you have clicked the \"Pick Up\" button, " +
-              "please click on the “Next” button to continue.")
+              "please click on the \"Next\" button to continue.")
     else:
       return ("Now, please pick it up using the (pick button). " +
               "You will notice that you can pick up the trash bag alone. " +
@@ -378,7 +460,7 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
+    self._base_on_action_taken(user_game_data, dict_prev_game, tuple_actions)
 
     game = user_game_data.get_game_ref()
     game_env = game.get_env_info()
@@ -396,7 +478,7 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
     if clicked_btn == co.BTN_PICK_UP:
       user_game_data.data[self.CLICKED_BTNS].add(co.BTN_PICK_UP)
 
-    return super().button_clicked(user_game_data, clicked_btn)
+    return self._base_button_clicked(user_game_data, clicked_btn)
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn == co.BTN_PICK_UP:
@@ -409,7 +491,8 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
       user_data: Exp1UserData,
       dict_prev_game: Mapping[str,
                               Any] = None) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_updated_drawing_objects(user_data, dict_prev_game)
+    dict_objs = self._base_get_updated_drawing_objects(user_data,
+                                                       dict_prev_game)
 
     if co.BTN_PICK_UP not in user_data.data[self.CLICKED_BTNS]:
       objs = self._get_btn_actions(True, True, True, True, True, False, True,
@@ -424,11 +507,12 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
 
 
 class CanvasPagePickUpTarget(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     agent1 = InteractiveAgent()
 
@@ -452,7 +536,7 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
     return dict_objs
@@ -465,7 +549,7 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
+    self._base_on_action_taken(user_game_data, dict_prev_game, tuple_actions)
 
     game = user_game_data.get_game_ref()
     game_env = game.get_env_info()
@@ -480,11 +564,12 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
 
 
 class CanvasPageGoToGoal(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()  # type: BoxPushSimulatorV2
     agent1 = InteractiveAgent()
@@ -518,7 +603,7 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
+    self._base_on_action_taken(user_game_data, dict_prev_game, tuple_actions)
 
     game = user_game_data.get_game_ref()
     user_game_data.data[Exp1UserData.SCORE] = game.current_step
@@ -535,19 +620,20 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
     object_type = ("box"
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
 
-    return ("After picking up the " + object_type +
-            ", you need to drop it at the truck. " + "Please carry the " +
-            object_type + " to the truck and drop it there.")
+    return ("After picking up the " + object_type + ", you need to drop it " +
+            "at the truck. " + "Please carry the " + object_type +
+            " to the truck and drop it there.")
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
     return dict_objs
 
 
 class CanvasPageRespawn(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -564,12 +650,13 @@ class CanvasPageRespawn(CanvasPageTutorialBase):
   def _get_instruction(self, user_game_data: Exp1UserData):
     object_type = ("box"
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
-    return ("Well done! Note that you will be stepped out from the goal once " +
-            " you drop the " + object_type + ". You cannot step on the goal " +
-            "without " + object_type + ".")
+    return ("Well done! Once you drop the box, " +
+            "you will automatically step out of the truck. " +
+            "You cannot step on the truck without a " + object_type + ".")
 
 
 class CanvasPageScore(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
@@ -582,7 +669,7 @@ class CanvasPageScore(CanvasPageTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
     for obj in objs:
@@ -605,29 +692,31 @@ class CanvasPageScore(CanvasPageTutorialBase):
 
 
 class CanvasPagePartialObs(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
         "Unlike the tutorial so far, during the TASK sessions, You cannot " +
-        "observe the full environment of the game. You can see your robot " +
+        "observe the full game environment. You can see your robot " +
         "teammate or objects only if they are in close proximity. " +
         "Similarly, your robot teammate also does NOT know where you are " +
         "unless you are in close proximity.")
 
 
 class CanvasPagePORobot(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
     agent1 = InteractiveAgent()
     init_states = ([0] * len(self._GAME_MAP["boxes"]),
                    self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
@@ -654,17 +743,18 @@ class CanvasPagePORobot(CanvasPageTutorialBase):
 
 
 class CanvasPageTarget(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, False, False)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     # obj = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
     # x_cen = int(obj.pos[0] + 0.5 * obj.width)
@@ -679,25 +769,26 @@ class CanvasPageTarget(CanvasPageTutorialBase):
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("In the TASK sessions, you will have to select your next target" +
-            " using the \"Select Destination\" button. It is very important " +
-            "to provide your destination instantly whenever you change your " +
-            "target in your mind. Let's see how to do this! Please click on " +
-            "the \"Next\" button to continue.")
+    return (
+        "In the TASK sessions, you will have to select your next destination" +
+        " using the \"Select Destination\" button. " +
+        "Let's see how to do this! Please click on " +
+        "the \"Next\" button to continue.")
 
 
 class CanvasPageLatent(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, True, True, True)
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     obj = dict_objs[co.BTN_SELECT]  # type: co.ButtonRect
     obj = self._get_spotlight(*obj.pos, int(obj.size[0] * 0.6))
     dict_objs[obj.name] = obj
@@ -715,7 +806,7 @@ class CanvasPageLatent(CanvasPageTutorialBase):
     object_type = ("box"
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
     return (
-        "First, click the “Select Destination” button. " +
+        "First, click the \"Select Destination\" button. " +
         "Possible destinations are circled in red and shown as an overlay. " +
         "Please click on your current destination (i.e., the " + object_type +
         " which you are planning to pick next).")
@@ -730,19 +821,39 @@ class CanvasPageLatent(CanvasPageTutorialBase):
     if self.is_sel_latent_btn(clicked_btn):
       user_game_data.go_to_next_page()
 
-    return super().button_clicked(user_game_data, clicked_btn)
+    return self._base_button_clicked(user_game_data, clicked_btn)
 
 
-class CanvasPageSelResult(CanvasPageTutorialBase):
-  def __init__(self, domain_type, is_2nd) -> None:
+class CanvasPageTutorialPlain(CanvasPageTutorialBase):
+
+  def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, True, True)
-    self._IS_2ND = is_2nd
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return ""
+
+  def _get_init_drawing_objects(
+      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
+
+    objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
+    for obj in objs:
+      dict_objs[obj.name] = obj
+
+    return dict_objs
+
+
+class CanvasPageSelResult(CanvasPageTutorialPlain):
+
+  def __init__(self, domain_type, is_2nd) -> None:
+    super().__init__(domain_type)
+    self._IS_2ND = is_2nd
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     if self._IS_2ND:
@@ -756,24 +867,25 @@ class CanvasPageSelResult(CanvasPageTutorialBase):
           "Your robot teammate does NOT know your selected destination and " +
           "will choose its destination independently of you.")
 
-  def _get_init_drawing_objects(
-      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
 
-    objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
-    for obj in objs:
-      dict_objs[obj.name] = obj
+class CanvasPageImportance(CanvasPageTutorialPlain):
 
-    return dict_objs
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return (
+        "Selecting the correct destination is VERY IMPORTANT for our research. "
+        + "Any time you change your mind about your destination, " +
+        "please use the \"Select Destination\" button " +
+        "to indicate your updated destination.")
 
 
 class CanvasPageSelPrompt(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, False, True, True)
     self._PROMPT_FREQ = 3
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
     game = user_game_data.get_game_ref()
@@ -790,30 +902,43 @@ class CanvasPageSelPrompt(CanvasPageTutorialBase):
     if self.is_sel_latent_btn(clicked_btn):
       user_game_data.go_to_next_page()
 
-    return super().button_clicked(user_game_data, clicked_btn)
+    return self._base_button_clicked(user_game_data, clicked_btn)
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     dict_objs[co.BTN_NEXT].disable = True
 
     return dict_objs
 
 
+class CanvasPageExpGoal(CanvasPageTutorialPlain):
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return (
+        "We are almost at the end of the TUTORIAL. " +
+        "Remember that in the TASK session, " +
+        "your goal is to move all the boxes to the truck as soon as possible." +
+        " You cannot pick up a box alone. Also, you can only pick up or " +
+        "drop a box at the place circled in red.")
+
+
 class CanvasPageMiniGame(CanvasPageTutorialBase):
+
   def __init__(self, domain_type) -> None:
     super().__init__(domain_type, True, True, True)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("Now, we are at the final step of the tutorial. Feel free to " +
-            "interact with the interface and get familiar with the task. You" +
-            " can also press the back button to revisit any of the previous " +
-            "prompts.\n Once you are ready, please proceed to the TASK " +
-            "sessions (using the button at the bottom of this page).")
+    return (
+        "Now, we are at the final step of the TUTORIAL. Feel free to " +
+        "interact with the interface and get familiar with the task. You" +
+        " can also press the \"Prev\" button to revisit any of the previous " +
+        "prompts.\n Once you are ready, please proceed to the TASK " +
+        "sessions (using the button at the bottom of this page).")
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
     agent1 = InteractiveAgent()
@@ -849,7 +974,7 @@ class CanvasPageMiniGame(CanvasPageTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     dict_objs[co.BTN_NEXT].disable = True
 
