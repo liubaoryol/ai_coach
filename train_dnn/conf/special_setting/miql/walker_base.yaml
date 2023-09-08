@@ -4,3 +4,5 @@ defaults:
   - miql/mujoco_base
 
 miql_pi_method_loss: v0
+miql_tx_init_temp: 0.03
+miql_pi_init_temp: 0.02
