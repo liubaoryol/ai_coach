@@ -3,6 +3,5 @@
 n_sample: 4096
 log_std_bounds: [-20, 0]
 
-n_demo: 50000
 n_epoch: 4000
 mini_batch_size: 64
