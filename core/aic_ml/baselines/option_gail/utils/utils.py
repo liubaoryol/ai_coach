@@ -6,7 +6,6 @@ from typing import Union
 import os
 import random
 from aic_ml.baselines.IQLearn.dataset.expert_dataset import ExpertDataset
-from .agent import _SamplerCommon
 
 
 def sample_batch(policy: Union[OptionPolicy, Policy], agent, n_step):
@@ -32,7 +31,7 @@ def validate(policy: Union[OptionPolicy, Policy], sa_array):
   return log_pi, cs
 
 
-def reward_validate(agent: _SamplerCommon,
+def reward_validate(agent,
                     policy: Union[OptionPolicy, Policy],
                     n_sample=-8,
                     do_print=True):
