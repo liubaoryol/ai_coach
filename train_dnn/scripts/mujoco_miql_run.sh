@@ -2,10 +2,10 @@
 ########################### Mental-IQL:
 # Hopper-v2
 python3 train_dnn/run_algs.py alg=miql env=Hopper-v2 base=hopper_base \
-        tag=piA3e-5 miql_pi_optimizer_lr_policy=3e-5
+        tag=piA3e-5 miql_pi_optimizer_lr_policy=3e-5 max_explore_step=1e6
 
 python3 train_dnn/run_algs.py alg=miql env=Hopper-v2 base=hopper_base \
-        tag=txtmp2e-2 miql_tx_init_temp=0.02
+        tag=txtmp2e-2 miql_tx_init_temp=0.02 max_explore_step=1e6
 
 # Humanoid-v2
 python3 train_dnn/run_algs.py alg=miql env=Humanoid-v2 base=mujoco_base \
