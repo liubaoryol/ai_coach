@@ -10,7 +10,8 @@ from aic_ml.baselines.IQLearn.dataset.expert_dataset import read_file
 
 def conv_torch_trajs_2_iql_format(sar_trajectories,
                                   path: str,
-                                  clip_action=False):
+                                  clip_action=False,
+                                  is_last_step_done=False):
   'sa_trajectories: okay to include the terminal state'
   expert_trajs = defaultdict(list)
 
@@ -25,6 +26,8 @@ def conv_torch_trajs_2_iql_format(sar_trajectories,
     actions = a_arr[:-1]
     length = len(states)
     dones = np.zeros(length)
+    if is_last_step_done:
+      dones[-1] = 1
     rewards = r_arr[:-1]
 
     expert_trajs["states"].append(states.reshape(length, -1))
@@ -96,5 +99,5 @@ if __name__ == "__main__":
   data_dir = os.path.dirname(data_path)
   num_traj = len(trajs)
 
-  data_path = os.path.join(data_dir, f"AntPush-v0_{num_traj}_clipped.pkl")
-  conv_torch_trajs_2_iql_format(trajs, data_path, True)
+  data_path = os.path.join(data_dir, f"AntPush-v0_{num_traj}_clip_w_done.pkl")
+  conv_torch_trajs_2_iql_format(trajs, data_path, True, True)

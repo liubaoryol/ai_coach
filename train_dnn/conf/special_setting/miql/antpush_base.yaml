@@ -4,4 +4,3 @@ defaults:
   - miql/mujoco_base
 
 n_traj: 253
-demo_latent_infer_interval: 5000
