@@ -176,7 +176,7 @@ def learn(config: Config,
       cnt_evals = 0
       v_l, cs_demo = validate(gail.policy,
                               [(tr[0], tr[-2]) for tr in demo_sxar])
-      logger.log_test("expert_logp", v_l, explore_step)
+      logger.log_eval("expert_logp", v_l, explore_step)
       info_dict, cs_sample = reward_validate(sampling_agent,
                                              gail.policy,
                                              do_print=True)
@@ -194,6 +194,6 @@ def learn(config: Config,
         wandb.run.summary["best_returns"] = best_reward
         torch.save((gail.state_dict(), sampling_agent.state_dict()),
                    best_model_save_name)
-      logger.log_test_info(info_dict, explore_step)
+      logger.log_eval_info(info_dict, explore_step)
 
     logger.flush()

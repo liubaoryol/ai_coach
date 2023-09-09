@@ -47,17 +47,13 @@ def reward_validate(agent,
     css = None
 
   info_dict = {
-      "r-max": np.max(rsums),
-      "r-min": np.min(rsums),
       "episode_reward": np.mean(rsums),
-      "step-max": np.max(steps),
       "episode_step": np.mean(steps),
-      "step-min": np.min(steps),
   }
   if do_print:
-    print(f"R: [ {info_dict['r-min']:.02f} ~ {info_dict['r-max']:.02f},",
+    print(f"R: [ {np.min(rsums):.02f} ~ {np.max(rsums):.02f},",
           f"avg: {info_dict['episode_reward']:.02f} ],",
-          f"L: [ {info_dict['step-min']} ~ {info_dict['step-max']}, ",
+          f"L: [ {np.min(steps)} ~ {np.max(steps)}, ",
           f"avg: {info_dict['episode_step']:.02f} ]")
   return info_dict, css
 
@@ -111,6 +107,8 @@ def load_n_convert_data(demo_path, n_traj, n_labeled, device, dim_c, seed):
       demo_labels.append(None)
 
   demo_sa_array = tuple(demo_sa_array)
-  print("num_labeled:", cnt_label)
+
+  print(f"num_labeled: {cnt_label} / {n_traj}, num_samples: ",
+        len(expert_dataset))
 
   return demo_sa_array, demo_labels, cnt_label

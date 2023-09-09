@@ -39,6 +39,13 @@ class Logger(object):
     for k in info_dict:
       self.writer.add_scalar(f"test/{k}", info_dict[k], i)
 
+  def log_eval(self, tag, v, i):
+    self.writer.add_scalar(f"eval/{tag}", v, i)
+
+  def log_eval_info(self, info_dict, i):
+    for k in info_dict:
+      self.writer.add_scalar(f"eval/{k}", info_dict[k], i)
+
   def log_pretrain(self, tag, v, i):
     self.writer.add_scalar(f"pretrain/{tag}", v, i)
 

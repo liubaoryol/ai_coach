@@ -36,7 +36,8 @@ def load_expert_data_w_labels(demo_path, num_trajs, n_labeled, seed):
     else:
       traj_labels.append(None)
 
-  print("num_labeled:", cnt_label)
+  print(f"num_labeled: {cnt_label} / {num_trajs}, num_samples: ",
+        len(expert_dataset))
   return expert_dataset, traj_labels, cnt_label
 
 
