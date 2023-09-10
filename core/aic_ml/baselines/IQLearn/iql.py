@@ -85,8 +85,9 @@ def trainer_impl(config: Config,
                                                  resolve=True,
                                                  throw_on_missing=True)
 
+  run_name = f"{config.alg_name}_{config.tag}"
   wandb.init(project=env_name,
-             name=f"{config.alg_name}_{config.tag}",
+             name=run_name,
              entity='sangwon-seo',
              sync_tensorboard=True,
              reinit=True,
@@ -170,7 +171,8 @@ def trainer_impl(config: Config,
                   log_frequency=log_interval,
                   writer=writer,
                   save_tb=True,
-                  agent=agent_name)
+                  agent=agent_name,
+                  run_name=run_name)
 
   # track mean reward and scores
   rewards_window = deque(maxlen=eps_window)  # last N rewards

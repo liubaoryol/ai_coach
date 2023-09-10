@@ -57,13 +57,8 @@ def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array,
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
 
 
-def learn(config: Config,
-          log_dir,
-          save_dir,
-          demo_path,
-          pretrain_name,
-          eval_interval,
-          msg="default"):
+def learn(config: Config, log_dir, save_dir, demo_path, pretrain_name,
+          eval_interval):
 
   env_type = config.env_type
   use_pretrain = config.use_pretrain
@@ -82,9 +77,9 @@ def learn(config: Config,
   dict_config = omegaconf.OmegaConf.to_container(config,
                                                  resolve=True,
                                                  throw_on_missing=True)
-
+  run_name = f"{config.alg_name}_{config.tag}"
   wandb.init(project=env_name,
-             name=f"{config.alg_name}_{config.tag}",
+             name=run_name,
              entity='sangwon-seo',
              sync_tensorboard=True,
              reinit=True,
@@ -139,7 +134,7 @@ def learn(config: Config,
                demo_sa_array,
                save_name_pre_f,
                logger,
-               msg,
+               run_name,
                n_iter,
                log_interval,
                in_pretrain=True)
@@ -162,7 +157,7 @@ def learn(config: Config,
     logger.log_train("r-demo-avg", demo_r, explore_step)
     logger.log_train("episode_step", sample_avgstep, explore_step)
     print(f"{explore_step}: episode_reward={sample_r}, d-demo-avg={demo_r}, "
-          f"episode_step={sample_avgstep} ; {msg}")
+          f"episode_step={sample_avgstep} ; {run_name}")
 
     train_d(gail, sample_sxar, demo_sxar)
     # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)

@@ -50,12 +50,7 @@ def sample_batch(gail: OptionGAILV2, agent, n_sample, demo_sa_array):
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
 
 
-def learn(config: Config,
-          log_dir,
-          save_dir,
-          sample_name,
-          pretrain_name,
-          msg="default"):
+def learn(config: Config, log_dir, save_dir, sample_name, pretrain_name):
 
   env_type = config.env_type
   use_pretrain = config.use_pretrain
@@ -71,6 +66,7 @@ def learn(config: Config,
   use_state_filter = config.use_state_filter
   use_d_info_gail = config.use_d_info_gail
 
+  msg = f"{config.alg_name}_{config.tag}"
   set_seed(seed)
 
   with open(os.path.join(save_dir, "config.log"), 'w') as f:

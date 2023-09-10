@@ -277,8 +277,7 @@ def learn(config: Config,
           log_dir,
           save_dir,
           demo_path,
-          pretrain_name,
-          msg="default"):
+          pretrain_name):
 
   use_option = config.use_option
   env_name = config.env_name
@@ -290,6 +289,8 @@ def learn(config: Config,
   use_state_filter = config.use_state_filter
   loss_type = config.loss_type
   base_dir = config.base_dir
+  
+  msg = f"{config.alg_name}_{config.tag}"
 
   set_seed(seed)
 

@@ -66,8 +66,9 @@ def trainer_impl(config: Config,
                                                  resolve=True,
                                                  throw_on_missing=True)
 
+  run_name = f"{config.alg_name}_{config.tag}"
   wandb.init(project=env_name,
-             name=f"{config.alg_name}_{config.tag}",
+             name=run_name,
              entity='sangwon-seo',
              sync_tensorboard=True,
              reinit=True,
@@ -143,7 +144,8 @@ def trainer_impl(config: Config,
   logger = Logger(log_dir,
                   log_frequency=log_interval,
                   writer=writer,
-                  save_tb=True)
+                  save_tb=True,
+                  run_name=run_name)
 
   # track mean reward and scores
   best_eval_returns = -np.inf

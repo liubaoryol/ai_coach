@@ -47,17 +47,17 @@ def run_alg(config):
 
   if alg_name == "obc":
     from aic_ml.baselines.option_gail.option_bc_learn import learn
-    learn(config, log_dir, output_dir, path_iq_data, pretrain_name, msg)
+    learn(config, log_dir, output_dir, path_iq_data, pretrain_name)
   elif alg_name == "ogail":
     from aic_ml.baselines.option_gail.option_gail_learn import learn
     learn(config, log_dir, output_dir, path_iq_data, pretrain_name,
-          eval_interval, msg)
+          eval_interval)
   elif alg_name == "oppo":
     from aic_ml.baselines.option_gail.option_ppo_learn import learn
-    learn(config, log_dir, output_dir, msg)
+    learn(config, log_dir, output_dir)
   elif alg_name == "oppov2":
     from aic_ml.baselines.option_gail.option_ppo_learn_v2 import learn
-    learn(config, log_dir, output_dir, msg)
+    learn(config, log_dir, output_dir)
   elif alg_name == "oiql" and config.stream_training:
     from aic_ml.OptionIQL.train_oiql_stream import (train_oiql_stream)
     train_oiql_stream(config, path_iq_data, num_traj, log_dir, output_dir,
@@ -68,7 +68,7 @@ def run_alg(config):
                     log_interval, eval_interval)
   elif alg_name == "oiqlv2":
     from aic_ml.OptionIQL_v2.train_oiql_v2 import (learn)
-    learn(config, log_dir, output_dir, path_iq_data, pretrain_name, msg)
+    learn(config, log_dir, output_dir, path_iq_data, pretrain_name)
   elif alg_name == "iql":
     from aic_ml.baselines.IQLearn.iql import run_iql
     run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
@@ -106,7 +106,7 @@ def main(cfg: DictConfig):
   cur_dir = os.path.dirname(__file__)
   cfg.base_dir = cur_dir
   print(OmegaConf.to_yaml(cfg))
-  
+
   run_alg(cfg)
 
 
