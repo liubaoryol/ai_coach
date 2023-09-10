@@ -66,7 +66,11 @@ def lr_factor_func(i_iter, end_iter, start=1., end=0.):
 
 
 def env_class(env_type):
-  from .mujoco_env import MujocoEnv as RLEnv
+  if env_type == "rlbench":
+    from .rlbench_env import RLBenchEnv as RLEnv
+  else:  # env_type == "mujoco":
+    from .mujoco_env import MujocoEnv as RLEnv
+
   return RLEnv
 
 
