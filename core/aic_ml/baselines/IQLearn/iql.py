@@ -172,7 +172,7 @@ def trainer_impl(config: Config,
                   writer=writer,
                   save_tb=True,
                   agent=agent_name,
-                  run_name=run_name)
+                  run_name=f"{env_name}_{run_name}")
 
   # track mean reward and scores
   rewards_window = deque(maxlen=eps_window)  # last N rewards

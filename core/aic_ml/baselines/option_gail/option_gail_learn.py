@@ -157,7 +157,7 @@ def learn(config: Config, log_dir, save_dir, demo_path, pretrain_name,
     logger.log_train("r-demo-avg", demo_r, explore_step)
     logger.log_train("episode_step", sample_avgstep, explore_step)
     print(f"{explore_step}: episode_reward={sample_r}, d-demo-avg={demo_r}, "
-          f"episode_step={sample_avgstep} ; {run_name}")
+          f"episode_step={sample_avgstep} ; {env_name}_{run_name}")
 
     train_d(gail, sample_sxar, demo_sxar)
     # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)

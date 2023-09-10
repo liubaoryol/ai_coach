@@ -145,7 +145,7 @@ def trainer_impl(config: Config,
                   log_frequency=log_interval,
                   writer=writer,
                   save_tb=True,
-                  run_name=run_name)
+                  run_name=f"{env_name}_{run_name}")
 
   # track mean reward and scores
   best_eval_returns = -np.inf
