@@ -6,25 +6,25 @@ gumbel_temperature: 1.0
 separate_policy_update: False
 stream_training: True
 n_update_rounds: 256 # only when stream_training=False
-demo_latent_infer_interval: 4096 # only when stream_training=True
+demo_latent_infer_interval: 1000 # only when stream_training=True
 # Q-net
-hidden_critic: [64, 64]
+hidden_critic: [256, 256]
 optimizer_lr_critic: 3.e-4
 method_loss: v0
 method_regularize: True
 num_critic_update: 1
 iql_single_critic: True
 # policy
-hidden_policy: [64, 64]
-optimizer_lr_policy: 3.e-4
+hidden_policy: [256, 256]
+optimizer_lr_policy: 3.e-5
 bounded_actor: True
 use_nn_logstd: True
 clamp_action_logstd: False # True: use clamp() / False: use tanh
 log_std_bounds: [-5., 2.]
 num_actor_update: 1
 # option
-hidden_option: [64, 64]
-optimizer_lr_option: 3.e-4
+hidden_option: [256, 256]
+optimizer_lr_option: 3.e-5
 use_prev_action: False
 use_prev_action_dim: True # use extra dim to represent initial value
 use_prev_option_dim: True # use extra dim to represent initial value

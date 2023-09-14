@@ -3,7 +3,7 @@
 alg_name: miql
 stream_training: True
 n_update_rounds: 256 # only when stream_training=False
-demo_latent_infer_interval: 4096 # only when stream_training=True
+demo_latent_infer_interval: 1000 # only when stream_training=True
 # update strategy
 miql_update_strategy: 1 # 1: always update both / 2: update in order / 3: update alternatively
 miql_tx_after_pi: True
