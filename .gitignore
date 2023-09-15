@@ -28,6 +28,7 @@ outputs/
 profile*
 wandb/
 venv/
+multirun/
 
 *.png
 *.log
