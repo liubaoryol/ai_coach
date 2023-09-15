@@ -268,4 +268,4 @@ if __name__ == "__main__":
 
   # for idx in range(1, 6):
   # traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 500, False)
-  traj = generate_data(None, "MultiGoals2D_3-v0", 1, True)
+  traj = generate_data(None, "MultiGoals2D_2-v0", 1, True)
