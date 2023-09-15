@@ -2,3 +2,5 @@
 
 max_explore_step: 1e6
 n_traj: 50
+
+supervision: 0.0
