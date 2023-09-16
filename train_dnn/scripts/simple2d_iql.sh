@@ -1,9 +1,17 @@
 
 # IQL
-# MultiGoals2D_2-v0
-python train_dnn/run_algs.py --multirun alg=iql base=MultiGoals2D_base \
-       env=MultiGoals2D_2-v0,MultiGoals2D_3-v0,MultiGoals2D_4-v0,MultiGoals2D_5-v0 \
-       tag=Tpi001valSv0 supervision=0.0
+# MultiGoals2D
+python train_dnn/run_algs.py alg=iql base=MultiGoals2D_base \
+       env=MultiGoals2D_3-v0 \
+       tag=Tpi001val2xSv0 supervision=0.0 hidden_critic=[128,128] hidden_policy=[128,128]
+
+python train_dnn/run_algs.py alg=iql base=MultiGoals2D_base \
+       env=MultiGoals2D_4-v0 \
+       tag=Tpi001val2xSv0 supervision=0.0 hidden_critic=[128,128] hidden_policy=[128,128]
+
+python train_dnn/run_algs.py alg=iql base=MultiGoals2D_base \
+       env=MultiGoals2D_5-v0 \
+       tag=Tpi001val2xSv0 supervision=0.0 hidden_critic=[128,128] hidden_policy=[128,128]
 
 # # CleanupSingle-v0
 # python test_algs/run_simple2d.py --n_traj 50 --dim_c 4 \
