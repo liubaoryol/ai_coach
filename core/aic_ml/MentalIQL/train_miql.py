@@ -86,7 +86,6 @@ def train(config: Config,
   replay_mem = config.n_sample
   max_explore_step = config.max_explore_step
   eps_window = 10
-  is_sqil = False
   num_episodes = 8
 
   dict_config = omegaconf.OmegaConf.to_container(config,
@@ -102,7 +101,7 @@ def train(config: Config,
              config=dict_config)
 
   fn_make_agent = make_miql_agent
-  alg_type = 'sqil' if is_sqil else 'iq'
+  alg_type = 'iq'
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"

@@ -96,8 +96,7 @@ def trainer_impl(config: Config,
   # constants
   num_episodes = 10
   save_interval = 10
-  is_sqil = False
-  only_expert_states = False
+  only_observabtion_based = False
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -183,6 +182,7 @@ def trainer_impl(config: Config,
   begin_learn = False
   episode_reward = 0
   explore_steps = 0
+  update_count = 0
 
   for epoch in count():
     state = env.reset()
@@ -218,7 +218,6 @@ def trainer_impl(config: Config,
                epoch,
                1,
                env_name,
-               is_sqil,
                imitate,
                output_dir=output_dir,
                suffix=output_suffix + "_best")
@@ -249,10 +248,11 @@ def trainer_impl(config: Config,
             agent.iq_update = types.MethodType(iq_update, agent)
             agent.iq_update_critic = types.MethodType(iq_update_critic, agent)
             losses = agent.iq_update(online_memory_replay, expert_memory_replay,
-                                     logger, explore_steps, only_expert_states,
-                                     is_sqil, use_target, do_soft_update,
-                                     config.method_loss,
+                                     logger, update_count,
+                                     only_observabtion_based, use_target,
+                                     do_soft_update, config.method_loss,
                                      config.method_regularize)
+            update_count += 1
           else:
             losses = agent.update(online_memory_replay, logger, explore_steps)
 
@@ -279,7 +279,6 @@ def trainer_impl(config: Config,
     #      save_interval,
     #      env_name,
     #      agent_name,
-    #      is_sqil,
     #      imitate,
     #      output_dir=output_dir,
     #      suffix=output_suffix)
@@ -289,16 +288,12 @@ def save(agent,
          epoch,
          save_interval,
          env_name,
-         is_sqil: bool,
          imitate: bool,
          output_dir='results',
          suffix=""):
   if epoch % save_interval == 0:
     if imitate:
-      if is_sqil:
-        name = f'sqil_{env_name}'
-      else:
-        name = f'iq_{env_name}'
+      name = f'iq_{env_name}'
     else:
       name = f'rl_{env_name}'
 
@@ -313,8 +308,7 @@ def iq_update_critic(self,
                      expert_batch,
                      logger,
                      step,
-                     only_expert_states=False,
-                     is_sqil=False,
+                     only_observabtion_based=False,
                      use_target=False,
                      method_loss="value",
                      method_regularize=True):
@@ -323,13 +317,13 @@ def iq_update_critic(self,
   (expert_obs, expert_next_obs, expert_action, expert_reward,
    expert_done) = expert_batch
 
-  if only_expert_states:
+  if only_observabtion_based:
     # Use policy actions instead of experts actions for IL with only observations
     expert_batch = (expert_obs, expert_next_obs, policy_action, expert_reward,
                     expert_done)
 
   obs, next_obs, action, _, done, is_expert = get_concat_samples(
-      policy_batch, expert_batch, is_sqil)
+      policy_batch, expert_batch, False)
   vec_v_args = (obs, )
   vec_next_v_args = (next_obs, )
   vec_actions = (action, )
@@ -369,9 +363,8 @@ def iq_update(self,
               policy_buffer,
               expert_buffer,
               logger,
-              step,
-              only_expert_states=False,
-              is_sqil=False,
+              update_count,
+              only_observabtion_based=False,
               use_target=False,
               do_soft_update=False,
               method_loss="value",
@@ -379,16 +372,16 @@ def iq_update(self,
   policy_batch = policy_buffer.get_samples(self.batch_size, self.device)
   expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
 
-  losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
-                                 only_expert_states, is_sqil, use_target,
-                                 method_loss, method_regularize)
+  losses = self.iq_update_critic(policy_batch, expert_batch, logger,
+                                 update_count, only_observabtion_based,
+                                 use_target, method_loss, method_regularize)
 
   # args
   vdice_actor = False
   offline = False
   num_actor_updates = 1
 
-  if self.actor and step % self.actor_update_frequency == 0:
+  if self.actor and update_count % self.actor_update_frequency == 0:
     if not vdice_actor:
 
       if offline:
@@ -399,13 +392,92 @@ def iq_update(self,
 
       if num_actor_updates:
         for i in range(num_actor_updates):
-          actor_alpha_losses = self.update_actor_and_alpha(obs, logger, step)
+          actor_alpha_losses = self.update_actor_and_alpha(
+              obs, logger, update_count)
 
       losses.update(actor_alpha_losses)
 
-  if use_target and step % self.critic_target_update_frequency == 0:
+  if use_target and update_count % self.critic_target_update_frequency == 0:
     if do_soft_update:
       soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
     else:
       hard_update(self.critic_net, self.critic_target_net)
+
   return losses
+
+
+def iq_offline(self,
+               expert_buffer,
+               logger,
+               update_count,
+               use_target=False,
+               do_soft_update=False,
+               method_regularize=True):
+  expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
+  (expert_obs, expert_next_obs, expert_action, expert_reward,
+   expert_done) = expert_batch
+
+  is_expert = torch.ones_like(expert_reward, dtype=torch.bool)
+
+  vec_v_args = (expert_obs, )
+  vec_next_v_args = (expert_next_obs, )
+  vec_actions = (expert_action, )
+
+  agent = self
+
+  # for offline setting these shouldn't be changed
+  OFFLINE_METHOD_LOSS = "value_expert"
+  NO_ONLINE_REGULARIZE = False
+  offline_div = "chi" if method_regularize else ""
+
+  current_Q = self.critic(expert_obs, expert_action, both=True)
+  if isinstance(current_Q, tuple):
+    q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
+                                  vec_next_v_args, vec_actions, expert_done,
+                                  is_expert, use_target, OFFLINE_METHOD_LOSS,
+                                  NO_ONLINE_REGULARIZE, offline_div)
+    q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
+                                  vec_next_v_args, vec_actions, expert_done,
+                                  is_expert, use_target, OFFLINE_METHOD_LOSS,
+                                  NO_ONLINE_REGULARIZE, offline_div)
+    critic_loss = 1 / 2 * (q1_loss + q2_loss)
+    # merge loss dicts
+    loss_dict = average_dicts(loss_dict1, loss_dict2)
+  else:
+    critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
+                                     vec_next_v_args, vec_actions, expert_done,
+                                     is_expert, use_target, OFFLINE_METHOD_LOSS,
+                                     NO_ONLINE_REGULARIZE, offline_div)
+
+  # logger.log('train/critic_loss', critic_loss, step)
+
+  # Optimize the critic
+  self.critic_optimizer.zero_grad()
+  critic_loss.backward()
+  if hasattr(self, 'clip_grad_val') and self.clip_grad_val:
+    nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
+  # step critic
+  self.critic_optimizer.step()
+
+  # args
+  vdice_actor = False
+  num_actor_updates = 1
+
+  if self.actor and update_count % self.actor_update_frequency == 0:
+    if not vdice_actor:
+
+      obs = expert_batch[0]
+
+      if num_actor_updates:
+        for i in range(num_actor_updates):
+          actor_alpha_losses = self.update_actor_and_alpha(
+              obs, logger, update_count)
+
+      loss_dict.update(actor_alpha_losses)
+
+  if use_target and update_count % self.critic_target_update_frequency == 0:
+    if do_soft_update:
+      soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
+    else:
+      hard_update(self.critic_net, self.critic_target_net)
+  return loss_dict

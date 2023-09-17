@@ -67,44 +67,6 @@ def save(agent: OptionSAC,
     agent.save(file_path)
 
 
-def get_concat_samples(policy_batch, expert_batch, is_sqil: bool):
-  '''
-  policy_batch, expert_batch: the 2nd last item should be reward,
-                                and the last item should be done
-  return: concatenated batch with an additional item of is_expert
-  '''
-  concat_batch = []
-
-  reward_idx = len(policy_batch) - 2
-  for idx in range(reward_idx):
-    concat_batch.append(torch.cat([policy_batch[idx], expert_batch[idx]],
-                                  dim=0))
-
-  # ----- concat reward data
-  online_batch_reward = policy_batch[reward_idx]
-  expert_batch_reward = expert_batch[reward_idx]
-  if is_sqil:
-    # convert policy reward to 0
-    online_batch_reward = torch.zeros_like(online_batch_reward)
-    # convert expert reward to 1
-    expert_batch_reward = torch.ones_like(expert_batch_reward)
-  concat_batch.append(
-      torch.cat([online_batch_reward, expert_batch_reward], dim=0))
-
-  # ----- concat done data
-  concat_batch.append(torch.cat([policy_batch[-1], expert_batch[-1]], dim=0))
-
-  # ----- mark what is expert data and what is online data
-  is_expert = torch.cat([
-      torch.zeros_like(online_batch_reward, dtype=torch.bool),
-      torch.ones_like(expert_batch_reward, dtype=torch.bool)
-  ],
-                        dim=0)
-  concat_batch.append(is_expert)
-
-  return concat_batch
-
-
 def evaluate(agent: OptionSAC, env: Env, num_episodes=10, vis=True):
   """Evaluates the policy.
     Args:

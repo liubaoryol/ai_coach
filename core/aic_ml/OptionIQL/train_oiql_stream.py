@@ -74,12 +74,11 @@ def trainer_impl(config: Config,
              reinit=True,
              config=dict_config)
 
-  is_sqil = False
   alg_type = "rl"
   imitation = (agent_name == "oiql")
   if imitation:
     fn_make_agent = make_oiql_agent
-    alg_type = 'sqil' if is_sqil else 'iq'
+    alg_type = 'iq'
   elif agent_name == "osac":
     fn_make_agent = make_osac_agent
   else:
@@ -156,6 +155,7 @@ def trainer_impl(config: Config,
   begin_learn = False
   episode_reward = 0
   explore_steps = 0
+  update_count = 0
   expert_data = None
 
   for epoch in count():
@@ -243,9 +243,9 @@ def trainer_impl(config: Config,
             policy_batch = online_memory_replay.get_samples(
                 batch_size, agent.device)
             losses = agent.iq_update(policy_batch, expert_batch, logger,
-                                     explore_steps, is_sqil, use_target,
-                                     do_soft_update, method_loss,
-                                     method_regularize)
+                                     update_count, use_target, do_soft_update,
+                                     method_loss, method_regularize)
+            update_count += 1
           else:
             losses = agent.update(online_memory_replay, logger, explore_steps)
 

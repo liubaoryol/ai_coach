@@ -109,11 +109,10 @@ def train(config: Config,
 
   max_explore_step = int(config.max_explore_step)
   output_suffix = ""
-  is_sqil = False
   num_episodes = 10
 
   fn_make_agent = make_miql_agent
-  alg_type = 'sqil' if is_sqil else 'iq'
+  alg_type = 'iq'
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"

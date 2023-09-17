@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 from aic_ml.baselines.IQLearn.utils.utils import (average_dicts, soft_update,
-                                                  hard_update)
+                                                  hard_update,
+                                                  get_concat_samples)
 from .option_sac_v2 import OptionSAC_V2
-from aic_ml.OptionIQL.helper.utils import (get_concat_samples)
 from aic_ml.baselines.IQLearn.iq import iq_loss
 
 
@@ -14,12 +14,11 @@ class OptionIQL_V2(OptionSAC_V2):
                        expert_batch,
                        logger,
                        step,
-                       is_sqil=False,
                        use_target=False,
                        method_loss="value",
                        method_regularize=True):
     (obs, prev_lat, prev_act, next_obs, latent, action, _, done,
-     is_expert) = get_concat_samples(policy_batch, expert_batch, is_sqil)
+     is_expert) = get_concat_samples(policy_batch, expert_batch, False)
     vec_v_args = (obs, prev_lat, prev_act)
     vec_next_v_args = (next_obs, latent, action)
     vec_actions = (latent, action)
@@ -61,15 +60,13 @@ class OptionIQL_V2(OptionSAC_V2):
                 expert_batch,
                 logger,
                 step,
-                is_sqil=False,
                 use_target=False,
                 do_soft_update=False,
                 method_loss="value",
                 method_regularize=True):
     for _ in range(self.num_critic_update):
       losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
-                                     is_sqil, use_target, method_loss,
-                                     method_regularize)
+                                     use_target, method_loss, method_regularize)
 
     # args
     vdice_actor = False

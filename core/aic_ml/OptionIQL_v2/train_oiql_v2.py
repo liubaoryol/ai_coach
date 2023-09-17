@@ -24,7 +24,6 @@ def train_iql(agent: OptionIQL_V2,
               mini_bs,
               logger,
               learn_step,
-              is_sqil,
               use_target,
               do_soft_update,
               method_loss,
@@ -68,7 +67,7 @@ def train_iql(agent: OptionIQL_V2,
       policy_batch = (sp_b, cp_1b, ap_1b, snp_b, cp_b, ap_b, rp_b, dp_b)
       expert_batch = (se_b, ce_1b, ae_1b, sne_b, ce_b, ae_b, re_b, de_b)
 
-      agent.iq_update(policy_batch, expert_batch, logger, learn_step, is_sqil,
+      agent.iq_update(policy_batch, expert_batch, logger, learn_step,
                       use_target, do_soft_update, method_loss,
                       method_regularize)
 
@@ -122,7 +121,6 @@ def learn(config: Config,
   use_state_filter = config.use_state_filter
   batch_size = config.mini_batch_size
 
-  is_sqil = False
   use_target = True
   do_soft_update = True
   method_loss = config.method_loss
@@ -169,7 +167,7 @@ def learn(config: Config,
           f"step-sample-avg={sample_avgstep} ; {msg}")
 
     train_iql(agent, config, sample_sxar, demo_sxa, batch_size, logger,
-              explore_step, is_sqil, use_target, do_soft_update, method_loss,
+              explore_step,  use_target, do_soft_update, method_loss,
               method_regularize)
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
 

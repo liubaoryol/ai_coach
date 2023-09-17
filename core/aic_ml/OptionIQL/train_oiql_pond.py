@@ -39,7 +39,7 @@ def train_oiql_pond(config: Config,
 
 
 def step_iq_update(config: Config, agent: OptionIQL, sample_data, expert_data,
-                   logger, explore_steps, is_sqil):
+                   logger, explore_steps):
   use_target = True
   do_soft_update = True
 
@@ -61,9 +61,8 @@ def step_iq_update(config: Config, agent: OptionIQL, sample_data, expert_data,
 
       # IQ-Learn
       losses = agent.iq_update(sample_batch, expert_batch, logger,
-                               explore_steps, is_sqil, use_target,
-                               do_soft_update, config.method_loss,
-                               config.method_regularize)
+                               explore_steps, use_target, do_soft_update,
+                               config.method_loss, config.method_regularize)
   return losses
 
 
@@ -94,13 +93,12 @@ def trainer_impl(config: Config,
   max_explore_step = config.max_explore_step
   output_suffix = ""
   load_path = None
-  is_sqil = False
 
   alg_type = 'rl'
   imitation = (agent_name == "oiql")
   if imitation:
     fn_make_agent = make_oiql_agent
-    alg_type = 'sqil' if is_sqil else 'iq'
+    alg_type = 'iq'
   elif agent_name == "osac":
     fn_make_agent = make_osac_agent
   else:
@@ -230,7 +228,7 @@ def trainer_impl(config: Config,
 
       sample_data = online_memory_replay.get_all_samples(agent.device)
       losses = step_iq_update(config, agent, sample_data, expert_data, logger,
-                              explore_steps, is_sqil)
+                              explore_steps)
     else:
       losses = step_sac_update(config, agent, online_memory_replay, logger,
                                explore_steps)
