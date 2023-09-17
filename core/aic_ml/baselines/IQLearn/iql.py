@@ -308,59 +308,6 @@ def save(agent,
     agent.save(file_path)
 
 
-# Minimal IQ-Learn objective
-def iq_learn_update(self,
-                    policy_batch,
-                    expert_batch,
-                    logger,
-                    step,
-                    only_expert_states=False,
-                    is_sqil=False,
-                    use_target=False,
-                    method_alpha=0.5):
-  # args = self.args
-
-  (policy_obs, policy_next_obs, policy_action, policy_reward,
-   policy_done) = policy_batch
-  (expert_obs, expert_next_obs, expert_action, expert_reward,
-   expert_done) = expert_batch
-
-  if only_expert_states:
-    expert_batch = (expert_obs, expert_next_obs, policy_action, expert_reward,
-                    expert_done)
-
-  obs, next_obs, action, reward, done, is_expert = get_concat_samples(
-      policy_batch, expert_batch, is_sqil)
-
-  loss_dict = {}
-
-  ######
-  # IQ-Learn minimal implementation with X^2 divergence (~15 lines)
-  # Calculate 1st term of loss: -E_(ρ_expert)[Q(s, a) - γV(s')]
-  current_Q = self.critic(obs, action)
-  y = (1 - done) * self.gamma * self.getV(next_obs)
-  if use_target:
-    with torch.no_grad():
-      y = (1 - done) * self.gamma * self.get_targetV(next_obs)
-
-  reward = (current_Q - y)[is_expert]
-  loss = -(reward).mean()
-
-  # 2nd term for our loss (use expert and policy states): E_(ρ)[Q(s,a) - γV(s')]
-  value_loss = (self.getV(obs) - y).mean()
-  loss += value_loss
-
-  # Use χ2 divergence (adds a extra term to the loss)
-  chi2_loss = 1 / (4 * method_alpha) * (reward**2).mean()
-  loss += chi2_loss
-  ######
-
-  self.critic_optimizer.zero_grad()
-  loss.backward()
-  self.critic_optimizer.step()
-  return loss
-
-
 def iq_update_critic(self,
                      policy_batch,
                      expert_batch,
