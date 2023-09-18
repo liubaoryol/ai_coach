@@ -8,7 +8,7 @@ import torch
 from collections import deque
 from .utils.utils import (make_env, eval_mode, average_dicts,
                           get_concat_samples, evaluate, soft_update,
-                          hard_update)
+                          hard_update, compute_expert_return_mean)
 
 from .agent import make_sac_agent, make_softq_agent, make_sacd_agent
 from .agent.softq_models import SimpleQNetwork, SingleQCriticDiscrete
@@ -145,12 +145,19 @@ def trainer_impl(config: Config,
   if imitate:
     subsample_freq = 1
     expert_memory_replay = Memory(replay_mem, seed)
-    expert_memory_replay.load(demo_path,
-                              num_trajs=num_trajs,
-                              sample_freq=subsample_freq,
-                              seed=seed + 42)
+    expertdata = expert_memory_replay.load(demo_path,
+                                           num_trajs=num_trajs,
+                                           sample_freq=subsample_freq,
+                                           seed=seed + 42)
     batch_size = min(batch_size, expert_memory_replay.size())
     print(f'--> Expert memory size: {expert_memory_replay.size()}')
+
+    expert_return_avg, expert_return_std = compute_expert_return_mean(
+        expertdata.trajectories)
+    wandb.run.summary["expert_avg"] = expert_return_avg
+    wandb.run.summary["expert_std"] = expert_return_std
+
+    expert_memory_replay.trajectories
 
   online_memory_replay = Memory(replay_mem, seed + 1)
 

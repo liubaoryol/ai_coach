@@ -101,8 +101,11 @@ def learn(config: Config, log_dir, save_dir, demo_path, pretrain_name,
   device = torch.device(config.device)
   dim_c = config.dim_c
 
-  demo_sa_array, demo_labels, cnt_label = load_n_convert_data(
-      demo_path, n_traj, n_labeled, device, dim_c, seed)
+  (demo_sa_array, demo_labels, cnt_label, expert_avg,
+   expert_std) = load_n_convert_data(demo_path, n_traj, n_labeled, device,
+                                     dim_c, seed)
+  wandb.run.summary["expert_avg"] = expert_avg
+  wandb.run.summary["expert_std"] = expert_std
 
   best_model_save_name = os.path.join(
       save_dir, f"{env_name}_n{n_traj}_l{cnt_label}_best.torch")

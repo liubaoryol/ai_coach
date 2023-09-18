@@ -5,6 +5,7 @@ import numpy as np
 from typing import Union
 import os
 import random
+from aic_ml.baselines.IQLearn.utils.utils import compute_expert_return_mean
 from aic_ml.baselines.IQLearn.dataset.expert_dataset import ExpertDataset
 
 
@@ -83,6 +84,7 @@ def set_seed(seed):
 def load_n_convert_data(demo_path, n_traj, n_labeled, device, dim_c, seed):
   expert_dataset = ExpertDataset(demo_path, n_traj, 1, seed + 42)
   trajectories = expert_dataset.trajectories
+  expert_avg, expert_std = compute_expert_return_mean(trajectories)
 
   cnt_label = 0
   demo_labels = []
@@ -92,8 +94,6 @@ def load_n_convert_data(demo_path, n_traj, n_labeled, device, dim_c, seed):
     s_array = torch.as_tensor(trajectories["states"][epi],
                               dtype=torch.float32).reshape(n_steps, -1)
     a_array = torch.as_tensor(trajectories["actions"][epi],
-                              dtype=torch.float32).reshape(n_steps, -1)
-    r_array = torch.as_tensor(trajectories["rewards"][epi],
                               dtype=torch.float32).reshape(n_steps, -1)
     if "latents" in trajectories:
       x_array = torch.zeros(n_steps + 1, 1, dtype=torch.long, device=device)
@@ -115,4 +115,4 @@ def load_n_convert_data(demo_path, n_traj, n_labeled, device, dim_c, seed):
   print(f"num_labeled: {cnt_label} / {n_traj}, num_samples: ",
         len(expert_dataset))
 
-  return demo_sa_array, demo_labels, cnt_label
+  return demo_sa_array, demo_labels, cnt_label, expert_avg, expert_std

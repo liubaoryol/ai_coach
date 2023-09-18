@@ -273,11 +273,7 @@ def make_policy(config: Config, dim_s, dim_a):
   return policy
 
 
-def learn(config: Config,
-          log_dir,
-          save_dir,
-          demo_path,
-          pretrain_name):
+def learn(config: Config, log_dir, save_dir, demo_path, pretrain_name):
 
   use_option = config.use_option
   env_name = config.env_name
@@ -289,7 +285,7 @@ def learn(config: Config,
   use_state_filter = config.use_state_filter
   loss_type = config.loss_type
   base_dir = config.base_dir
-  
+
   msg = f"{config.alg_name}_{config.tag}"
 
   set_seed(seed)
@@ -310,8 +306,9 @@ def learn(config: Config,
   device = torch.device(config.device)
   dim_c = config.dim_c
 
-  demo_sa_array, demo_labels, cnt_label = load_n_convert_data(
-      demo_path, n_traj, n_labeled, device, dim_c, seed)
+  (demo_sa_array, demo_labels, cnt_label, expert_avg,
+   expert_std) = load_n_convert_data(demo_path, n_traj, n_labeled, device,
+                                     dim_c, seed)
 
   filter_state = StateFilter(False)
 

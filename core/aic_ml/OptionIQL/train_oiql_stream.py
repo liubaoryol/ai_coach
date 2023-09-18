@@ -5,7 +5,8 @@ import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
 from collections import deque
-from aic_ml.baselines.IQLearn.utils.utils import make_env, eval_mode
+from aic_ml.baselines.IQLearn.utils.utils import (make_env, eval_mode,
+                                                  compute_expert_return_mean)
 from aic_ml.baselines.IQLearn.dataset.expert_dataset import (ExpertDataset)
 from aic_ml.baselines.IQLearn.utils.logger import Logger
 from .agent.make_agent import make_oiql_agent, make_osac_agent
@@ -134,6 +135,12 @@ def trainer_impl(config: Config,
         demo_path, num_trajs, n_labeled, seed)
     output_suffix = f"_n{num_trajs}_l{cnt_label}"
     batch_size = min(batch_size, len(expert_dataset))
+
+    expert_avg, expert_std = compute_expert_return_mean(
+        expert_dataset.trajectories)
+
+    wandb.run.summary["expert_avg"] = expert_avg
+    wandb.run.summary["expert_std"] = expert_std
 
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
 

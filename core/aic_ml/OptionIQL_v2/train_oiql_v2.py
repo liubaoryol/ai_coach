@@ -140,8 +140,9 @@ def learn(config: Config,
   device = torch.device(config.device)
   dim_c = config.dim_c
 
-  demo_sa_array, demo_labels, cnt_label = load_n_convert_data(
-      demo_path, n_traj, n_labeled, device, dim_c, seed)
+  (demo_sa_array, demo_labels, cnt_label, expert_avg,
+   expert_std) = load_n_convert_data(demo_path, n_traj, n_labeled, device,
+                                     dim_c, seed)
 
   critic = OptionCritic(config, dim_s, dim_a, config.dim_c)
   policy = OptionPolicy(config, dim_s, dim_a, config.dim_c)
@@ -167,7 +168,7 @@ def learn(config: Config,
           f"step-sample-avg={sample_avgstep} ; {msg}")
 
     train_iql(agent, config, sample_sxar, demo_sxa, batch_size, logger,
-              explore_step,  use_target, do_soft_update, method_loss,
+              explore_step, use_target, do_soft_update, method_loss,
               method_regularize)
     explore_step += sum([len(traj[0]) for traj in sample_sxar])
 
