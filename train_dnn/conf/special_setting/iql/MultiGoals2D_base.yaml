@@ -7,8 +7,8 @@ mini_batch_size: 256
 
 iql_agent_name: sac
 
-hidden_critic: [64, 64]
-hidden_policy: [64, 64]
+hidden_critic: [256, 256]
+hidden_policy: [256, 256]
 optimizer_lr_policy: 3.e-5
 init_temp: 1e-2
 learn_temp: False

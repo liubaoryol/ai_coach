@@ -103,26 +103,24 @@ class MentalIQL:
     return vec_v_args, vec_next_v_args, vec_actions, done
 
   def pi_update(self, policy_batch, expert_batch, logger, step):
-    PI_IS_SQIL = False
     if self.discrete_act:
       pi_use_target, pi_soft_update = False, False
     else:
       pi_use_target, pi_soft_update = True, True
 
     pi_loss = self.pi_agent.iq_update(policy_batch, expert_batch, logger,
-                                      self.pi_update_count, PI_IS_SQIL,
-                                      pi_use_target, pi_soft_update,
-                                      self.pi_agent.method_loss,
+                                      self.pi_update_count, pi_use_target,
+                                      pi_soft_update, self.pi_agent.method_loss,
                                       self.pi_agent.method_regularize)
     self.pi_update_count += 1
     return pi_loss
 
   def tx_update(self, policy_batch, expert_batch, logger, step):
-    TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False, False
+    TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False
     tx_loss = self.tx_agent.iq_update(policy_batch[:self.tx_batch_size],
                                       expert_batch[:self.tx_batch_size], logger,
-                                      self.tx_update_count, TX_IS_SQIL,
-                                      TX_USE_TARGET, TX_DO_SOFT_UPDATE,
+                                      self.tx_update_count, TX_USE_TARGET,
+                                      TX_DO_SOFT_UPDATE,
                                       self.tx_agent.method_loss,
                                       self.tx_agent.method_regularize)
     self.tx_update_count += 1

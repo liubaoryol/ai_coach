@@ -90,23 +90,6 @@ def iq_loss(agent,
     loss += v0_loss
     loss_dict['v0_loss'] = v0_loss.item()
 
-  # alternative sampling strategies for the sake of completeness but are usually suboptimal in practice
-  # elif args.method.loss == "value_policy":
-  #     # sample using only policy states
-  #     # E_(ρ)[V(s) - γV(s')]
-  #     value_loss = (current_v - y)[~is_expert].mean()
-  #     loss += value_loss
-  #     loss_dict['value_policy_loss'] = value_loss.item()
-
-  # elif args.method.loss == "value_mix":
-  #     # sample by weighted combination of expert and policy states
-  #     # E_(ρ)[Q(s,a) - γV(s')]
-  #     w = args.method.mix_coeff
-  #     value_loss = (w * (current_v - y)[is_expert] +
-  #                   (1-w) * (current_v - y)[~is_expert]).mean()
-  #     loss += value_loss
-  #     loss_dict['value_loss'] = value_loss.item()
-
   else:
     raise ValueError(f'This sampling method is not implemented: {method_type}')
 

@@ -1,8 +1,8 @@
 # @package _global_
 
-hidden_policy: [64, 64]
-hidden_option: [64, 64]
-hidden_critic: [64, 64]
+hidden_policy: [128, 128]
+hidden_option: [128, 128]
+hidden_critic: [128, 128]
 hidden_discriminator: [256, 256]
 n_sample: 4096
 log_std_bounds: [-20, 0]

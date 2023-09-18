@@ -210,3 +210,15 @@ def average_dicts(dict1, dict2):
       key: 1 / 2 * (dict1.get(key, 0) + dict2.get(key, 0))
       for key in set(dict1) | set(dict2)
   }
+
+
+def compute_expert_return_mean(trajectories):
+  expert_returns = []
+  n_expert_trj = len(trajectories["rewards"])
+  for i_e in range(n_expert_trj):
+    expert_returns.append(sum(trajectories["rewards"][i_e]))
+
+  expert_return_avg = np.mean(expert_returns)
+  expert_return_std = np.std(expert_returns)
+  print(f'Demo reward: {expert_return_avg} +- {expert_return_std}')
+  return expert_return_avg, expert_return_std

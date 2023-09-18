@@ -58,6 +58,7 @@ class MultiGoals2D(gym.Env):
 
     self.img_pirate = cv2.resize(img_pirate, (30, 30))
     self.img_island = cv2.resize(img_island, (30, 30))
+    self.delay = 10
 
     self.reset()
 
@@ -142,7 +143,10 @@ class MultiGoals2D(gym.Env):
   def render(self, mode='human'):
     if mode == 'human':
       cv2.imshow("MultiGoals on Plane", self.get_canvas())
-      cv2.waitKey(300)
+      cv2.waitKey(self.delay)
+
+  def set_render_delay(self, delay):
+    self.delay = delay
 
   def close(self):
     cv2.destroyAllWindows()
@@ -207,7 +211,7 @@ def get_new_goal_idx(visited, goals, cur_goal_idx, state, tolerance):
   return np.random.choice(np.where(visited == 0)[0])
 
 
-def generate_data(save_dir, env_name, n_traj, render=False):
+def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
   expert_trajs = defaultdict(list)
   if env_name == "MultiGoals2D_1-v0":
     env = MultiGoals2D_1()
@@ -221,6 +225,8 @@ def generate_data(save_dir, env_name, n_traj, render=False):
     env = MultiGoals2D_5()
   else:
     raise NotImplementedError
+
+  env.set_render_delay(render_delay)
 
   for _ in range(n_traj):
     state = env.reset()
@@ -268,4 +274,4 @@ if __name__ == "__main__":
 
   # for idx in range(1, 6):
   # traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 500, False)
-  traj = generate_data(None, "MultiGoals2D_2-v0", 1, True)
+  traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 50)
