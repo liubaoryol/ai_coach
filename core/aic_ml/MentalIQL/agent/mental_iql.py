@@ -1,23 +1,23 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from aic_ml.baselines.option_gail.utils.config import Config
 from .nn_models import (SimpleOptionQNetwork, DoubleOptionQCritic,
                         SingleOptionQCritic, DiagGaussianOptionActor)
 # from .option_softq import OptionSoftQ
 # from .option_sac import OptionSAC
 from .option_iql import IQLOptionSAC, IQLOptionSoftQ
+from omegaconf import DictConfig
 
 
-def get_tx_pi_config(config: Config):
+def get_tx_pi_config(config: DictConfig):
   tx_prefix = "miql_tx_"
-  config_tx = Config()
+  config_tx = DictConfig({})
   for key in config:
     if key[:len(tx_prefix)] == tx_prefix:
       config_tx[key[len(tx_prefix):]] = config[key]
 
   pi_prefix = "miql_pi_"
-  config_pi = Config()
+  config_pi = DictConfig({})
   for key in config:
     if key[:len(pi_prefix)] == pi_prefix:
       config_pi[key[len(pi_prefix):]] = config[key]
@@ -30,8 +30,8 @@ def get_tx_pi_config(config: Config):
 
 class MentalIQL:
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim, discrete_obs,
-               discrete_act):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim,
+               discrete_obs, discrete_act):
     self.discrete_obs = discrete_obs
     self.obs_dim = obs_dim
     self.action_dim = action_dim

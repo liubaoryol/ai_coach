@@ -4,12 +4,12 @@ import torch.nn as nn
 from torch.distributions import Normal
 from torch.autograd import Variable, grad
 from aic_ml.baselines.IQLearn.utils.utils import mlp, weight_init
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
 class OptionSACQCritic(nn.Module):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__()
     self.obs_dim = obs_dim
     self.action_dim = action_dim
@@ -29,7 +29,7 @@ class OptionSACQCritic(nn.Module):
 
 class OptionDoubleQCritic(OptionSACQCritic):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
 
     list_hidden_dims = config.hidden_critic
@@ -108,7 +108,7 @@ class OptionDoubleQCritic(OptionSACQCritic):
 
 class OptionSingleQCritic(OptionSACQCritic):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
 
     list_hidden_dims = config.hidden_critic
@@ -179,7 +179,7 @@ class OptionSingleQCritic(OptionSACQCritic):
 
 class AbstractOptionActor(nn.Module):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__()
 
     self.obs_dim = obs_dim
@@ -220,7 +220,7 @@ class AbstractOptionActor(nn.Module):
 
 class SoftDiscreteOptionActor(AbstractOptionActor):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.temperature = config.gumbel_temperature
 
@@ -264,7 +264,7 @@ class SoftDiscreteOptionActor(AbstractOptionActor):
 
 class DiagGaussianOptionActor(AbstractOptionActor):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.log_std_bounds = config.log_std_bounds
     self.bounded = config.bounded_actor
@@ -331,7 +331,7 @@ class DiagGaussianOptionActor(AbstractOptionActor):
 
 class AbstractOptionThinker(nn.Module):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__()
 
     self.obs_dim = obs_dim
@@ -368,7 +368,7 @@ class AbstractOptionThinker(nn.Module):
 
 class SoftDiscreteOptionThinker(AbstractOptionThinker):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.temperature = config.gumbel_temperature
 

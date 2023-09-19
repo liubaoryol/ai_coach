@@ -5,7 +5,7 @@ from torch.distributions import Normal
 from aic_ml.baselines.option_gail.utils.model_util import (make_module,
                                                            make_module_list,
                                                            make_activation)
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig as Config
 
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 

@@ -1,12 +1,12 @@
 import torch
 from .option_critic import OptionCritic, Critic
 from .option_policy_v2 import OptionPolicyV2, PolicyV2
-from ..utils.config import Config
+from omegaconf import DictConfig
 
 
 class PPOV2(object):
 
-  def __init__(self, config: Config, policy: PolicyV2):
+  def __init__(self, config: DictConfig, policy: PolicyV2):
     self.policy = policy
     self.clip_eps = config.clip_eps
     self.lr = config.optimizer_lr_policy
@@ -113,7 +113,7 @@ class PPOV2(object):
 
 class OptionPPOV2(torch.nn.Module):
 
-  def __init__(self, config: Config, policy: OptionPolicyV2):
+  def __init__(self, config: DictConfig, policy: OptionPolicyV2):
     super(OptionPPOV2, self).__init__()
     self.train_policy = config.train_policy
     self.train_option = config.train_option

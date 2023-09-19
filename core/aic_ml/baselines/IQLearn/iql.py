@@ -20,12 +20,11 @@ from .utils.logger import Logger
 from itertools import count
 import types
 from .iq import iq_loss
-from aic_ml.baselines.option_gail.utils.config import Config
 import wandb
 import omegaconf
 
 
-def run_sac(config: Config,
+def run_sac(config: omegaconf.DictConfig,
             log_dir,
             output_dir,
             log_interval=500,
@@ -42,7 +41,7 @@ def run_sac(config: Config,
                       imitate=False)
 
 
-def run_iql(config: Config,
+def run_iql(config: omegaconf.DictConfig,
             demo_path,
             num_trajs,
             log_dir,
@@ -61,7 +60,7 @@ def run_iql(config: Config,
                       imitate=True)
 
 
-def trainer_impl(config: Config,
+def trainer_impl(config: omegaconf.DictConfig,
                  demo_path,
                  num_trajs,
                  log_dir,

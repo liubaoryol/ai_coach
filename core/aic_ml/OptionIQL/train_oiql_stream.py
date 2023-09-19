@@ -13,13 +13,12 @@ from .agent.make_agent import make_oiql_agent, make_osac_agent
 from .helper.option_memory import OptionMemory
 from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
                            infer_mental_states)
-from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.MentalIQL.train_miql import (load_expert_data_w_labels)
 import wandb
 import omegaconf
 
 
-def train_osac_stream(config: Config,
+def train_osac_stream(config: omegaconf.DictConfig,
                       log_dir,
                       output_dir,
                       log_interval=500,
@@ -29,7 +28,7 @@ def train_osac_stream(config: Config,
                       log_interval, eval_interval, env_kwargs)
 
 
-def train_oiql_stream(config: Config,
+def train_oiql_stream(config: omegaconf.DictConfig,
                       demo_path,
                       num_trajs,
                       log_dir,
@@ -41,7 +40,7 @@ def train_oiql_stream(config: Config,
                       log_interval, eval_interval, env_kwargs)
 
 
-def trainer_impl(config: Config,
+def trainer_impl(config: omegaconf.DictConfig,
                  demo_path,
                  num_trajs,
                  log_dir,

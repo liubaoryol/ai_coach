@@ -52,7 +52,7 @@ class MultiGoals2D(gym.Env):
     curdir = os.path.dirname(__file__)
     self.goals = possible_goals
     self.visited = np.zeros(len(self.goals))
-    self.tolerance = 0.3
+    self.tolerance = 0.5
     img_pirate = read_transparent_png(os.path.join(curdir, 'images/pirate.png'))
     img_island = read_transparent_png(os.path.join(curdir, 'images/island.png'))
 
@@ -189,8 +189,8 @@ def get_action(goal, state):
   noise = np.array([nx, ny])
   RANDOM = False
   if RANDOM:
-    vx = np.random.rand() * 2 - 1
-    vy = np.random.rand() * 2 - 1
+    vx = 0.9 * (np.random.rand() * 2 - 1)
+    vy = 0.9 * (np.random.rand() * 2 - 1)
     return np.array([vx, vy]) + noise
   else:
     vec_dir = goal - state
@@ -235,8 +235,7 @@ def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
 
     samples = []
     for cnt in range(200):
-      goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state,
-                                  env.tolerance)
+      goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state, 0.3)
       action = get_action(env.goals[goal_idx], state)
       next_state, reward, done, info = env.step(action)
 

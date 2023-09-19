@@ -3,14 +3,14 @@ import torch
 import torch.nn.functional as F
 from ..utils.model_util import (make_module, make_module_list, make_activation,
                                 conv_nn_input)
-from ..utils.config import Config
+from omegaconf import DictConfig
 
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 
 
 class Policy(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(Policy, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
@@ -64,7 +64,7 @@ class Policy(torch.nn.Module):
 class OptionPolicy(torch.nn.Module):
 
   def __init__(self,
-               config: Config,
+               config: DictConfig,
                dim_s=2,
                dim_a=2,
                discrete_s=False,
@@ -312,7 +312,7 @@ class OptionPolicy(torch.nn.Module):
 
 class MoEPolicy(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(MoEPolicy, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a

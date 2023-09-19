@@ -3,12 +3,12 @@ import torch.nn.functional as F
 from .option_policy import OptionPolicy, Policy, MoEPolicy
 from .option_discriminator import (OptionDiscriminator, Discriminator,
                                    MoEDiscriminator)
-from ..utils.config import Config
+from omegaconf import DictConfig
 
 
 class GAIL(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(GAIL, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
@@ -116,7 +116,7 @@ class GAIL(torch.nn.Module):
 class OptionGAIL(torch.nn.Module):
 
   def __init__(self,
-               config: Config,
+               config: DictConfig,
                dim_s=2,
                dim_a=2,
                discrete_s=False,
@@ -238,7 +238,7 @@ class OptionGAIL(torch.nn.Module):
 
 class MoEGAIL(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(MoEGAIL, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s

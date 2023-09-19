@@ -1,12 +1,12 @@
 import torch
 from .option_critic import OptionCritic, Critic
 from .option_policy import OptionPolicy, Policy, MoEPolicy
-from ..utils.config import Config
+from omegaconf import DictConfig
 
 
 class PPO(object):
 
-  def __init__(self, config: Config, policy: Policy):
+  def __init__(self, config: DictConfig, policy: Policy):
     self.policy = policy
     self.clip_eps = config.clip_eps
     self.lr = config.optimizer_lr_policy
@@ -104,7 +104,7 @@ class PPO(object):
 
 class OptionPPO(torch.nn.Module):
 
-  def __init__(self, config: Config, policy: OptionPolicy):
+  def __init__(self, config: DictConfig, policy: OptionPolicy):
     super(OptionPPO, self).__init__()
     self.train_policy = config.train_policy
     self.train_option = config.train_option
@@ -289,7 +289,7 @@ class OptionPPO(torch.nn.Module):
 
 class MoEPPO(PPO):
 
-  def __init__(self, config: Config, policy: MoEPolicy):
+  def __init__(self, config: DictConfig, policy: MoEPolicy):
     super(MoEPPO, self).__init__(config, policy)
 
   def step(self, sample_sar, lr_mult=1., n_step=10):

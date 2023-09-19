@@ -5,10 +5,10 @@ from .option_models import (SoftDiscreteOptionActor, DiagGaussianOptionActor,
                             SoftDiscreteOptionThinker, OptionDoubleQCritic,
                             OptionSingleQCritic)
 from .option_iql import OptionIQL, OptionSAC
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
-def make_oiql_agent(config: Config, env: gym.Env):
+def make_oiql_agent(config: DictConfig, env: gym.Env):
   'discrete observation may not work well'
 
   latent_dim = config.dim_c
@@ -43,7 +43,7 @@ def make_oiql_agent(config: Config, env: gym.Env):
   return agent
 
 
-def make_osac_agent(config: Config, env: gym.Env):
+def make_osac_agent(config: DictConfig, env: gym.Env):
   'discrete observation may not work well'
 
   latent_dim = config.dim_c

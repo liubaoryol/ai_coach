@@ -4,9 +4,9 @@ import torch
 
 import gym
 from ..model.option_policy import Policy
-from .config import Config
 from .state_filter import StateFilter
 from gym.spaces import Discrete, Box
+from omegaconf import DictConfig
 
 
 class MujocoEnv(object):
@@ -106,7 +106,7 @@ def load_demo(load_path: str, n_traj: int = 10):
   return sample, filter_state
 
 
-def generate_demo(mujoco_config: Config,
+def generate_demo(mujoco_config: DictConfig,
                   save_path: str,
                   expert_path: Optional[str],
                   config_path: Optional[str] = None,
@@ -161,7 +161,7 @@ def generate_demo(mujoco_config: Config,
   return sample, filter_state
 
 
-def get_demo(mujoco_config: Config,
+def get_demo(mujoco_config: DictConfig,
              path: str,
              expert_path: Optional[str] = None,
              config_path: Optional[str] = None,

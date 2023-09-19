@@ -11,13 +11,13 @@ from .utils.utils import (env_class, validate, reward_validate, set_seed,
                           load_n_convert_data)
 from .utils.agent import Sampler
 from .utils.logger import Logger
-from .utils.config import Config
 from .utils.pre_train import pretrain
 import wandb
 import omegaconf
 
 
-def make_gail(config: Config, dim_s, dim_a, discrete_s, discrete_a):
+def make_gail(config: omegaconf.DictConfig, dim_s, dim_a, discrete_s,
+              discrete_a):
   use_option = config.use_option
 
   if use_option:
@@ -57,8 +57,8 @@ def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array,
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
 
 
-def learn(config: Config, log_dir, save_dir, demo_path, pretrain_name,
-          eval_interval):
+def learn(config: omegaconf.DictConfig, log_dir, save_dir, demo_path,
+          pretrain_name, eval_interval):
 
   env_type = config.env_type
   use_pretrain = config.use_pretrain

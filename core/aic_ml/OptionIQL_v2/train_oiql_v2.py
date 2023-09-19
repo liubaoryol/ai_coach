@@ -9,12 +9,12 @@ from aic_ml.baselines.option_gail.utils.utils import (env_class, set_seed,
                                                       reward_validate,
                                                       load_n_convert_data)
 from aic_ml.baselines.option_gail.utils.logger import Logger
-from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.baselines.option_gail.utils.agent import _SamplerCommon
 from .model.option_critic import OptionCritic
 from .model.option_policy import OptionPolicy
 from .model.option_iql_v2 import OptionIQL_V2
 from .agent import Sampler
+from omegaconf import DictConfig
 
 
 def train_iql(agent: OptionIQL_V2,
@@ -104,7 +104,7 @@ def sample_batch(agent: OptionIQL_V2, sampler: _SamplerCommon, n_sample: int,
   return sample_sxar, demo_sxa, sample_r, sample_avgstep
 
 
-def learn(config: Config,
+def learn(config: DictConfig,
           log_dir,
           save_dir,
           demo_path,

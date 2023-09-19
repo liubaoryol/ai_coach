@@ -7,12 +7,12 @@ from torch.optim import Adam
 from aic_ml.baselines.IQLearn.utils.utils import (soft_update, one_hot,
                                                   one_hot_w_nan)
 from .option_models import AbstractOptionActor, AbstractOptionThinker
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
 class OptionSAC(object):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim, discrete_obs,
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim, discrete_obs,
                critic: nn.Module, actor: AbstractOptionActor,
                thinker: AbstractOptionThinker):
     self.gamma = config.gamma

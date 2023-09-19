@@ -13,10 +13,10 @@ from .agent.option_sac import OptionSAC
 from .helper.option_memory import OptionMemory
 from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
                            infer_mental_states)
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
-def train_osac_pond(config: Config,
+def train_osac_pond(config: DictConfig,
                     log_dir,
                     output_dir,
                     log_interval=500,
@@ -26,7 +26,7 @@ def train_osac_pond(config: Config,
                       log_interval, eval_interval, env_kwargs)
 
 
-def train_oiql_pond(config: Config,
+def train_oiql_pond(config: DictConfig,
                     demo_path,
                     num_trajs,
                     log_dir,
@@ -38,8 +38,8 @@ def train_oiql_pond(config: Config,
                       log_interval, eval_interval, env_kwargs)
 
 
-def step_iq_update(config: Config, agent: OptionIQL, sample_data, expert_data,
-                   logger, explore_steps):
+def step_iq_update(config: DictConfig, agent: OptionIQL, sample_data,
+                   expert_data, logger, explore_steps):
   use_target = True
   do_soft_update = True
 
@@ -66,7 +66,7 @@ def step_iq_update(config: Config, agent: OptionIQL, sample_data, expert_data,
   return losses
 
 
-def step_sac_update(config: Config, agent: OptionSAC,
+def step_sac_update(config: DictConfig, agent: OptionSAC,
                     online_memory_replay: OptionMemory, logger, explore_steps):
   # #################### update
   # agent.reset_optimizers(config)
@@ -77,7 +77,7 @@ def step_sac_update(config: Config, agent: OptionSAC,
   return losses
 
 
-def trainer_impl(config: Config,
+def trainer_impl(config: DictConfig,
                  demo_path,
                  num_trajs,
                  log_dir,

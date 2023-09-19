@@ -11,9 +11,9 @@ from .utils.utils import (validate, reward_validate, set_seed, env_class,
 
 from .utils.logger import Logger
 from .utils.state_filter import StateFilter
-from .utils.config import Config
 from .utils.agent import Sampler
 import numpy as np
+from omegaconf import DictConfig
 
 
 def policy_loss(optimizer, policy: Policy, sa_array, n_step=10):
@@ -263,7 +263,7 @@ def pretrain(policy: Union[OptionPolicy, Policy],
     logger.flush()
 
 
-def make_policy(config: Config, dim_s, dim_a):
+def make_policy(config: DictConfig, dim_s, dim_a):
   use_option = config.use_option
 
   if use_option:
@@ -273,7 +273,7 @@ def make_policy(config: Config, dim_s, dim_a):
   return policy
 
 
-def learn(config: Config, log_dir, save_dir, demo_path, pretrain_name):
+def learn(config: DictConfig, log_dir, save_dir, demo_path, pretrain_name):
 
   use_option = config.use_option
   env_name = config.env_name

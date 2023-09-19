@@ -6,14 +6,14 @@ import torch.nn.functional as F
 import torch.nn as nn
 from torch.optim import Adam
 from aic_ml.baselines.IQLearn.utils.utils import (one_hot, soft_update)
-from aic_ml.baselines.option_gail.utils.config import Config
 from .nn_models import AbstractOptionActor
 from .option_abstract import AbstractPolicyLeaner
+from omegaconf import DictConfig
 
 
 class OptionSAC(AbstractPolicyLeaner):
 
-  def __init__(self, config: Config, obs_dim, action_dim, option_dim,
+  def __init__(self, config: DictConfig, obs_dim, action_dim, option_dim,
                discrete_obs, critic_base: Type[nn.Module],
                actor: AbstractOptionActor):
     super().__init__(config)

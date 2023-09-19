@@ -1,49 +1,11 @@
-import os
 from aic_ml.MentalIQL.agent.make_agent import (make_miql_agent)
 from aic_ml.OptionIQL.agent.make_agent import (make_oiql_agent)
-from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.baselines.IQLearn.utils.utils import make_env
 from aic_ml.MentalIQL.train_miql import (load_expert_data_w_labels)
-import gym_custom
-import importlib.util
-import sys
 import numpy as np
 from aic_core.utils.result_utils import hamming_distance
 from aic_ml.OptionIQL.helper.utils import (infer_mental_states)
-
-spec = importlib.util.spec_from_file_location(
-    "default_config",
-    "/home/sangwon/Projects/ai_coach/test_algs/default_config.py")
-foo = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(foo)
-
-
-def miql_model_load(env_name, model_path):
-  root_dir = os.path.dirname(os.path.dirname(model_path))
-  config_path = os.path.join(root_dir, 'config.txt')
-
-  config = foo.default_config
-  config.load_saved(config_path)
-
-  env = make_env(env_name, env_make_kwargs={})
-  agent = make_miql_agent(config, env)
-
-  agent.load(model_path)
-  return agent, config
-
-
-def oiql_model_load(env_name, model_path):
-  root_dir = os.path.dirname(os.path.dirname(model_path))
-  config_path = os.path.join(root_dir, 'config.txt')
-
-  config = foo.default_config
-  config.load_saved(config_path)
-
-  env = make_env(env_name, env_make_kwargs={})
-  agent = make_oiql_agent(config, env)
-
-  agent.load(model_path)
-  return agent, config
+from omegaconf import OmegaConf
 
 
 def miql_infer_latent(agent, trajectories):
@@ -76,16 +38,23 @@ def get_stats_about_x(list_inferred_x, list_true_x):
 
 if __name__ == "__main__":
 
-  if False:
+  if True:
     # load model
-    model_path = "/home/sangwon/Projects/ai_coach/test_algs/result/EnvMovers-v0/miql/miql_256_3e-5_value/2023-08-15_00-53-14/model/miql_iq_EnvMovers-v0_n44_l44_best"
-    env_name = "EnvMovers-v0"
+    log_path = (
+        "/home/sangwon/Projects/ai_coach/train_dnn/result/" +
+        "MultiGoals2D_2-v0/miql/Ttx001Tpi001valSv0/2023-09-18_10-14-11/")
+    config_path = log_path + "log/config.yaml"
+    model_path = log_path + "model/miql_iq_EnvMovers-v0_n44_l44_best"
+    env_name = "MultiGoals2D_2-v0"
+    config = OmegaConf.load(config_path)
 
-    agent, config = miql_model_load(env_name, model_path)
+    env = make_env(env_name, env_make_kwargs={})
+    agent = make_miql_agent(config, env)
+    agent.load(model_path)
 
     # load data
     num_data = 22
-    data_path = "/home/sangwon/Projects/ai_coach/test_algs/experts/EnvMovers_v0_22.pkl"
+    data_path = "/home/sangwon/Projects/ai_coach/train_dnn/experts/EnvMovers_v0_22.pkl"
     expert_dataset, traj_labels, cnt_label = load_expert_data_w_labels(
         data_path, num_data, 0, 0)
 

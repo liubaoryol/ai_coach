@@ -1,13 +1,13 @@
 from typing import Type, Callable
 import torch
 import torch.nn as nn
-from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.baselines.IQLearn.utils.utils import (average_dicts, soft_update,
                                                   hard_update,
                                                   get_concat_samples)
 from aic_ml.baselines.IQLearn.iq import iq_loss, OFFLINE_METHOD_LOSS
 from .option_softq import OptionSoftQ
 from .option_sac import OptionSAC
+from omegaconf import DictConfig
 
 
 class IQMixin:
@@ -134,7 +134,7 @@ class IQMixin:
 
 class IQLOptionSoftQ(IQMixin, OptionSoftQ):
 
-  def __init__(self, config: Config, num_inputs, action_dim, option_dim,
+  def __init__(self, config: DictConfig, num_inputs, action_dim, option_dim,
                discrete_obs, q_net_base: Type[nn.Module],
                cb_get_iq_variables: Callable):
     super().__init__(config, num_inputs, action_dim, option_dim, discrete_obs,
@@ -150,7 +150,7 @@ class IQLOptionSoftQ(IQMixin, OptionSoftQ):
 
 class IQLOptionSAC(IQMixin, OptionSAC):
 
-  def __init__(self, config: Config, obs_dim, action_dim, option_dim,
+  def __init__(self, config: DictConfig, obs_dim, action_dim, option_dim,
                discrete_obs, critic_base: Type[nn.Module], actor,
                cb_get_iq_variables: Callable):
     super().__init__(config, obs_dim, action_dim, option_dim, discrete_obs,

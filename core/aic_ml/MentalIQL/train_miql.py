@@ -12,7 +12,6 @@ from aic_ml.baselines.IQLearn.utils.logger import Logger
 from aic_ml.OptionIQL.helper.option_memory import (OptionMemory)
 from aic_ml.OptionIQL.helper.utils import (get_expert_batch, evaluate, save,
                                            get_samples)
-from aic_ml.baselines.option_gail.utils.config import Config
 from .agent.make_agent import MentalIQL
 from .agent.make_agent import make_miql_agent
 import wandb
@@ -72,7 +71,7 @@ def infer_last_next_mental_state(agent: MentalIQL, expert_traj,
   return list_last_next_mental_state
 
 
-def train(config: Config,
+def train(config: omegaconf.DictConfig,
           demo_path,
           num_trajs,
           log_dir,
