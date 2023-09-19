@@ -156,8 +156,6 @@ def trainer_impl(config: omegaconf.DictConfig,
     wandb.run.summary["expert_avg"] = expert_return_avg
     wandb.run.summary["expert_std"] = expert_return_std
 
-    expert_memory_replay.trajectories
-
   online_memory_replay = Memory(replay_mem, seed + 1)
 
   initial_mem = config.init_sample

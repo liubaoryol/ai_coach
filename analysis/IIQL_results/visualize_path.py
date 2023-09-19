@@ -76,5 +76,5 @@ if __name__ == "__main__":
     latent = next_latent
 
   cur_dir = os.path.dirname(__file__)
-  output_path = os.path.join(cur_dir, "path2.png")
+  output_path = os.path.join(cur_dir, "path3.png")
   cv2.imwrite(output_path, canvas)
