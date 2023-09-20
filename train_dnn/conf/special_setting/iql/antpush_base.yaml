@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - oiql/mujoco_base
+  - iql/mujoco_base
 
 n_traj: 253
 max_explore_step: 5e6

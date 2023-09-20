@@ -4,4 +4,4 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia' >> ~/.bashrc
 sudo apt-get update -y 
 sudo apt-get install -y libglew-dev patchelf
 
-source ~/.bashrc
+# source ~/.bashrc   # not working...

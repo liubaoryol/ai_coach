@@ -3,5 +3,4 @@
 defaults:
   - ogail/mujoco_base
 
-n_traj: 253
-max_explore_step: 7e6
+n_traj: 1

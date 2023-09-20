@@ -1,6 +1,7 @@
 # @package _global_
 
-max_explore_step: 1.5e6
+max_explore_step: 1e6
+n_traj: 5
 
 n_sample: 50000
 init_sample: 1000
