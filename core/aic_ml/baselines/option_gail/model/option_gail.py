@@ -1,8 +1,10 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 from .option_policy import OptionPolicy, Policy, MoEPolicy
 from .option_discriminator import (OptionDiscriminator, Discriminator,
                                    MoEDiscriminator)
+from aic_ml.baselines.IQLearn.utils.utils import one_hot
 from omegaconf import DictConfig
 
 
@@ -234,6 +236,30 @@ class OptionGAIL(torch.nn.Module):
         r_sum_avg += r_real_array.sum().item()
       r_sum_avg /= len(sample_scar)
     return out_sample, r_sum_avg
+
+  def conv_input(self, batch_input, is_onehot_needed, dimension):
+    if is_onehot_needed:
+      if not isinstance(batch_input, torch.Tensor):
+        batch_input = torch.tensor(
+            batch_input, dtype=torch.float).reshape(-1).to(self.device)
+      else:
+        batch_input = batch_input.reshape(-1)
+      batch_input = one_hot(batch_input, dimension)
+    else:
+      if not isinstance(batch_input, torch.Tensor):
+        batch_input = torch.tensor(np.array(batch_input).reshape(-1, dimension),
+                                   dtype=torch.float).to(self.device)
+
+    return batch_input
+
+  def infer_mental_states(self, s_array, a_array):
+    s_array = self.conv_input(np.array(s_array), self.policy.discrete_s,
+                              self.dim_s)
+    a_array = self.conv_input(np.array(a_array), self.policy.discrete_a,
+                              self.dim_a)
+
+    c_array, log_prob_traj = self.policy.viterbi_path(s_array, a_array)
+    return c_array[1:].cpu().numpy(), log_prob_traj.cpu().numpy()
 
 
 class MoEGAIL(torch.nn.Module):

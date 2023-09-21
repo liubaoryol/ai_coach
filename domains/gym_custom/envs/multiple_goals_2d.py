@@ -99,16 +99,16 @@ class MultiGoals2D(gym.Env):
     canvas_sz = 300
     canvas = np.ones((canvas_sz, canvas_sz, 3), dtype=np.uint8) * 255
 
-    bg_unit = canvas_sz // 6
-    for idx in range(6):
-      if idx % 2 == 0:
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 197
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 120
-      else:
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 150
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 14
+    # bg_unit = canvas_sz // 6
+    # for idx in range(6):
+    #   if idx % 2 == 0:
+    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
+    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 197
+    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 120
+    #   else:
+    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
+    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 150
+    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 14
 
     def env_pt_2_scr_pt(env_pt):
       pt = env_pt - self.observation_space.low
@@ -271,6 +271,6 @@ def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
 if __name__ == "__main__":
   cur_dir = os.path.dirname(__file__)
 
-  # for idx in range(1, 6):
-  # traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 500, False)
-  traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 50)
+  for idx in range(2, 6):
+    traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 50, False)
+  # traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 50)
