@@ -83,9 +83,13 @@ def run_alg(config):
     from aic_ml.OptionIQL.train_oiql_pond import (train_osac_pond)
     train_osac_pond(config, log_dir, output_dir, log_interval, eval_interval)
   elif alg_name[:3] == "sb3":
-    from sb3_algs import sb3_run
-    sb3_run(config, log_dir, output_dir, log_interval, eval_interval,
-            alg_name[4:])
+    if alg_name[3:] == "bc":
+      from sb3_algs import sb3_bc
+      sb3_bc(config, path_iq_data, num_traj, log_dir, output_dir, log_interval)
+    else:
+      from sb3_algs import sb3_rl
+      sb3_rl(config, log_dir, output_dir, log_interval, eval_interval,
+             alg_name[3:])
   elif alg_name == "miql" and config.stream_training:
     from aic_ml.MentalIQL.train_miql import train
     train(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,

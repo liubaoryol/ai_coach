@@ -12,8 +12,8 @@ from omegaconf import DictConfig
 
 class OptionSAC(object):
 
-  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim, discrete_obs,
-               critic: nn.Module, actor: AbstractOptionActor,
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim,
+               discrete_obs, critic: nn.Module, actor: AbstractOptionActor,
                thinker: AbstractOptionThinker):
     self.gamma = config.gamma
     self.batch_size = config.mini_batch_size
@@ -49,15 +49,18 @@ class OptionSAC(object):
     self.target_entropy = -action_dim
 
     # prev latent, prev action
-    self.use_prev_action_dim = config.use_prev_action_dim
-    self.use_prev_latent_dim = config.use_prev_option_dim
+    self.extra_action_dim = config.extra_action_dim
+    self.extra_option_dim = config.extra_option_dim
+    self.use_prev_action = config.use_prev_action
+    if self.use_prev_action is True:
+      raise NotImplementedError("use_prev_action==True is not implemented yet")
 
     # separate policy update
     self.separate_policy_update = config.separate_policy_update
 
     NAN = float("nan")
-    self.PREV_LATENT = NAN
-    if self.use_prev_action_dim:
+    self.PREV_LATENT = lat_dim
+    if self.extra_action_dim:
       self.PREV_ACTION = (NAN if self.actor.is_discrete() else np.full(
           self.action_dim, NAN, dtype=float))
     else:
@@ -103,56 +106,77 @@ class OptionSAC(object):
   def critic_target_net(self):
     return self.critic_target
 
-  def conv_input(self, batch_input, is_discrete, dimension, extra_dim=False):
-    if extra_dim:
-      # find nan
-      if is_discrete:
+  def conv_input(self,
+                 batch_input,
+                 is_onehot_needed,
+                 dimension,
+                 extra_dim=False):
+    if is_onehot_needed:
+      if not isinstance(batch_input, torch.Tensor):
         batch_input = torch.tensor(
             batch_input, dtype=torch.float).reshape(-1).to(self.device)
-        mask_nan = batch_input.isnan()
-        non_nan_input = batch_input[~mask_nan]
-
-        n_batch = len(batch_input)
-        batch_conv = torch.zeros((n_batch, dimension + 1),
-                                 dtype=torch.float).to(device=self.device)
-        if len(non_nan_input) != 0:
-          batch_conv[~mask_nan, :-1] = one_hot(non_nan_input, dimension)
-
-        batch_conv[mask_nan, -1] = 1.0
       else:
-        if not isinstance(batch_input, torch.Tensor):
-          batch_input = torch.tensor(batch_input,
-                                     dtype=torch.float).to(self.device)
-          if batch_input.ndim < 2:
-            batch_input = batch_input.unsqueeze(0)
-        mask_nan = batch_input[:, 0].isnan()
-        batch_input[mask_nan, :] = 0.0
-        is_prev = torch.zeros(len(batch_input)).to(device=self.device)
-        is_prev[mask_nan] = 1.0
-        batch_conv = torch.cat([batch_input, is_prev.reshape(-1, 1)], dim=-1)
-
-      return batch_conv
+        batch_input = batch_input.reshape(-1)
+      dimension = dimension + int(extra_dim)
+      batch_input = one_hot(batch_input, dimension)
     else:
-      if is_discrete:
-        batch_input = torch.tensor(
-            batch_input, dtype=torch.float).reshape(-1).to(self.device)
-        batch_input = one_hot_w_nan(batch_input, dimension)
-      else:
-        if not isinstance(batch_input, torch.Tensor):
-          batch_input = torch.tensor(batch_input,
-                                     dtype=torch.float).to(self.device)
-          if batch_input.ndim < 2:
-            batch_input = batch_input.unsqueeze(0)
+      if not isinstance(batch_input, torch.Tensor):
+        batch_input = torch.tensor(np.array(batch_input).reshape(-1, dimension),
+                                   dtype=torch.float).to(self.device)
 
-      return batch_input
+    return batch_input
+
+  # def conv_input(self, batch_input, is_discrete, dimension, extra_dim=False):
+  #   if extra_dim:
+  #     # find nan
+  #     if is_discrete:
+  #       batch_input = torch.tensor(
+  #           batch_input, dtype=torch.float).reshape(-1).to(self.device)
+  #       mask_nan = batch_input.isnan()
+  #       non_nan_input = batch_input[~mask_nan]
+
+  #       n_batch = len(batch_input)
+  #       batch_conv = torch.zeros((n_batch, dimension + 1),
+  #                                dtype=torch.float).to(device=self.device)
+  #       if len(non_nan_input) != 0:
+  #         batch_conv[~mask_nan, :-1] = one_hot(non_nan_input, dimension)
+
+  #       batch_conv[mask_nan, -1] = 1.0
+  #     else:
+  #       if not isinstance(batch_input, torch.Tensor):
+  #         batch_input = torch.tensor(batch_input,
+  #                                    dtype=torch.float).to(self.device)
+  #         if batch_input.ndim < 2:
+  #           batch_input = batch_input.unsqueeze(0)
+  #       mask_nan = batch_input[:, 0].isnan()
+  #       batch_input[mask_nan, :] = 0.0
+  #       is_prev = torch.zeros(len(batch_input)).to(device=self.device)
+  #       is_prev[mask_nan] = 1.0
+  #       batch_conv = torch.cat([batch_input, is_prev.reshape(-1, 1)], dim=-1)
+
+  #     return batch_conv
+  #   else:
+  #     if is_discrete:
+  #       batch_input = torch.tensor(
+  #           batch_input, dtype=torch.float).reshape(-1).to(self.device)
+  #       batch_input = one_hot_w_nan(batch_input, dimension)
+  #     else:
+  #       if not isinstance(batch_input, torch.Tensor):
+  #         batch_input = torch.tensor(batch_input,
+  #                                    dtype=torch.float).to(self.device)
+  #         if batch_input.ndim < 2:
+  #           batch_input = batch_input.unsqueeze(0)
+
+  #     return batch_input
 
   def gather_mental_probs(self, state, prev_latent, prev_action):
     # --- convert inputs
     state = self.conv_input(state, self.discrete_obs, self.obs_dim)
     prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
-                                  self.lat_dim, self.use_prev_latent_dim)
-    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.use_prev_action_dim)
+                                  self.lat_dim, self.extra_option_dim)
+    # prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+    #                               self.action_dim, self.extra_action_dim)
+    prev_action = None
 
     with torch.no_grad():
       probs, log_probs = self.thinker.mental_probs(state, prev_latent,
@@ -177,13 +201,73 @@ class OptionSAC(object):
       log_prob = self.actor.evaluate_action(state, latent, action)
     return log_prob.cpu().detach().numpy()
 
+  def infer_mental_states(self, state, action):
+    len_demo = len(state)
+
+    # --- convert inputs
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
+
+    lat_indices = np.arange(self.lat_dim)
+    latent = self.conv_input(lat_indices, self.thinker.is_discrete(),
+                             self.lat_dim)
+    prev_latent = self.conv_input(lat_indices, self.thinker.is_discrete(),
+                                  self.lat_dim, self.extra_option_dim)
+    prev_latent0 = self.conv_input(np.array([self.PREV_LATENT]),
+                                   self.thinker.is_discrete(), self.lat_dim,
+                                   self.extra_option_dim)
+
+    # --- action
+    if not isinstance(action, torch.Tensor):
+      n_col = 1 if self.actor.is_discrete() else self.action_dim
+      action = torch.tensor(np.array(action).reshape(-1, n_col)).to(self.device)
+    else:
+      if action.ndim < 2:
+        action = action.unsqueeze(0)
+
+    state = state.repeat_interleave(self.lat_dim, dim=0)
+    action = action.repeat_interleave(self.lat_dim, dim=0)
+    latent = latent.repeat(len_demo, 1)
+    prev_latent = prev_latent.repeat(len_demo, 1)
+
+    with torch.no_grad():
+      log_pis = self.actor.evaluate_action(state, latent, action)
+      log_pis = log_pis.view(-1, 1, self.lat_dim)
+
+      _, log_trs = self.thinker.mental_probs(state, prev_latent, None)
+      log_trs = log_trs.view(-1, self.lat_dim, self.lat_dim)
+      log_prob = log_trs + log_pis
+      _, log_tr0 = self.thinker.mental_probs(state[0], prev_latent0[0], None)
+      log_prob0 = log_tr0[-1] + log_pis[0, 0]
+
+      # forward
+      max_path = torch.empty(len_demo,
+                             self.lat_dim,
+                             dtype=torch.long,
+                             device=self.device)
+      accumulate_logp = log_prob0
+      max_path[0] = self.lat_dim
+      for i in range(1, len_demo):
+        accumulate_logp, max_path[i, :] = (accumulate_logp.unsqueeze(dim=-1) +
+                                           log_prob[i]).max(dim=-2)
+      # backward
+      c_array = torch.zeros(len_demo + 1,
+                            1,
+                            dtype=torch.long,
+                            device=self.device)
+      log_prob_traj, c_array[-1] = accumulate_logp.max(dim=-1)
+      for i in range(len_demo, 0, -1):
+        c_array[i - 1] = max_path[i - 1][c_array[i]]
+
+    return (c_array[1:].detach().cpu().numpy(),
+            log_prob_traj.detach().cpu().numpy())
+
   def choose_action(self, state, prev_latent, prev_action, sample=False):
     # --- convert inputs
     state = self.conv_input(state, self.discrete_obs, self.obs_dim)
     prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
-                                  self.lat_dim, self.use_prev_latent_dim)
+                                  self.lat_dim, self.extra_option_dim)
     prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.use_prev_action_dim)
+                                  self.action_dim, self.extra_action_dim)
 
     with torch.no_grad():
       if sample:
@@ -217,14 +301,14 @@ class OptionSAC(object):
     # ------
 
     prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
-                                  self.lat_dim, self.use_prev_latent_dim)
+                                  self.lat_dim, self.extra_option_dim)
     # --- convert latent
     if self.thinker.is_discrete():
       latent = one_hot(latent, self.lat_dim)
     # ------
 
     prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.use_prev_action_dim)
+                                  self.action_dim, self.extra_action_dim)
     # --- convert discrete action
     if self.actor.is_discrete():
       action = one_hot(action, self.action_dim)
@@ -241,12 +325,12 @@ class OptionSAC(object):
 
     # --- convert prev_latent
     prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
-                                  self.lat_dim, self.use_prev_latent_dim)
+                                  self.lat_dim, self.extra_option_dim)
     # ------
 
     # --- convert prev_action
     prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.use_prev_action_dim)
+                                  self.action_dim, self.extra_action_dim)
     # ------
 
     latent, lat_log_prob = self.thinker.sample(obs, prev_latent, prev_action)
@@ -274,12 +358,12 @@ class OptionSAC(object):
 
     # --- convert prev_latent
     prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
-                                  self.lat_dim, self.use_prev_latent_dim)
+                                  self.lat_dim, self.extra_option_dim)
     # ------
 
     # --- convert prev_action
     prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.use_prev_action_dim)
+                                  self.action_dim, self.extra_action_dim)
     # ------
 
     latent, lat_log_prob = self.thinker.sample(obs, prev_latent, prev_action)
@@ -327,26 +411,26 @@ class OptionSAC(object):
 
     # --- convert latent
     prev_lat = self.conv_input(prev_lat, self.thinker.is_discrete(),
-                               self.lat_dim, self.use_prev_latent_dim)
+                               self.lat_dim, self.extra_option_dim)
     if self.thinker.is_discrete():
       latent = one_hot(latent, self.lat_dim)
     # ------
 
     # --- convert action
     prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
-                               self.action_dim, self.use_prev_action_dim)
+                               self.action_dim, self.extra_action_dim)
     if self.actor.is_discrete():
       action = one_hot(action, self.action_dim)
     # ------
 
     # --- convert action
     zero_column = torch.zeros(len(latent)).reshape(-1, 1).to(device=self.device)
-    if self.use_prev_latent_dim:
+    if self.extra_option_dim:
       latent_ = torch.cat([latent, zero_column], dim=-1)
     else:
       latent_ = latent
 
-    if self.use_prev_action_dim:
+    if self.extra_action_dim:
       action_ = torch.cat([action, zero_column], dim=-1)
     else:
       action_ = action
@@ -395,9 +479,9 @@ class OptionSAC(object):
     # ------
 
     prev_lat = self.conv_input(prev_lat, self.thinker.is_discrete(),
-                               self.lat_dim, self.use_prev_latent_dim)
+                               self.lat_dim, self.extra_option_dim)
     prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
-                               self.action_dim, self.use_prev_action_dim)
+                               self.action_dim, self.extra_action_dim)
 
     if self.separate_policy_update:
       # thinker update

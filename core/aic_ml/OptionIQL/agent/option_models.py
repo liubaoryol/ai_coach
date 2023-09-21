@@ -34,10 +34,10 @@ class OptionDoubleQCritic(OptionSACQCritic):
 
     list_hidden_dims = config.hidden_critic
     input_dim = (obs_dim + lat_dim + lat_dim + action_dim +
-                 int(config.use_prev_option_dim))
+                 int(config.extra_option_dim))
 
     if self.use_prev_action:
-      input_dim += action_dim + int(config.use_prev_action_dim)
+      input_dim += action_dim + int(config.extra_action_dim)
 
     # Q1 architecture
     self.Q1 = mlp(input_dim, 1, list_hidden_dims)
@@ -113,10 +113,10 @@ class OptionSingleQCritic(OptionSACQCritic):
 
     list_hidden_dims = config.hidden_critic
     input_dim = (obs_dim + lat_dim + lat_dim + action_dim +
-                 int(config.use_prev_option_dim))
+                 int(config.extra_option_dim))
 
     if self.use_prev_action:
-      input_dim += action_dim + int(config.use_prev_action_dim)
+      input_dim += action_dim + int(config.extra_action_dim)
 
     # Q1 architecture
     self.Q1 = mlp(input_dim, 1, list_hidden_dims)
@@ -339,9 +339,9 @@ class AbstractOptionThinker(nn.Module):
     self.lat_dim = lat_dim
     self.use_prev_action = config.use_prev_action
 
-    input_dim = self.obs_dim + self.lat_dim + int(config.use_prev_option_dim)
+    input_dim = self.obs_dim + self.lat_dim + int(config.extra_option_dim)
     if self.use_prev_action:
-      input_dim += self.action_dim + int(config.use_prev_action_dim)
+      input_dim += self.action_dim + int(config.extra_action_dim)
 
     output_dim = self.lat_dim
 
