@@ -6,10 +6,10 @@ max_explore_step: 6e6
 n_sample: 4096
 log_std_bounds: [-20, 0]
 
-hidden_policy: [64, 64]
-hidden_option: [64, 64]
-hidden_critic: [64, 64]
+hidden_policy: [128, 128]
+hidden_option: [128, 128]
+hidden_critic: [128, 128]
 hidden_discriminator: [256, 256]
 
 n_epoch: 4000
-mini_batch_size: 64
+mini_batch_size: 256
