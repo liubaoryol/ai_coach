@@ -266,8 +266,10 @@ class OptionSAC(object):
     state = self.conv_input(state, self.discrete_obs, self.obs_dim)
     prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
                                   self.lat_dim, self.extra_option_dim)
-    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.extra_action_dim)
+    prev_action = None
+    if self.use_prev_action:
+      prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                    self.action_dim, self.extra_action_dim)
 
     with torch.no_grad():
       if sample:
@@ -307,8 +309,10 @@ class OptionSAC(object):
       latent = one_hot(latent, self.lat_dim)
     # ------
 
-    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.extra_action_dim)
+    prev_action = None
+    if self.use_prev_action:
+      prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                    self.action_dim, self.extra_action_dim)
     # --- convert discrete action
     if self.actor.is_discrete():
       action = one_hot(action, self.action_dim)
@@ -329,8 +333,10 @@ class OptionSAC(object):
     # ------
 
     # --- convert prev_action
-    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.extra_action_dim)
+    prev_action = None
+    if self.use_prev_action:
+      prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                    self.action_dim, self.extra_action_dim)
     # ------
 
     latent, lat_log_prob = self.thinker.sample(obs, prev_latent, prev_action)
@@ -362,8 +368,10 @@ class OptionSAC(object):
     # ------
 
     # --- convert prev_action
-    prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
-                                  self.action_dim, self.extra_action_dim)
+    prev_action = None
+    if self.use_prev_action:
+      prev_action = self.conv_input(prev_action, self.actor.is_discrete(),
+                                    self.action_dim, self.extra_action_dim)
     # ------
 
     latent, lat_log_prob = self.thinker.sample(obs, prev_latent, prev_action)
@@ -417,8 +425,10 @@ class OptionSAC(object):
     # ------
 
     # --- convert action
-    prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
-                               self.action_dim, self.extra_action_dim)
+    prev_act = None
+    if self.use_prev_action:
+      prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
+                                 self.action_dim, self.extra_action_dim)
     if self.actor.is_discrete():
       action = one_hot(action, self.action_dim)
     # ------
@@ -480,8 +490,10 @@ class OptionSAC(object):
 
     prev_lat = self.conv_input(prev_lat, self.thinker.is_discrete(),
                                self.lat_dim, self.extra_option_dim)
-    prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
-                               self.action_dim, self.extra_action_dim)
+    prev_act = None
+    if self.use_prev_action:
+      prev_act = self.conv_input(prev_act, self.actor.is_discrete(),
+                                 self.action_dim, self.extra_action_dim)
 
     if self.separate_policy_update:
       # thinker update
