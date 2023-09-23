@@ -11,8 +11,7 @@ from aic_ml.baselines.IQLearn.dataset.expert_dataset import (ExpertDataset)
 from aic_ml.baselines.IQLearn.utils.logger import Logger
 from .agent.make_agent import make_oiql_agent, make_osac_agent
 from .helper.option_memory import OptionMemory
-from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
-                           infer_mental_states)
+from .helper.utils import get_expert_batch, evaluate, save, get_samples
 from aic_ml.MentalIQL.train_miql import (load_expert_data_w_labels,
                                          infer_mental_states_all_demo)
 import wandb
@@ -230,9 +229,6 @@ def trainer_impl(config: omegaconf.DictConfig,
           # infer mental states of expert data
         if imitation and (expert_data is None or explore_steps %
                           config.demo_latent_infer_interval == 0):
-          # inferred_latents = infer_mental_states(agent,
-          #                                        expert_dataset.trajectories,
-          #                                        num_latent, traj_labels)
           inferred_latents = infer_mental_states_all_demo(
               agent, expert_dataset.trajectories, traj_labels)
           exb = get_expert_batch(expert_dataset.trajectories, inferred_latents,

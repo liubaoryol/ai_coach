@@ -10,6 +10,8 @@ import gym_custom
 import gym
 import torch
 from gym.spaces import Discrete, Box
+import os
+import click
 
 
 def get_s_a_dim(env: gym.Env):
@@ -54,34 +56,46 @@ def get_stats_about_x(list_inferred_x, list_true_x):
   return dis_array, length_array
 
 
-def main(alg, log_dir, model_name, env_name, data_dir, num_data):
-  # load model
-  config_path = log_dir + "log/config.yaml"
-  model_path = log_dir + f"model/{model_name}"
+@click.command()
+@click.option("--alg", type=str, default="miql", help="miql, oiql, ogail")
+@click.option("--modelpath", type=str, default="", help="")
+@click.option("--env", type=str, default="MultiGoals2D_2-v0", help="")
+@click.option("--ndata", type=int, default=True, help="")
+def main(alg, modelpath, env, ndata):
+  datadir = "/home/sangwon/Projects/ai_coach/train_dnn/test_data/"
+  resultdir = f"/home/sangwon/Projects/ai_coach/train_dnn/result/{env}/{alg}/"
+  modelpath = resultdir + modelpath
+
+  logdir = os.path.dirname(os.path.dirname(modelpath))
+
+  config_path = os.path.join(logdir, "log/config.yaml")
   config = OmegaConf.load(config_path)
 
-  env = make_env(env_name, env_make_kwargs={})
+  env_name = env
+  env_obj = make_env(env_name, env_make_kwargs={})
+
+  # load model
   if alg == "miql":
-    agent = make_miql_agent(config, env)
-    agent.load(model_path)
+    agent = make_miql_agent(config, env_obj)
+    agent.load(modelpath)
   elif alg == "oiql":
-    agent = make_oiql_agent(config, env)
-    agent.load(model_path)
+    agent = make_oiql_agent(config, env_obj)
+    agent.load(modelpath)
   elif alg == "ogail":
-    dim_s, dim_a, discrete_s, discrete_a = get_s_a_dim(env)
+    dim_s, dim_a, discrete_s, discrete_a = get_s_a_dim(env_obj)
     agent, ppo = make_gail(config,
                            dim_s=dim_s,
                            dim_a=dim_a,
                            discrete_s=discrete_s,
                            discrete_a=discrete_a)
-    param, filter_state = torch.load(model_path)
+    param, filter_state = torch.load(modelpath)
     agent.load_state_dict(param)
 
   # load data
-  data_path = data_dir + f"{env_name}_{num_data}.pkl"
+  data_path = datadir + f"{env_name}_{ndata}.pkl"
 
   expert_dataset, traj_labels, cnt_label = load_expert_data_w_labels(
-      data_path, num_data, 0, 0)
+      data_path, ndata, 0, 0)
 
   list_inferred_x = infer_latent(agent, expert_dataset.trajectories)
   hd_array, len_array = get_stats_about_x(
@@ -89,29 +103,28 @@ def main(alg, log_dir, model_name, env_name, data_dir, num_data):
 
   norm_hd = np.mean(hd_array / len_array)
   accuracy = 1 - np.sum(hd_array) / np.sum(len_array)
-  print("IIQL - Norm Hamming Dist: ", norm_hd, "-- Accuracy: ", accuracy)
+  print(f"{env_name}-{alg} - D_hamming_norm: {norm_hd} -- Accuracy: {accuracy}")
 
 
 if __name__ == "__main__":
+  main()
 
-  if True:
+  if False:
     # load model
     env_name = "MultiGoals2D_2-v0"
-    data_dir = "/home/sangwon/Projects/ai_coach/train_dnn/test_data/"
     num_data = 50
-
-    log_dir = (
+    model_path = (
         "/home/sangwon/Projects/ai_coach/train_dnn/result/" +
-        "MultiGoals2D_2-v0/miql/Ttx001Tpi001tol5Sv2/2023-09-20_10-23-11/")
+        "MultiGoals2D_2-v0/miql/Ttx001Tpi001tol5Sv2/2023-09-20_10-23-11/" +
+        "model/iq_MultiGoals2D_2-v0_n50_l10_best")
 
-    main("miql", log_dir, "iq_MultiGoals2D_2-v0_n50_l10_best", env_name,
-         data_dir, 50)
+    main("miql", model_path, env_name, 50)
 
-    log_dir = ("/home/sangwon/Projects/ai_coach/train_dnn/result/" +
-               "MultiGoals2D_2-v0/ogail/tol5Sv2/2023-09-20_15-35-27/")
+    model_path = ("/home/sangwon/Projects/ai_coach/train_dnn/result/" +
+                  "MultiGoals2D_2-v0/ogail/tol5Sv2/2023-09-20_15-35-27/" +
+                  "model/MultiGoals2D_2-v0_n50_l10_best.torch")
 
-    main("ogail", log_dir, "MultiGoals2D_2-v0_n50_l10_best.torch", env_name,
-         data_dir, 50)
+    main("ogail", model_path, env_name, 50)
 
   if False:
     model_path = "/home/sangwon/Projects/ai_coach/test_algs/result/CleanupSingle-v0/oiql/oiqlstrm_256_3e-5_boundnnstd_extraD/2023-08-14_19-09-42/model/oiql_iq_CleanupSingle-v0_n10_l0_best"

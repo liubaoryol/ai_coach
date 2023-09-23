@@ -1,6 +1,5 @@
 # @package _global_
 
-max_explore_step: 5e5
-n_traj: 50
+max_explore_step: 3e5
 
 supervision: 0.0
