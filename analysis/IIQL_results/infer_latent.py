@@ -61,10 +61,11 @@ def get_stats_about_x(list_inferred_x, list_true_x):
 @click.option("--modelpath", type=str, default="", help="")
 @click.option("--env", type=str, default="MultiGoals2D_2-v0", help="")
 @click.option("--ndata", type=int, default=True, help="")
-def main(alg, modelpath, env, ndata):
+@click.option("--logroot", type=str, default="result", help="")
+def main(alg, modelpath, env, ndata, logroot):
   datadir = "/home/sangwon/Projects/ai_coach/train_dnn/test_data/"
-  resultdir = f"/home/sangwon/Projects/ai_coach/train_dnn/result/{env}/{alg}/"
-  modelpath = resultdir + modelpath
+  resdir = f"/home/sangwon/Projects/ai_coach/train_dnn/{logroot}/{env}/{alg}/"
+  modelpath = resdir + modelpath
 
   logdir = os.path.dirname(os.path.dirname(modelpath))
 
