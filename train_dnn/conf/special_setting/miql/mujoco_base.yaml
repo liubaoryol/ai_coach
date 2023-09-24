@@ -22,6 +22,6 @@ miql_pi_method_loss: value
 miql_pi_method_regularize: True
 miql_pi_single_critic: True
 miql_pi_hidden_policy: [128, 128]
-miql_pi_optimizer_lr_policy: 1.e-4
+miql_pi_optimizer_lr_policy: 3.e-5
 miql_pi_init_temp: 1e-2
 miql_pi_learn_temp: False
