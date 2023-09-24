@@ -295,6 +295,31 @@ class OptionSAC(object):
 
     return latent_item, action_item
 
+  def choose_policy_action(self, state, latent, sample=False):
+    # --- convert inputs
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
+    latent = self.conv_input(latent, self.thinker.is_discrete(), self.lat_dim)
+
+    with torch.no_grad():
+      if sample or self.actor.is_discrete():
+        action, _ = self.actor.sample(state, latent)
+      else:
+        action = self.actor.exploit(state, latent)
+
+    return action.detach().cpu().numpy()[0]
+
+  def choose_mental_state(self, state, prev_latent, sample=False):
+    # --- convert inputs
+    state = self.conv_input(state, self.discrete_obs, self.obs_dim)
+    prev_latent = self.conv_input(prev_latent, self.thinker.is_discrete(),
+                                  self.lat_dim, self.extra_option_dim)
+
+    prev_action = None
+    with torch.no_grad():
+      latent, _ = self.thinker.sample(state, prev_latent, prev_action)
+
+    return latent.detach().cpu().numpy()[0]
+
   def critic(self, obs, prev_latent, prev_action, latent, action, both=False):
 
     # --- convert state

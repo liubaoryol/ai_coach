@@ -1,13 +1,18 @@
 import os
 import numpy as np
-from gym_custom.envs.multiple_goals_2d import MultiGoals2D_2
 from omegaconf import OmegaConf
-from aic_ml.MentalIQL.agent.make_agent import make_miql_agent
 import cv2
 from itertools import count
+import gym_custom
+from aic_ml.baselines.IQLearn.utils.utils import make_env
+from infer_latent import load_model
+import torch
 
 
 def draw_triangle(canvas, pt, dir, color):
+  if np.linalg.norm(dir) < 0.01:
+    return canvas
+
   ortho = np.array([dir[1], -dir[0]])
   ortho = ortho / np.linalg.norm(ortho)
   len_dir = np.linalg.norm(dir)
@@ -20,17 +25,25 @@ def draw_triangle(canvas, pt, dir, color):
   return canvas
 
 
-if __name__ == "__main__":
-  env = MultiGoals2D_2()
+def save_path(env_name,
+              alg,
+              modelpath,
+              logroot,
+              output_path,
+              fixed_latent=None,
+              n_epi=1):
+  resdir = f"/home/sangwon/Projects/ai_coach/train_dnn/{logroot}/{env_name}/{alg}/"
+  modelpath = resdir + modelpath
 
-  # load agent
-  log_path = ("/home/sangwon/Projects/ai_coach/train_dnn/result/" +
-              "MultiGoals2D_2-v0/miql/Ttx001Tpi001valSv0/2023-09-15_16-46-25/")
-  model_path = log_path + "model/iq_MultiGoals2D_2-v0_n50_l0_best"
-  config_path = log_path + "log/config.yaml"
+  logdir = os.path.dirname(os.path.dirname(modelpath))
+
+  config_path = os.path.join(logdir, "log/config.yaml")
   config = OmegaConf.load(config_path)
-  agent = make_miql_agent(config, env)
-  agent.load(model_path)
+
+  env = make_env(env_name, env_make_kwargs={})
+
+  # load model
+  agent = load_model(config, env, modelpath)
 
   # draw on canvas
   canvas_sz = 300
@@ -49,32 +62,43 @@ if __name__ == "__main__":
     canvas[y_p:y_p + env.img_island.shape[1],
            x_p:x_p + env.img_island.shape[0]] = env.img_island
 
-  state = env.reset()
+  for i_e in range(n_epi):
+    state = env.reset()
 
-  prev_lat, prev_act = agent.PREV_LATENT, agent.PREV_ACTION
-  latent = agent.choose_mental_state(state, prev_lat, sample=False)
+    prev_lat, prev_act = agent.PREV_LATENT, agent.PREV_ACTION
+    if fixed_latent is None:
+      latent = agent.choose_mental_state(state, prev_lat, sample=False)
+    else:
+      latent = fixed_latent
 
-  for episode_step in count():
-    cur_pt = env_pt_2_cnv_pt(state)
-    color = (255, 0, 0) if latent == 0 else (0, 255, 0)
-    # canvas = cv2.circle(canvas, cur_pt, 3, color, thickness=-1)
+    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
 
-    action = agent.choose_policy_action(state, latent, sample=False)
+    for episode_step in count():
+      cur_pt = env_pt_2_cnv_pt(state)
+      color = colors[latent]
 
-    next_state, reward, done, info = env.step(action)
-    # canvas = cv2.arrowedLine(canvas, cur_pt, env_pt_2_cnv_pt(next_state), color,
-    #                          1)
-    canvas = draw_triangle(canvas, cur_pt,
-                           env_pt_2_cnv_pt(next_state) - cur_pt, color)
-    next_latent = agent.choose_mental_state(next_state, latent, sample=False)
+      action = agent.choose_policy_action(state, latent, sample=False)
 
-    if done:
-      break
-    state = next_state
-    prev_lat = latent
-    prev_act = action
-    latent = next_latent
+      state, reward, done, info = env.step(action)
+
+      canvas = draw_triangle(canvas, cur_pt,
+                             env_pt_2_cnv_pt(state) - cur_pt, color)
+      if fixed_latent is None:
+        latent = agent.choose_mental_state(state, latent, sample=False)
+
+      if done:
+        break
+      prev_lat = latent
+      prev_act = action
+
+  cv2.imwrite(output_path, canvas)
+
+
+if __name__ == "__main__":
 
   cur_dir = os.path.dirname(__file__)
-  output_path = os.path.join(cur_dir, "path3.png")
-  cv2.imwrite(output_path, canvas)
+  output_path = os.path.join(cur_dir, "oiql_path3.png")
+  model_path = ("T001tol5Sv2/2023-09-21_15-45-55/" +
+                "model/iq_MultiGoals2D_3-v0_n50_l10_best")
+  save_path("MultiGoals2D_3-v0", "oiql", model_path, "result_lambda",
+            output_path, 2, 10)

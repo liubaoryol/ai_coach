@@ -56,6 +56,28 @@ def get_stats_about_x(list_inferred_x, list_true_x):
   return dis_array, length_array
 
 
+def load_model(config, env_obj, modelpath):
+  agent = None
+  alg = config.alg_name
+  if alg == "miql":
+    agent = make_miql_agent(config, env_obj)
+    agent.load(modelpath)
+  elif alg == "oiql":
+    agent = make_oiql_agent(config, env_obj)
+    agent.load(modelpath)
+  elif alg == "ogail":
+    dim_s, dim_a, discrete_s, discrete_a = get_s_a_dim(env_obj)
+    agent, ppo = make_gail(config,
+                           dim_s=dim_s,
+                           dim_a=dim_a,
+                           discrete_s=discrete_s,
+                           discrete_a=discrete_a)
+    param, filter_state = torch.load(modelpath)
+    agent.load_state_dict(param)
+
+  return agent
+
+
 @click.command()
 @click.option("--alg", type=str, default="miql", help="miql, oiql, ogail")
 @click.option("--modelpath", type=str, default="", help="")
@@ -76,21 +98,7 @@ def main(alg, modelpath, env, ndata, logroot):
   env_obj = make_env(env_name, env_make_kwargs={})
 
   # load model
-  if alg == "miql":
-    agent = make_miql_agent(config, env_obj)
-    agent.load(modelpath)
-  elif alg == "oiql":
-    agent = make_oiql_agent(config, env_obj)
-    agent.load(modelpath)
-  elif alg == "ogail":
-    dim_s, dim_a, discrete_s, discrete_a = get_s_a_dim(env_obj)
-    agent, ppo = make_gail(config,
-                           dim_s=dim_s,
-                           dim_a=dim_a,
-                           discrete_s=discrete_s,
-                           discrete_a=discrete_a)
-    param, filter_state = torch.load(modelpath)
-    agent.load_state_dict(param)
+  agent = load_model(config, env_obj, modelpath)
 
   # load data
   data_path = datadir + f"{env_name}_{ndata}.pkl"
