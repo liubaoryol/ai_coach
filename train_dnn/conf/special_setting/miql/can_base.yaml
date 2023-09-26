@@ -4,9 +4,25 @@ defaults:
   - miql/mujoco_base
 
 max_explore_step: 6e6
-n_traj: 100
-
-miql_tx_method_loss: value
-miql_pi_method_loss: v0
+n_traj: 150
 
 supervision: 0.2
+
+n_sample: 50000
+init_sample: 1000
+update_interval: 5
+mini_batch_size: 256
+demo_latent_infer_interval: 1000
+
+# tx
+miql_tx_hidden_critic: [256, 256]
+miql_tx_method_loss: v0
+miql_tx_init_temp: 0.01
+
+# pi
+miql_pi_hidden_critic: [256, 256]
+miql_pi_single_critic: False
+
+miql_pi_method_loss: v0
+miql_pi_hidden_policy: [256, 256]
+miql_pi_init_temp: 1e-2

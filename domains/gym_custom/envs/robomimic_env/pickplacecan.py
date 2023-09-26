@@ -150,12 +150,12 @@ def conv_dataset(data_path, save_dir, demo_start_end_idx=None):
 
 
 if __name__ == "__main__":
-  test_env()
+  # test_env()
 
-  GEN_DATA = False
+  GEN_DATA = True
   if GEN_DATA:
     robomimic_path = '/home/sangwon/Projects/external/robomimic/'
     data_path = os.path.join(robomimic_path,
                              "datasets/can/ph/low_dim_v141.hdf5")
     cur_dir = os.path.dirname(__file__)
-    conv_dataset(data_path, cur_dir, demo_start_end_idx=(100, 150))
+    conv_dataset(data_path, cur_dir, demo_start_end_idx=(150, 200))

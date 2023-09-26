@@ -1,17 +1,17 @@
 # IQL
  
 python train_dnn/run_algs.py alg=miql base=can_base \
-       env=RMPickPlaceCan-v0 tag=n2xSv2Ttx001Tpi03 \
-       miql_tx_init_temp=0.01 miql_pi_init_temp=0.3
+       env=RMPickPlaceCan-v0 tag=Sv2N256_V0_QdT01 miql_pi_init_temp=0.1 \
+       miql_tx_method_loss=v0
 
 python train_dnn/run_algs.py alg=miql base=can_base \
-       env=RMPickPlaceCan-v0 tag=n2xSv2Ttx001Tpi01 \
-       miql_tx_init_temp=0.01 miql_pi_init_temp=0.1
+       env=RMPickPlaceCan-v0 tag=Sv2N256_V0_QdT008 miql_pi_init_temp=0.08 \
+       miql_tx_method_loss=v0
 
 python train_dnn/run_algs.py alg=miql base=can_base \
-       env=RMPickPlaceCan-v0 tag=n2xSv2Ttx001Tpi003 \
-       miql_tx_init_temp=0.01 miql_pi_init_temp=0.03
+       env=RMPickPlaceCan-v0 tag=Sv2N256_Val_QdT008 miql_pi_init_temp=0.08 \
+       miql_tx_method_loss=value
 
 python train_dnn/run_algs.py alg=miql base=can_base \
-       env=RMPickPlaceCan-v0 tag=n2xSv2Ttx001Tpi005 \
-       miql_tx_init_temp=0.01 miql_pi_init_temp=0.05
+       env=RMPickPlaceCan-v0 tag=Sv2N256_Val_QdT01 miql_pi_init_temp=0.1 \
+       miql_tx_method_loss=value
