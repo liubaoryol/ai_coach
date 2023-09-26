@@ -5,4 +5,4 @@ defaults:
 
 n_traj: 50
 
-method_loss: value
+method_loss: v0

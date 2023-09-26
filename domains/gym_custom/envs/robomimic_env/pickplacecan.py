@@ -57,6 +57,7 @@ class RMPickPlaceCan(gym.Env):
 
     done = done or success["task"]
     obs = RMPickPlaceCan.flatten_obs_dict(obs_dict)[0]
+    info["task_success"] = success["task"]
 
     return obs, reward, done, info
 
@@ -154,6 +155,7 @@ if __name__ == "__main__":
   GEN_DATA = False
   if GEN_DATA:
     robomimic_path = '/home/sangwon/Projects/external/robomimic/'
-    data_path = os.path.join(robomimic_path, "datasets/can/ph/low_dim_v141.hdf5")
+    data_path = os.path.join(robomimic_path,
+                             "datasets/can/ph/low_dim_v141.hdf5")
     cur_dir = os.path.dirname(__file__)
     conv_dataset(data_path, cur_dir, demo_start_end_idx=(100, 150))

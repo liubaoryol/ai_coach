@@ -239,9 +239,8 @@ def trainer_impl(config: DictConfig,
     cnt_evals += explore_step_cur
     if cnt_evals >= eval_interval:
       cnt_evals = 0
-      eval_returns, eval_timesteps = evaluate(agent,
-                                              eval_env,
-                                              num_episodes=num_episodes)
+      eval_returns, eval_timesteps, successes = evaluate(
+          agent, eval_env, num_episodes=num_episodes)
       returns = np.mean(eval_returns)
       logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
       logger.log('eval/episode_reward', returns, explore_steps)

@@ -108,6 +108,7 @@ def evaluate(actor, env, num_episodes=10, vis=True):
     """
   total_timesteps = []
   total_returns = []
+  successes = []
 
   while len(total_returns) < num_episodes:
     state = env.reset()
@@ -123,7 +124,10 @@ def evaluate(actor, env, num_episodes=10, vis=True):
           total_returns.append(info['episode']['r'])
           total_timesteps.append(info['episode']['l'])
 
-  return total_returns, total_timesteps
+    if 'task_success' in info.keys():
+      successes.append(info['task_success'])
+
+  return total_returns, total_timesteps, successes
 
 
 def weighted_softmax(x, weights):

@@ -180,6 +180,7 @@ def trainer_impl(config: omegaconf.DictConfig,
   # track mean reward and scores
   rewards_window = deque(maxlen=eps_window)  # last N rewards
   epi_step_window = deque(maxlen=eps_window)
+  success_window = deque(maxlen=eps_window)
   best_eval_returns = -np.inf
   cnt_steps = 0
 
@@ -204,14 +205,16 @@ def trainer_impl(config: omegaconf.DictConfig,
       episode_reward += reward
 
       if explore_steps % eval_interval == 0 and begin_learn:
-        eval_returns, eval_timesteps = evaluate(agent,
-                                                eval_env,
-                                                num_episodes=num_episodes)
+        eval_returns, eval_timesteps, successes = evaluate(
+            agent, eval_env, num_episodes=num_episodes)
         returns = np.mean(eval_returns)
         # explore_steps += 1  # To prevent repeated eval at timestep 0
         logger.log('eval/episode', epoch, explore_steps)
         logger.log('eval/episode_reward', returns, explore_steps)
         logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
+        if len(successes) > 0:
+          logger.log('eval/success_rate', np.mean(successes), explore_steps)
+
         logger.dump(explore_steps, ty='eval')
 
         if returns > best_eval_returns:
@@ -270,12 +273,18 @@ def trainer_impl(config: omegaconf.DictConfig,
 
     rewards_window.append(episode_reward)
     epi_step_window.append(episode_step + 1)
+    if 'task_success' in info.keys():
+      success_window.append(info['task_success'])
+
     cnt_steps += episode_step + 1
     if cnt_steps >= log_interval:
       cnt_steps = 0
       logger.log('train/episode', epoch, explore_steps)
       logger.log('train/episode_reward', np.mean(rewards_window), explore_steps)
       logger.log('train/episode_step', np.mean(epi_step_window), explore_steps)
+      if len(success_window) > 0:
+        logger.log('train/success_rate', np.mean(success_window), explore_steps)
+
       logger.dump(explore_steps, save=begin_learn)
 
     # save(agent,
