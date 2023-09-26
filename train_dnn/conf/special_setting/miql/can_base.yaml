@@ -5,4 +5,7 @@ defaults:
 
 n_traj: 50
 
-method_loss: value
+miql_tx_method_loss: value
+miql_pi_method_loss: v0
+
+supervision: 0.2
