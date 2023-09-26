@@ -93,7 +93,7 @@ def trainer_impl(config: omegaconf.DictConfig,
              config=dict_config)
 
   # constants
-  num_episodes = 10
+  num_episodes = 8
   save_interval = 10
   only_observabtion_based = False
 

@@ -12,7 +12,7 @@ method_regularize: True
 num_critic_update: 1
 # policy
 hidden_policy: [256, 256]
-optimizer_lr_policy: 3.e-4
+optimizer_lr_policy: 3.e-5
 bounded_actor: True
 use_nn_logstd: True
 clamp_action_logstd: False # True: use clamp() / False: use tanh

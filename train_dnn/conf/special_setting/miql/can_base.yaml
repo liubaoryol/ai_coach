@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - miql/mujoco_base
+
+n_traj: 50
+
+method_loss: value

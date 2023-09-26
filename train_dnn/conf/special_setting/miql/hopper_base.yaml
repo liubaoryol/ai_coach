@@ -3,6 +3,7 @@
 defaults:
   - miql/mujoco_base
 
+max_explore_step: 1.5e6
 n_traj: 1
 miql_tx_init_temp: 1
 miql_pi_init_temp: 0.01

@@ -44,3 +44,7 @@ register(id='EnvMovers-v0',
 register(id='EnvCleanup-v0',
          entry_point='gym_custom.envs.box_push_for_two:EnvCleanup_v0',
          max_episode_steps=200)
+
+register(id='RMPickPlaceCan-v0',
+         entry_point='gym_custom.envs.robomimic_env:RMPickPlaceCan',
+         max_episode_steps=400)

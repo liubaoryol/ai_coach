@@ -1,0 +1,8 @@
+# @package _global_
+
+max_explore_step: 1e6
+env_type: mujoco
+dim_c: 2
+
+env_name: RMPickPlaceCan-v0
+data_path: experts/RMPickPlaceCan-v0_100.pkl

@@ -100,7 +100,6 @@ def train(config: omegaconf.DictConfig,
              reinit=True,
              config=dict_config)
 
-  fn_make_agent = make_miql_agent
   alg_type = 'iq'
 
   # device
@@ -130,7 +129,7 @@ def train(config: omegaconf.DictConfig,
   eps_window = int(eps_window)
   max_explore_step = int(max_explore_step)
 
-  agent = fn_make_agent(config, env)
+  agent = make_miql_agent(config, env)
 
   # Load expert data
   n_labeled = int(num_trajs * config.supervision)
