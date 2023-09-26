@@ -2,6 +2,7 @@
 
 import os
 import torch
+import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
 from itertools import count
@@ -47,14 +48,16 @@ def train_d(gail: Union[OptionGAIL, GAIL], sample_sxar, demo_sxar, n_step=10):
 def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array,
                  demo_labels):
   demo_sa_in = agent.filter_demo(demo_sa_array)
-  sample_sxar_in = agent.collect(gail.policy.state_dict(),
-                                 n_sample,
-                                 fixed=False)
-  sample_sxar, sample_rsum = gail.convert_sample(sample_sxar_in)
+  sample_sxadr_in = agent.collect(gail.policy.state_dict(),
+                                  n_sample,
+                                  fixed=False)
+  sample_sxar, sample_rsum = gail.convert_sample(sample_sxadr_in)
+  succs = [tr[-2] for tr in sample_sxadr_in]
+
   demo_sxar, demo_rsum = gail.convert_demo(demo_sa_in, demo_labels)
   sample_avgstep = (sum([sxar[-1].size(0)
                          for sxar in sample_sxar]) / len(sample_sxar))
-  return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
+  return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep, succs
 
 
 def learn(config: omegaconf.DictConfig, log_dir, save_dir, demo_path,
@@ -153,8 +156,10 @@ def learn(config: omegaconf.DictConfig, log_dir, save_dir, demo_path,
       wandb.finish()
       return
 
-    sample_sxar, demo_sxar, sample_r, demo_r, sample_avgstep = sample_batch(
+    sample_sxar, demo_sxar, sample_r, demo_r, sample_avgstep, ss = sample_batch(
         gail, sampling_agent, n_sample, demo_sa_array, demo_labels)
+    if ss[0] is not None:
+      logger.log_train("success_rate", np.mean(ss), explore_step)
 
     logger.log_train("episode_reward", sample_r, explore_step)
     logger.log_train("r-demo-avg", demo_r, explore_step)

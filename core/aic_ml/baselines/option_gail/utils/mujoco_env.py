@@ -32,7 +32,7 @@ class MujocoEnv(object):
     s, reward, terminate, info = self.env.step(a)
     if self.display:
       self.env.render()
-    return s, reward, terminate
+    return s, reward, terminate, info
 
   def state_action_size(self):
     if self.env is not None:
@@ -143,7 +143,7 @@ def generate_demo(mujoco_config: DictConfig,
         s_array.append(st.clone())
         at = policy.sample_action(rs(st, fixed=True), fixed=True)
         a_array.append(at.clone())
-        s, r, done = env.step(at.squeeze(dim=0).numpy())
+        s, r, done, info = env.step(at.squeeze(dim=0).numpy())
         r_array.append(r)
       a_array = torch.cat(a_array, dim=0)
       s_array = torch.cat(s_array, dim=0)

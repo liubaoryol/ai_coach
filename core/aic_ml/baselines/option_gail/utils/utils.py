@@ -39,6 +39,7 @@ def reward_validate(agent,
   trajs = agent.collect(policy.state_dict(), n_sample, fixed=True)
   rsums = [tr[-1].sum().item() for tr in trajs]
   steps = [tr[-1].size(0) for tr in trajs]
+  successes = [tr[-2] for tr in trajs]
   if isinstance(policy, OptionPolicy) or isinstance(policy, OptionPolicyV2):
     css = [
         tr[1].cpu().squeeze(dim=-1).numpy()
@@ -51,6 +52,10 @@ def reward_validate(agent,
       "episode_reward": np.mean(rsums),
       "episode_step": np.mean(steps),
   }
+
+  if successes[0] is not None:
+    info_dict["success_rate"] = np.mean(successes)
+
   if do_print:
     print(f"R: [ {np.min(rsums):.02f} ~ {np.max(rsums):.02f},",
           f"avg: {info_dict['episode_reward']:.02f} ],",

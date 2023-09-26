@@ -50,6 +50,7 @@ def option_loop(env, policy, state_filter, fixed):
     c_array = []
     s_array = []
     r_array = []
+    success = None
     s, done = env.reset(random=not fixed), False
     ct = torch.empty(1, 1, dtype=torch.long,
                      device=policy.device).fill_(policy.dim_c)
@@ -70,7 +71,7 @@ def option_loop(env, policy, state_filter, fixed):
       if policy.discrete_a:
         at = at[0]
 
-      s, r, done = env.step(at)
+      s, r, done, info = env.step(at)
       r_array.append(r)
     a_array = torch.cat(a_array, dim=0)
     c_array = torch.cat(c_array, dim=0)
@@ -78,7 +79,9 @@ def option_loop(env, policy, state_filter, fixed):
     r_array = torch.as_tensor(r_array,
                               dtype=torch.float32,
                               device=policy.device).unsqueeze(dim=-1)
-  return s_array, c_array, a_array, r_array
+    if 'task_success' in info.keys():
+      success = info['task_success']
+  return s_array, c_array, a_array, success, r_array
 
 
 def loop(env, policy, state_filter, fixed):
@@ -94,7 +97,7 @@ def loop(env, policy, state_filter, fixed):
       at = policy.sample_action(st, fixed=fixed).detach()
       s_array.append(st)
       a_array.append(at)
-      s, r, done = env.step(at.cpu().squeeze(dim=0).numpy())
+      s, r, done, info = env.step(at.cpu().squeeze(dim=0).numpy())
       r_array.append(r)
     a_array = torch.cat(a_array, dim=0)
     s_array = torch.cat(s_array, dim=0)
@@ -117,7 +120,7 @@ def moe_loop(env, policy: MoEPolicy, state_filter, fixed):
       at, raw_at = policy.sample_action(st, fixed=fixed)
       s_array.append(st)
       a_array.append(raw_at.detach())
-      s, r, done = env.step(at.detach().cpu().squeeze(dim=0).numpy())
+      s, r, done, info = env.step(at.detach().cpu().squeeze(dim=0).numpy())
       r_array.append(r)
     a_array = torch.cat(a_array, dim=0)
     s_array = torch.cat(s_array, dim=0)

@@ -6,6 +6,9 @@ use_state_filter: False
 activation: relu
 use_d_info_gail: False
 clip_grad_val: null
+
+n_sample: 4096
+mini_batch_size: 64
 # critic
 hidden_critic: [64, 64]
 optimizer_lr_critic: 3.e-4

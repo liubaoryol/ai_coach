@@ -225,16 +225,16 @@ class OptionGAIL(torch.nn.Module):
       r_sum_avg /= len(demo_sa)
     return out_sample, r_sum_avg
 
-  def convert_sample(self, sample_scar):
+  def convert_sample(self, sample_scadr):
     with torch.no_grad():
       out_sample = []
       r_sum_avg = 0.
-      for s_array, c_array, a_array, r_real_array in sample_scar:
+      for s_array, c_array, a_array, success, r_real_array in sample_scadr:
         r_fake_array = self.gail_reward(s_array, c_array[:-1], a_array,
                                         c_array[1:])
         out_sample.append((s_array, c_array, a_array, r_fake_array))
         r_sum_avg += r_real_array.sum().item()
-      r_sum_avg /= len(sample_scar)
+      r_sum_avg /= len(sample_scadr)
     return out_sample, r_sum_avg
 
   def infer_mental_states(self, s_array, a_array):
