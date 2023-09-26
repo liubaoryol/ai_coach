@@ -3,7 +3,8 @@
 defaults:
   - miql/mujoco_base
 
-n_traj: 50
+max_explore_step: 6e6
+n_traj: 100
 
 miql_tx_method_loss: value
 miql_pi_method_loss: v0

@@ -3,6 +3,7 @@
 defaults:
   - iql/mujoco_base
 
-n_traj: 50
+max_explore_step: 3e6
+n_traj: 100
 
 method_loss: v0
