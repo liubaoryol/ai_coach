@@ -140,6 +140,11 @@ def trainer_impl(config: omegaconf.DictConfig,
     else:
       print("[Attention]: Did not find checkpoint {}".format(load_path))
 
+  initial_mem = config.init_sample
+  replay_mem = int(replay_mem)
+  initial_mem = int(initial_mem)
+  assert initial_mem <= replay_mem
+
   # Load expert data
   if imitate:
     subsample_freq = 1
@@ -157,12 +162,6 @@ def trainer_impl(config: omegaconf.DictConfig,
     wandb.run.summary["expert_std"] = expert_return_std
 
   online_memory_replay = Memory(replay_mem, seed + 1)
-
-  initial_mem = config.init_sample
-
-  replay_mem = int(replay_mem)
-  initial_mem = int(initial_mem)
-  assert initial_mem <= replay_mem
 
   eps_window = int(eps_window)
   num_explore_steps = int(num_explore_steps)

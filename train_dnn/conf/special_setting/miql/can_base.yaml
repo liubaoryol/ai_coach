@@ -16,7 +16,7 @@ demo_latent_infer_interval: 1000
 
 # tx
 miql_tx_hidden_critic: [256, 256]
-miql_tx_method_loss: v0
+miql_tx_method_loss: value
 miql_tx_init_temp: 0.01
 
 # pi
