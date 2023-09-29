@@ -23,5 +23,5 @@ miql_pi_single_critic: False
 
 miql_pi_hidden_policy: [256, 256, 256]
 miql_pi_optimizer_lr_policy: 1.e-4
-miql_pi_init_temp: 1e-2
+miql_pi_init_temp: 0.1
 miql_pi_clip_grad_val: 0.5

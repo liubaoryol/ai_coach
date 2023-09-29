@@ -7,3 +7,8 @@ max_explore_step: 10e6
 n_traj: 150
 
 supervision: 0.2
+
+hidden_policy: [256, 256]
+hidden_option: [256, 256]
+hidden_critic: [256, 256]
+hidden_discriminator: [512, 512]
