@@ -3,11 +3,11 @@
 defaults:
   - iql/mujoco_base
 
-max_explore_step: 3e6
+max_explore_step: 6e6
 n_traj: 150
 
-hidden_critic: [512, 512]
-hidden_policy: [512, 512]
+hidden_critic: [512, 512, 512]
+hidden_policy: [512, 512, 512]
 
 method_loss: v0
 

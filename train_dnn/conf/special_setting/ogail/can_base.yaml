@@ -1,0 +1,9 @@
+# @package _global_
+
+defaults:
+  - ogail/mujoco_base
+
+max_explore_step: 10e6
+n_traj: 150
+
+supervision: 0.2

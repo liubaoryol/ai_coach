@@ -1,0 +1,24 @@
+# @package _global_
+
+defaults:
+  - oiql/mujoco_base
+
+max_explore_step: 6e6
+n_traj: 150
+
+supervision: 0.2
+
+# Q-net
+hidden_critic: [512, 512, 512]
+optimizer_lr_critic: 3.e-4
+method_loss: v0
+# policy
+hidden_policy: [512, 512, 512]
+optimizer_lr_policy: 3e-5
+# option
+hidden_option: [512, 512, 512]
+optimizer_lr_option: 3e-5
+# alpha
+optimizer_lr_alpha: 3.e-4
+init_temp: 1e-2
+learn_temp: False
