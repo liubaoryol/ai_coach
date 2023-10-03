@@ -23,14 +23,14 @@ class IQMixin:
                        update_count,
                        use_target=False,
                        method_loss="value",
-                       method_regularize=True):
+                       method_regularize=True,
+                       method_div=""):
     if policy_batch is None:  # offline
       vec_v_args, vec_next_v_args, vec_actions, done = self.get_iq_variables(
           expert_batch)
       is_expert = torch.ones_like(expert_batch[-2], dtype=torch.bool)
 
       # for offline setting these shouldn't be changed
-      method_div = "chi" if method_regularize else ""
       method_loss = OFFLINE_METHOD_LOSS
       method_regularize = False
     else:
@@ -38,7 +38,6 @@ class IQMixin:
       vec_v_args, vec_next_v_args, vec_actions, done = self.get_iq_variables(
           batch[:-1])
       is_expert = batch[-1]
-      method_div = ""
 
     agent = self
 
@@ -80,12 +79,13 @@ class IQMixin:
                 use_target=False,
                 do_soft_update=False,
                 method_loss="value",
-                method_regularize=True):
+                method_regularize=True,
+                method_div=""):
 
     for _ in range(self.num_critic_update):
       losses = self.iq_update_critic(policy_batch, expert_batch, logger,
                                      update_count, use_target, method_loss,
-                                     method_regularize)
+                                     method_regularize, method_div)
 
     # args
     vdice_actor = False
@@ -126,10 +126,11 @@ class IQMixin:
                         update_count,
                         use_target=False,
                         do_soft_update=False,
-                        method_regularize=True):
+                        method_regularize=True,
+                        method_div=""):
     return self.iq_update(None, expert_batch, logger, update_count, use_target,
                           do_soft_update, OFFLINE_METHOD_LOSS,
-                          method_regularize)
+                          method_regularize, method_div)
 
 
 class IQLOptionSoftQ(IQMixin, OptionSoftQ):
@@ -142,6 +143,7 @@ class IQLOptionSoftQ(IQMixin, OptionSoftQ):
     self.cb_get_iq_variables = cb_get_iq_variables
     self.method_loss = config.method_loss
     self.method_regularize = config.method_regularize
+    self.method_div = config.method_div
 
   def get_iq_variables(self, batch):
     'return vec_v_args, vec_next_v_args, vec_actions, done'
@@ -158,6 +160,7 @@ class IQLOptionSAC(IQMixin, OptionSAC):
     self.cb_get_iq_variables = cb_get_iq_variables
     self.method_loss = config.method_loss
     self.method_regularize = config.method_regularize
+    self.method_div = config.method_div
 
   def get_iq_variables(self, batch):
     'return vec_v_args, vec_next_v_args, vec_actions, done'

@@ -17,20 +17,19 @@ class OptionIQL(OptionSAC):
                        step,
                        use_target=False,
                        method_loss="value",
-                       method_regularize=True):
+                       method_regularize=True,
+                       method_div=""):
 
     if policy_batch is None:
       obs, prev_lat, prev_act, next_obs, latent, action, _, done = expert_batch
       is_expert = torch.ones_like(expert_batch[-2], dtype=torch.bool)
 
       # for offline setting these shouldn't be changed
-      method_div = "chi" if method_regularize else ""
       method_loss = OFFLINE_METHOD_LOSS
       method_regularize = False
     else:
       (obs, prev_lat, prev_act, next_obs, latent, action, _, done,
        is_expert) = get_concat_samples(policy_batch, expert_batch, False)
-      method_div = ""
 
     vec_v_args = (obs, prev_lat, prev_act)
     vec_next_v_args = (next_obs, latent, action)
@@ -55,7 +54,7 @@ class OptionIQL(OptionSAC):
       critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
                                        vec_next_v_args, vec_actions, done,
                                        is_expert, use_target, method_loss,
-                                       method_regularize)
+                                       method_regularize, method_div)
 
     # logger.log('train/critic_loss', critic_loss, step)
 
@@ -76,12 +75,13 @@ class OptionIQL(OptionSAC):
                 use_target=False,
                 do_soft_update=False,
                 method_loss="value",
-                method_regularize=True):
+                method_regularize=True,
+                method_div=""):
 
     for _ in range(self.num_critic_update):
       losses = self.iq_update_critic(policy_batch, expert_batch, logger,
                                      update_count, use_target, method_loss,
-                                     method_regularize)
+                                     method_regularize, method_div)
 
     # args
     vdice_actor = False
@@ -118,7 +118,8 @@ class OptionIQL(OptionSAC):
                         update_count,
                         use_target=False,
                         do_soft_update=False,
-                        method_regularize=True):
+                        method_regularize=True,
+                        method_div=""):
     return self.iq_update(None, expert_batch, logger, update_count, use_target,
                           do_soft_update, OFFLINE_METHOD_LOSS,
-                          method_regularize)
+                          method_regularize, method_div)

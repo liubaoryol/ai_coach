@@ -58,8 +58,6 @@ def trainer_impl(config: omegaconf.DictConfig,
   num_explore_steps = config.max_explore_step
   output_suffix = ""
   load_path = None
-  method_loss = config.method_loss
-  method_regularize = config.method_regularize
   eps_window = 10
 
   dict_config = omegaconf.OmegaConf.to_container(config,
@@ -252,7 +250,9 @@ def trainer_impl(config: omegaconf.DictConfig,
                 batch_size, agent.device)
             losses = agent.iq_update(policy_batch, expert_batch, logger,
                                      update_count, use_target, do_soft_update,
-                                     method_loss, method_regularize)
+                                     config.method_loss,
+                                     config.method_regularize,
+                                     config.method_div)
             update_count += 1
           else:
             losses = agent.update(online_memory_replay, logger, explore_steps)

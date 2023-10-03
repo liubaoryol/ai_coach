@@ -9,6 +9,7 @@ optimizer_lr_critic: 3.e-4
 iql_single_critic: True
 method_loss: v0
 method_regularize: True
+method_div: ""
 num_critic_update: 1
 # policy
 hidden_policy: [256, 256]

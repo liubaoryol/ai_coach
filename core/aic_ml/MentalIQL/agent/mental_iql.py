@@ -111,18 +111,18 @@ class MentalIQL:
     pi_loss = self.pi_agent.iq_update(policy_batch, expert_batch, logger,
                                       self.pi_update_count, pi_use_target,
                                       pi_soft_update, self.pi_agent.method_loss,
-                                      self.pi_agent.method_regularize)
+                                      self.pi_agent.method_regularize,
+                                      self.pi_agent.method_div)
     self.pi_update_count += 1
     return pi_loss
 
   def tx_update(self, policy_batch, expert_batch, logger, step):
     TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False
-    tx_loss = self.tx_agent.iq_update(policy_batch[:self.tx_batch_size],
-                                      expert_batch[:self.tx_batch_size], logger,
-                                      self.tx_update_count, TX_USE_TARGET,
-                                      TX_DO_SOFT_UPDATE,
-                                      self.tx_agent.method_loss,
-                                      self.tx_agent.method_regularize)
+    tx_loss = self.tx_agent.iq_update(
+        policy_batch[:self.tx_batch_size], expert_batch[:self.tx_batch_size],
+        logger, self.tx_update_count, TX_USE_TARGET, TX_DO_SOFT_UPDATE,
+        self.tx_agent.method_loss, self.tx_agent.method_regularize,
+        self.tx_agent.method_div)
     self.tx_update_count += 1
     return tx_loss
 

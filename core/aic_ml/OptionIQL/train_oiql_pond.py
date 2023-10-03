@@ -62,7 +62,8 @@ def step_iq_update(config: DictConfig, agent: OptionIQL, sample_data,
       # IQ-Learn
       losses = agent.iq_update(sample_batch, expert_batch, logger,
                                explore_steps, use_target, do_soft_update,
-                               config.method_loss, config.method_regularize)
+                               config.method_loss, config.method_regularize,
+                               config.method_div)
   return losses
 
 

@@ -257,7 +257,8 @@ def trainer_impl(config: omegaconf.DictConfig,
                                      logger, update_count,
                                      only_observabtion_based, use_target,
                                      do_soft_update, config.method_loss,
-                                     config.method_regularize)
+                                     config.method_regularize,
+                                     config.method_div)
             update_count += 1
           else:
             losses = agent.update(online_memory_replay, logger, explore_steps)
@@ -323,7 +324,8 @@ def iq_update_critic(self,
                      only_observabtion_based=False,
                      use_target=False,
                      method_loss="value",
-                     method_regularize=True):
+                     method_regularize=True,
+                     method_div=""):
   (policy_obs, policy_next_obs, policy_action, policy_reward,
    policy_done) = policy_batch
   (expert_obs, expert_next_obs, expert_action, expert_reward,
@@ -346,10 +348,12 @@ def iq_update_critic(self,
   if isinstance(current_Q, tuple):
     q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
                                   vec_next_v_args, vec_actions, done, is_expert,
-                                  use_target, method_loss, method_regularize)
+                                  use_target, method_loss, method_regularize,
+                                  method_div)
     q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
                                   vec_next_v_args, vec_actions, done, is_expert,
-                                  use_target, method_loss, method_regularize)
+                                  use_target, method_loss, method_regularize,
+                                  method_div)
     critic_loss = 1 / 2 * (q1_loss + q2_loss)
     # merge loss dicts
     loss_dict = average_dicts(loss_dict1, loss_dict2)
@@ -357,7 +361,7 @@ def iq_update_critic(self,
     critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
                                      vec_next_v_args, vec_actions, done,
                                      is_expert, use_target, method_loss,
-                                     method_regularize)
+                                     method_regularize, method_div)
 
   # logger.log('train/critic_loss', critic_loss, step)
 
@@ -380,13 +384,15 @@ def iq_update(self,
               use_target=False,
               do_soft_update=False,
               method_loss="value",
-              method_regularize=True):
+              method_regularize=True,
+              method_div=""):
   policy_batch = policy_buffer.get_samples(self.batch_size, self.device)
   expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
 
   losses = self.iq_update_critic(policy_batch, expert_batch, logger,
                                  update_count, only_observabtion_based,
-                                 use_target, method_loss, method_regularize)
+                                 use_target, method_loss, method_regularize,
+                                 method_div)
 
   # args
   vdice_actor = False
@@ -424,7 +430,7 @@ def iq_offline(self,
                update_count,
                use_target=False,
                do_soft_update=False,
-               method_regularize=True):
+               method_div="chi"):
   expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
   (expert_obs, expert_next_obs, expert_action, expert_reward,
    expert_done) = expert_batch
@@ -440,18 +446,17 @@ def iq_offline(self,
   # for offline setting these shouldn't be changed
   OFFLINE_METHOD_LOSS = "value_expert"
   NO_ONLINE_REGULARIZE = False
-  offline_div = "chi" if method_regularize else ""
 
   current_Q = self.critic(expert_obs, expert_action, both=True)
   if isinstance(current_Q, tuple):
     q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
                                   vec_next_v_args, vec_actions, expert_done,
                                   is_expert, use_target, OFFLINE_METHOD_LOSS,
-                                  NO_ONLINE_REGULARIZE, offline_div)
+                                  NO_ONLINE_REGULARIZE, method_div)
     q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
                                   vec_next_v_args, vec_actions, expert_done,
                                   is_expert, use_target, OFFLINE_METHOD_LOSS,
-                                  NO_ONLINE_REGULARIZE, offline_div)
+                                  NO_ONLINE_REGULARIZE, method_div)
     critic_loss = 1 / 2 * (q1_loss + q2_loss)
     # merge loss dicts
     loss_dict = average_dicts(loss_dict1, loss_dict2)
@@ -459,7 +464,7 @@ def iq_offline(self,
     critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
                                      vec_next_v_args, vec_actions, expert_done,
                                      is_expert, use_target, OFFLINE_METHOD_LOSS,
-                                     NO_ONLINE_REGULARIZE, offline_div)
+                                     NO_ONLINE_REGULARIZE, method_div)
 
   # logger.log('train/critic_loss', critic_loss, step)
 
