@@ -12,4 +12,4 @@ eval_interval: 20000
 
 mini_batch_size: 256
 n_batches: 10000
-seed: 2
+seed: 0

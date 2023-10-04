@@ -60,15 +60,18 @@ def sb3_bc(config, demo_path, num_trajs, log_dir, output_dir, log_interval):
 
   list_trajectories = []
   for i_e in range(len(expert_dataset.trajectories["rewards"])):
+    length = expert_dataset.trajectories["lengths"][i_e]
     states = np.array(expert_dataset.trajectories["states"][i_e])
     last_state = np.array(expert_dataset.trajectories["next_states"][i_e][-1])
-    states = np.vstack([states, last_state])
+    states = np.concatenate(
+        [states.reshape(length, -1),
+         last_state.reshape(1, -1)], axis=0)
     done = expert_dataset.trajectories["dones"][i_e][-1]
 
     actions = expert_dataset.trajectories["actions"][i_e]
     list_trajectories.append(
         Trajectory(obs=states,
-                   acts=np.array(actions),
+                   acts=np.array(actions).reshape(length, -1),
                    terminal=done,
                    infos=None))
 

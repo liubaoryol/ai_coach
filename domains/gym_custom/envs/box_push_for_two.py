@@ -43,7 +43,7 @@ class EnvBoxPush(EnvFromMDP):
     robot_action = self.robot_agent.get_action(sim_state)
     robot_aidx = mdp.a2_a_space.action_to_idx[robot_action]
 
-    human_action = mdp.a1_a_space.idx_to_action[human_aidx]
+    human_action = mdp.a1_a_space.idx_to_action[int(human_aidx)]
 
     action = mdp.conv_action_to_idx((human_aidx, robot_aidx))
     next_sidx, reward, done, info = super().step(action)

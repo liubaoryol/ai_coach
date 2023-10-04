@@ -66,9 +66,6 @@ def run_alg(config):
     from aic_ml.OptionIQL.train_oiql_pond import (train_oiql_pond)
     train_oiql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
                     log_interval, eval_interval)
-  elif alg_name == "oiqlv2":
-    from aic_ml.OptionIQL_v2.train_oiql_v2 import (learn)
-    learn(config, log_dir, output_dir, path_iq_data, pretrain_name)
   elif alg_name == "iql":
     from aic_ml.baselines.IQLearn.iql import run_iql
     run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
