@@ -2,5 +2,3 @@
 
 max_explore_step: 5e5
 n_traj: 50
-
-supervision: 0.0

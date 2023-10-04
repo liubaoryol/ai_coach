@@ -15,7 +15,7 @@ miql_tx_hidden_critic: [256, 256]
 miql_tx_optimizer_lr_critic: 3.e-4
 miql_tx_method_loss: value
 miql_tx_method_regularize: False
-miql_tx_method_div: "chi"
+miql_tx_method_div: chi
 miql_tx_init_temp: 1e-4
 miql_tx_clip_grad_val: null
 miql_tx_num_actor_update: 1
