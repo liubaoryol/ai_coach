@@ -99,6 +99,7 @@ def sb3_bc(config, demo_path, num_trajs, log_dir, output_dir, log_interval):
   bc_trainer.train(n_batches=config.n_batches, log_interval=log_interval)
 
   epi_rewards = []
+  successes = []
   for _ in range(8):
     state = env.reset()
     epi_reward = 0
@@ -110,10 +111,16 @@ def sb3_bc(config, demo_path, num_trajs, log_dir, output_dir, log_interval):
         epi_reward += reward
     epi_rewards.append(epi_reward)
 
+    if 'task_success' in info.keys():
+      successes.append(info['task_success'])
+
   best_returns = np.mean(epi_rewards)
   wandb.run.summary["best_returns"] = best_returns
   wandb.finish()
   print(f"Best returns: {best_returns}")
+  if len(successes) > 0:
+    success_rate = np.mean(successes)
+    print(f"Success rate: {success_rate}")
 
 
 def sb3_rl(config, log_dir, output_dir, log_interval, eval_interval, alg_name):
