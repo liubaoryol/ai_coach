@@ -57,14 +57,11 @@ class MultiGoals2D(gym.Env):
     self.tolerance = 0.5
     img_agent = read_transparent_png(os.path.join(curdir, 'images/gripper.png'))
 
-    img_lm1 = read_transparent_png(os.path.join(curdir, 'images/cube_blue.png'))
-    img_lm2 = read_transparent_png(os.path.join(curdir, 'images/cube_red.png'))
-    img_lm3 = read_transparent_png(os.path.join(curdir,
-                                                'images/cube_green.png'))
-    img_lm4 = read_transparent_png(
-        os.path.join(curdir, 'images/cube_yellow.png'))
-    img_lm5 = read_transparent_png(
-        os.path.join(curdir, 'images/cube_purple.png'))
+    img_lm1 = read_transparent_png(os.path.join(curdir, 'images/goal1.png'))
+    img_lm2 = read_transparent_png(os.path.join(curdir, 'images/goal2.png'))
+    img_lm3 = read_transparent_png(os.path.join(curdir, 'images/goal3.png'))
+    img_lm4 = read_transparent_png(os.path.join(curdir, 'images/goal4.png'))
+    img_lm5 = read_transparent_png(os.path.join(curdir, 'images/goal5.png'))
 
     self.img_landmarks = [img_lm1, img_lm2, img_lm3, img_lm4, img_lm5]
     for idx, img in enumerate(self.img_landmarks):

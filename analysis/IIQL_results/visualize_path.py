@@ -55,6 +55,7 @@ def save_path(env_name,
 
   env = make_env(env_name, env_make_kwargs={})
 
+  # config['device'] = 'cpu'
   # load model
   agent = load_model(config, env, modelpath)
 
