@@ -49,15 +49,28 @@ class MultiGoals2D(gym.Env):
         shape=(2, ),
         dtype=np.float32)
 
+    self.canvas_sz = 300
+
     curdir = os.path.dirname(__file__)
     self.goals = possible_goals
     self.visited = np.zeros(len(self.goals))
     self.tolerance = 0.5
-    img_pirate = read_transparent_png(os.path.join(curdir, 'images/pirate.png'))
-    img_island = read_transparent_png(os.path.join(curdir, 'images/island.png'))
+    img_agent = read_transparent_png(os.path.join(curdir, 'images/gripper.png'))
 
-    self.img_pirate = cv2.resize(img_pirate, (30, 30))
-    self.img_island = cv2.resize(img_island, (30, 30))
+    img_lm1 = read_transparent_png(os.path.join(curdir, 'images/cube_blue.png'))
+    img_lm2 = read_transparent_png(os.path.join(curdir, 'images/cube_red.png'))
+    img_lm3 = read_transparent_png(os.path.join(curdir,
+                                                'images/cube_green.png'))
+    img_lm4 = read_transparent_png(
+        os.path.join(curdir, 'images/cube_yellow.png'))
+    img_lm5 = read_transparent_png(
+        os.path.join(curdir, 'images/cube_purple.png'))
+
+    self.img_landmarks = [img_lm1, img_lm2, img_lm3, img_lm4, img_lm5]
+    for idx, img in enumerate(self.img_landmarks):
+      self.img_landmarks[idx] = cv2.resize(img, (30, 30))
+
+    self.img_agent = cv2.resize(img_agent, (50, 50))
     self.delay = 10
 
     self.reset()
@@ -95,48 +108,36 @@ class MultiGoals2D(gym.Env):
 
     return self.cur_obstate, reward, done, info
 
-  def get_canvas(self):
-    canvas_sz = 300
-    canvas = np.ones((canvas_sz, canvas_sz, 3), dtype=np.uint8) * 255
+  def env_pt_2_scr_pt(self, env_pt):
+    pt = env_pt - self.observation_space.low
+    pt = self.canvas_sz * pt / (self.observation_space.high -
+                                self.observation_space.low)
+    return pt.astype(np.int64)
 
-    # bg_unit = canvas_sz // 6
-    # for idx in range(6):
-    #   if idx % 2 == 0:
-    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
-    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 197
-    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 120
-    #   else:
-    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
-    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 150
-    #     canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 14
-
-    def env_pt_2_scr_pt(env_pt):
-      pt = env_pt - self.observation_space.low
-      pt = canvas_sz * pt / (self.observation_space.high -
-                             self.observation_space.low)
-      return pt.astype(np.int64)
-
-    cur_pt = env_pt_2_scr_pt(self.cur_obstate)
-
+  def draw_background(self, canvas):
+    canvas_new = np.copy(canvas)
     for idx, goal in enumerate(self.goals):
-      color = (0, 0, 255)
+      goal_pt = self.env_pt_2_scr_pt(goal)
+      x_p = int(goal_pt[0] - self.img_landmarks[idx].shape[0] / 2)
+      y_p = int(goal_pt[1] - self.img_landmarks[idx].shape[1] / 2)
+      canvas_new[y_p:y_p + self.img_landmarks[idx].shape[1], x_p:x_p +
+                 self.img_landmarks[idx].shape[0]] = self.img_landmarks[idx]
 
-      goal_pt = env_pt_2_scr_pt(goal)
-      # radius = int(
-      #     canvas_sz * self.tolerance /
-      #     (self.observation_space.high - self.observation_space.low)[0])
-      # canvas = cv2.circle(canvas, goal_pt, radius, color, thickness=-1)
-      x_p = int(goal_pt[0] - self.img_island.shape[0] / 2)
-      y_p = int(goal_pt[1] - self.img_island.shape[1] / 2)
-      canvas[y_p:y_p + self.img_island.shape[1],
-             x_p:x_p + self.img_island.shape[0]] = self.img_island
+    return canvas_new
 
-    # color = (255, 0, 0)
-    # canvas = cv2.circle(canvas, cur_pt, 5, color, thickness=-1)
-    x_p = int(cur_pt[0] - self.img_pirate.shape[0] / 2)
-    y_p = int(cur_pt[1] - self.img_pirate.shape[1] / 2)
-    canvas[y_p:y_p + self.img_pirate.shape[1],
-           x_p:x_p + self.img_pirate.shape[0]] = self.img_pirate
+  def get_canvas(self):
+    canvas = np.ones((self.canvas_sz, self.canvas_sz, 3), dtype=np.uint8) * 255
+
+    canvas = self.draw_background(canvas)
+
+    cur_pt = self.env_pt_2_scr_pt(self.cur_obstate)
+    x_p = int(cur_pt[0] - self.img_agent.shape[0] / 2)
+    y_p = int(cur_pt[1] - self.img_agent.shape[1] / 2)
+    part = canvas[y_p:y_p + self.img_agent.shape[1],
+                  x_p:x_p + self.img_agent.shape[0]]
+    if part.shape[:2] == self.img_agent.shape[:2]:
+      canvas[y_p:y_p + self.img_agent.shape[1],
+             x_p:x_p + self.img_agent.shape[0]] = self.img_agent
 
     return canvas
 
@@ -271,6 +272,6 @@ def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
 if __name__ == "__main__":
   cur_dir = os.path.dirname(__file__)
 
-  for idx in range(2, 6):
-    traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 50, False)
-  # traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 50)
+  # for idx in range(2, 6):
+  #   traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 50, False)
+  traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 100)

@@ -145,7 +145,29 @@ class OptionGAIL(torch.nn.Module):
 
     self.optim = torch.optim.Adam(self.discriminator.parameters(),
                                   weight_decay=1.e-3)
+
     self.to(self.device)
+
+    # NOTE: for compatibility
+    self.PREV_LATENT = self.dim_c
+    self.PREV_ACTION = float("nan")
+
+  # NOTE: for compatibility
+  def choose_policy_action(self, state, option, sample=False):
+    dim_s = 1 if self.policy.discrete_s else self.dim_s
+    state = torch.tensor(state).to(self.device).reshape(-1, dim_s)
+    option = torch.tensor(option).to(self.device).reshape(-1, 1)
+    with torch.no_grad():
+      return self.policy.sample_action(state, option,
+                                       not sample)[0].cpu().numpy()
+
+  def choose_mental_state(self, state, prev_option, sample=False):
+    dim_s = 1 if self.policy.discrete_s else self.dim_s
+    state = torch.tensor(state).to(self.device).reshape(-1, dim_s)
+    prev_option = torch.tensor(prev_option).to(self.device).reshape(-1, 1)
+    with torch.no_grad():
+      return self.policy.sample_option(state, prev_option,
+                                       not sample)[0].cpu().numpy()
 
   def original_gail_reward(self, s, c_1, a, c):
     d = self.discriminator.get_unnormed_d(s, c_1, a, c)

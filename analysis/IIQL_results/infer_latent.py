@@ -94,6 +94,19 @@ def main(alg, modelpath, env, ndata, logroot):
   config_path = os.path.join(logdir, "log/config.yaml")
   config = OmegaConf.load(config_path)
 
+  # add updated keys
+  if alg == "miql":
+    if 'miql_tx_method_div' not in config.keys():
+      config['miql_tx_method_div'] = ""
+      print("Missing key - miql_tx_method_div is added as \"\".")
+    if 'miql_pi_method_div' not in config.keys():
+      config['miql_pi_method_div'] = ""
+      print("Missing key - miql_pi_method_div is added as \"\".")
+  elif alg == "oiql":
+    if 'method_div' not in config.keys():
+      config['method_div'] = ""
+      print("Missing key - method_div is added as \"\".")
+
   env_name = env
   env_obj = make_env(env_name, env_make_kwargs={})
 

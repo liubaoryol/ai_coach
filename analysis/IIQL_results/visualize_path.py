@@ -40,6 +40,19 @@ def save_path(env_name,
   config_path = os.path.join(logdir, "log/config.yaml")
   config = OmegaConf.load(config_path)
 
+  # add updated keys
+  if alg == "miql":
+    if 'miql_tx_method_div' not in config.keys():
+      config['miql_tx_method_div'] = ""
+      print("Missing key - miql_tx_method_div is added as \"\".")
+    if 'miql_pi_method_div' not in config.keys():
+      config['miql_pi_method_div'] = ""
+      print("Missing key - miql_pi_method_div is added as \"\".")
+  elif alg == "oiql":
+    if 'method_div' not in config.keys():
+      config['method_div'] = ""
+      print("Missing key - method_div is added as \"\".")
+
   env = make_env(env_name, env_make_kwargs={})
 
   # load model
@@ -48,19 +61,7 @@ def save_path(env_name,
   # draw on canvas
   canvas_sz = 300
   canvas = np.ones((canvas_sz, canvas_sz, 3), dtype=np.uint8) * 255
-
-  def env_pt_2_cnv_pt(env_pt):
-    pt = env_pt - env.observation_space.low
-    pt = canvas_sz * pt / (env.observation_space.high -
-                           env.observation_space.low)
-    return pt.astype(np.int64)
-
-  for idx, goal in enumerate(env.goals):
-    goal_pt = env_pt_2_cnv_pt(goal)
-    x_p = int(goal_pt[0] - env.img_island.shape[0] / 2)
-    y_p = int(goal_pt[1] - env.img_island.shape[1] / 2)
-    canvas[y_p:y_p + env.img_island.shape[1],
-           x_p:x_p + env.img_island.shape[0]] = env.img_island
+  canvas = env.draw_background(canvas)
 
   for i_e in range(n_epi):
     state = env.reset()
@@ -71,10 +72,10 @@ def save_path(env_name,
     else:
       latent = fixed_latent
 
-    colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+    colors = [(255, 0, 0), (0, 0, 255), (0, 255, 0)]
 
     for episode_step in count():
-      cur_pt = env_pt_2_cnv_pt(state)
+      cur_pt = env.env_pt_2_scr_pt(state)
       color = colors[latent]
 
       action = agent.choose_policy_action(state, latent, sample=False)
@@ -82,7 +83,7 @@ def save_path(env_name,
       state, reward, done, info = env.step(action)
 
       canvas = draw_triangle(canvas, cur_pt,
-                             env_pt_2_cnv_pt(state) - cur_pt, color)
+                             env.env_pt_2_scr_pt(state) - cur_pt, color)
       if fixed_latent is None:
         latent = agent.choose_mental_state(state, latent, sample=False)
 
@@ -96,9 +97,27 @@ def save_path(env_name,
 
 if __name__ == "__main__":
 
-  cur_dir = os.path.dirname(__file__)
-  output_path = os.path.join(cur_dir, "oiql_path3.png")
-  model_path = ("T001tol5Sv2/2023-09-21_15-45-55/" +
-                "model/iq_MultiGoals2D_3-v0_n50_l10_best")
-  save_path("MultiGoals2D_3-v0", "oiql", model_path, "result_lambda",
-            output_path, 2, 10)
+  ntnt = 2
+  if False:
+    cur_dir = os.path.dirname(__file__)
+    model_path = ("Ttx001Tpi001tol5Sv2/2023-09-20_16-43-42/" +
+                  "model/iq_MultiGoals2D_3-v0_n50_l10_best")
+    output_path = os.path.join(cur_dir, f"iiql_path{ntnt+1}.png")
+    save_path("MultiGoals2D_3-v0", "miql", model_path, "result", output_path,
+              ntnt, 10)
+
+  if False:
+    cur_dir = os.path.dirname(__file__)
+    model_path = ("T001tol5Sv2/2023-09-21_15-45-55/" +
+                  "model/iq_MultiGoals2D_3-v0_n50_l10_best")
+    output_path = os.path.join(cur_dir, f"oiql_path{ntnt+1}.png")
+    save_path("MultiGoals2D_3-v0", "oiql", model_path, "result_lambda",
+              output_path, ntnt, 10)
+
+  if True:
+    cur_dir = os.path.dirname(__file__)
+    model_path = ("tol5Sv2/2023-09-21_00-20-45/" +
+                  "model/MultiGoals2D_3-v0_n50_l10_best.torch")
+    output_path = os.path.join(cur_dir, f"ogail_path{ntnt+1}.png")
+    save_path("MultiGoals2D_3-v0", "ogail", model_path, "result", output_path,
+              ntnt, 10)
