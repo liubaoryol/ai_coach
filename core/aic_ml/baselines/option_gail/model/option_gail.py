@@ -260,10 +260,10 @@ class OptionGAIL(torch.nn.Module):
     return out_sample, r_sum_avg
 
   def infer_mental_states(self, s_array, a_array):
-    s_array = conv_nn_input(np.array(s_array), self.policy.discrete_s,
-                            self.dim_s, self.device)
-    a_array = conv_nn_input(np.array(a_array), self.policy.discrete_a,
-                            self.dim_a, self.device)
+    # s_array = conv_nn_input(np.array(s_array), self.policy.discrete_s,
+    #                         self.dim_s, self.device)
+    # a_array = conv_nn_input(np.array(a_array), self.policy.discrete_a,
+    #                         self.dim_a, self.device)
 
     c_array, log_prob_traj = self.policy.viterbi_path(s_array, a_array)
     return c_array[1:].cpu().numpy(), log_prob_traj.cpu().numpy()

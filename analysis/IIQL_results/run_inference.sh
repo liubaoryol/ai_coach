@@ -40,6 +40,15 @@ python analysis/IIQL_results/infer_latent.py --alg "ogail" \
       --env "MultiGoals2D_5-v0" --ndata 50 --logroot "result" \
       --modelpath "tol5Sv2/2023-09-21_19-11-56/model/MultiGoals2D_5-v0_n50_l10_best.torch"
 
+python analysis/IIQL_results/infer_latent.py --alg "ogail" \
+      --env "CleanupSingle-v0" --ndata 50 --logroot "result_lambda" \
+      --modelpath "sv2seed0/2023-10-06_15-49-29/model/CleanupSingle-v0_n50_l10_best.torch"
+
+# python analysis/IIQL_results/infer_latent.py --alg "ogail" \
+#       --env "EnvMovers-v0" --ndata 22 --logroot "result_lambda" \
+#       --modelpath ""
+
+#
 # OIQL
 # python analysis/IIQL_results/infer_latent.py --alg "oiql" \
 #       --env "MultiGoals2D_2-v0" --ndata 50 --logroot "result_lambda" \
