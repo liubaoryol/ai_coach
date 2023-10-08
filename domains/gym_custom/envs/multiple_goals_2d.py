@@ -180,33 +180,41 @@ class MultiGoals2D_5(MultiGoals2D):
     super().__init__([(-2.5, 4), (2.5, 4), (0, -4), (-4, -0.5), (4, -0.5)])
 
 
-# synthetic agent
-def get_action(goal, state):
-  nx = 0.1 * (np.random.rand() * 2 - 1)
-  ny = 0.1 * (np.random.rand() * 2 - 1)
-  noise = np.array([nx, ny])
-  RANDOM = False
-  if RANDOM:
-    vx = 0.9 * (np.random.rand() * 2 - 1)
-    vy = 0.9 * (np.random.rand() * 2 - 1)
-    return np.array([vx, vy]) + noise
-  else:
-    vec_dir = goal - state
-    len_vec = np.linalg.norm(vec_dir)
-    if len_vec != 0:
-      vec_dir /= len_vec
+class MGExpert:
+
+  def __init__(self, env: MultiGoals2D, tolerance) -> None:
+    self.PREV_LATENT = None
+    self.PREV_ACTION = float("nan")
+    self.env = env
+    self.tolerance = tolerance
+
+  def choose_mental_state(self, state, prev_latent, sample=False):
+    visited = self.env.visited
+    goals = self.env.goals
+    if np.sum(visited) == len(visited):
+      return None
+
+    if prev_latent is not None:
+      if np.linalg.norm(goals[prev_latent] - state) > self.tolerance:
+        return prev_latent
+
+    return np.random.choice(np.where(visited == 0)[0])
+
+  def choose_policy_action(self, state, latent, sample=False):
+    nx = 0.1 * (np.random.rand() * 2 - 1)
+    ny = 0.1 * (np.random.rand() * 2 - 1)
+    noise = np.array([nx, ny])
+    RANDOM = False
+    if RANDOM:
+      vx = 0.9 * (np.random.rand() * 2 - 1)
+      vy = 0.9 * (np.random.rand() * 2 - 1)
+      return np.array([vx, vy]) + noise
+    else:
+      vec_dir = self.env.goals[latent] - state
+      len_vec = np.linalg.norm(vec_dir)
+      if len_vec != 0:
+        vec_dir /= len_vec
     return 0.3 * vec_dir + noise
-
-
-def get_new_goal_idx(visited, goals, cur_goal_idx, state, tolerance):
-  if np.sum(visited) == len(visited):
-    return None
-
-  if cur_goal_idx is not None:
-    if np.linalg.norm(goals[cur_goal_idx] - state) > tolerance:
-      return cur_goal_idx
-
-  return np.random.choice(np.where(visited == 0)[0])
 
 
 def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
@@ -225,16 +233,19 @@ def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
     raise NotImplementedError
 
   env.set_render_delay(render_delay)
+  agent = MGExpert(env, 0.3)
 
   for _ in range(n_traj):
     state = env.reset()
-    goal_idx = None
+    goal_idx = agent.PREV_LATENT
     episode_reward = 0
 
     samples = []
     for cnt in range(200):
-      goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state, 0.3)
-      action = get_action(env.goals[goal_idx], state)
+      goal_idx = agent.choose_mental_state(state, goal_idx, sample=False)
+      # goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state, 0.3)
+      action = agent.choose_policy_action(state, goal_idx, sample=False)
+      # action = get_action(env.goals[goal_idx], state)
       next_state, reward, done, info = env.step(action)
 
       samples.append((state, action, next_state, goal_idx, reward, done))
@@ -271,4 +282,4 @@ if __name__ == "__main__":
 
   # for idx in range(2, 6):
   #   traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 50, False)
-  traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 100)
+  traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 10)

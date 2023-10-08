@@ -7,6 +7,7 @@ import gym_custom
 from aic_ml.baselines.IQLearn.utils.utils import make_env
 from infer_latent import load_model
 import torch
+from gym_custom.envs.multiple_goals_2d import MGExpert
 
 
 def draw_triangle(canvas, pt, dir, color):
@@ -25,39 +26,7 @@ def draw_triangle(canvas, pt, dir, color):
   return canvas
 
 
-def save_path(env_name,
-              alg,
-              modelpath,
-              logroot,
-              output_path,
-              fixed_latent=None,
-              n_epi=1):
-  resdir = f"/home/sangwon/Projects/ai_coach/train_dnn/{logroot}/{env_name}/{alg}/"
-  modelpath = resdir + modelpath
-
-  logdir = os.path.dirname(os.path.dirname(modelpath))
-
-  config_path = os.path.join(logdir, "log/config.yaml")
-  config = OmegaConf.load(config_path)
-
-  # add updated keys
-  if alg == "miql":
-    if 'miql_tx_method_div' not in config.keys():
-      config['miql_tx_method_div'] = ""
-      print("Missing key - miql_tx_method_div is added as \"\".")
-    if 'miql_pi_method_div' not in config.keys():
-      config['miql_pi_method_div'] = ""
-      print("Missing key - miql_pi_method_div is added as \"\".")
-  elif alg == "oiql":
-    if 'method_div' not in config.keys():
-      config['method_div'] = ""
-      print("Missing key - method_div is added as \"\".")
-
-  env = make_env(env_name, env_make_kwargs={})
-
-  # config['device'] = 'cpu'
-  # load model
-  agent = load_model(config, env, modelpath)
+def save_path_impl(env, agent, output_path, fixed_latent=None, n_epi=1):
 
   # draw on canvas
   canvas_sz = 300
@@ -96,11 +65,48 @@ def save_path(env_name,
   cv2.imwrite(output_path, canvas)
 
 
+def save_path(env_name,
+              alg,
+              modelpath,
+              logroot,
+              output_path,
+              fixed_latent=None,
+              n_epi=1):
+  resdir = f"/home/sangwon/Projects/ai_coach/train_dnn/{logroot}/{env_name}/{alg}/"
+  modelpath = resdir + modelpath
+
+  logdir = os.path.dirname(os.path.dirname(modelpath))
+
+  config_path = os.path.join(logdir, "log/config.yaml")
+  config = OmegaConf.load(config_path)
+
+  # add updated keys
+  if alg == "miql":
+    if 'miql_tx_method_div' not in config.keys():
+      config['miql_tx_method_div'] = ""
+      print("Missing key - miql_tx_method_div is added as \"\".")
+    if 'miql_pi_method_div' not in config.keys():
+      config['miql_pi_method_div'] = ""
+      print("Missing key - miql_pi_method_div is added as \"\".")
+  elif alg == "oiql":
+    if 'method_div' not in config.keys():
+      config['method_div'] = ""
+      print("Missing key - method_div is added as \"\".")
+
+  env = make_env(env_name, env_make_kwargs={})
+
+  # config['device'] = 'cpu'
+  # load model
+  agent = load_model(config, env, modelpath)
+
+  save_path_impl(env, agent, output_path, fixed_latent, n_epi)
+
+
 if __name__ == "__main__":
 
+  cur_dir = os.path.dirname(__file__)
   ntnt = 2
   if False:
-    cur_dir = os.path.dirname(__file__)
     model_path = ("Ttx001Tpi001tol5Sv2/2023-09-20_16-43-42/" +
                   "model/iq_MultiGoals2D_3-v0_n50_l10_best")
     output_path = os.path.join(cur_dir, f"iiql_path{ntnt+1}.png")
@@ -108,17 +114,22 @@ if __name__ == "__main__":
               ntnt, 10)
 
   if False:
-    cur_dir = os.path.dirname(__file__)
     model_path = ("T001tol5Sv2/2023-09-21_15-45-55/" +
                   "model/iq_MultiGoals2D_3-v0_n50_l10_best")
     output_path = os.path.join(cur_dir, f"oiql_path{ntnt+1}.png")
     save_path("MultiGoals2D_3-v0", "oiql", model_path, "result_lambda",
               output_path, ntnt, 10)
 
-  if True:
-    cur_dir = os.path.dirname(__file__)
+  if False:
     model_path = ("tol5Sv2/2023-09-21_00-20-45/" +
                   "model/MultiGoals2D_3-v0_n50_l10_best.torch")
     output_path = os.path.join(cur_dir, f"ogail_path{ntnt+1}.png")
     save_path("MultiGoals2D_3-v0", "ogail", model_path, "result", output_path,
               ntnt, 10)
+
+  if True:
+    env = make_env("MultiGoals2D_3-v0", env_make_kwargs={})
+    agent = MGExpert(env, 0.3)
+    output_path = os.path.join(cur_dir, f"expert_path{ntnt+1}.png")
+    save_path_impl(env, agent, output_path, ntnt, 10)
+    pass

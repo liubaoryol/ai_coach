@@ -181,6 +181,7 @@ def trainer_impl(config: omegaconf.DictConfig,
   epi_step_window = deque(maxlen=eps_window)
   success_window = deque(maxlen=eps_window)
   best_eval_returns = -np.inf
+  best_success_rate = -np.inf
   cnt_steps = 0
 
   begin_learn = False
@@ -212,7 +213,11 @@ def trainer_impl(config: omegaconf.DictConfig,
         logger.log('eval/episode_reward', returns, explore_steps)
         logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
         if len(successes) > 0:
-          logger.log('eval/success_rate', np.mean(successes), explore_steps)
+          success_rate = np.mean(successes)
+          logger.log('eval/success_rate', success_rate, explore_steps)
+          if success_rate > best_success_rate:
+            best_success_rate = success_rate
+            wandb.run.summary["best_success_rate"] = best_success_rate
 
         logger.dump(explore_steps, ty='eval')
 

@@ -150,6 +150,7 @@ def learn(config: omegaconf.DictConfig, log_dir, save_dir, demo_path,
   explore_step = 0
   LOG_PLOT = False
   best_reward = -float("inf")
+  best_success_rate = -float('inf')
   cnt_evals = 0
   for i in count():
     if explore_step >= max_exp_step:
@@ -191,6 +192,11 @@ def learn(config: omegaconf.DictConfig, log_dir, save_dir, demo_path,
         a = plt.figure()
         a.gca().plot(cs_sample[0][1:])
         logger.log_test_fig("sample_c", a, explore_step)
+
+      if "success_rate" in info_dict:
+        if best_success_rate < info_dict["success_rate"]:
+          best_success_rate = info_dict["success_rate"]
+          wandb.run.summary["best_success_rate"] = best_success_rate
 
       if best_reward <= info_dict["episode_reward"]:
         best_reward = info_dict["episode_reward"]
