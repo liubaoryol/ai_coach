@@ -212,15 +212,15 @@ def train(config: omegaconf.DictConfig,
                alg_type,
                output_dir=output_dir,
                suffix=output_suffix + "_best")
-        else:
-          # for temporary use
-          save(agent,
-               epoch,
-               1,
-               env_name,
-               alg_type,
-               output_dir=output_dir,
-               suffix=output_suffix + f"_{epoch}")
+        # else:
+        #   # for temporary use
+        #   save(agent,
+        #        epoch,
+        #        1,
+        #        env_name,
+        #        alg_type,
+        #        output_dir=output_dir,
+        #        suffix=output_suffix + f"_{epoch}")
 
       # only store done true when episode finishes without hitting timelimit
       done_no_lim = done
