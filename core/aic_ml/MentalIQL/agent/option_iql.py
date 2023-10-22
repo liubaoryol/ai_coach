@@ -32,7 +32,10 @@ class IQMixin:
 
       # for offline setting these shouldn't be changed
       method_loss = OFFLINE_METHOD_LOSS
-      method_regularize = False
+      if method_regularize or method_div == "chi":
+        # apply only one (same effect)
+        method_regularize = False
+        method_div = "chi"
     else:
       batch = get_concat_samples(policy_batch, expert_batch, False)
       vec_v_args, vec_next_v_args, vec_actions, done = self.get_iq_variables(

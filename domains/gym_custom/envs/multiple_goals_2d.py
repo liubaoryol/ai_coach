@@ -243,9 +243,7 @@ def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
     samples = []
     for cnt in range(200):
       goal_idx = agent.choose_mental_state(state, goal_idx, sample=False)
-      # goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state, 0.3)
       action = agent.choose_policy_action(state, goal_idx, sample=False)
-      # action = get_action(env.goals[goal_idx], state)
       next_state, reward, done, info = env.step(action)
 
       samples.append((state, action, next_state, goal_idx, reward, done))
@@ -282,4 +280,4 @@ if __name__ == "__main__":
 
   # for idx in range(2, 6):
   #   traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 50, False)
-  traj = generate_data(None, "MultiGoals2D_3-v0", 10, True, 10)
+  traj = generate_data(None, "MultiGoals2D_5-v0", 10, True, 1000)

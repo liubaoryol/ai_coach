@@ -16,8 +16,8 @@
 
 # python train_dnn/run_algs.py env=EnvCleanup-v0 alg=bc n_traj=66
 
-python train_dnn/run_algs.py env=RMPickPlaceCan-v0 alg=bc n_traj=30 seed=2 \
-       hidden_critic=[1,1] hidden_policy=[512,512] n_batches=10000
+python train_dnn/run_algs.py env=RMPickPlaceCan-v0 alg=bc n_traj=30 seed=0 \
+       hidden_critic=[1,1] hidden_policy=[512,512,512] n_batches=10000
 
 
 # python train_dnn/run_algs.py env=RMPickPlaceCan-v0 alg=bc n_traj=30 seed=2 \

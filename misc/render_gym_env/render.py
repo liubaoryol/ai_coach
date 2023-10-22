@@ -19,7 +19,7 @@ if __name__ == "__main__":
   num_episodes = 1
   episode_length = 1000
 
-  env = gym.make('AntPush-v0')
+  env = gym.make('Humanoid-v2')
 
   rewards = []
   for ep in range(num_episodes):
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     obs = env.reset()
     for _ in range(episode_length):
       env.render()
-      time.sleep(2)
+      time.sleep(5)
       obs, reward, done, _ = env.step(action_fn(obs, env))
       rewards[-1] += reward
       if done:

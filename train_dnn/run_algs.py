@@ -67,9 +67,14 @@ def run_alg(config):
     train_oiql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
                     log_interval, eval_interval)
   elif alg_name == "iql":
-    from aic_ml.baselines.IQLearn.iql import run_iql
-    run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
-            eval_interval)
+    if not config.offline:
+      from aic_ml.baselines.IQLearn.iql import run_iql
+      run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
+              eval_interval)
+    else:
+      from aic_ml.baselines.IQLearn.iql_offline import run_iql
+      run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
+              eval_interval)
   elif alg_name == "sac":
     from aic_ml.baselines.IQLearn.iql import run_sac
     run_sac(config, log_dir, output_dir, log_interval, eval_interval)

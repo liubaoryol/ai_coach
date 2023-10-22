@@ -19,7 +19,7 @@ import torch.nn as nn
 from .utils.logger import Logger
 from itertools import count
 import types
-from .iq import iq_loss
+from .iq import iq_loss, OFFLINE_METHOD_LOSS
 import wandb
 import omegaconf
 
@@ -427,79 +427,3 @@ def iq_update(self,
       hard_update(self.critic_net, self.critic_target_net)
 
   return losses
-
-
-def iq_offline(self,
-               expert_buffer,
-               logger,
-               update_count,
-               use_target=False,
-               do_soft_update=False,
-               method_div="chi"):
-  expert_batch = expert_buffer.get_samples(self.batch_size, self.device)
-  (expert_obs, expert_next_obs, expert_action, expert_reward,
-   expert_done) = expert_batch
-
-  is_expert = torch.ones_like(expert_reward, dtype=torch.bool)
-
-  vec_v_args = (expert_obs, )
-  vec_next_v_args = (expert_next_obs, )
-  vec_actions = (expert_action, )
-
-  agent = self
-
-  # for offline setting these shouldn't be changed
-  OFFLINE_METHOD_LOSS = "value_expert"
-  NO_ONLINE_REGULARIZE = False
-
-  current_Q = self.critic(expert_obs, expert_action, both=True)
-  if isinstance(current_Q, tuple):
-    q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
-                                  vec_next_v_args, vec_actions, expert_done,
-                                  is_expert, use_target, OFFLINE_METHOD_LOSS,
-                                  NO_ONLINE_REGULARIZE, method_div)
-    q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
-                                  vec_next_v_args, vec_actions, expert_done,
-                                  is_expert, use_target, OFFLINE_METHOD_LOSS,
-                                  NO_ONLINE_REGULARIZE, method_div)
-    critic_loss = 1 / 2 * (q1_loss + q2_loss)
-    # merge loss dicts
-    loss_dict = average_dicts(loss_dict1, loss_dict2)
-  else:
-    critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
-                                     vec_next_v_args, vec_actions, expert_done,
-                                     is_expert, use_target, OFFLINE_METHOD_LOSS,
-                                     NO_ONLINE_REGULARIZE, method_div)
-
-  # logger.log('train/critic_loss', critic_loss, step)
-
-  # Optimize the critic
-  self.critic_optimizer.zero_grad()
-  critic_loss.backward()
-  if hasattr(self, 'clip_grad_val') and self.clip_grad_val:
-    nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
-  # step critic
-  self.critic_optimizer.step()
-
-  # args
-  vdice_actor = False
-  num_actor_updates = 1
-
-  if self.actor and update_count % self.actor_update_frequency == 0:
-    if not vdice_actor:
-
-      obs = expert_batch[0]
-
-      if num_actor_updates:
-        for i in range(num_actor_updates):
-          actor_alpha_losses = self.update_actor_and_alpha(
-              obs, logger, update_count)
-
-      loss_dict.update(actor_alpha_losses)
-
-  if use_target and update_count % self.critic_target_update_frequency == 0:
-    if do_soft_update:
-      soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
-    else:
-      hard_update(self.critic_net, self.critic_target_net)
-  return loss_dict
