@@ -71,7 +71,7 @@ def intervention_result(domain_name,
     policy2_file = "movers_btil_dec_policy_human_woTx_FTTT_165_0,30_a2.npy"
     tx1_file = "movers_btil_dec_tx_human_FTTT_165_0,30_a1.npy"
     tx2_file = "movers_btil_dec_tx_human_FTTT_165_0,30_a2.npy"
-    v_value_file_name = "movers_500_0,30_500_merged_v_values_learned.pickle"
+    v_value_file_name = "movers_165_0,30_30_merged_v_values_learned.pickle"
   elif domain_name == "rescue_2":
     policy1_file = "rescue_2_btil_dec_policy_human_woTx_FTTT_164_0,30_a1.npy"
     policy2_file = "rescue_2_btil_dec_policy_human_woTx_FTTT_164_0,30_a2.npy"
