@@ -57,6 +57,7 @@ def save_box_plots(df_input_name, output_name, list_domains, list_domain_names,
     reward_vs_delta = df_domain[((df_domain["strategy"] == "Average")
                                  | (df_domain["strategy"] == "Argmax"))
                                 & (df_domain["cost"] == 0)]
+    print(len(reward_vs_delta))
     assert len(reward_vs_delta) == 1800
 
     # all_interv_arg = df_domain[(df_domain["strategy"] == "Argmax")
@@ -708,7 +709,7 @@ if __name__ == "__main__":
   output_dir = os.path.join(os.path.dirname(__file__), "output/")
 
   eval_result_name = data_dir + "eval_result3.csv"
-  intv_result_name = data_dir + "intervention_result8.csv"
+  intv_result_name = data_dir + "intervention_result8_oct_24.csv"
 
   list_domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
   list_domain_names = ["Movers", "Cleanup", "Flood", "Blackout"]
@@ -734,11 +735,18 @@ if __name__ == "__main__":
   #                      list_domain_names, SAVE_RESULT)
 
   save_box_plots(intv_result_name, output_dir + "delta_box.png",
-                 list_domains[:2], list_domain_names[:2], perfect_scores[:2],
-                 perfect_steps[:2], SAVE_RESULT)
+                 [list_domains[0]], [list_domain_names[0]], [perfect_scores[0]],
+                 [perfect_steps[0]], SAVE_RESULT)
   save_rescue_plots(intv_result_name, output_dir + "delta_rescue.png",
-                    list_domains[2:], list_domain_names[2:], perfect_scores[2:],
-                    perfect_steps[2:], SAVE_RESULT)
+                    [list_domains[2]], [list_domain_names[2]], [perfect_scores[2]],
+                    [perfect_steps[2]], SAVE_RESULT)
+  
+  # save_box_plots(intv_result_name, output_dir + "delta_box.png",
+  #                list_domains[:2], list_domain_names[:2], perfect_scores[:2],
+  #                perfect_steps[:2], SAVE_RESULT)
+  # save_rescue_plots(intv_result_name, output_dir + "delta_rescue.png",
+  #                   list_domains[2:], list_domain_names[2:], perfect_scores[2:],
+  #                   perfect_steps[2:], SAVE_RESULT)
 
   # save_reward_vs_delta_plots(intv_result_name,
   #                            output_dir + "reward_vs_delta_box.png",

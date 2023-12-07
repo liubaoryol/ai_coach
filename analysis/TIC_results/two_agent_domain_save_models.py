@@ -241,7 +241,9 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
       else:
         return AGENTS[agent_idx].get_initial_latent_distribution(state_idx)
 
-    fn_get_bx = assumed_init_latent_dist
+    # Temporary fix for state_to_idx mismatch
+    fn_get_bx = (
+        lambda a, s: np.ones(MDP_AGENT.num_latents) / MDP_AGENT.num_latents)
 
   # load train set
   ##################################################

@@ -76,12 +76,18 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
   # domain: movers | cleanup_v2 | rescue_2
 
   sup_txt = ("%.2f" % supervision).replace('.', ',')
-  policy1_file = (domain +
-                  f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a1.npy")
-  policy2_file = (domain +
-                  f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a2.npy")
-  tx1_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a1.npy"
-  tx2_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a2.npy"
+  policy1_file = "movers_btil_dec_policy_human_woTx_FTTT_165_0,30_a1.npy"
+  policy2_file = "movers_btil_dec_policy_human_woTx_FTTT_165_0,30_a2.npy"
+  tx1_file = "movers_btil_dec_tx_human_FTTT_165_0,30_a1.npy"
+  tx2_file = "movers_btil_dec_tx_human_FTTT_165_0,30_a2.npy"
+
+
+  # policy1_file = (domain +
+  #                 f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a1.npy")
+  # policy2_file = (domain +
+  #                 f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a2.npy")
+  # tx1_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a1.npy"
+  # tx2_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a2.npy"
 
   if domain == "movers":
     task_mdp = MDP_Movers_Task(**MAP_MOVERS)

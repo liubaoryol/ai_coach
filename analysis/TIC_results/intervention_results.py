@@ -48,7 +48,7 @@ def intervention_result(domain_name,
     tx_dependency = "FTTTT"
   else:
     tx_dependency = "FTTT"
-
+  
   policy1_file = (
       domain_name +
       f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
@@ -65,6 +65,19 @@ def intervention_result(domain_name,
               f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
   tx3_file = (domain_name +
               f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
+
+  if domain_name == "movers":
+    policy1_file = "movers_btil_dec_policy_human_woTx_FTTT_165_0,30_a1.npy"
+    policy2_file = "movers_btil_dec_policy_human_woTx_FTTT_165_0,30_a2.npy"
+    tx1_file = "movers_btil_dec_tx_human_FTTT_165_0,30_a1.npy"
+    tx2_file = "movers_btil_dec_tx_human_FTTT_165_0,30_a2.npy"
+    v_value_file_name = "movers_500_0,30_500_merged_v_values_learned.pickle"
+  elif domain_name == "rescue_2":
+    policy1_file = "rescue_2_btil_dec_policy_human_woTx_FTTT_164_0,30_a1.npy"
+    policy2_file = "rescue_2_btil_dec_policy_human_woTx_FTTT_164_0,30_a2.npy"
+    tx1_file = "rescue_2_btil_dec_tx_human_FTTT_164_0,30_a1.npy"
+    tx2_file = "rescue_2_btil_dec_tx_human_FTTT_164_0,30_a2.npy"
+    v_value_file_name = "rescue_2_164_0,30_30_merged_v_values_learned.pickle"
 
   if domain_name == "movers":
     from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
@@ -304,12 +317,11 @@ if __name__ == "__main__":
   list_cost = [0, 0.2, 0.5, 1]
   # cost = list_cost[0]
   list_infer_thres = [0, 0.2, 0.3, 0.5, 0.7, 0.9]
-  domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
+  # domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
+  domains = ["movers", "rescue_2"]
   dict_interv_thres = {
       domains[0]: [0, 1, 3, 5, 10, 15, 20, 30, 50],
-      domains[1]: [0, 0.3, 0.5, 1.0, 2.0, 5.0, 10, 15, 20],
-      domains[2]: [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0],
-      domains[3]: [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
+      domains[1]: [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0],
   }
 
   for cost in list_cost:
@@ -440,4 +452,4 @@ if __name__ == "__main__":
                     ])
 
   data_dir = os.path.join(os.path.dirname(__file__), "data/")
-  df.to_csv(data_dir + "intervention_result8.csv", index=False)
+  df.to_csv(data_dir + "intervention_result8_oct_24.csv", index=False)
