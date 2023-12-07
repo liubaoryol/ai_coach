@@ -288,7 +288,7 @@ class BoxPushTrajectoryConverter(Trajectories):
 def get_mdp_policy_tx(domain_type: EDomainType):
   # load models
   # TODO: take this codes out so that we need to load models only once
-  model_dir = "../misc/BTIL_results/data/learned_models/"
+  model_dir = "../analysis/BTIL_results/data/learned_models/"
 
   if domain_type == EDomainType.Movers:
     game_map = MAP_MOVERS
