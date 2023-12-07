@@ -2,12 +2,12 @@ import abc
 import torch
 import numpy as np
 from aic_ml.baselines.IQLearn.utils.utils import one_hot
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
 class AbstractPolicyLeaner(abc.ABC):
 
-  def __init__(self, config: Config):
+  def __init__(self, config: DictConfig):
     self.gamma = config.gamma
     self.device = torch.device(config.device)
     self.actor = None
@@ -31,7 +31,7 @@ class AbstractPolicyLeaner(abc.ABC):
     return batch_input
 
   @abc.abstractmethod
-  def reset_optimizers(self, config: Config):
+  def reset_optimizers(self, config: DictConfig):
     pass
 
   @abc.abstractmethod

@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 from aic_ml.baselines.IQLearn.utils.utils import (average_dicts, soft_update,
-                                                  hard_update)
-from aic_ml.baselines.IQLearn.iq import iq_loss
+                                                  hard_update,
+                                                  get_concat_samples)
+from aic_ml.baselines.IQLearn.iq import iq_loss, OFFLINE_METHOD_LOSS
 from .option_sac import OptionSAC
-from ..helper.utils import get_concat_samples
 import time
 
 
@@ -15,12 +15,22 @@ class OptionIQL(OptionSAC):
                        expert_batch,
                        logger,
                        step,
-                       is_sqil=False,
                        use_target=False,
                        method_loss="value",
-                       method_regularize=True):
-    (obs, prev_lat, prev_act, next_obs, latent, action, _, done,
-     is_expert) = get_concat_samples(policy_batch, expert_batch, is_sqil)
+                       method_regularize=True,
+                       method_div=""):
+
+    if policy_batch is None:
+      obs, prev_lat, prev_act, next_obs, latent, action, _, done = expert_batch
+      is_expert = torch.ones_like(expert_batch[-2], dtype=torch.bool)
+
+      # for offline setting these shouldn't be changed
+      method_loss = OFFLINE_METHOD_LOSS
+      method_regularize = False
+    else:
+      (obs, prev_lat, prev_act, next_obs, latent, action, _, done,
+       is_expert) = get_concat_samples(policy_batch, expert_batch, False)
+
     vec_v_args = (obs, prev_lat, prev_act)
     vec_next_v_args = (next_obs, latent, action)
     vec_actions = (latent, action)
@@ -32,11 +42,11 @@ class OptionIQL(OptionSAC):
       q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
                                     vec_next_v_args, vec_actions, done,
                                     is_expert, use_target, method_loss,
-                                    method_regularize)
+                                    method_regularize, method_div)
       q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
                                     vec_next_v_args, vec_actions, done,
                                     is_expert, use_target, method_loss,
-                                    method_regularize)
+                                    method_regularize, method_div)
       critic_loss = 1 / 2 * (q1_loss + q2_loss)
       # merge loss dicts
       loss_dict = average_dicts(loss_dict1, loss_dict2)
@@ -44,7 +54,7 @@ class OptionIQL(OptionSAC):
       critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
                                        vec_next_v_args, vec_actions, done,
                                        is_expert, use_target, method_loss,
-                                       method_regularize)
+                                       method_regularize, method_div)
 
     # logger.log('train/critic_loss', critic_loss, step)
 
@@ -61,26 +71,25 @@ class OptionIQL(OptionSAC):
                 policy_batch,
                 expert_batch,
                 logger,
-                step,
-                is_sqil=False,
+                update_count,
                 use_target=False,
                 do_soft_update=False,
                 method_loss="value",
-                method_regularize=True):
+                method_regularize=True,
+                method_div=""):
 
     for _ in range(self.num_critic_update):
-      losses = self.iq_update_critic(policy_batch, expert_batch, logger, step,
-                                     is_sqil, use_target, method_loss,
-                                     method_regularize)
+      losses = self.iq_update_critic(policy_batch, expert_batch, logger,
+                                     update_count, use_target, method_loss,
+                                     method_regularize, method_div)
 
     # args
     vdice_actor = False
-    offline = False
 
     if self.actor:
       if not vdice_actor:
 
-        if offline:
+        if policy_batch is None:
           obs = expert_batch[0]
           prev_lat = expert_batch[1]
           prev_act = expert_batch[2]
@@ -92,12 +101,25 @@ class OptionIQL(OptionSAC):
 
         for i in range(self.num_actor_update):
           actor_alpha_losses = self.update_actor_and_alpha(
-              obs, prev_lat, prev_act, logger, step)
+              obs, prev_lat, prev_act, logger, update_count)
 
         losses.update(actor_alpha_losses)
 
-    if do_soft_update:
-      soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
-    else:
-      hard_update(self.critic_net, self.critic_target_net)
+    if use_target and update_count % self.critic_target_update_frequency == 0:
+      if do_soft_update:
+        soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
+      else:
+        hard_update(self.critic_net, self.critic_target_net)
     return losses
+
+  def iq_offline_update(self,
+                        expert_batch,
+                        logger,
+                        update_count,
+                        use_target=False,
+                        do_soft_update=False,
+                        method_regularize=True,
+                        method_div=""):
+    return self.iq_update(None, expert_batch, logger, update_count, use_target,
+                          do_soft_update, OFFLINE_METHOD_LOSS,
+                          method_regularize, method_div)

@@ -1,13 +1,13 @@
 import torch
 from ..utils.model_util import make_module, make_module_list, make_activation, conv_nn_input
-from ..utils.config import Config
+from omegaconf import DictConfig
 
 # This file should be included by option_ppo.py and never be used otherwise
 
 
 class Critic(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s):
+  def __init__(self, config: DictConfig, dim_s):
     super(Critic, self).__init__()
     self.dim_s = dim_s
     self.device = torch.device(config.device)

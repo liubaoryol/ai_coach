@@ -3,14 +3,14 @@ import torch
 import torch.nn.functional as F
 from ..utils.model_util import (make_module, make_module_list, make_activation,
                                 conv_nn_input)
-from ..utils.config import Config
+from omegaconf import DictConfig
 
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 
 
 class Policy(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(Policy, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
@@ -64,7 +64,7 @@ class Policy(torch.nn.Module):
 class OptionPolicy(torch.nn.Module):
 
   def __init__(self,
-               config: Config,
+               config: DictConfig,
                dim_s=2,
                dim_a=2,
                discrete_s=False,
@@ -174,6 +174,7 @@ class OptionPolicy(torch.nn.Module):
     # if c is None, return (N x dim_c x 1), else return (N x 1)
     if self.discrete_a:
       log_pas = self.a_log_softmax(st, ct)
+      at = conv_nn_input(at, False, 1, self.device)
       at = at.long()
       if ct is None:
         at = at.view(-1, 1, 1).expand(-1, self.dim_c, 1)
@@ -283,6 +284,7 @@ class OptionPolicy(torch.nn.Module):
     # else:
     # c[i] = c[i-1]
     # return c, torch.zeros(1, dtype=torch.float32, device=self.device)
+    len_demo = len(s_array)
     with torch.no_grad():
       log_pis = self.log_prob_action(s_array, None, a_array).view(
           -1, 1, self.dim_c)  # demo_len x 1 x ct
@@ -290,29 +292,29 @@ class OptionPolicy(torch.nn.Module):
       log_prob = log_trs[:, :-1] + log_pis
       log_prob0 = log_trs[0, -1] + log_pis[0, 0]
       # forward
-      max_path = torch.empty(s_array.size(0),
+      max_path = torch.empty(len_demo,
                              self.dim_c,
                              dtype=torch.long,
                              device=self.device)
       accumulate_logp = log_prob0
       max_path[0] = self.dim_c
-      for i in range(1, s_array.size(0)):
+      for i in range(1, len_demo):
         accumulate_logp, max_path[i, :] = (accumulate_logp.unsqueeze(dim=-1) +
                                            log_prob[i]).max(dim=-2)
       # backward
-      c_array = torch.zeros(s_array.size(0) + 1,
+      c_array = torch.zeros(len_demo + 1,
                             1,
                             dtype=torch.long,
                             device=self.device)
       log_prob_traj, c_array[-1] = accumulate_logp.max(dim=-1)
-      for i in range(s_array.size(0), 0, -1):
+      for i in range(len_demo, 0, -1):
         c_array[i - 1] = max_path[i - 1][c_array[i]]
     return c_array.detach(), log_prob_traj.detach()
 
 
 class MoEPolicy(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(MoEPolicy, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a

@@ -9,10 +9,10 @@ from .utils.agent import Sampler
 from .utils.utils import (lr_factor_func, sample_batch, reward_validate,
                           set_seed, env_class_and_demo_fn)
 from .utils.logger import Logger
-from .utils.config import Config
+from omegaconf import DictConfig
 
 
-def learn(config: Config, log_dir, save_dir, msg="default"):
+def learn(config: DictConfig, log_dir, save_dir):
   env_type = config.env_type
   use_option = config.use_option
   env_name = config.env_name
@@ -22,6 +22,7 @@ def learn(config: Config, log_dir, save_dir, msg="default"):
   seed = config.seed
   use_state_filter = config.use_state_filter
 
+  msg = f"{config.alg_name}_{config.tag}"
   set_seed(seed)
 
   with open(os.path.join(save_dir, "config.log"), 'w') as f:

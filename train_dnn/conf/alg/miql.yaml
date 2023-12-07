@@ -3,7 +3,7 @@
 alg_name: miql
 stream_training: True
 n_update_rounds: 256 # only when stream_training=False
-demo_latent_infer_interval: 4096 # only when stream_training=True
+demo_latent_infer_interval: 1000 # only when stream_training=True
 # update strategy
 miql_update_strategy: 1 # 1: always update both / 2: update in order / 3: update alternatively
 miql_tx_after_pi: True
@@ -14,7 +14,8 @@ miql_tx_activation: relu
 miql_tx_hidden_critic: [256, 256]
 miql_tx_optimizer_lr_critic: 3.e-4
 miql_tx_method_loss: value
-miql_tx_method_regularize: True
+miql_tx_method_regularize: False
+miql_tx_method_div: chi
 miql_tx_init_temp: 1e-4
 miql_tx_clip_grad_val: null
 miql_tx_num_actor_update: 1
@@ -27,6 +28,7 @@ miql_pi_hidden_critic: [256, 256]
 miql_pi_optimizer_lr_critic: 3.e-4
 miql_pi_method_loss: value
 miql_pi_method_regularize: True
+miql_pi_method_div: ""
 miql_pi_num_critic_update: 1
 miql_pi_single_critic: True
 # pi - actor

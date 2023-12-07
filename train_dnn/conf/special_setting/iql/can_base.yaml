@@ -1,0 +1,21 @@
+# @package _global_
+
+defaults:
+  - iql/mujoco_base
+
+max_explore_step: 6e6
+n_traj: 30
+
+n_sample: 50000
+init_sample: 1000
+update_interval: 5
+mini_batch_size: 256
+
+hidden_critic: [512, 512]
+optimizer_lr_critic: 3.e-4
+hidden_policy: [512, 512]
+optimizer_lr_policy: 3.e-5
+
+method_loss: value
+init_temp: 0.01
+iql_single_critic: False

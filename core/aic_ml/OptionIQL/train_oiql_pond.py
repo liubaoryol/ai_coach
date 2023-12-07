@@ -13,10 +13,10 @@ from .agent.option_sac import OptionSAC
 from .helper.option_memory import OptionMemory
 from .helper.utils import (get_expert_batch, evaluate, save, get_samples,
                            infer_mental_states)
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
-def train_osac_pond(config: Config,
+def train_osac_pond(config: DictConfig,
                     log_dir,
                     output_dir,
                     log_interval=500,
@@ -26,7 +26,7 @@ def train_osac_pond(config: Config,
                       log_interval, eval_interval, env_kwargs)
 
 
-def train_oiql_pond(config: Config,
+def train_oiql_pond(config: DictConfig,
                     demo_path,
                     num_trajs,
                     log_dir,
@@ -38,8 +38,8 @@ def train_oiql_pond(config: Config,
                       log_interval, eval_interval, env_kwargs)
 
 
-def step_iq_update(config: Config, agent: OptionIQL, sample_data, expert_data,
-                   logger, explore_steps, is_sqil):
+def step_iq_update(config: DictConfig, agent: OptionIQL, sample_data,
+                   expert_data, logger, explore_steps):
   use_target = True
   do_soft_update = True
 
@@ -61,13 +61,13 @@ def step_iq_update(config: Config, agent: OptionIQL, sample_data, expert_data,
 
       # IQ-Learn
       losses = agent.iq_update(sample_batch, expert_batch, logger,
-                               explore_steps, is_sqil, use_target,
-                               do_soft_update, config.method_loss,
-                               config.method_regularize)
+                               explore_steps, use_target, do_soft_update,
+                               config.method_loss, config.method_regularize,
+                               config.method_div)
   return losses
 
 
-def step_sac_update(config: Config, agent: OptionSAC,
+def step_sac_update(config: DictConfig, agent: OptionSAC,
                     online_memory_replay: OptionMemory, logger, explore_steps):
   # #################### update
   # agent.reset_optimizers(config)
@@ -78,7 +78,7 @@ def step_sac_update(config: Config, agent: OptionSAC,
   return losses
 
 
-def trainer_impl(config: Config,
+def trainer_impl(config: DictConfig,
                  demo_path,
                  num_trajs,
                  log_dir,
@@ -94,13 +94,12 @@ def trainer_impl(config: Config,
   max_explore_step = config.max_explore_step
   output_suffix = ""
   load_path = None
-  is_sqil = False
 
   alg_type = 'rl'
   imitation = (agent_name == "oiql")
   if imitation:
     fn_make_agent = make_oiql_agent
-    alg_type = 'sqil' if is_sqil else 'iq'
+    alg_type = 'iq'
   elif agent_name == "osac":
     fn_make_agent = make_osac_agent
   else:
@@ -230,7 +229,7 @@ def trainer_impl(config: Config,
 
       sample_data = online_memory_replay.get_all_samples(agent.device)
       losses = step_iq_update(config, agent, sample_data, expert_data, logger,
-                              explore_steps, is_sqil)
+                              explore_steps)
     else:
       losses = step_sac_update(config, agent, online_memory_replay, logger,
                                explore_steps)
@@ -241,9 +240,8 @@ def trainer_impl(config: Config,
     cnt_evals += explore_step_cur
     if cnt_evals >= eval_interval:
       cnt_evals = 0
-      eval_returns, eval_timesteps = evaluate(agent,
-                                              eval_env,
-                                              num_episodes=num_episodes)
+      eval_returns, eval_timesteps, successes = evaluate(
+          agent, eval_env, num_episodes=num_episodes)
       returns = np.mean(eval_returns)
       logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
       logger.log('eval/episode_reward', returns, explore_steps)

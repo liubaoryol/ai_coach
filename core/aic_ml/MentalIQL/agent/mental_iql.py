@@ -1,23 +1,23 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from aic_ml.baselines.option_gail.utils.config import Config
 from .nn_models import (SimpleOptionQNetwork, DoubleOptionQCritic,
                         SingleOptionQCritic, DiagGaussianOptionActor)
 # from .option_softq import OptionSoftQ
 # from .option_sac import OptionSAC
 from .option_iql import IQLOptionSAC, IQLOptionSoftQ
+from omegaconf import DictConfig
 
 
-def get_tx_pi_config(config: Config):
+def get_tx_pi_config(config: DictConfig):
   tx_prefix = "miql_tx_"
-  config_tx = Config()
+  config_tx = DictConfig({})
   for key in config:
     if key[:len(tx_prefix)] == tx_prefix:
       config_tx[key[len(tx_prefix):]] = config[key]
 
   pi_prefix = "miql_pi_"
-  config_pi = Config()
+  config_pi = DictConfig({})
   for key in config:
     if key[:len(pi_prefix)] == pi_prefix:
       config_pi[key[len(pi_prefix):]] = config[key]
@@ -30,8 +30,8 @@ def get_tx_pi_config(config: Config):
 
 class MentalIQL:
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim, discrete_obs,
-               discrete_act):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim,
+               discrete_obs, discrete_act):
     self.discrete_obs = discrete_obs
     self.obs_dim = obs_dim
     self.action_dim = action_dim
@@ -103,28 +103,26 @@ class MentalIQL:
     return vec_v_args, vec_next_v_args, vec_actions, done
 
   def pi_update(self, policy_batch, expert_batch, logger, step):
-    PI_IS_SQIL = False
     if self.discrete_act:
       pi_use_target, pi_soft_update = False, False
     else:
       pi_use_target, pi_soft_update = True, True
 
     pi_loss = self.pi_agent.iq_update(policy_batch, expert_batch, logger,
-                                      self.pi_update_count, PI_IS_SQIL,
-                                      pi_use_target, pi_soft_update,
-                                      self.pi_agent.method_loss,
-                                      self.pi_agent.method_regularize)
+                                      self.pi_update_count, pi_use_target,
+                                      pi_soft_update, self.pi_agent.method_loss,
+                                      self.pi_agent.method_regularize,
+                                      self.pi_agent.method_div)
     self.pi_update_count += 1
     return pi_loss
 
   def tx_update(self, policy_batch, expert_batch, logger, step):
-    TX_IS_SQIL, TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False, False
-    tx_loss = self.tx_agent.iq_update(policy_batch[:self.tx_batch_size],
-                                      expert_batch[:self.tx_batch_size], logger,
-                                      self.tx_update_count, TX_IS_SQIL,
-                                      TX_USE_TARGET, TX_DO_SOFT_UPDATE,
-                                      self.tx_agent.method_loss,
-                                      self.tx_agent.method_regularize)
+    TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False
+    tx_loss = self.tx_agent.iq_update(
+        policy_batch[:self.tx_batch_size], expert_batch[:self.tx_batch_size],
+        logger, self.tx_update_count, TX_USE_TARGET, TX_DO_SOFT_UPDATE,
+        self.tx_agent.method_loss, self.tx_agent.method_regularize,
+        self.tx_agent.method_div)
     self.tx_update_count += 1
     return tx_loss
 
@@ -170,6 +168,25 @@ class MentalIQL:
       raise NotImplementedError
 
     return (loss_1, loss_2) if self.update_tx_after_pi else (loss_2, loss_1)
+
+  def miql_offline_update(self, expert_batch, logger, step):
+    TX_USE_TARGET, TX_DO_SOFT_UPDATE = False, False
+
+    if self.discrete_act:
+      pi_use_target, pi_soft_update = False, False
+    else:
+      pi_use_target, pi_soft_update = True, True
+
+    loss_1 = self.tx_agent.iq_offline_update(expert_batch[:self.tx_batch_size],
+                                             logger, step, TX_USE_TARGET,
+                                             TX_DO_SOFT_UPDATE,
+                                             self.tx_agent.method_regularize,
+                                             self.tx_agent.method_div)
+    loss_2 = self.pi_agent.iq_offline_update(expert_batch, logger, step,
+                                             pi_use_target, pi_soft_update,
+                                             self.pi_agent.method_regularize,
+                                             self.pi_agent.method_div)
+    return loss_1, loss_2
 
   def choose_action(self, state, prev_option, prev_action, sample=False):
     'for compatibility with OptionIQL evaluate function'

@@ -2,6 +2,7 @@
 
 import os
 import torch
+import numpy as np
 from typing import Union
 import matplotlib.pyplot as plt
 from itertools import count
@@ -11,11 +12,13 @@ from .utils.utils import (env_class, validate, reward_validate, set_seed,
                           load_n_convert_data)
 from .utils.agent import Sampler
 from .utils.logger import Logger
-from .utils.config import Config
 from .utils.pre_train import pretrain
+import wandb
+import omegaconf
 
 
-def make_gail(config: Config, dim_s, dim_a, discrete_s, discrete_a):
+def make_gail(config: omegaconf.DictConfig, dim_s, dim_a, discrete_s,
+              discrete_a):
   use_option = config.use_option
 
   if use_option:
@@ -45,23 +48,20 @@ def train_d(gail: Union[OptionGAIL, GAIL], sample_sxar, demo_sxar, n_step=10):
 def sample_batch(gail: Union[OptionGAIL, GAIL], agent, n_sample, demo_sa_array,
                  demo_labels):
   demo_sa_in = agent.filter_demo(demo_sa_array)
-  sample_sxar_in = agent.collect(gail.policy.state_dict(),
-                                 n_sample,
-                                 fixed=False)
-  sample_sxar, sample_rsum = gail.convert_sample(sample_sxar_in)
+  sample_sxadr_in = agent.collect(gail.policy.state_dict(),
+                                  n_sample,
+                                  fixed=False)
+  sample_sxar, sample_rsum = gail.convert_sample(sample_sxadr_in)
+  succs = [tr[-2] for tr in sample_sxadr_in]
+
   demo_sxar, demo_rsum = gail.convert_demo(demo_sa_in, demo_labels)
   sample_avgstep = (sum([sxar[-1].size(0)
                          for sxar in sample_sxar]) / len(sample_sxar))
-  return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
+  return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep, succs
 
 
-def learn(config: Config,
-          log_dir,
-          save_dir,
-          demo_path,
-          pretrain_name,
-          eval_interval,
-          msg="default"):
+def learn(config: omegaconf.DictConfig, log_dir, save_dir, demo_path,
+          pretrain_name, eval_interval):
 
   env_type = config.env_type
   use_pretrain = config.use_pretrain
@@ -76,6 +76,17 @@ def learn(config: Config,
   env_name = config.env_name
   use_state_filter = config.use_state_filter
   use_d_info_gail = config.use_d_info_gail
+
+  dict_config = omegaconf.OmegaConf.to_container(config,
+                                                 resolve=True,
+                                                 throw_on_missing=True)
+  run_name = f"{config.alg_name}_{config.tag}"
+  wandb.init(project=env_name,
+             name=run_name,
+             entity='sangwon-seo',
+             sync_tensorboard=True,
+             reinit=True,
+             config=dict_config)
 
   set_seed(seed)
 
@@ -93,8 +104,11 @@ def learn(config: Config,
   device = torch.device(config.device)
   dim_c = config.dim_c
 
-  demo_sa_array, demo_labels, cnt_label = load_n_convert_data(
-      demo_path, n_traj, n_labeled, device, dim_c, seed)
+  (demo_sa_array, demo_labels, cnt_label, expert_avg,
+   expert_std) = load_n_convert_data(demo_path, n_traj, n_labeled, device,
+                                     dim_c, seed)
+  wandb.run.summary["expert_avg"] = expert_avg
+  wandb.run.summary["expert_std"] = expert_std
 
   best_model_save_name = os.path.join(
       save_dir, f"{env_name}_n{n_traj}_l{cnt_label}_best.torch")
@@ -126,7 +140,7 @@ def learn(config: Config,
                demo_sa_array,
                save_name_pre_f,
                logger,
-               msg,
+               run_name,
                n_iter,
                log_interval,
                in_pretrain=True)
@@ -136,19 +150,23 @@ def learn(config: Config,
   explore_step = 0
   LOG_PLOT = False
   best_reward = -float("inf")
+  best_success_rate = -float('inf')
   cnt_evals = 0
   for i in count():
     if explore_step >= max_exp_step:
-      break
+      wandb.finish()
+      return
 
-    sample_sxar, demo_sxar, sample_r, demo_r, sample_avgstep = sample_batch(
+    sample_sxar, demo_sxar, sample_r, demo_r, sample_avgstep, ss = sample_batch(
         gail, sampling_agent, n_sample, demo_sa_array, demo_labels)
+    if ss[0] is not None:
+      logger.log_train("success_rate", np.mean(ss), explore_step)
 
-    logger.log_train("r-sample-avg", sample_r, explore_step)
+    logger.log_train("episode_reward", sample_r, explore_step)
     logger.log_train("r-demo-avg", demo_r, explore_step)
-    logger.log_train("step-sample-avg", sample_avgstep, explore_step)
-    print(f"{explore_step}: r-sample-avg={sample_r}, d-demo-avg={demo_r}, "
-          f"step-sample-avg={sample_avgstep} ; {msg}")
+    logger.log_train("episode_step", sample_avgstep, explore_step)
+    print(f"{explore_step}: episode_reward={sample_r}, d-demo-avg={demo_r}, "
+          f"episode_step={sample_avgstep} ; {env_name}_{run_name}")
 
     train_d(gail, sample_sxar, demo_sxar)
     # factor_lr = lr_factor_func(i, 1000., 1., 0.0001)
@@ -162,7 +180,7 @@ def learn(config: Config,
       cnt_evals = 0
       v_l, cs_demo = validate(gail.policy,
                               [(tr[0], tr[-2]) for tr in demo_sxar])
-      logger.log_test("expert_logp", v_l, explore_step)
+      logger.log_eval("expert_logp", v_l, explore_step)
       info_dict, cs_sample = reward_validate(sampling_agent,
                                              gail.policy,
                                              do_print=True)
@@ -175,10 +193,16 @@ def learn(config: Config,
         a.gca().plot(cs_sample[0][1:])
         logger.log_test_fig("sample_c", a, explore_step)
 
-      if best_reward <= info_dict["r-avg"]:
-        best_reward = info_dict["r-avg"]
+      if "success_rate" in info_dict:
+        if best_success_rate < info_dict["success_rate"]:
+          best_success_rate = info_dict["success_rate"]
+          wandb.run.summary["best_success_rate"] = best_success_rate
+
+      if best_reward <= info_dict["episode_reward"]:
+        best_reward = info_dict["episode_reward"]
+        wandb.run.summary["best_returns"] = best_reward
         torch.save((gail.state_dict(), sampling_agent.state_dict()),
                    best_model_save_name)
-      logger.log_test_info(info_dict, explore_step)
+      logger.log_eval_info(info_dict, explore_step)
 
     logger.flush()

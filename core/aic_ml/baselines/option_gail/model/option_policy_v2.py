@@ -5,14 +5,14 @@ from aic_ml.baselines.IQLearn.agent.sac_models import (GumbelSoftmax,
                                                        SquashedNormal)
 from torch.distributions import Normal
 from ..utils.model_util import make_module, make_module_list, make_activation
-from ..utils.config import Config
+from omegaconf import DictConfig
 
 # this policy uses one-step option, the initial option is fixed as o=dim_c
 
 
 class PolicyV2(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(PolicyV2, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
@@ -93,7 +93,7 @@ class PolicyV2(torch.nn.Module):
 
 class OptionPolicyV2(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(OptionPolicyV2, self).__init__()
     self.dim_s = dim_s
     self.dim_a = dim_a

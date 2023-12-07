@@ -6,6 +6,8 @@ Standalone IQ-Learn algorithm. See LICENSE for licensing terms.
 import torch
 import torch.nn.functional as F
 
+OFFLINE_METHOD_LOSS = "value_expert"
+
 
 # Full IQ-Learn objective with other divergences and options
 def iq_loss(agent,
@@ -17,9 +19,9 @@ def iq_loss(agent,
             is_expert,
             use_target,
             method_loss="value",
-            method_regularize=True):
+            method_regularize=True,
+            method_div=""):
   # args
-  method_div = ""
   method_type = "iq"
   method_grad_pen = False
   method_lambda_gp = 10
@@ -48,26 +50,6 @@ def iq_loss(agent,
   y = (1 - done) * gamma * next_v
   reward = (current_Q - y)[is_expert]
 
-  # with torch.no_grad():
-  #   # Use different divergence functions (For χ2 divergence we instead add a third bellmann error-like term)
-  #   if method_div == "hellinger":
-  #     phi_grad = 1 / (1 + reward)**2
-  #   elif method_div == "kl":
-  #     # original dual form for kl divergence (sub optimal)
-  #     phi_grad = torch.exp(-reward - 1)
-  #   elif method_div == "kl2":
-  #     # biased dual form for kl divergence
-  #     phi_grad = F.softmax(-reward, dim=0) * reward.shape[0]
-  #   elif method_div == "kl_fix":
-  #     # our proposed unbiased form for fixing kl divergence
-  #     phi_grad = torch.exp(-reward)
-  #   elif method_div == "js":
-  #     # jensen–shannon
-  #     phi_grad = torch.exp(-reward) / (2 - torch.exp(-reward))
-  #   else:
-  #     phi_grad = 1
-  # loss = -(phi_grad * reward).mean()
-
   if method_div == "hellinger":
     phi_reward = reward / (1 + reward)
   elif method_div == "kl":
@@ -76,7 +58,7 @@ def iq_loss(agent,
   elif method_div == "js":
     # jensen–shannon
     phi_reward = torch.log(2 - torch.exp(-reward))
-  elif method_div == "chi":
+  elif method_div == "chi":  # also for offline learning setting
     phi_reward = reward - 1 / (4 * method_alpha) * reward**2
   else:
     phi_reward = reward
@@ -107,23 +89,6 @@ def iq_loss(agent,
     v0_loss = (1 - gamma) * v0
     loss += v0_loss
     loss_dict['v0_loss'] = v0_loss.item()
-
-  # alternative sampling strategies for the sake of completeness but are usually suboptimal in practice
-  # elif args.method.loss == "value_policy":
-  #     # sample using only policy states
-  #     # E_(ρ)[V(s) - γV(s')]
-  #     value_loss = (current_v - y)[~is_expert].mean()
-  #     loss += value_loss
-  #     loss_dict['value_policy_loss'] = value_loss.item()
-
-  # elif args.method.loss == "value_mix":
-  #     # sample by weighted combination of expert and policy states
-  #     # E_(ρ)[Q(s,a) - γV(s')]
-  #     w = args.method.mix_coeff
-  #     value_loss = (w * (current_v - y)[is_expert] +
-  #                   (1-w) * (current_v - y)[~is_expert]).mean()
-  #     loss += value_loss
-  #     loss_dict['value_loss'] = value_loss.item()
 
   else:
     raise ValueError(f'This sampling method is not implemented: {method_type}')

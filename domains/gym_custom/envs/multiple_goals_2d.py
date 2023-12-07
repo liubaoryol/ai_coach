@@ -49,15 +49,26 @@ class MultiGoals2D(gym.Env):
         shape=(2, ),
         dtype=np.float32)
 
+    self.canvas_sz = 300
+
     curdir = os.path.dirname(__file__)
     self.goals = possible_goals
     self.visited = np.zeros(len(self.goals))
-    self.tolerance = 0.3
-    img_pirate = read_transparent_png(os.path.join(curdir, 'images/pirate.png'))
-    img_island = read_transparent_png(os.path.join(curdir, 'images/island.png'))
+    self.tolerance = 0.5
+    img_agent = read_transparent_png(os.path.join(curdir, 'images/gripper.png'))
 
-    self.img_pirate = cv2.resize(img_pirate, (30, 30))
-    self.img_island = cv2.resize(img_island, (30, 30))
+    img_lm1 = read_transparent_png(os.path.join(curdir, 'images/goal1.png'))
+    img_lm2 = read_transparent_png(os.path.join(curdir, 'images/goal2.png'))
+    img_lm3 = read_transparent_png(os.path.join(curdir, 'images/goal3.png'))
+    img_lm4 = read_transparent_png(os.path.join(curdir, 'images/goal4.png'))
+    img_lm5 = read_transparent_png(os.path.join(curdir, 'images/goal5.png'))
+
+    self.img_landmarks = [img_lm1, img_lm2, img_lm3, img_lm4, img_lm5]
+    for idx, img in enumerate(self.img_landmarks):
+      self.img_landmarks[idx] = cv2.resize(img, (30, 30))
+
+    self.img_agent = cv2.resize(img_agent, (50, 50))
+    self.delay = 10
 
     self.reset()
 
@@ -94,55 +105,46 @@ class MultiGoals2D(gym.Env):
 
     return self.cur_obstate, reward, done, info
 
-  def get_canvas(self):
-    canvas_sz = 300
-    canvas = np.ones((canvas_sz, canvas_sz, 3), dtype=np.uint8) * 255
+  def env_pt_2_scr_pt(self, env_pt):
+    pt = env_pt - self.observation_space.low
+    pt = self.canvas_sz * pt / (self.observation_space.high -
+                                self.observation_space.low)
+    return pt.astype(np.int64)
 
-    bg_unit = canvas_sz // 6
-    for idx in range(6):
-      if idx % 2 == 0:
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 197
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 120
-      else:
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 0] = 255
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 1] = 150
-        canvas[bg_unit * idx:bg_unit * (idx + 1), :, 2] = 14
-
-    def env_pt_2_scr_pt(env_pt):
-      pt = env_pt - self.observation_space.low
-      pt = canvas_sz * pt / (self.observation_space.high -
-                             self.observation_space.low)
-      return pt.astype(np.int64)
-
-    cur_pt = env_pt_2_scr_pt(self.cur_obstate)
-
+  def draw_background(self, canvas):
+    canvas_new = np.copy(canvas)
     for idx, goal in enumerate(self.goals):
-      color = (0, 0, 255)
+      goal_pt = self.env_pt_2_scr_pt(goal)
+      x_p = int(goal_pt[0] - self.img_landmarks[idx].shape[0] / 2)
+      y_p = int(goal_pt[1] - self.img_landmarks[idx].shape[1] / 2)
+      canvas_new[y_p:y_p + self.img_landmarks[idx].shape[1], x_p:x_p +
+                 self.img_landmarks[idx].shape[0]] = self.img_landmarks[idx]
 
-      goal_pt = env_pt_2_scr_pt(goal)
-      # radius = int(
-      #     canvas_sz * self.tolerance /
-      #     (self.observation_space.high - self.observation_space.low)[0])
-      # canvas = cv2.circle(canvas, goal_pt, radius, color, thickness=-1)
-      x_p = int(goal_pt[0] - self.img_island.shape[0] / 2)
-      y_p = int(goal_pt[1] - self.img_island.shape[1] / 2)
-      canvas[y_p:y_p + self.img_island.shape[1],
-             x_p:x_p + self.img_island.shape[0]] = self.img_island
+    return canvas_new
 
-    # color = (255, 0, 0)
-    # canvas = cv2.circle(canvas, cur_pt, 5, color, thickness=-1)
-    x_p = int(cur_pt[0] - self.img_pirate.shape[0] / 2)
-    y_p = int(cur_pt[1] - self.img_pirate.shape[1] / 2)
-    canvas[y_p:y_p + self.img_pirate.shape[1],
-           x_p:x_p + self.img_pirate.shape[0]] = self.img_pirate
+  def get_canvas(self):
+    canvas = np.ones((self.canvas_sz, self.canvas_sz, 3), dtype=np.uint8) * 255
+
+    canvas = self.draw_background(canvas)
+
+    cur_pt = self.env_pt_2_scr_pt(self.cur_obstate)
+    x_p = int(cur_pt[0] - self.img_agent.shape[0] / 2)
+    y_p = int(cur_pt[1] - self.img_agent.shape[1] / 2)
+    part = canvas[y_p:y_p + self.img_agent.shape[1],
+                  x_p:x_p + self.img_agent.shape[0]]
+    if part.shape[:2] == self.img_agent.shape[:2]:
+      canvas[y_p:y_p + self.img_agent.shape[1],
+             x_p:x_p + self.img_agent.shape[0]] = self.img_agent
 
     return canvas
 
   def render(self, mode='human'):
     if mode == 'human':
       cv2.imshow("MultiGoals on Plane", self.get_canvas())
-      cv2.waitKey(300)
+      cv2.waitKey(self.delay)
+
+  def set_render_delay(self, delay):
+    self.delay = delay
 
   def close(self):
     cv2.destroyAllWindows()
@@ -178,36 +180,44 @@ class MultiGoals2D_5(MultiGoals2D):
     super().__init__([(-2.5, 4), (2.5, 4), (0, -4), (-4, -0.5), (4, -0.5)])
 
 
-# synthetic agent
-def get_action(goal, state):
-  nx = 0.1 * (np.random.rand() * 2 - 1)
-  ny = 0.1 * (np.random.rand() * 2 - 1)
-  noise = np.array([nx, ny])
-  RANDOM = False
-  if RANDOM:
-    vx = np.random.rand() * 2 - 1
-    vy = np.random.rand() * 2 - 1
-    return np.array([vx, vy]) + noise
-  else:
-    vec_dir = goal - state
-    len_vec = np.linalg.norm(vec_dir)
-    if len_vec != 0:
-      vec_dir /= len_vec
+class MGExpert:
+
+  def __init__(self, env: MultiGoals2D, tolerance) -> None:
+    self.PREV_LATENT = None
+    self.PREV_ACTION = float("nan")
+    self.env = env
+    self.tolerance = tolerance
+
+  def choose_mental_state(self, state, prev_latent, sample=False):
+    visited = self.env.visited
+    goals = self.env.goals
+    if np.sum(visited) == len(visited):
+      return None
+
+    if prev_latent is not None:
+      if np.linalg.norm(goals[prev_latent] - state) > self.tolerance:
+        return prev_latent
+
+    return np.random.choice(np.where(visited == 0)[0])
+
+  def choose_policy_action(self, state, latent, sample=False):
+    nx = 0.1 * (np.random.rand() * 2 - 1)
+    ny = 0.1 * (np.random.rand() * 2 - 1)
+    noise = np.array([nx, ny])
+    RANDOM = False
+    if RANDOM:
+      vx = 0.9 * (np.random.rand() * 2 - 1)
+      vy = 0.9 * (np.random.rand() * 2 - 1)
+      return np.array([vx, vy]) + noise
+    else:
+      vec_dir = self.env.goals[latent] - state
+      len_vec = np.linalg.norm(vec_dir)
+      if len_vec != 0:
+        vec_dir /= len_vec
     return 0.3 * vec_dir + noise
 
 
-def get_new_goal_idx(visited, goals, cur_goal_idx, state, tolerance):
-  if np.sum(visited) == len(visited):
-    return None
-
-  if cur_goal_idx is not None:
-    if np.linalg.norm(goals[cur_goal_idx] - state) > tolerance:
-      return cur_goal_idx
-
-  return np.random.choice(np.where(visited == 0)[0])
-
-
-def generate_data(save_dir, env_name, n_traj, render=False):
+def generate_data(save_dir, env_name, n_traj, render=False, render_delay=10):
   expert_trajs = defaultdict(list)
   if env_name == "MultiGoals2D_1-v0":
     env = MultiGoals2D_1()
@@ -222,16 +232,18 @@ def generate_data(save_dir, env_name, n_traj, render=False):
   else:
     raise NotImplementedError
 
+  env.set_render_delay(render_delay)
+  agent = MGExpert(env, 0.3)
+
   for _ in range(n_traj):
     state = env.reset()
-    goal_idx = None
+    goal_idx = agent.PREV_LATENT
     episode_reward = 0
 
     samples = []
     for cnt in range(200):
-      goal_idx = get_new_goal_idx(env.visited, env.goals, goal_idx, state,
-                                  env.tolerance)
-      action = get_action(env.goals[goal_idx], state)
+      goal_idx = agent.choose_mental_state(state, goal_idx, sample=False)
+      action = agent.choose_policy_action(state, goal_idx, sample=False)
       next_state, reward, done, info = env.step(action)
 
       samples.append((state, action, next_state, goal_idx, reward, done))
@@ -266,6 +278,6 @@ def generate_data(save_dir, env_name, n_traj, render=False):
 if __name__ == "__main__":
   cur_dir = os.path.dirname(__file__)
 
-  # for idx in range(1, 6):
-  # traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 500, False)
-  traj = generate_data(None, "MultiGoals2D_3-v0", 1, True)
+  # for idx in range(2, 6):
+  #   traj = generate_data(cur_dir, f"MultiGoals2D_{idx}-v0", 50, False)
+  traj = generate_data(None, "MultiGoals2D_5-v0", 10, True, 1000)

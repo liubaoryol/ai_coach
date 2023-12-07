@@ -43,7 +43,7 @@ class EnvBoxPush(EnvFromMDP):
     robot_action = self.robot_agent.get_action(sim_state)
     robot_aidx = mdp.a2_a_space.action_to_idx[robot_action]
 
-    human_action = mdp.a1_a_space.idx_to_action[human_aidx]
+    human_action = mdp.a1_a_space.idx_to_action[int(human_aidx)]
 
     action = mdp.conv_action_to_idx((human_aidx, robot_aidx))
     next_sidx, reward, done, info = super().step(action)
@@ -119,7 +119,7 @@ if __name__ == "__main__":
       leng = len(a_array)
 
       expert_trajs["lengths"].append(leng)
-      expert_trajs["rewards"].append(-(np.arange(leng) + 1))
+      expert_trajs["rewards"].append(-1)
 
       dones = [False] * leng
       dones[-1] = task_mdp.is_terminal(s_array[-1])
@@ -136,13 +136,13 @@ if __name__ == "__main__":
 
   DATA_DIR = "/home/sangwon/Projects/ai_coach/analysis/BTIL_results/aws_data_test/"
 
-  env_movers = EnvMovers_v0()
-  print(env_movers.mdp.num_latents)
+  # env_movers = EnvMovers_v0()
+  # print(env_movers.mdp.num_latents)
 
   # movers_data = glob.glob(os.path.join(DATA_DIR + "domain1", '*.txt'))
-  # traj = conv_human_data_2_iql_format(
-  #     env_movers.mdp, env_movers.robot_agent.agent_model.get_reference_mdp(),
-  #     movers_data[:1], None, "EnvMovers_v0")
+  # # traj = conv_human_data_2_iql_format(
+  # #     env_movers.mdp, env_movers.robot_agent.agent_model.get_reference_mdp(),
+  # #     movers_data[:1], None, "EnvMovers_v0")
   # num_train = 44
   # conv_human_data_2_iql_format(
   #     env_movers.mdp, env_movers.robot_agent.agent_model.get_reference_mdp(),
@@ -156,11 +156,11 @@ if __name__ == "__main__":
 
   env_cleanup = EnvCleanup_v0()
   print(env_cleanup.mdp.num_latents)
-  # cleanup_data = glob.glob(os.path.join(DATA_DIR + "domain2", '*.txt'))
-  # num_train = 66
-  # conv_human_data_2_iql_format(
-  #     env_cleanup.mdp, env_cleanup.robot_agent.agent_model.get_reference_mdp(),
-  #     cleanup_data, cur_dir, "EnvCleanup_v0")
+  cleanup_data = glob.glob(os.path.join(DATA_DIR + "domain2", '*.txt'))
+  num_train = 66
+  conv_human_data_2_iql_format(
+      env_cleanup.mdp, env_cleanup.robot_agent.agent_model.get_reference_mdp(),
+      cleanup_data, cur_dir, "EnvCleanup_v0")
   # conv_human_data_2_iql_format(
   #     env_cleanup.mdp, env_cleanup.robot_agent.agent_model.get_reference_mdp(),
   #     cleanup_data[:num_train], cur_dir, "EnvCleanup_v0")
