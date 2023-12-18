@@ -14,4 +14,4 @@ python -m run
 ```
 
 You can access the webpage through `http://localhost:5000/`. On the home page, enter `register1234` to create a new ID for the test.
-You can also see a demo page through `http://localhost:5000/demo'.
+You can also see a demo page through `http://localhost:5000/demo`.
