@@ -215,7 +215,12 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
 
   # generate data
   ############################################################################
-  DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
+  if synthetic:
+    dir_name = "data/"
+  else:
+    dir_name = "human_data/"
+
+  DATA_DIR = os.path.join(os.path.dirname(__file__), dir_name)
   TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train')
 
   train_prefix = "train_"
@@ -234,14 +239,8 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
         lambda a, s: np.ones(MDP_AGENT.num_latents) / MDP_AGENT.num_latents)
     fn_get_Tx = true_methods.true_Tx_for_var_infer
   else:
-
-    def assumed_init_latent_dist(agent_idx, state_idx):
-      if agent_idx == 0:
-        return assumed_init_mental_dist(0, state_idx, MDP_TASK)
-      else:
-        return AGENTS[agent_idx].get_initial_latent_distribution(state_idx)
-
-    fn_get_bx = assumed_init_latent_dist
+    fn_get_bx = (
+        lambda a, s: np.ones(MDP_AGENT.num_latents) / MDP_AGENT.num_latents)
 
   # load train set
   ##################################################

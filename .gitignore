@@ -21,11 +21,13 @@ aws_web_app/venv/
 tests/*_trajectories
 tests/*_data
 output/
-human_data/
+human*data/
 result*/
 experts/
 outputs/
+wandb/
 
+profile*
 *.png
 *.log
 *.csv

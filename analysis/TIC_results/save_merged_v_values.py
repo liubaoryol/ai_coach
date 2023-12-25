@@ -70,18 +70,28 @@ class FullMDP_Rescue(FullMDP):
 @click.option("--iteration", type=int, default=30, help="")
 @click.option("--num-train", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
+@click.option("--humandata", type=bool, default=False, help="")
 # yapf: enable
-def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
+def save_merged_v_values(domain,
+                         iteration,
+                         num_train=500,
+                         supervision=0.3,
+                         humandata=False):
   TRUE_MODELS = False
   # domain: movers | cleanup_v2 | rescue_2
+  data_source = "human" if humandata else "synth"
 
   sup_txt = ("%.2f" % supervision).replace('.', ',')
-  policy1_file = (domain +
-                  f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a1.npy")
-  policy2_file = (domain +
-                  f"_btil2_policy_synth_woTx_FTTT_{num_train}_{sup_txt}_a2.npy")
-  tx1_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a1.npy"
-  tx2_file = domain + f"_btil2_tx_synth_FTTT_{num_train}_{sup_txt}_a2.npy"
+  policy1_file = (
+      domain +
+      f"_btil_dec_policy_{data_source}_woTx_FTTT_{num_train}_{sup_txt}_a1.npy")
+  policy2_file = (
+      domain +
+      f"_btil_dec_policy_{data_source}_woTx_FTTT_{num_train}_{sup_txt}_a2.npy")
+  tx1_file = (domain +
+              f"_btil_dec_tx_{data_source}_FTTT_{num_train}_{sup_txt}_a1.npy")
+  tx2_file = (domain +
+              f"_btil_dec_tx_{data_source}_FTTT_{num_train}_{sup_txt}_a2.npy")
 
   if domain == "movers":
     task_mdp = MDP_Movers_Task(**MAP_MOVERS)
@@ -126,7 +136,8 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
     FullMDP_Base = FullMDP_Rescue
     stay_actions = (E_EventType.Stay, E_EventType.Stay)
 
-  DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
+  dir_name = "human_data/" if humandata else "data/"
+  DATA_DIR = os.path.join(os.path.dirname(__file__), dir_name)
   model_dir = os.path.join(DATA_DIR, "learned_models/")
 
   if not os.path.exists(DATA_DIR):
