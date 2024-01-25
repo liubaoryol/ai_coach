@@ -253,8 +253,15 @@ class BoxPushSimulator(Simulator):
         txtfile.write('%d; %d; ' % (AGENT_ACTIONSPACE.action_to_idx[a1act],
                                     AGENT_ACTIONSPACE.action_to_idx[a2act]))
 
-        txtfile.write('%s, %d; ' % a1lat)
-        txtfile.write('%s, %d; ' % a2lat)
+        if a1lat is None:
+          txtfile.write('None; ')
+        else:
+          txtfile.write('%s, %d; ' % a1lat)
+
+        if a2lat is None:
+          txtfile.write('None; ')
+        else:
+          txtfile.write('%s, %d; ' % a2lat)
         txtfile.write('\n')
 
       # last state
@@ -308,12 +315,12 @@ class BoxPushSimulator(Simulator):
           a2_act = None
         else:
           a2_act = int(a2act)
-        if a1lat is None:
+        if a1lat is None or a1lat == "None":
           a1_lat = None
         else:
           a1lat_tmp = a1lat.split(", ")
           a1_lat = (a1lat_tmp[0], int(a1lat_tmp[1]))
-        if a2lat is None:
+        if a2lat is None or a2lat == "None":
           a2_lat = None
         else:
           a2lat_tmp = a2lat.split(", ")
