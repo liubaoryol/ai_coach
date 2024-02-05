@@ -18,8 +18,14 @@ def intervention_result(domain_name,
                         interv_thres,
                         cost,
                         fix_illegal=True,
-                        increase_step=False):
-  data_dir = os.path.join(os.path.dirname(__file__), "data/")
+                        increase_step=False,
+                        humandata=True):
+  cur_dir = os.path.dirname(__file__)
+  if humandata:
+    data_dir = os.path.join(cur_dir, "human_data/")
+  else:
+    data_dir = os.path.join(cur_dir, "data/")
+
   model_dir = os.path.join(data_dir, "learned_models/")
 
   e_certainty = E_CertaintyHandling[
@@ -30,7 +36,7 @@ def intervention_result(domain_name,
   theta = infer_thres
   delta = interv_thres
 
-  num_train = 500
+  num_train = 160 if humandata else 500
   supervision = 0.3
   sup_txt = ("%.2f" % supervision).replace('.', ',')
 
@@ -39,7 +45,7 @@ def intervention_result(domain_name,
   elif domain_name == "rescue_3":
     iteration = 15
   else:
-    iteration = 500
+    iteration = 150
 
   v_value_file_name = (
       domain_name +
@@ -49,22 +55,20 @@ def intervention_result(domain_name,
   else:
     tx_dependency = "FTTT"
 
-  policy1_file = (
-      domain_name +
-      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
-  policy2_file = (
-      domain_name +
-      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
-  policy3_file = (
-      domain_name +
-      f"_btil2_policy_synth_woTx_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
+  datasource = "human" if humandata else "synth"
+  algname = "btil_dec"
+  suffix = f"{tx_dependency}_{num_train}_{sup_txt}"
 
-  tx1_file = (domain_name +
-              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a1.npy")
-  tx2_file = (domain_name +
-              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a2.npy")
-  tx3_file = (domain_name +
-              f"_btil2_tx_synth_{tx_dependency}_{num_train}_{sup_txt}_a3.npy")
+  policy1_file = (domain_name +
+                  f"_{algname}_policy_{datasource}_woTx_{suffix}_a1.npy")
+  policy2_file = (domain_name +
+                  f"_{algname}_policy_{datasource}_woTx_{suffix}_a2.npy")
+  policy3_file = (domain_name +
+                  f"_{algname}_policy_{datasource}_woTx_{suffix}_a3.npy")
+
+  tx1_file = (domain_name + f"_{algname}_tx_{datasource}_{suffix}_a1.npy")
+  tx2_file = (domain_name + f"_{algname}_tx_{datasource}_{suffix}_a2.npy")
+  tx3_file = (domain_name + f"_{algname}_tx_{datasource}_{suffix}_a3.npy")
 
   if domain_name == "movers":
     from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
@@ -301,21 +305,21 @@ if __name__ == "__main__":
 
   rows = []
 
-  list_cost = [0, 0.2, 0.5, 1]
+  list_cost = [0, 1]
   # cost = list_cost[0]
-  list_infer_thres = [0, 0.2, 0.3, 0.5, 0.7, 0.9]
-  domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
-  dict_interv_thres = {
-      domains[0]: [0, 1, 3, 5, 10, 15, 20, 30, 50],
-      domains[1]: [0, 0.3, 0.5, 1.0, 2.0, 5.0, 10, 15, 20],
-      domains[2]: [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0],
-      domains[3]: [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
+  domains = ["movers", "rescue_2"]
+  LIST_INFER_THRES = [0, 0.2, 0.3, 0.5, 0.7, 0.9]
+  DICT_INTERV_THRES = {
+      "movers": [0, 1, 3, 5, 10, 15, 20, 30, 50],
+      "cleanup_v3": [0, 0.3, 0.5, 1.0, 2.0, 5.0, 10, 15, 20],
+      "rescue_2": [0, 0.1, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0],
+      "rescue_3": [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
   }
 
   for cost in list_cost:
     for domain_name in domains:
       if cost == 1:
-        list_increase_step = [False, True]
+        list_increase_step = [False]
       else:
         list_increase_step = [False]
       for increase_step in list_increase_step:
@@ -324,13 +328,13 @@ if __name__ == "__main__":
           prefix = "_budget"
 
         print(domain_name)
-        list_interv_thres = dict_interv_thres[domain_name]
+        list_interv_thres = DICT_INTERV_THRES[domain_name]
         # ====== rule-based intervention
         if domain_name == "movers":
           num_total_setup = 2 + 2 * len(list_interv_thres) + 2 * len(
-              list_infer_thres)
+              LIST_INFER_THRES)
           progress_bar = tqdm(total=num_total_setup)
-          for theta in list_infer_thres:
+          for theta in LIST_INFER_THRES:
             list_res = intervention_result(domain_name,
                                            num_runs,
                                            INTERVENTION,
@@ -362,7 +366,7 @@ if __name__ == "__main__":
                          for item in list_res]
         else:
           num_total_setup = 1 + 2 * len(list_interv_thres) + len(
-              list_infer_thres)
+              LIST_INFER_THRES)
           progress_bar = tqdm(total=num_total_setup)
         # ===== Baseline: No intervention
         list_res = intervention_result(domain_name,
@@ -417,7 +421,7 @@ if __name__ == "__main__":
 
         delta_s3 = list_interv_thres[3]
         # ===== Strategy 3: Deterministic with threshold
-        for theta in list_infer_thres:
+        for theta in LIST_INFER_THRES:
           list_res = intervention_result(domain_name,
                                          num_runs,
                                          INTERVENTION,
@@ -439,5 +443,5 @@ if __name__ == "__main__":
                         'infer_thres', 'score', 'num_feedback'
                     ])
 
-  data_dir = os.path.join(os.path.dirname(__file__), "data/")
-  df.to_csv(data_dir + "intervention_result8.csv", index=False)
+  data_dir = os.path.join(os.path.dirname(__file__), "human_data/")
+  df.to_csv(data_dir + "intervention_result_20240205.csv", index=False)

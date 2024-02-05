@@ -24,7 +24,6 @@ from aic_domain.rescue.transition import find_location_index
 
 
 class FullMDP_Rescue(FullMDP):
-
   def reward(self, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
@@ -67,7 +66,8 @@ class FullMDP_Rescue(FullMDP):
 # yapf: disable
 @click.command()
 @click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2")  # noqa: E501
-@click.option("--iteration", type=int, default=30, help="")
+@click.option("--iteration", type=int, default=150,
+              help="the maximum step of each domain (movers/cleanup: 150, rescue: 30)")  # noqa: E501
 @click.option("--num-train", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
 @click.option("--humandata", type=bool, default=False, help="")
@@ -273,6 +273,9 @@ def save_merged_v_values(domain,
     with open(pickle_v_values, 'rb') as handle:
       np_v_values = pickle.load(handle)
   else:
+    # NOTE: it will not converge if discount factor is 1
+    #       we use discount factor 1 as our domains are with finite horizon.
+    #       iteration should be set as the maximum step of each domain.
     np_v_values = v_value_from_policy(np_policy,
                                       np_transition_model,
                                       np_reward_model,

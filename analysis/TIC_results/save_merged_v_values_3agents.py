@@ -18,7 +18,6 @@ from aic_domain.rescue_v2.agent import RescueAM
 
 
 class FullMDP_Rescue2(FullMDP):
-
   def reward(self, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
@@ -65,7 +64,8 @@ class FullMDP_Rescue2(FullMDP):
 # yapf: disable
 @click.command()
 @click.option("--domain", type=str, default="rescue_3", help="rescue_3")
-@click.option("--iteration", type=int, default=15, help="")
+@click.option("--iteration", type=int, default=15,
+              help="the maximum step of each domain (3-agent rescue: 15)")
 @click.option("--num-train", type=int, default=500, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
 # yapf: enable

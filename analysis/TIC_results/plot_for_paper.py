@@ -704,20 +704,20 @@ def save_score_vs_intervention_plots(df_input_name, output_name, list_domains,
 
 
 if __name__ == "__main__":
-  data_dir = os.path.join(os.path.dirname(__file__), "data/")
-  output_dir = os.path.join(os.path.dirname(__file__), "output/")
+  data_dir = os.path.join(os.path.dirname(__file__), "human_data/")
+  output_dir = os.path.join(os.path.dirname(__file__), "human_output/")
 
   eval_result_name = data_dir + "eval_result3.csv"
-  intv_result_name = data_dir + "intervention_result8.csv"
+  intv_result_name = data_dir + "btil_intervention_result_20240205.csv"
 
   list_domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
   list_domain_names = ["Movers", "Cleanup", "Flood", "Blackout"]
 
   dict_interv_thres = {
-      list_domains[0]: [0, 1, 3, 5, 10, 15, 20, 30, 50],
-      list_domains[1]: [0, 0.3, 0.5, 1, 2, 5, 10, 15, 20],
-      list_domains[2]: [0, 0.1, 0.3, 0.5, 1, 1.5, 2, 3, 5],
-      list_domains[3]: [0, 0.1, 0.2, 0.3, 0.5, 1, 1.5, 2, 3],
+      "movers": [0, 1, 3, 5, 10, 15, 20, 30, 50],
+      "cleanup_v3": [0, 0.3, 0.5, 1, 2, 5, 10, 15, 20],
+      "rescue_2": [0, 0.1, 0.3, 0.5, 1, 1.5, 2, 3, 5],
+      "rescue_3": [0, 0.1, 0.2, 0.3, 0.5, 1, 1.5, 2, 3],
   }
 
   perfect_scores = [-43, -21, 7, 5]
@@ -734,11 +734,11 @@ if __name__ == "__main__":
   #                      list_domain_names, SAVE_RESULT)
 
   save_box_plots(intv_result_name, output_dir + "delta_box.png",
-                 list_domains[:2], list_domain_names[:2], perfect_scores[:2],
-                 perfect_steps[:2], SAVE_RESULT)
+                 list_domains[:1], list_domain_names[:1], perfect_scores[:1],
+                 perfect_steps[:1], SAVE_RESULT)
   save_rescue_plots(intv_result_name, output_dir + "delta_rescue.png",
-                    list_domains[2:], list_domain_names[2:], perfect_scores[2:],
-                    perfect_steps[2:], SAVE_RESULT)
+                    list_domains[2:3], list_domain_names[2:3],
+                    perfect_scores[2:3], perfect_steps[2:3], SAVE_RESULT)
 
   # save_reward_vs_delta_plots(intv_result_name,
   #                            output_dir + "reward_vs_delta_box.png",
@@ -763,7 +763,8 @@ if __name__ == "__main__":
   #                            list_domains[:1], list_domain_names[:1],
   #                            perfect_scores[:1], perfect_steps[:1],
   #                            SAVE_RESULT)
-  save_score_vs_theta_plots(intv_result_name, output_dir + "score_vs_theta.png",
+  save_score_vs_theta_plots(intv_result_name,
+                            output_dir + "score_vs_theta_1.png",
                             list_domains[:1], list_domain_names[:1],
                             perfect_scores[:1], perfect_steps[:1], cost,
                             dict_interv_thres, SAVE_RESULT)
@@ -777,9 +778,13 @@ if __name__ == "__main__":
   #                                   list_domains[:1], list_domain_names[:1],
   #                                   0, SAVE_RESULT)
   save_score_vs_intervention_plots(intv_result_name,
-                                   output_dir + "num_feedback_vs_score.png",
+                                   output_dir + "num_feedback_vs_score_1.png",
                                    list_domains[:1], list_domain_names[:1],
                                    perfect_scores[:1], perfect_steps[:1], 1,
                                    dict_interv_thres, SAVE_RESULT)
-
+  save_score_vs_intervention_plots(intv_result_name,
+                                   output_dir + "num_feedback_vs_score_2.png",
+                                   list_domains[2:3], list_domain_names[2:3],
+                                   perfect_scores[2:3], perfect_steps[2:3], 0,
+                                   dict_interv_thres, SAVE_RESULT)
   plt.show()

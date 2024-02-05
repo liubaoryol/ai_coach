@@ -15,12 +15,12 @@ import helper
 @click.command()
 @click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2 /rescue_3")  # noqa: E501
 @click.option("--synthetic", type=bool, default=True, help="")
-@click.option("--num-training-data", type=int, default=500, help="")
+@click.option("--num-training-data", type=int, default=160, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
 @click.option("--use-true-tx", type=bool, default=False, help="")
 @click.option("--gen-trainset", type=bool, default=False, help="")
-@click.option("--beta-pi", type=float, default=1.01, help="")
-@click.option("--beta-tx", type=float, default=1.01, help="")
+@click.option("--beta-pi", type=float, default=0.01, help="")
+@click.option("--beta-tx", type=float, default=0.01, help="")
 @click.option("--tx-dependency", type=str, default="FTTT",
               help="sequence of T or F indicating dependency on cur_state, actions, and next_state")  # noqa: E501
 # yapf: enable

@@ -243,9 +243,10 @@ class MDP:
             )
     else:
       logging.debug("Transition model type: Sparse")
-      coord_2_data = {
-          (self.num_states - 1, self.num_actions - 1, self.num_states - 1): 0
-      }
+      # coord_2_data = {
+      #     (self.num_states - 1, self.num_actions - 1, self.num_states - 1): 0
+      # }
+      coord_2_data = {}
       for state in tqdm(range(self.num_states)):
         # for illegal actions and termial states,
         # the transition should remain at the same state
@@ -261,6 +262,9 @@ class MDP:
             coord_2_data[(state, action, next_state)] = np.float32(next_p)
 
       self._np_transition_model = sparse.COO.from_iter(coord_2_data,
+                                                       shape=(self.num_states,
+                                                              self.num_actions,
+                                                              self.num_states),
                                                        dtype=np.float32)
 
     return self._np_transition_model
@@ -430,10 +434,12 @@ def v_value_from_policy(
     q_value = q_value_from_v_value(v_value, transition_model, reward_model,
                                    discount_factor)
 
+    # replacing -inf (i.e., illegal state-action) with 0
+    q_value[np.isneginf(q_value)] = 0
+
     new_v_value = np.sum(stochastic_policy * np.nan_to_num(q_value), axis=-1)
 
-    delta_v = np.linalg.norm(
-        np.nan_to_num(new_v_value[:]) - np.nan_to_num(v_value[:]))
+    delta_v = np.linalg.norm(new_v_value[:] - v_value[:])
     iteration_idx += 1
     v_value = new_v_value
     progress_bar.set_postfix({'delta': delta_v})
