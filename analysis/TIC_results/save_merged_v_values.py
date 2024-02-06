@@ -24,6 +24,7 @@ from aic_domain.rescue.transition import find_location_index
 
 
 class FullMDP_Rescue(FullMDP):
+
   def reward(self, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
