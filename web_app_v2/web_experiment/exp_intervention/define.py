@@ -16,9 +16,13 @@ SESSION_TITLE = {
     PageKey.Interv_A0: 'A0',
     PageKey.Interv_A1: 'A1',
     PageKey.Interv_A2: 'A2',
+    PageKey.Interv_A3: 'A3',
+    PageKey.Interv_A4: 'A4',
     PageKey.Interv_C0: 'B0',
     PageKey.Interv_C1: 'B1',
     PageKey.Interv_C2: 'B2',
+    PageKey.Interv_C3: 'B3',
+    PageKey.Interv_C4: 'B4',
     PageKey.Interv_T1: 'Interactive Tutorial',
     PageKey.Interv_T3: 'Interactive Tutorial',
 }
@@ -46,21 +50,14 @@ class SocketType(Enum):
 
 def get_socket_name(page_key, group_id):
   socket_type = None
-  if page_key == PageKey.Interv_A0:
-    socket_type = SocketType.Interv_movers_practice
-  elif page_key == PageKey.Interv_A1:
-    socket_type = SocketType.Interv_movers_normal
-  elif page_key == PageKey.Interv_A2:
+
+  if page_key == PageKey.Interv_A1 or page_key == PageKey.Interv_A2 or page_key == PageKey.Interv_A3 or page_key == PageKey.Interv_A4:
     if group_id == GroupName.Group_B:
       socket_type = SocketType.Interv_movers_intervention
     else:
       socket_type = SocketType.Interv_movers_normal
 
-  elif page_key == PageKey.Interv_C0:
-    socket_type = SocketType.Interv_rescue_practice
-  elif page_key == PageKey.Interv_C1:
-    socket_type = SocketType.Interv_rescue_normal
-  elif page_key == PageKey.Interv_C2:
+  if page_key == PageKey.Interv_C1 or page_key == PageKey.Interv_C2 or page_key == PageKey.Interv_C3 or page_key == PageKey.Interv_C4:
     if group_id == GroupName.Group_B:
       socket_type = SocketType.Interv_rescue_intervention
     else:

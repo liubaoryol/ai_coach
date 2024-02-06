@@ -80,9 +80,13 @@ class PageKey:
   Interv_A0 = "ntrv_session_a0"
   Interv_A1 = "ntrv_session_a1"
   Interv_A2 = "ntrv_session_a2"
+  Interv_A3 = "ntrv_session_a3"
+  Interv_A4 = "ntrv_session_a4"
   Interv_C0 = "ntrv_session_c0"
   Interv_C1 = "ntrv_session_c1"
   Interv_C2 = "ntrv_session_c2"
+  Interv_C3 = "ntrv_session_c3"
+  Interv_C4 = "ntrv_session_c4"
   Interv_T1 = "ntrv_tutorial1"
   Interv_T3 = "ntrv_tutorial3"
 
@@ -95,12 +99,14 @@ def get_domain_type(session_name):
   MOVERS_DOMAIN = [
       PageKey.DataCol_A1, PageKey.DataCol_A2, PageKey.DataCol_A3,
       PageKey.DataCol_A4, PageKey.Interv_A0, PageKey.Interv_A1,
-      PageKey.Interv_A2, PageKey.DataCol_T1, PageKey.Interv_T1
+      PageKey.Interv_A2, PageKey.Interv_A3, PageKey.Interv_A4,
+      PageKey.DataCol_T1, PageKey.Interv_T1
   ]
   RESCUE_DOMAIN = [
       PageKey.DataCol_C1, PageKey.DataCol_C2, PageKey.DataCol_C3,
       PageKey.DataCol_C4, PageKey.Interv_C0, PageKey.Interv_C1,
-      PageKey.Interv_C2, PageKey.DataCol_T3, PageKey.Interv_T3
+      PageKey.Interv_C2, PageKey.Interv_C3, PageKey.Interv_C4,
+      PageKey.DataCol_T3, PageKey.Interv_T3
   ]
   if session_name in MOVERS_DOMAIN:
     return EDomainType.Movers
@@ -121,8 +127,9 @@ DATACOL_TUTORIALS = [PageKey.DataCol_T1, PageKey.DataCol_T3]
 DATACOL_SESSIONS = DATACOL_TASKS + DATACOL_TUTORIALS
 
 INTERV_TASKS = [
-    PageKey.Interv_A0, PageKey.Interv_A1, PageKey.Interv_A2, PageKey.Interv_C0,
-    PageKey.Interv_C1, PageKey.Interv_C2
+    PageKey.Interv_A0, PageKey.Interv_A1, PageKey.Interv_A2, PageKey.Interv_A3,
+    PageKey.Interv_A4, PageKey.Interv_C0, PageKey.Interv_C1, PageKey.Interv_C2,
+    PageKey.Interv_C3, PageKey.Interv_C4,
 ]
 
 INTERV_TUTORIALS = [PageKey.Interv_T1, PageKey.Interv_T3]
@@ -245,57 +252,46 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
     elif current_endpoint == endpoint(BPName.Survey, PageKey.PreExperiment):
       return url_for(endpoint(BPName.Instruction, PageKey.Movers_and_packers))
 
+
     # Movers instructions
     elif current_endpoint == endpoint(BPName.Instruction,
                                       PageKey.Movers_and_packers):
       return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_T1))
     elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_T1):
-      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_A0))
-    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_A0):
       return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_A1))
 
-    # Cleanup instructions
-    elif current_endpoint == endpoint(BPName.Instruction, PageKey.Clean_up):
+    # Rescue instructions
+    elif current_endpoint == endpoint(BPName.Instruction, PageKey.Rescue):
       return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_T3))
     elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_T3):
-      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_C0))
-    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_C0):
       return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_C1))
 
     # Actual tasks
-    elif current_endpoint in [
-        endpoint(BPName.Exp_interv, PageKey.Interv_A1),
-        endpoint(BPName.Exp_interv, PageKey.Interv_A2),
-        endpoint(BPName.Exp_interv, PageKey.Interv_C1),
-        endpoint(BPName.Exp_interv, PageKey.Interv_C2)
-    ]:
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_A1):
+      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_A2))
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_A2):
+      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_A3))
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_A3):
+      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_A4))
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_A4):
       return url_for(endpoint(BPName.Survey, PageKey.InExperiment),
                      session_name_hash=custom_hash(task_session_key))
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_C1):
+      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_C2))
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_C2):
+      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_C3))
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_C3):
+      return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_C4))
+    elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_C4):
+      return url_for(endpoint(BPName.Survey, PageKey.InExperiment),
+                     session_name_hash=custom_hash(task_session_key))
+    
 
     # In-experiment survay page
     elif current_endpoint == endpoint(BPName.Survey, PageKey.InExperiment):
-      if task_session_key == PageKey.Interv_A1:
-        if group_id == GroupName.Group_C:
-          return url_for(endpoint(BPName.Feedback, PageKey.Collect),
-                         session_name_hash=custom_hash(task_session_key))
-        elif group_id == GroupName.Group_D:
-          return url_for(endpoint(BPName.Feedback, PageKey.Feedback),
-                         session_name_hash=custom_hash(task_session_key))
-        else:
-          return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_A2))
-      elif task_session_key == PageKey.Interv_A2:
-        return url_for(endpoint(BPName.Instruction, PageKey.Clean_up))
-
-      elif task_session_key == PageKey.Interv_C1:
-        if group_id == GroupName.Group_C:
-          return url_for(endpoint(BPName.Feedback, PageKey.Collect),
-                         session_name_hash=custom_hash(task_session_key))
-        elif group_id == GroupName.Group_D:
-          return url_for(endpoint(BPName.Feedback, PageKey.Feedback),
-                         session_name_hash=custom_hash(task_session_key))
-        else:
-          return url_for(endpoint(BPName.Exp_interv, PageKey.Interv_C2))
-      elif task_session_key == PageKey.Interv_C2:
+      if task_session_key == PageKey.Interv_A4:
+        return url_for(endpoint(BPName.Instruction, PageKey.Rescue))
+      elif task_session_key == PageKey.Interv_C4:
         return url_for(endpoint(BPName.Survey, PageKey.Completion))
       else:
         raise ValueError
