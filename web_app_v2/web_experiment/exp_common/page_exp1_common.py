@@ -2,7 +2,8 @@ from typing import Mapping
 from web_experiment.define import ExpType, EDomainType
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
-from web_experiment.exp_common.helper import get_btn_boxpush_actions
+from web_experiment.exp_common.helper import (get_btn_boxpush_actions,
+                                              get_select_btn)
 from web_experiment.models import db, ExpIntervention, ExpDataCollection
 
 
@@ -29,11 +30,9 @@ class CanvasPageStart(ExperimentPageBase):
     return "Click the \"Start\" button to begin the task."
 
   def _get_drawing_order(self, user_game_data: Exp1UserData = None):
-    drawing_order = [self.GAME_BORDER]
+    drawing_order = super()._get_drawing_order(user_game_data)
 
     drawing_order.append(co.BTN_START)
-
-    drawing_order = drawing_order + self._get_control_button_names()
 
     drawing_order.append(self.TEXT_SCORE)
     drawing_order.append(self.TEXT_INSTRUCTION)
@@ -43,27 +42,11 @@ class CanvasPageStart(ExperimentPageBase):
   def _get_init_drawing_objects(
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
-    objs = self._get_control_buttons()
-    for obj in objs:
-      dict_objs[obj.name] = obj
 
     start_btn_obj = self._get_btn_start(False)
     dict_objs[start_btn_obj.name] = start_btn_obj
 
     return dict_objs
-
-  def _get_control_buttons(self):
-    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
-      return get_btn_boxpush_actions(self.GAME_WIDTH, self.GAME_RIGHT, True,
-                                     True, True, True, True, True, True, True)
-    else:
-      return []
-
-  def _get_control_button_names(self) -> list:
-    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
-      return co.ACTION_BUTTONS + [co.BTN_SELECT]
-    else:
-      return []
 
 
 class CanvasPageWarning(ExperimentPageBase):
@@ -85,12 +68,10 @@ class CanvasPageWarning(ExperimentPageBase):
     return super().button_clicked(user_game_data, clicked_btn)
 
   def _get_drawing_order(self, user_game_data: Exp1UserData = None):
-    drawing_order = [self.GAME_BORDER]
+    drawing_order = super()._get_drawing_order(user_game_data)
 
     drawing_order.append(self.BTN_REAL_START)
     drawing_order.append(self.TEXT_WARNING)
-
-    drawing_order = drawing_order + self._get_control_button_names()
 
     drawing_order.append(self.TEXT_SCORE)
 
@@ -99,10 +80,6 @@ class CanvasPageWarning(ExperimentPageBase):
   def _get_init_drawing_objects(
       self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = super()._get_init_drawing_objects(user_data)
-
-    objs = self._get_control_buttons()
-    for obj in objs:
-      dict_objs[obj.name] = obj
 
     text = ("Please review the instructions for this session listed above. " +
             "When you are ready, press next to begin.")
@@ -124,19 +101,6 @@ class CanvasPageWarning(ExperimentPageBase):
     dict_objs[obj.name] = obj
 
     return dict_objs
-
-  def _get_control_buttons(self):
-    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
-      return get_btn_boxpush_actions(self.GAME_WIDTH, self.GAME_RIGHT, True,
-                                     True, True, True, True, True, True, True)
-    else:
-      return []
-
-  def _get_control_button_names(self) -> list:
-    if self._DOMAIN_TYPE in [EDomainType.Movers, EDomainType.Cleanup]:
-      return co.ACTION_BUTTONS + [co.BTN_SELECT]
-    else:
-      return []
 
 
 class CanvasPageEnd(ExperimentPageBase):
@@ -163,7 +127,8 @@ class CanvasPageEnd(ExperimentPageBase):
     return
 
   def _get_drawing_order(self, user_game_data: Exp1UserData = None):
-    drawing_order = [self.GAME_BORDER]
+    drawing_order = super()._get_drawing_order(user_game_data)
+
     drawing_order.append(self.TEXT_END)
     drawing_order.append(self.TEXT_SCORE)
 

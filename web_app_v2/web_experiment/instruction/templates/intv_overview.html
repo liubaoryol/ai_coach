@@ -1,0 +1,27 @@
+{% extends 'base.html' %} {% block header %}
+<h1>{% block title %}Overview (part 1/5){% endblock %}</h1>
+<div class="explanation">
+  <p>
+    In this study, we would like to collect behavioral data of teamwork in
+    gamified tasks. The study session is divided into five parts
+  </p>
+  <ol type="1">
+    <li>An overview of the study. (1 min)</li>
+    <li>A short demographic survey. (1 min)</li>
+    <li>Team Task A. (10-13 min)</li>
+    <li>Team Task B. (7-9 min)</li>
+    <li>A short post-experiment questionnaire. (1 min)</li>
+  </ol>
+  <p>
+    For each task, you will be first given a TUTORIAL to describe the task.
+    Then, you will complete ONE practice TASK session and THREE actual TASK
+    sessions.
+  </p>
+</div>
+{% endblock %} {% block content %}
+<div class="button-center">
+  <form method="post" action="{{ url_for(cur_endpoint) }}">
+    <button type="submit" value="submit">Next</button>
+  </form>
+</div>
+{% endblock %}

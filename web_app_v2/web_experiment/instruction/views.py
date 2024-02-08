@@ -1,8 +1,17 @@
 import logging
 from flask import render_template, g, request, redirect, session
-from web_experiment.define import get_next_url, PageKey, url_name
+from web_experiment.define import get_next_url, PageKey, url_name, ExpType
 from web_experiment.auth.functions import login_required
 from . import inst_bp
+
+
+def get_template_name(exp_type, keyword):
+  if exp_type == ExpType.Data_collection:
+    return f"dcol_{keyword}.html"
+  elif exp_type == ExpType.Intervention:
+    return f"intv_{keyword}.html"
+  else:
+    raise ValueError(f'Invalid exp_type: {exp_type}')
 
 
 def overview():
@@ -15,7 +24,8 @@ def overview():
 
   logging.info('User %s accesses to overview.' % (cur_user, ))
 
-  return render_template('overview.html', cur_endpoint=cur_endpoint)
+  return render_template(get_template_name(exp_type, "overview"),
+                         cur_endpoint=cur_endpoint)
 
 
 def movers_and_packers():
@@ -28,7 +38,8 @@ def movers_and_packers():
 
   logging.info('User %s accesses to movers_and_packers.' % (cur_user, ))
 
-  return render_template('movers_and_packers.html', cur_endpoint=cur_endpoint)
+  return render_template(get_template_name(exp_type, "movers_and_packers"),
+                         cur_endpoint=cur_endpoint)
 
 
 def clean_up():
@@ -41,7 +52,8 @@ def clean_up():
 
   logging.info('User %s accesses to clean_up.' % (cur_user, ))
 
-  return render_template('clean_up.html', cur_endpoint=cur_endpoint)
+  return render_template(get_template_name(exp_type, "clean_up"),
+                         cur_endpoint=cur_endpoint)
 
 
 def rescue():
@@ -54,7 +66,8 @@ def rescue():
 
   logging.info('User %s accesses to rescue.' % (cur_user, ))
 
-  return render_template('rescue.html', cur_endpoint=cur_endpoint)
+  return render_template(get_template_name(exp_type, "rescue"),
+                         cur_endpoint=cur_endpoint)
 
 
 def description_review():

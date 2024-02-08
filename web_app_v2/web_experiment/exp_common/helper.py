@@ -94,6 +94,20 @@ def get_file_name(save_path, user_id, session_name):
   return os.path.join(traj_dir, file_name)
 
 
+def get_select_btn(game_width, game_right, select_disable=True):
+  ctrl_btn_w = int(game_width / 12)
+  x_ctrl_cen = int(game_right + (co.CANVAS_WIDTH - game_right) / 2)
+  y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.65)
+  font_size = 20
+  btn_select = co.ButtonRect(co.BTN_SELECT,
+                             (x_ctrl_cen, y_ctrl_cen + ctrl_btn_w * 2),
+                             (ctrl_btn_w * 4, ctrl_btn_w),
+                             font_size,
+                             "Select Destination",
+                             disable=select_disable)
+  return btn_select
+
+
 def get_btn_boxpush_actions(game_width,
                             game_right,
                             up_disable=False,
@@ -102,8 +116,7 @@ def get_btn_boxpush_actions(game_width,
                             right_disable=False,
                             stay_disable=False,
                             pickup_disable=False,
-                            drop_disable=False,
-                            select_disable=True):
+                            drop_disable=False):
   ctrl_btn_w = int(game_width / 12)
   ctrl_btn_w_half = int(game_width / 24)
   x_ctrl_cen = int(game_right + (co.CANVAS_WIDTH - game_right) / 2)
@@ -139,14 +152,7 @@ def get_btn_boxpush_actions(game_width,
       font_size,
       "Drop",
       disable=drop_disable)
-  btn_select = co.ButtonRect(co.BTN_SELECT,
-                             (x_ctrl_cen, y_ctrl_cen + ctrl_btn_w * 2),
-                             (ctrl_btn_w * 4, ctrl_btn_w),
-                             font_size,
-                             "Select Destination",
-                             disable=select_disable)
-  return (btn_up, btn_down, btn_left, btn_right, btn_stay, btn_pickup, btn_drop,
-          btn_select)
+  return btn_up, btn_down, btn_left, btn_right, btn_stay, btn_pickup, btn_drop
 
 
 def boxpush_game_scene(

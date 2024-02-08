@@ -1,11 +1,12 @@
+import os
 from typing import Mapping, Sequence, Any
 import pickle
 import numpy as np
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
 from web_experiment.exp_intervention.helper import task_intervention
-from aic_core.intervention.feedback_strategy import (
-    InterventionValueBased, E_CertaintyHandling)
+from aic_core.intervention.feedback_strategy import (InterventionValueBased,
+                                                     E_CertaintyHandling)
 import web_experiment.exp_common.canvas_objects as co
 
 # TODO: encapsulate these variables.
@@ -15,21 +16,19 @@ list_np_tx = []
 
 
 class BoxPushV2Intervention(BoxPushV2UserRandom):
-
   def __init__(self, domain_type, partial_obs) -> None:
     super().__init__(domain_type, partial_obs, latent_collection=False)
 
-    data_dir = "../analysis/TIC_results/data/"
-    model_dir = data_dir + "learned_models/"
-    v_value_movers_file = "movers_500_0,30_500_merged_v_values_learned.pickle"
+    model_dir = os.path.join(os.path.dirname(__file__), "model_data/")
+    v_value_movers_file = "movers_160_0,30_150_merged_v_values_learned.pickle"
 
-    tx1_file = "movers_btil2_tx_synth_FTTT_500_0,30_a1.npy"
-    tx2_file = "movers_btil2_tx_synth_FTTT_500_0,30_a2.npy"
+    tx1_file = "movers_btil_dec_tx_human_FTTT_160_0,30_a1.npy"
+    tx2_file = "movers_btil_dec_tx_human_FTTT_160_0,30_a2.npy"
 
-    policy1_file = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
-    policy2_file = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
+    policy1_file = "movers_btil_dec_policy_human_woTx_FTTT_160_0,30_a1.npy"
+    policy2_file = "movers_btil_dec_policy_human_woTx_FTTT_160_0,30_a2.npy"
 
-    with open(data_dir + v_value_movers_file, 'rb') as handle:
+    with open(model_dir + v_value_movers_file, 'rb') as handle:
       np_v_values_movers = pickle.load(handle)
 
     np_policy1 = np.load(model_dir + policy1_file)
@@ -80,20 +79,3 @@ class BoxPushV2Intervention(BoxPushV2UserRandom):
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("Please choose your next action.")
-
-  def _get_drawing_order(self, user_game_data: Exp1UserData):
-    dict_game = user_game_data.get_game_ref().get_env_info()
-    drawing_order = []
-    drawing_order.append(self.GAME_BORDER)
-
-    drawing_order = (drawing_order +
-                     self._game_scene_names(dict_game, user_game_data))
-    drawing_order = (drawing_order +
-                     self._game_overlay_names(dict_game, user_game_data))
-    drawing_order = drawing_order + co.ACTION_BUTTONS
-
-    drawing_order.append(self.TEXT_SCORE)
-
-    drawing_order.append(self.TEXT_INSTRUCTION)
-
-    return drawing_order

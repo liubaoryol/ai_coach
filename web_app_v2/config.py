@@ -9,6 +9,6 @@ SURVEY_PATH = DATA_DIR + "/tw2020_survey"
 TRAJECTORY_PATH = DATA_DIR + "/tw2020_trajectory"
 LATENT_PATH = DATA_DIR + "/tw2020_latent"
 USER_LABEL_PATH = DATA_DIR + "/tw2020_user_label"
-EXP_TYPE = "data_collection"  # data_collection | intervention
+EXP_TYPE = "intervention"  # data_collection | intervention
 
 DEBUG = False

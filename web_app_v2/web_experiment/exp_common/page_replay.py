@@ -28,14 +28,16 @@ class MixinCanvasPageReplay:
                                                         (init_user_data, ...)
   do not define __init__ so that this mixin does not hiject __init__ method
   '''
-
-  def set_partial_obs(self, partial_obs):
+  def set_flags(self, partial_obs):
     self._PARTIAL_OBS = partial_obs
+    self._MANUAL_SELECTION = False
+    self._AUTO_PROMPT = False
+    self._PROMPT_ON_CHANGE = False
+    self._PROMPT_FREQ = 0
 
   def init_user_data(self, user_data: UserDataReplay):
     user_data.data[UserDataReplay.SELECT] = False
     user_data.data[UserDataReplay.PARTIAL_OBS] = self._PARTIAL_OBS
-    user_data.data[UserDataReplay.SHOW_LATENT] = True
 
   def get_updated_drawing_info(self,
                                user_data: UserDataReplay,
@@ -44,10 +46,9 @@ class MixinCanvasPageReplay:
     dict_game = self._get_game_env(user_data)
 
     dict_objs = self.canvas_objects(dict_game, user_data)
-    drawing_order = self.get_drawing_order(dict_game, user_data)
     dict_init_commands = {"clear": None}
 
-    return dict_init_commands, dict_objs, drawing_order, None
+    return dict_init_commands, dict_objs, None
 
   def canvas_objects(self, dict_game, user_data):
     dict_objs = {}
@@ -93,7 +94,6 @@ class MixinCanvasPageReview(MixinCanvasPageReplay):
                                                         (canvas_objects, ...)
   do not define __init__ so that this mixin does not hiject __init__ method
   '''
-
   def _get_fix_destination(self, disable_fix, disable_left, disable_right):
     font_size = 20
 
@@ -190,7 +190,6 @@ class MixinCanvasPageReview(MixinCanvasPageReplay):
 
 
 class MixinBoxPushGameEnv:
-
   def _get_game_env(self, user_data: UserDataReplay):
     traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
     dict_game = user_data.data[UserDataReplay.TRAJECTORY][traj_idx]
@@ -215,7 +214,6 @@ class MixinBoxPushGameEnv:
 
 
 class MixinRescueGameEnv:
-
   def _get_game_env(self, user_data: UserDataReplay):
     traj_idx = user_data.data[UserDataReplay.TRAJ_IDX]
     dict_game = user_data.data[UserDataReplay.TRAJECTORY][traj_idx]
@@ -244,34 +242,30 @@ class MixinRescueGameEnv:
 # inheritance order matters
 class BoxPushReplayPage(MixinCanvasPageReplay, MixinBoxPushGameEnv,
                         BoxPushGamePageBase):
-
   def __init__(self, domain_type, partial_obs, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False, 0)
-    self.set_partial_obs(partial_obs)
+    super().__init__(domain_type, game_map, True)
+    self.set_flags(partial_obs)
 
 
 # inheritance order matters
 class BoxPushReviewPage(MixinCanvasPageReview, MixinBoxPushGameEnv,
                         BoxPushGamePageBase):
-
   def __init__(self, domain_type, partial_obs, game_map) -> None:
-    super().__init__(domain_type, False, game_map, False, False, 0)
-    self.set_partial_obs(partial_obs)
+    super().__init__(domain_type, game_map, True)
+    self.set_flags(partial_obs)
 
 
 # inheritance order matters
 class RescueReplayPage(MixinCanvasPageReplay, MixinRescueGameEnv,
                        RescueGamePageBase):
-
   def __init__(self, partial_obs, game_map) -> None:
-    super().__init__(False, game_map, False, False, 0)
-    self.set_partial_obs(partial_obs)
+    super().__init__(game_map, True)
+    self.set_flags(partial_obs)
 
 
 # inheritance order matters
 class RescueReviewPage(MixinCanvasPageReview, MixinRescueGameEnv,
                        RescueGamePageBase):
-
   def __init__(self, partial_obs, game_map) -> None:
-    super().__init__(False, game_map, False, False, 0)
-    self.set_partial_obs(partial_obs)
+    super().__init__(game_map, True)
+    self.set_flags(partial_obs)

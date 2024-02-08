@@ -1,7 +1,7 @@
 import logging
 from flask import render_template, g, session, request, redirect
 from web_experiment.auth.functions import login_required
-from web_experiment.models import ExpIntervention
+from web_experiment.models import ExpIntervention, User
 from web_experiment.define import (PageKey, INTERV_SESSIONS, get_next_url,
                                    ExpType, url_name, GroupName)
 from web_experiment.exp_intervention.define import (SESSION_TITLE,
@@ -31,17 +31,19 @@ for session_name in INTERV_SESSIONS:
       cur_endpoint = exp_interv_bp.name + "." + session_name
       group_id = session["groupid"]
       cur_user = g.user
-      logging.info('User %s accesses to %s.' % (cur_user, session_name))
 
       if request.method == "POST":
         return redirect(
             get_next_url(cur_endpoint, session_name, group_id,
                          ExpType.Intervention))
 
+      logging.info('User %s accesses to %s.' % (cur_user, session_name))
+
+      user = User.query.filter_by(userid=cur_user).first()
       query_data = ExpIntervention.query.filter_by(subject_id=cur_user).first()
       disabled = ''
       hidden = ''
-      if not getattr(query_data, session_name):
+      if not user.test and not getattr(query_data, session_name):
         disabled = 'disabled'
       if group_id != GroupName.Group_B:
         hidden = 'hidden'

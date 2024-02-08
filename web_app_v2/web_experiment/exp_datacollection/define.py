@@ -169,18 +169,6 @@ PAGE_LIST_RESCUE_V2_TUTORIAL = [
     pgt.CanvasPageTutorialStart(EDomainType.Rescue),
     pgt.CanvasPageInstruction(EDomainType.Rescue),
     pgt.CanvasPageTutorialGameStart(EDomainType.Rescue),
-    pgrv2.RescueV2TutorialActions(),
-    pgrv2.RescueV2TutorialOverallGoal(),
-    pgrv2.RescueV2TutorialOnlyHuman(),
-    pgrv2.RescueV2TutorialSimpleTarget(),
-    pgrv2.RescueV2TutorialResolvedAlone(),
-    pgrv2.RescueV2TutorialScore(),
-    pgrv2.RescueV2TutorialComplexTarget(),
-    pgrv2.RescueV2TutorialComplexTargetTogether(),
-    pgrv2.RescueV2TutorialResolvedTogether(),
-    pgrv2.RescueV2TutorialPartialObs(),
-    pgrv2.RescueV2TutorialLatent(),
-    pgrv2.RescueV2TutorialSelResult(),
     pgrv2.RescueV2TutorialMiniGame()
 ]
 

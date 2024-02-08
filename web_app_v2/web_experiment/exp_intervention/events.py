@@ -1,3 +1,4 @@
+import logging
 from typing import Mapping
 from flask import request, session, current_app
 from web_experiment import socketio
@@ -28,7 +29,7 @@ for socket_type in SocketType:
       session_name = session["loaded_session_name"]
       expinfo = ExpIntervention.query.filter_by(subject_id=cur_user).first()
       user_data.data[Exp1UserData.SESSION_DONE] = getattr(expinfo, session_name)
-
+      logging.info(f"{cur_user}({env_id}) connected to socketio {name_space}")
       event_impl.initial_canvas(env_id, name_space, session_name, user_data,
                                 GAMEPAGES[socket_type],
                                 get_domain_type(session_name))

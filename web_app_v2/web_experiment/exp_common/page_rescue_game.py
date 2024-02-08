@@ -17,14 +17,8 @@ RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
 
 
 class RescueGamePage(RescueGamePageBase):
-
-  def __init__(self,
-               manual_latent_selection,
-               auto_prompt: bool = True,
-               prompt_on_change: bool = True,
-               prompt_freq: int = 5) -> None:
-    super().__init__(manual_latent_selection, MAP_RESCUE, auto_prompt,
-                     prompt_on_change, prompt_freq)
+  def __init__(self, latent_collection: bool = True) -> None:
+    super().__init__(MAP_RESCUE, latent_collection)
     global RESCUE_TEAMMATE_POLICY
 
     self._TEAMMATE_POLICY = RESCUE_TEAMMATE_POLICY
@@ -48,10 +42,11 @@ class RescueGamePage(RescueGamePageBase):
     header += str(self._GAME_MAP)
     game.save_history(file_name, header)
 
-    user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
-    user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
-    store_user_label_locally(user_label_path, user_id, session_name,
-                             user_labels)
+    if self._LATENT_COLLECTION:
+      user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
+      user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
+      store_user_label_locally(user_label_path, user_id, session_name,
+                               user_labels)
 
     # update score
     best_score = user.best_c
@@ -85,14 +80,9 @@ class RescueGamePage(RescueGamePageBase):
 
 
 class RescueGameUserRandom(RescueGamePage):
-
   def __init__(self, partial_obs, latent_collection=True) -> None:
-    super().__init__(True, True, True, 5)
+    super().__init__(latent_collection)
     self._PARTIAL_OBS = partial_obs
-    self._LATENT_COLLECTION = latent_collection
-    if not self._LATENT_COLLECTION:
-      self._AUTO_PROMPT = False
-      self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -105,9 +95,6 @@ class RescueGameUserRandom(RescueGamePage):
 
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent(agent1, agent2)
-    if not self._LATENT_COLLECTION:
-      user_game_data.data[Exp1UserData.SELECT] = False
-      user_game_data.data[Exp1UserData.SHOW_LATENT] = False
-      user_game_data.data[Exp1UserData.COLLECT_LATENT] = False
+    user_game_data.data[Exp1UserData.SELECT] = self._LATENT_COLLECTION
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS

@@ -46,19 +46,15 @@ class RescueGamePageBase(ExperimentPageBase):
 
   ACTION_BUTTONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, STAY, RESCUE]
 
-  def __init__(self,
-               manual_latent_selection,
-               game_map,
-               auto_prompt: bool = True,
-               prompt_on_change: bool = True,
-               prompt_freq: int = 5) -> None:
+  def __init__(self, game_map, latent_collection: bool = True) -> None:
     super().__init__(True, True, True, EDomainType.Rescue)
-    self._MANUAL_SELECTION = manual_latent_selection
+    self._LATENT_COLLECTION = latent_collection
     self._GAME_MAP = game_map
 
-    self._PROMPT_ON_CHANGE = prompt_on_change
-    self._PROMPT_FREQ = prompt_freq
-    self._AUTO_PROMPT = auto_prompt
+    self._MANUAL_SELECTION = latent_collection
+    self._PROMPT_ON_CHANGE = latent_collection
+    self._AUTO_PROMPT = latent_collection
+    self._PROMPT_FREQ = 5
 
     self._AGENT1 = RescueSimulator.AGENT1
     self._AGENT2 = RescueSimulator.AGENT2
@@ -97,9 +93,8 @@ class RescueGamePageBase(ExperimentPageBase):
       if clicked_button in self.ACTION_BUTTONS:
         animations = self._get_animations(dict_prev_scene_data,
                                           game.get_env_info())
-    drawing_order = self._get_drawing_order(user_data)
 
-    return commands, drawing_objs, drawing_order, animations
+    return commands, drawing_objs, animations
 
   def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
     '''
@@ -141,27 +136,34 @@ class RescueGamePageBase(ExperimentPageBase):
           "Please select your current destination among the circled options. " +
           "It can be the same destination as you had previously selected.")
     else:
-      return (
-          "Please choose your next action. If your destination has changed, " +
-          "please update it using the select destination button.")
+      txt_inst = "Please choose your next action. "
+      txt_inst += ("If your destination has changed, " +
+                   "please update it using the select destination button.")
+      return txt_inst
 
   def _get_drawing_order(self, user_game_data: Exp1UserData):
     dict_game = user_game_data.get_game_ref().get_env_info()
-    drawing_order = []
-    drawing_order.append(self.GAME_BORDER)
+    drawing_order = super()._get_drawing_order(user_game_data)
 
     drawing_order = (drawing_order +
                      self._game_scene_names(dict_game, user_game_data))
     drawing_order = (drawing_order +
                      self._game_overlay_names(dict_game, user_game_data))
     drawing_order = drawing_order + self.ACTION_BUTTONS
-    drawing_order.append(co.BTN_SELECT)
+
+    if self._LATENT_COLLECTION:
+      drawing_order.append(co.BTN_SELECT)
 
     drawing_order.append(self.TEXT_SCORE)
 
     drawing_order.append(self.TEXT_INSTRUCTION)
 
-    return drawing_order
+    filtered_drawing_order = []
+    for obj_name in drawing_order:
+      if obj_name in user_game_data.data[Exp1UserData.DRAW_OBJ_NAMES]:
+        filtered_drawing_order.append(obj_name)
+
+    return filtered_drawing_order
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
@@ -185,8 +187,9 @@ class RescueGamePageBase(ExperimentPageBase):
     for obj in objs:
       dict_objs[obj.name] = obj
 
-    obj = self._get_btn_select(user_game_data)
-    dict_objs[obj.name] = obj
+    if self._LATENT_COLLECTION:
+      obj = self._get_btn_select(user_game_data)
+      dict_objs[obj.name] = obj
 
     return dict_objs
 
@@ -205,7 +208,7 @@ class RescueGamePageBase(ExperimentPageBase):
     work_locations = game_env["work_locations"]
     work_states = game_env["work_states"]
 
-    if user_data.data[Exp1UserData.COLLECT_LATENT]:
+    if self._LATENT_COLLECTION:
       if a1pos in work_locations:
         widx = work_locations.index(a1pos)
         if a1_latent == widx and work_states[widx] != 0:
@@ -409,8 +412,9 @@ class RescueGamePageBase(ExperimentPageBase):
     for obj in objs:
       dict_objs[obj.name] = obj
 
-    obj = self._get_btn_select(user_data)
-    dict_objs[obj.name] = obj
+    if self._LATENT_COLLECTION:
+      obj = self._get_btn_select(user_data)
+      dict_objs[obj.name] = obj
 
     return dict_objs
 
@@ -475,9 +479,24 @@ class RescueGamePageBase(ExperimentPageBase):
     return (map_agent2action[self._AGENT1], map_agent2action[self._AGENT2],
             game.is_finished())
 
+  def _get_latent_pos_overlay(self, game_env):
+    places = game_env["places"]  # type: Sequence[Place]
+    routes = game_env["routes"]  # type: Sequence[Place]
+    work_locations = game_env["work_locations"]
+    a1_latent = game_env["a1_latent"]
+    if a1_latent is not None:
+      coord = location_2_coord(work_locations[a1_latent], places, routes)
+      if coord is not None:
+        radius = int(0.05 * self.GAME_WIDTH)
+        x_cen = int(self.GAME_LEFT + coord[0] * self.GAME_WIDTH)
+        y_cen = int(self.GAME_TOP + coord[1] * self.GAME_HEIGHT)
+
+        return (x_cen, y_cen), radius
+
+    return None, None
+
   def _game_overlay(self, game_env,
                     user_data: Exp1UserData) -> List[co.DrawingObject]:
-
     def coord_2_canvas(coord_x, coord_y):
       x = int(self.GAME_LEFT + coord_x * self.GAME_WIDTH)
       y = int(self.GAME_TOP + coord_y * self.GAME_HEIGHT)
@@ -516,23 +535,17 @@ class RescueGamePageBase(ExperimentPageBase):
       obj = co.ClippedRectangle(co.PO_LAYER, po_outer_ltwh, list_circle=circles)
       overlay_obs.append(obj)
 
-    if (user_data.data[Exp1UserData.SHOW_LATENT]
-        and not user_data.data[Exp1UserData.SELECT]):
-      a1_latent = game_env["a1_latent"]
-      if a1_latent is not None:
-        coord = location_2_coord(work_locations[a1_latent], places, routes)
-        if coord is not None:
-          radius = size_2_canvas(0.05, 0)[0]
-          x_cen = coord[0]
-          y_cen = coord[1]
-          obj = co.BlinkCircle(co.CUR_LATENT,
-                               coord_2_canvas(x_cen, y_cen),
-                               radius,
-                               line_color="red",
-                               fill=False,
-                               border=True,
-                               linewidth=3)
-          overlay_obs.append(obj)
+    if self._LATENT_COLLECTION and not user_data.data[Exp1UserData.SELECT]:
+      cen_pos, radius = self._get_latent_pos_overlay(game_env)
+      if cen_pos is not None:
+        obj = co.BlinkCircle(co.CUR_LATENT,
+                             cen_pos,
+                             radius,
+                             line_color="red",
+                             fill=False,
+                             border=True,
+                             linewidth=3)
+        overlay_obs.append(obj)
 
     if user_data.data[Exp1UserData.SELECT]:
       obj = co.Rectangle(co.SEL_LAYER, (self.GAME_LEFT, self.GAME_TOP),
@@ -559,8 +572,7 @@ class RescueGamePageBase(ExperimentPageBase):
     if user_data.data[Exp1UserData.PARTIAL_OBS]:
       overlay_names.append(co.PO_LAYER)
 
-    if (user_data.data[Exp1UserData.SHOW_LATENT]
-        and not user_data.data[Exp1UserData.SELECT]):
+    if self._LATENT_COLLECTION and not user_data.data[Exp1UserData.SELECT]:
       a1_latent = game_env["a1_latent"]
       if a1_latent is not None:
         overlay_names.append(co.CUR_LATENT)
@@ -583,7 +595,6 @@ class RescueGamePageBase(ExperimentPageBase):
     return rescue_game_scene(game_env, game_ltwh, include_background)
 
   def _game_scene_names(self, game_env, user_data: Exp1UserData) -> List:
-
     def is_visible(img_name):
       if user_data.data[Exp1UserData.PARTIAL_OBS]:
         if img_name == co.IMG_FIRE_ENGINE:

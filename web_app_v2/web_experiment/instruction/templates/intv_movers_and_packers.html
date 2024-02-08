@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block header %}
+<h1>{% block title %}Task A: Movers and Packers (part 3/5){% endblock %}</h1>
+<div class="explanation">
+  <p>Thank you for completing the survey!</p>
+
+  <p>Now, we will proceed to the first task. You will complete this task with a robot.
+    The task environment and the robot are shown below.</p>
+
+  <p>In this task, your goal is to move all the boxes to the truck as soon as possible.
+    The boxes are heavy and cannot be lifted alone.
+    So, you will need to work with the robot to pick and move them.
+    The task completes when all the boxes have been dropped at the truck location.</p>
+
+  <p>During the task, you can control the human player shown below. The robot moves autonomously. To learn more about
+    how to complete this task, you will complete</p>
+  <ul>
+    <li>A tutorial session.</li>
+    <li>Four task sessions.</li>
+  </ul>
+
+  <p>Let’s begin!</p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="image-center">
+  <img src="{{url_for('inst.static', filename='movers_and_packers.png')}}" width="50%">
+</div>
+<div class="button-center">
+  <form method="POST" action="{{ url_for(cur_endpoint) }}">
+    <button type="submit" value="submit">Proceed to Tutorial</button>
+  </form>
+</div>
+{% endblock %}
