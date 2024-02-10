@@ -88,9 +88,9 @@ PAGE_LIST_CLEANUP = [
 ]
 
 PAGE_LIST_MOVERS_TUTORIAL = [
-    pgt.CanvasPageTutorialStart(EDomainType.Movers),
-    pgt.CanvasPageInstruction(EDomainType.Movers),
-    pgt.CanvasPageTutorialGameStart(EDomainType.Movers),
+    pgc.CanvasPageTutorialStart(EDomainType.Movers),
+    pgc.CanvasPageInstruction(EDomainType.Movers),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Movers),
     pgt.CanvasPageJoystick(EDomainType.Movers),
     pgt.CanvsPageWaitBtn(EDomainType.Movers),
     pgt.CanvasPageInvalidAction(EDomainType.Movers),
@@ -113,9 +113,9 @@ PAGE_LIST_MOVERS_TUTORIAL = [
     pgt.CanvasPageMiniGame(EDomainType.Movers)
 ]
 PAGE_LIST_CLEANUP_TUTORIAL = [
-    pgt.CanvasPageTutorialStart(EDomainType.Cleanup),
-    pgt.CanvasPageInstruction(EDomainType.Cleanup),
-    pgt.CanvasPageTutorialGameStart(EDomainType.Cleanup),
+    pgc.CanvasPageTutorialStart(EDomainType.Cleanup),
+    pgc.CanvasPageInstruction(EDomainType.Cleanup),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Cleanup),
     pgt.CanvasPageJoystickShort(EDomainType.Cleanup),
     pgt.CanvasPageOnlyHuman(EDomainType.Cleanup),
     pgt.CanvasPageGoToTarget(EDomainType.Cleanup),
@@ -147,9 +147,9 @@ PAGE_LIST_RESCUE = [
 ]
 
 PAGE_LIST_RESCUE_TUTORIAL = [
-    pgt.CanvasPageTutorialStart(EDomainType.Rescue),
-    pgt.CanvasPageInstruction(EDomainType.Rescue),
-    pgt.CanvasPageTutorialGameStart(EDomainType.Rescue),
+    pgc.CanvasPageTutorialStart(EDomainType.Rescue),
+    pgc.CanvasPageInstruction(EDomainType.Rescue),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Rescue),
     pgr.RescueTutorialActions(),
     pgr.RescueTutorialOverallGoal(),
     pgr.RescueTutorialOnlyHuman(),
@@ -166,9 +166,9 @@ PAGE_LIST_RESCUE_TUTORIAL = [
 ]
 
 PAGE_LIST_RESCUE_V2_TUTORIAL = [
-    pgt.CanvasPageTutorialStart(EDomainType.Rescue),
-    pgt.CanvasPageInstruction(EDomainType.Rescue),
-    pgt.CanvasPageTutorialGameStart(EDomainType.Rescue),
+    pgc.CanvasPageTutorialStart(EDomainType.Rescue),
+    pgc.CanvasPageInstruction(EDomainType.Rescue),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Rescue),
     pgrv2.RescueV2TutorialMiniGame()
 ]
 

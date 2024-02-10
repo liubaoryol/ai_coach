@@ -2,6 +2,7 @@ from typing import Mapping, Any, Sequence
 from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.page_rescue_game import RescueGamePage
 import web_experiment.exp_common.canvas_objects as co
+from web_experiment.exp_common.page_tutorial_base import MixinTutorialBase
 from web_experiment.define import ExpType
 from web_experiment.models import ExpDataCollection, ExpIntervention, db
 from aic_domain.agent import InteractiveAgent
@@ -11,76 +12,13 @@ from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
 MAX_STEP = str(30)
 
 
-class RescueTutorialBase(RescueGamePage):
-  CLICKED_BTNS = "clicked_btn"
-  RED_CIRCLE = "red_circle"
-
+class RescueTutorialActions(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(latent_collection)
-    self._MANUAL_SELECTION = self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = False
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
-
-    game = user_game_data.get_game_ref()
-    agent1 = InteractiveAgent()
-    agent2 = InteractiveAgent()
-    game.set_autonomous_agent(agent1, agent2)
-
-    TARGET = 0
-    game.event_input(self._AGENT1, E_EventType.Set_Latent, TARGET)
-    user_game_data.data[Exp1UserData.SELECT] = False
-    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
-
-  def _get_red_circle(self, x_cen, y_cen, radius):
-    return co.BlinkCircle(self.RED_CIRCLE, (x_cen, y_cen),
-                          radius,
-                          line_color="red",
-                          fill=False,
-                          border=True,
-                          linewidth=3)
-
-  def _get_init_drawing_objects(
-      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
-
-    btn_prev, btn_next = self._get_btn_prev_next(False, False)
-    dict_objs[btn_prev.name] = btn_prev
-    dict_objs[btn_next.name] = btn_next
-
-    return dict_objs
-
-  def _get_drawing_order(self, user_game_data: Exp1UserData):
-    drawing_order = super()._get_drawing_order(user_game_data)
-
-    additional_objs_order = [self.SPOTLIGHT, co.BTN_PREV, co.BTN_NEXT]
-    if not self._LATENT_COLLECTION:
-      additional_objs_order.append(self.RED_CIRCLE)
-
-    for obj_name in additional_objs_order:
-      if obj_name in user_game_data.data[Exp1UserData.DRAW_OBJ_NAMES]:
-        drawing_order.append(obj_name)
-
-    return drawing_order
-
-  def _on_game_finished(self, user_game_data: Exp1UserData):
-    '''
-    user_game_data: NOTE - values will be updated
-    '''
-
-    game = user_game_data.get_game_ref()
-    user_game_data.data[Exp1UserData.GAME_DONE] = True
-    game.reset_game()
-    user_game_data.data[Exp1UserData.SCORE] = game.current_step
-    self.init_user_data(user_game_data)
-
-
-class RescueTutorialActions(RescueTutorialBase):
-  def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
-
-  def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[self.CLICKED_BTNS] = set()
     user_game_data.data[Exp1UserData.SELECT] = False
@@ -90,7 +28,7 @@ class RescueTutorialActions(RescueTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     dict_objs[co.BTN_NEXT].disable = True
 
@@ -99,9 +37,6 @@ class RescueTutorialActions(RescueTutorialBase):
     radius = int(obj.radius * 3)
     obj = self._get_spotlight(*pos, radius)
     dict_objs[obj.name] = obj
-    if not self._LATENT_COLLECTION:
-      obj = self._get_red_circle(*pos, radius)
-      dict_objs[obj.name] = obj
 
     return dict_objs
 
@@ -117,10 +52,10 @@ class RescueTutorialActions(RescueTutorialBase):
     if clicked_btn in self.ACTION_BUTTONS:
       user_game_data.data[self.CLICKED_BTNS].add(clicked_btn)
 
-    return super().button_clicked(user_game_data, clicked_btn)
+    return self._base_button_clicked(user_game_data, clicked_btn)
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
-    commands = super()._get_button_commands(clicked_btn, user_data)
+    commands = self._base_get_button_commands(clicked_btn, user_data)
     if clicked_btn in self.ACTION_BUTTONS:
       if commands is not None:
         commands["delete"] = (commands.get("delete", []) +
@@ -135,7 +70,8 @@ class RescueTutorialActions(RescueTutorialBase):
       user_data: Exp1UserData,
       dict_prev_game: Mapping[str,
                               Any] = None) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_updated_drawing_objects(user_data, dict_prev_game)
+    dict_objs = self._base_get_updated_drawing_objects(user_data,
+                                                       dict_prev_game)
 
     _, btn_next = self._get_btn_prev_next(False, True)
     dict_objs[btn_next.name] = btn_next
@@ -148,9 +84,10 @@ class RescueTutorialActions(RescueTutorialBase):
     return dict_objs
 
 
-class RescueTutorialPlain(RescueTutorialBase):
+class RescueTutorialPlain(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     user_game_data.data[Exp1UserData.GAME_DONE] = False
@@ -163,7 +100,7 @@ class RescueTutorialPlain(RescueTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     objs = self._get_btn_actions(user_game_data.get_game_ref().get_env_info(),
                                  True, True, True)
     for obj in objs:
@@ -186,9 +123,10 @@ class RescueTutorialOnlyHuman(RescueTutorialPlain):
             "only control the police car. The fire truck moves autonomously.")
 
 
-class RescueTutorialSimpleTarget(RescueTutorialBase):
+class RescueTutorialSimpleTarget(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     if self._LATENT_COLLECTION:
@@ -204,12 +142,13 @@ class RescueTutorialSimpleTarget(RescueTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
     if not self._LATENT_COLLECTION:
       game_env = user_game_data.get_game_ref().get_env_info()
-      center_pos, radius = self._get_latent_pos_overlay(game_env)
+      center_pos, radius = self._get_latent_pos_size(game_env,
+                                                     game_env["a1_latent"])
       if center_pos is not None:
         obj = self._get_red_circle(*center_pos, radius)
         dict_objs[obj.name] = obj
@@ -219,7 +158,7 @@ class RescueTutorialSimpleTarget(RescueTutorialBase):
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
+    self._base_on_action_taken(user_game_data, dict_prev_game, tuple_actions)
 
     game = user_game_data.get_game_ref()
     game_env = game.get_env_info()
@@ -240,12 +179,13 @@ class RescueTutorialResolvedAlone(RescueTutorialPlain):
         "the Campsite and City Hall can be rescued by just one team member.")
 
 
-class RescueTutorialComplexTarget(RescueTutorialBase):
+class RescueTutorialComplexTarget(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
 
@@ -264,12 +204,13 @@ class RescueTutorialComplexTarget(RescueTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
     if not self._LATENT_COLLECTION:
       game_env = user_game_data.get_game_ref().get_env_info()
-      center_pos, radius = self._get_latent_pos_overlay(game_env)
+      center_pos, radius = self._get_latent_pos_size(game_env,
+                                                     game_env["a1_latent"])
       if center_pos is not None:
         obj = self._get_red_circle(*center_pos, radius)
         dict_objs[obj.name] = obj
@@ -281,7 +222,8 @@ class RescueTutorialComplexTarget(RescueTutorialBase):
       user_data: Exp1UserData,
       dict_prev_game: Mapping[str,
                               Any] = None) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_updated_drawing_objects(user_data, dict_prev_game)
+    dict_objs = self._base_get_updated_drawing_objects(user_data,
+                                                       dict_prev_game)
 
     _, btn_next = self._get_btn_prev_next(False, True)
     dict_objs[btn_next.name] = btn_next
@@ -297,15 +239,16 @@ class RescueTutorialComplexTarget(RescueTutorialBase):
     if clicked_btn == self.RESCUE:
       user_game_data.data[self.CLICKED_BTNS].add(clicked_btn)
 
-    return super().button_clicked(user_game_data, clicked_btn)
+    return self._base_button_clicked(user_game_data, clicked_btn)
 
 
-class RescueTutorialComplexTargetTogether(RescueTutorialBase):
+class RescueTutorialComplexTargetTogether(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     game = user_game_data.get_game_ref()
     init_states = ([1] * len(self._GAME_MAP["work_locations"]),
@@ -326,12 +269,13 @@ class RescueTutorialComplexTargetTogether(RescueTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
     if not self._LATENT_COLLECTION:
       game_env = user_game_data.get_game_ref().get_env_info()
-      center_pos, radius = self._get_latent_pos_overlay(game_env)
+      center_pos, radius = self._get_latent_pos_size(game_env,
+                                                     game_env["a1_latent"])
       if center_pos is not None:
         obj = self._get_red_circle(*center_pos, radius)
         dict_objs[obj.name] = obj
@@ -341,7 +285,7 @@ class RescueTutorialComplexTargetTogether(RescueTutorialBase):
   def _on_action_taken(self, user_game_data: Exp1UserData,
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
-    super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
+    self._base_on_action_taken(user_game_data, dict_prev_game, tuple_actions)
 
     game = user_game_data.get_game_ref()
     game_env = game.get_env_info()
@@ -385,12 +329,13 @@ class RescueTutorialScore(RescueTutorialPlain):
         "(Mall: 4, Campsite: 2, City Hall: 1).")
 
 
-class RescueTutorialPartialObs(RescueTutorialBase):
+class RescueTutorialPartialObs(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
     init_states = ([1] * len(self._GAME_MAP["work_locations"]),
                    self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
     agent2 = AIAgent_Rescue_PartialObs(init_states, self._AGENT2,
@@ -410,20 +355,20 @@ class RescueTutorialPartialObs(RescueTutorialBase):
         "Similarly, the fire truck CANNOT always observe you.")
 
 
-class RescueTutorialDestination(RescueTutorialBase):
+class RescueTutorialDestination(MixinTutorialBase, RescueGamePage):
   def __init__(self) -> None:
     super().__init__(True)
     self._MANUAL_SELECTION = False
     self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = True
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     obj = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
     x_cen = int(obj.pos[0] + 0.5 * obj.width)
@@ -446,19 +391,19 @@ class RescueTutorialDestination(RescueTutorialBase):
         "change your destination in your mind.")
 
 
-class RescueTutorialLatent(RescueTutorialBase):
+class RescueTutorialLatent(MixinTutorialBase, RescueGamePage):
   def __init__(self) -> None:
     super().__init__(True)
     self._MANUAL_SELECTION = self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = True
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
     obj = dict_objs[co.BTN_SELECT]  # type: co.ButtonRect
     obj = self._get_spotlight(*obj.pos, int(obj.size[0] * 0.6))
     dict_objs[obj.name] = obj
@@ -489,7 +434,7 @@ class RescueTutorialLatent(RescueTutorialBase):
     if self.is_sel_latent_btn(clicked_btn):
       user_game_data.go_to_next_page()
 
-    return super().button_clicked(user_game_data, clicked_btn)
+    return self._base_button_clicked(user_game_data, clicked_btn)
 
 
 class RescueTutorialSelResult(RescueTutorialPlain):
@@ -512,7 +457,7 @@ class RescueTutorialSelResult(RescueTutorialPlain):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     objs = self._get_btn_actions(user_game_data.get_game_ref().get_env_info(),
                                  True, True, True)
@@ -522,7 +467,7 @@ class RescueTutorialSelResult(RescueTutorialPlain):
     return dict_objs
 
 
-class RescueTutorialMiniGame(RescueTutorialBase):
+class RescueTutorialMiniGame(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(latent_collection)
     self._MANUAL_SELECTION = latent_collection
@@ -537,7 +482,7 @@ class RescueTutorialMiniGame(RescueTutorialBase):
             "sessions (using the button at the bottom of this page).")
 
   def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
+    self._base_init_user_data(user_game_data)
 
     TARGET = 0
     game = user_game_data.get_game_ref()
@@ -567,7 +512,7 @@ class RescueTutorialMiniGame(RescueTutorialBase):
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
+    dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     dict_objs[co.BTN_NEXT].disable = True
 

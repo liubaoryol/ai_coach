@@ -272,7 +272,6 @@ iframe {
 
 
 .thought-bubble {
-  height: 100%;
 	display:flex;
 	justify-content:center;
 	align-items:center;
@@ -281,7 +280,8 @@ iframe {
 
 .thought-bubble p {
   position: relative;
-  max-width: 30em;
+  width: 70%;
+  height: 3em;
   
   background-color: #fff;
   padding: 1.125em 1.5em;

@@ -11,17 +11,17 @@ from web_experiment.exp_common.helper import (get_file_name,
 from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 
 TEMPERATURE = 0.3
-RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
-                                       MDP_Rescue_Agent(**MAP_RESCUE),
-                                       TEMPERATURE, RescueSimulator.AGENT2)
 
 
 class RescueGamePage(RescueGamePageBase):
+  RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
+                                         MDP_Rescue_Agent(**MAP_RESCUE),
+                                         TEMPERATURE, RescueSimulator.AGENT2)
+
   def __init__(self, latent_collection: bool = True) -> None:
     super().__init__(MAP_RESCUE, latent_collection)
-    global RESCUE_TEAMMATE_POLICY
 
-    self._TEAMMATE_POLICY = RESCUE_TEAMMATE_POLICY
+    self._TEAMMATE_POLICY = RescueGamePage.RESCUE_TEAMMATE_POLICY
 
   def _on_game_finished(self, user_game_data: Exp1UserData):
     '''

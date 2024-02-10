@@ -137,8 +137,9 @@ class RescueGamePageBase(ExperimentPageBase):
           "It can be the same destination as you had previously selected.")
     else:
       txt_inst = "Please choose your next action. "
-      txt_inst += ("If your destination has changed, " +
-                   "please update it using the select destination button.")
+      if self._LATENT_COLLECTION:
+        txt_inst += ("If your destination has changed, " +
+                     "please update it using the select destination button.")
       return txt_inst
 
   def _get_drawing_order(self, user_game_data: Exp1UserData):
@@ -181,8 +182,7 @@ class RescueGamePageBase(ExperimentPageBase):
     for obj in overlay_objs:
       dict_objs[obj.name] = obj
 
-    disable_status = self._get_action_btn_disable_state(user_game_data,
-                                                        dict_game)
+    disable_status = self._get_action_btn_disabled(user_game_data)
     objs = self._get_btn_actions(dict_game, *disable_status)
     for obj in objs:
       dict_objs[obj.name] = obj
@@ -193,8 +193,9 @@ class RescueGamePageBase(ExperimentPageBase):
 
     return dict_objs
 
-  def _get_action_btn_disable_state(self, user_data: Exp1UserData,
-                                    game_env: Mapping[Any, Any]):
+  def _get_action_btn_disabled(self, user_data: Exp1UserData):
+    game_env = user_data.get_game_ref().get_env_info()
+
     selecting = user_data.data[Exp1UserData.SELECT]
     game_done = user_data.data[Exp1UserData.GAME_DONE]
 
@@ -407,7 +408,7 @@ class RescueGamePageBase(ExperimentPageBase):
     obj = self._get_instruction_objs(user_data)
     dict_objs[obj.name] = obj
 
-    disable_status = self._get_action_btn_disable_state(user_data, dict_game)
+    disable_status = self._get_action_btn_disabled(user_data)
     objs = self._get_btn_actions(dict_game, *disable_status)
     for obj in objs:
       dict_objs[obj.name] = obj
@@ -479,13 +480,12 @@ class RescueGamePageBase(ExperimentPageBase):
     return (map_agent2action[self._AGENT1], map_agent2action[self._AGENT2],
             game.is_finished())
 
-  def _get_latent_pos_overlay(self, game_env):
+  def _get_latent_pos_size(self, game_env, latent):
     places = game_env["places"]  # type: Sequence[Place]
     routes = game_env["routes"]  # type: Sequence[Place]
     work_locations = game_env["work_locations"]
-    a1_latent = game_env["a1_latent"]
-    if a1_latent is not None:
-      coord = location_2_coord(work_locations[a1_latent], places, routes)
+    if latent is not None:
+      coord = location_2_coord(work_locations[latent], places, routes)
       if coord is not None:
         radius = int(0.05 * self.GAME_WIDTH)
         x_cen = int(self.GAME_LEFT + coord[0] * self.GAME_WIDTH)
@@ -536,7 +536,8 @@ class RescueGamePageBase(ExperimentPageBase):
       overlay_obs.append(obj)
 
     if self._LATENT_COLLECTION and not user_data.data[Exp1UserData.SELECT]:
-      cen_pos, radius = self._get_latent_pos_overlay(game_env)
+      cen_pos, radius = self._get_latent_pos_size(game_env,
+                                                  game_env["a1_latent"])
       if cen_pos is not None:
         obj = co.BlinkCircle(co.CUR_LATENT,
                              cen_pos,

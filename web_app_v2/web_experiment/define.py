@@ -25,6 +25,7 @@ class EDomainType(Enum):
   Movers = 0
   Cleanup = 1
   Rescue = 2
+  Blackout = 3
 
 
 class EMode(Enum):
@@ -127,9 +128,16 @@ DATACOL_TUTORIALS = [PageKey.DataCol_T1, PageKey.DataCol_T3]
 DATACOL_SESSIONS = DATACOL_TASKS + DATACOL_TUTORIALS
 
 INTERV_TASKS = [
-    PageKey.Interv_A0, PageKey.Interv_A1, PageKey.Interv_A2, PageKey.Interv_A3,
-    PageKey.Interv_A4, PageKey.Interv_C0, PageKey.Interv_C1, PageKey.Interv_C2,
-    PageKey.Interv_C3, PageKey.Interv_C4,
+    PageKey.Interv_A0,
+    PageKey.Interv_A1,
+    PageKey.Interv_A2,
+    PageKey.Interv_A3,
+    PageKey.Interv_A4,
+    PageKey.Interv_C0,
+    PageKey.Interv_C1,
+    PageKey.Interv_C2,
+    PageKey.Interv_C3,
+    PageKey.Interv_C4,
 ]
 
 INTERV_TUTORIALS = [PageKey.Interv_T1, PageKey.Interv_T3]
@@ -161,7 +169,6 @@ HASH_2_SESSION_KEY = {
 
 
 def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
-
   def endpoint(bp_name, page_key):
     return bp_name + "." + page_key
 
@@ -252,7 +259,6 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
     elif current_endpoint == endpoint(BPName.Survey, PageKey.PreExperiment):
       return url_for(endpoint(BPName.Instruction, PageKey.Movers_and_packers))
 
-
     # Movers instructions
     elif current_endpoint == endpoint(BPName.Instruction,
                                       PageKey.Movers_and_packers):
@@ -285,7 +291,6 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
     elif current_endpoint == endpoint(BPName.Exp_interv, PageKey.Interv_C4):
       return url_for(endpoint(BPName.Survey, PageKey.InExperiment),
                      session_name_hash=custom_hash(task_session_key))
-    
 
     # In-experiment survay page
     elif current_endpoint == endpoint(BPName.Survey, PageKey.InExperiment):

@@ -155,10 +155,6 @@ class BoxPushGamePageBase(ExperimentPageBase):
             (game.current_step, latent))
         return
 
-    elif clicked_btn == co.BTN_CONFIRM:
-      user_game_data.data[Exp1UserData.DURING_INTERVENTION] = False
-      return
-
     return super().button_clicked(user_game_data, clicked_btn)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
@@ -217,20 +213,21 @@ class BoxPushGamePageBase(ExperimentPageBase):
     for obj in overlay_objs:
       dict_objs[obj.name] = obj
 
-    selecting = user_game_data.data[Exp1UserData.SELECT]
-    select_disable = not self._MANUAL_SELECTION or selecting
     dis_status = self._get_action_btn_disabled(user_game_data)
-    objs = self._get_btn_actions(*dis_status)
+    objs = self._get_btn_actions(dict_game, *dis_status)
     for obj in objs:
       dict_objs[obj.name] = obj
 
     if self._LATENT_COLLECTION:
+      selecting = user_game_data.data[Exp1UserData.SELECT]
+      select_disable = not self._MANUAL_SELECTION or selecting
       obj = self._get_btn_select(select_disable)
       dict_objs[obj.name] = obj
 
     return dict_objs
 
   def _get_btn_actions(self,
+                       game_env: Mapping[Any, Any],
                        up_disable=False,
                        down_disable=False,
                        left_disable=False,
@@ -267,6 +264,7 @@ class BoxPushGamePageBase(ExperimentPageBase):
         select_latent = True
 
     user_game_data.data[Exp1UserData.SELECT] = select_latent
+
     user_game_data.data[Exp1UserData.SCORE] = (
         user_game_data.get_game_ref().current_step)
 
@@ -305,14 +303,14 @@ class BoxPushGamePageBase(ExperimentPageBase):
     obj = self._get_instruction_objs(user_data)
     dict_objs[obj.name] = obj
 
-    selecting = user_data.data[Exp1UserData.SELECT]
-    select_disable = not self._MANUAL_SELECTION or selecting
     dis_status = self._get_action_btn_disabled(user_data)
-    action_btns = self._get_btn_actions(*dis_status)
+    action_btns = self._get_btn_actions(dict_game, *dis_status)
     for obj in action_btns:
       dict_objs[obj.name] = obj
 
     if self._LATENT_COLLECTION:
+      selecting = user_data.data[Exp1UserData.SELECT]
+      select_disable = not self._MANUAL_SELECTION or selecting
       obj = self._get_btn_select(select_disable)
       dict_objs[obj.name] = obj
 
@@ -370,9 +368,8 @@ class BoxPushGamePageBase(ExperimentPageBase):
 
     selecting = user_data.data[Exp1UserData.SELECT]
     game_done = user_data.data[Exp1UserData.GAME_DONE]
-    intervention = user_data.data[Exp1UserData.DURING_INTERVENTION]
 
-    if selecting or game_done or intervention:
+    if selecting or game_done:
       return True, True, True, True, True, True, True
 
     drop_ok = False
@@ -464,14 +461,13 @@ class BoxPushGamePageBase(ExperimentPageBase):
     return (map_agent2action[self._AGENT1], map_agent2action[self._AGENT2],
             game.is_finished())
 
-  def _get_latent_pos_overlay(self, game_env):
-    a1_latent = game_env["a1_latent"]
-    if a1_latent is not None:
+  def _get_latent_pos_size(self, game_env, latent):
+    if latent is not None:
       coord = None
-      if a1_latent[0] == "pickup":
-        coord = game_env["boxes"][a1_latent[1]]
-      elif a1_latent[0] == "goal":
-        coord = game_env["goals"][a1_latent[1]]
+      if latent[0] == "pickup":
+        coord = game_env["boxes"][latent[1]]
+      elif latent[0] == "goal":
+        coord = game_env["goals"][latent[1]]
 
       if coord is not None:
         x_grid = game_env["x_grid"]
@@ -552,7 +548,8 @@ class BoxPushGamePageBase(ExperimentPageBase):
       overlay_obs.append(obj)
 
     if self._LATENT_COLLECTION and not user_data.data[Exp1UserData.SELECT]:
-      center_pos, radius = self._get_latent_pos_overlay(game_env)
+      center_pos, radius = self._get_latent_pos_size(game_env,
+                                                     game_env["a1_latent"])
       if center_pos is not None:
         obj = co.BlinkCircle(co.CUR_LATENT,
                              center_pos,
@@ -593,27 +590,6 @@ class BoxPushGamePageBase(ExperimentPageBase):
                                  font_size, "")
         overlay_obs.append(obj)
 
-    if user_data.data[Exp1UserData.DURING_INTERVENTION]:
-      obj = co.Rectangle(co.SEL_LAYER, (self.GAME_LEFT, self.GAME_TOP),
-                         (self.GAME_WIDTH, self.GAME_HEIGHT),
-                         fill_color="white",
-                         alpha=0.8)
-      overlay_obs.append(obj)
-
-      radius = size_2_canvas(0.45, 0)[0]
-      font_size = 20
-
-      for idx, bidx in enumerate(game_env["box_states"]):
-        if (idx == user_data.data[Exp1UserData.CUR_INFERENCE]):
-          coord = game_env["boxes"][idx]
-
-          x_cen = coord[0] + 0.5
-          y_cen = coord[1] + 0.5
-          obj = co.SelectingCircle("Confirm Intervention",
-                                   coord_2_canvas(x_cen, y_cen), radius,
-                                   font_size, "")
-          overlay_obs.append(obj)
-
     return overlay_obs
 
   def _game_overlay_names(self, game_env, user_data: Exp1UserData) -> List:
@@ -647,11 +623,7 @@ class BoxPushGamePageBase(ExperimentPageBase):
 
       for idx, bidx in enumerate(game_env["box_states"]):
         overlay_names.append(self.latent2selbtn(["pickup", idx]))
-    if user_data.data[Exp1UserData.DURING_INTERVENTION]:
-      overlay_names.append(co.SEL_LAYER)
-      for idx, bidx in enumerate(game_env["box_states"]):
-        if idx == user_data.data[Exp1UserData.CUR_INFERENCE]:
-          overlay_names.append("Confirm Intervention")
+
     return overlay_names
 
   def _game_scene(self,

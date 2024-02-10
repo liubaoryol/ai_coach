@@ -1,13 +1,24 @@
-{% extends 'base.html' %}
-
-{% block content %}
-<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
-  crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+{% extends 'base.html' %} {% block content %}
+<script
+  src="//code.jquery.com/jquery-1.12.4.min.js"
+  integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
-  crossorigin="anonymous"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
+  crossorigin="anonymous"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='methods.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='socket_n_canvas.js') }}"
+></script>
 <script type="text/javascript">
   initSocketIO("{{ socket_name_space }}");
 
@@ -23,22 +34,18 @@
   // intervention
   socket.on("intervention", function (json_msg) {
     const env = JSON.parse(json_msg);
-    let msg = "I found some inefficiency in your teamwork\n";
-    msg += "I recommend you move Box " + env.latent_human_predicted + "\n";
-    var text_box = document.getElementById('intervention_text');
+    let msg = "Beep- . Keep up the good work. ";
+    if (env.hasOwnProperty("advice") && env.advice != null) {
+      msg =
+        "Beep beep -! A potential improvement in teamwork has been identified: ";
+      msg += env.advice;
+    }
+    var text_box = document.getElementById("intervention_text");
     if (text_box != null) {
       text_box.innerText = msg;
     }
     // alert(msg);
   });
-
-  socket.on("no_intervention", function (json_msg) {
-    var text_box = document.getElementById('intervention_text');
-    var msg = "Keep up the good work. ";
-    if (text_box != null && text_box.innerText != msg) {
-      text_box.innerText = msg;
-    }
-  })
 
   // block default key event handler (block scroll bar movement by key)
   window.addEventListener(
@@ -57,14 +64,20 @@
 </script>
 
 <div class="thought-bubble">
-  <img src="/static/coach-people.svg" width="15%" {{ is_hidden }}>
-  <p id='intervention_text' {{ is_hidden }}>Hi! This is Tim.
-    I will help you coordinate with your teammate.
-    Please check my guidance while performing the task.
+  <img src="/static/coach-people.svg" width="15%" {{ is_hidden }} />
+  <p id="intervention_text" {{ is_hidden }}>
+    Beep- beep. I'm Tim, your AI team coach. I'm here to help you achieve better
+    task results.
   </p>
 </div>
 
-<canvas id="myCanvas" width="900" height="600" style="border: 5px solid #000000" tabindex="1">
+<canvas
+  id="myCanvas"
+  width="900"
+  height="600"
+  style="border: 5px solid #000000"
+  tabindex="1"
+>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 

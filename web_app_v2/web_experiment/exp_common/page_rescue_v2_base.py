@@ -46,7 +46,7 @@ class RescueV2GamePageBase(ExperimentPageBase):
   ACTION_BUTTONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, STAY, RESCUE]
 
   def __init__(self, game_map, latent_collection: bool = True) -> None:
-    super().__init__(True, True, True, EDomainType.Rescue)
+    super().__init__(True, True, True, EDomainType.Blackout)
     self._LATENT_COLLECTION = latent_collection
 
     self._GAME_MAP = game_map
@@ -181,8 +181,7 @@ class RescueV2GamePageBase(ExperimentPageBase):
     for obj in overlay_objs:
       dict_objs[obj.name] = obj
 
-    disable_status = self._get_action_btn_disable_state(user_game_data,
-                                                        dict_game)
+    disable_status = self._get_action_btn_disabled(user_game_data)
     objs = self._get_btn_actions(dict_game, *disable_status)
     for obj in objs:
       dict_objs[obj.name] = obj
@@ -193,8 +192,9 @@ class RescueV2GamePageBase(ExperimentPageBase):
 
     return dict_objs
 
-  def _get_action_btn_disable_state(self, user_data: Exp1UserData,
-                                    game_env: Mapping[Any, Any]):
+  def _get_action_btn_disabled(self, user_data: Exp1UserData):
+    game_env = user_data.get_game_ref().get_env_info()
+
     selecting = user_data.data[Exp1UserData.SELECT]
     game_done = user_data.data[Exp1UserData.GAME_DONE]
 
@@ -407,7 +407,7 @@ class RescueV2GamePageBase(ExperimentPageBase):
     obj = self._get_instruction_objs(user_data)
     dict_objs[obj.name] = obj
 
-    disable_status = self._get_action_btn_disable_state(user_data, dict_game)
+    disable_status = self._get_action_btn_disabled(user_data)
     objs = self._get_btn_actions(dict_game, *disable_status)
     for obj in objs:
       dict_objs[obj.name] = obj

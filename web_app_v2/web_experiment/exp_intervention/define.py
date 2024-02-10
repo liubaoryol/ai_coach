@@ -3,7 +3,7 @@ from typing import Mapping, Any, Sequence
 from web_experiment.exp_common.page_base import CanvasPageBase
 import web_experiment.exp_common.page_exp1_common as pgc
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
-from web_experiment.exp_intervention.page_intervention import (
+from web_experiment.exp_intervention.page_intervention_movers import (
     BoxPushV2Intervention)
 from web_experiment.exp_intervention.page_intervention_rescue import (
     RescueV2Intervention)
@@ -109,9 +109,9 @@ PAGE_LIST_CLEANUP_INTERV = [
 ]
 
 PAGELIST_MOVERS_TUTORIAL = [
-    pgt.CanvasPageTutorialStart(EDomainType.Movers),
-    pgt.CanvasPageInstruction(EDomainType.Movers),
-    pgt.CanvasPageTutorialGameStart(EDomainType.Movers),
+    pgc.CanvasPageTutorialStart(EDomainType.Movers),
+    pgc.CanvasPageInstruction(EDomainType.Movers),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Movers),
     pgt.CanvasPageJoystick(EDomainType.Movers, False),
     pgt.CanvsPageWaitBtn(EDomainType.Movers, False),
     pgt.CanvasPageInvalidAction(EDomainType.Movers, False),
@@ -128,9 +128,9 @@ PAGELIST_MOVERS_TUTORIAL = [
 ]
 
 PAGELIST_CLEANUP_TUTORIAL = [
-    pgt.CanvasPageTutorialStart(EDomainType.Cleanup),
-    pgt.CanvasPageInstruction(EDomainType.Cleanup),
-    pgt.CanvasPageTutorialGameStart(EDomainType.Cleanup),
+    pgc.CanvasPageTutorialStart(EDomainType.Cleanup),
+    pgc.CanvasPageInstruction(EDomainType.Cleanup),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Cleanup),
     pgt.CanvasPageJoystickShort(EDomainType.Cleanup, False),
     pgt.CanvasPageOnlyHuman(EDomainType.Cleanup, False),
     pgt.CanvasPageGoToTarget(EDomainType.Cleanup, False),
@@ -162,9 +162,9 @@ PAGE_LIST_RESCUE_INTERV = [
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 PAGE_LIST_RESCUE_TUTORIAL = [
-    pgt.CanvasPageTutorialStart(EDomainType.Rescue),
-    pgt.CanvasPageInstruction(EDomainType.Rescue),
-    pgt.CanvasPageTutorialGameStart(EDomainType.Rescue),
+    pgc.CanvasPageTutorialStart(EDomainType.Rescue),
+    pgc.CanvasPageInstruction(EDomainType.Rescue),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Rescue),
     pgr.RescueTutorialActions(False),
     pgr.RescueTutorialOverallGoal(False),
     pgr.RescueTutorialOnlyHuman(False),

@@ -145,8 +145,7 @@ class Exp1UserData(UserData):
   USER_LABELS = "user_labels"
   USER_LABEL_PATH = "user_label_path"
   PREV_INFERENCE = "prev_inference"
-  CUR_INFERENCE = "cur_inference"
-  DURING_INTERVENTION = "during_intervention"
+  INTERVENTION = "intervention"
 
   def __init__(self, user) -> None:
     super().__init__(user)
@@ -160,8 +159,7 @@ class Exp1UserData(UserData):
     self.data[Exp1UserData.USER_LABELS] = []
     self.data[Exp1UserData.USER_LABEL_PATH] = ""
     self.data[Exp1UserData.PREV_INFERENCE] = None
-    self.data[Exp1UserData.CUR_INFERENCE] = None
-    self.data[Exp1UserData.DURING_INTERVENTION] = False
+    self.data[Exp1UserData.INTERVENTION] = None  # either None or latent index
 
   def get_game_ref(self) -> Simulator:
     return self.data[Exp1UserData.GAME]

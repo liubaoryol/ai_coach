@@ -2,8 +2,6 @@ from typing import Mapping
 from web_experiment.define import ExpType, EDomainType
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.exp_common.page_base import ExperimentPageBase, Exp1UserData
-from web_experiment.exp_common.helper import (get_btn_boxpush_actions,
-                                              get_select_btn)
 from web_experiment.models import db, ExpIntervention, ExpDataCollection
 
 
@@ -151,3 +149,101 @@ class CanvasPageEnd(ExperimentPageBase):
     dict_objs[obj.name] = obj
 
     return dict_objs
+
+
+class CanvasPageTutorialStart(ExperimentPageBase):
+  BTN_TUTORIAL_START = "btn_tutorial_start"
+
+  def __init__(self, domain_type) -> None:
+    super().__init__(False, False, False, domain_type)
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    return super().init_user_data(user_game_data)
+
+  def _get_init_drawing_objects(
+      self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
+    dict_objs = super()._get_init_drawing_objects(user_data)
+
+    pos = (int(co.CANVAS_WIDTH / 2), int(co.CANVAS_HEIGHT / 2))
+    size = (int(self.GAME_WIDTH / 2), int(self.GAME_HEIGHT / 5))
+    obj = co.ButtonRect(self.BTN_TUTORIAL_START, pos, size, 30,
+                        "Interactive Tutorial\n(Click to Start)")
+    dict_objs[obj.name] = obj
+
+    return dict_objs
+
+  def _get_drawing_order(self, user_game_data: Exp1UserData = None):
+    drawing_order = super()._get_drawing_order(user_game_data)
+    drawing_order.append(self.BTN_TUTORIAL_START)
+    return drawing_order
+
+  def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
+    if clicked_btn == self.BTN_TUTORIAL_START:
+      user_game_data.go_to_next_page()
+      return
+
+    return super().button_clicked(user_game_data, clicked_btn)
+
+
+class CanvasPageInstruction(CanvasPageStart):
+  def _get_init_drawing_objects(
+      self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
+    dict_objs = super()._get_init_drawing_objects(user_data)
+
+    obj = dict_objs[co.BTN_START]  # type: co.ButtonRect
+    obj.disable = True  # disable start btn
+
+    obj_inst = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
+    x_cen = int(obj_inst.pos[0] + obj_inst.width * 0.5)
+    y_cen = int(self.GAME_HEIGHT / 5)
+    radius = y_cen * 0.1
+
+    obj = self._get_spotlight(x_cen, y_cen, radius)
+    dict_objs[obj.name] = obj
+
+    objs = self._get_btn_prev_next(False, False)
+    for obj in objs:
+      dict_objs[obj.name] = obj
+
+    return dict_objs
+
+  def _get_drawing_order(self, user_game_data: Exp1UserData = None):
+    drawing_order = super()._get_drawing_order(user_game_data)
+
+    drawing_order.append(self.SPOTLIGHT)
+    drawing_order.append(co.BTN_PREV)
+    drawing_order.append(co.BTN_NEXT)
+
+    return drawing_order
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return ("Prompts will be shown here. Please read each prompt carefully. " +
+            "Click the “Next” button to proceed and “Back” button to " +
+            "go to the previous prompt.")
+
+
+class CanvasPageTutorialGameStart(CanvasPageStart):
+  def _get_init_drawing_objects(
+      self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
+    dict_objs = super()._get_init_drawing_objects(user_data)
+    obj = dict_objs[co.BTN_START]  # type: co.ButtonRect
+    obj.disable = False  # enable start btn
+
+    objs = self._get_btn_prev_next(False, True)
+    for obj in objs:
+      dict_objs[obj.name] = obj
+
+    return dict_objs
+
+  def _get_drawing_order(self, user_game_data: Exp1UserData = None):
+    drawing_order = super()._get_drawing_order(user_game_data)
+
+    drawing_order.append(co.BTN_PREV)
+    drawing_order.append(co.BTN_NEXT)
+
+    return drawing_order
+
+  def _get_instruction(self, user_game_data: Exp1UserData):
+    return ("At the start of each task, " +
+            "you will see the screen shown on the left. " +
+            "Click the “Start” button to begin the task.")
