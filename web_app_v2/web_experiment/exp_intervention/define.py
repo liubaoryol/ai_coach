@@ -2,15 +2,16 @@ from enum import Enum
 from typing import Mapping, Any, Sequence
 from web_experiment.exp_common.page_base import CanvasPageBase
 import web_experiment.exp_common.page_exp1_common as pgc
-from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
+from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2GamePage
 from web_experiment.exp_intervention.page_intervention_movers import (
-    BoxPushV2Intervention)
+    BoxPushV2InterventionPage)
 from web_experiment.exp_intervention.page_intervention_rescue import (
-    RescueV2Intervention)
+    RescueV2InterventionPage)
 import web_experiment.exp_common.page_tutorial as pgt
 import web_experiment.exp_common.page_tutorial_rescue as pgr
-from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
+from web_experiment.exp_common.page_rescue_game import RescueGamePage
 from web_experiment.define import GroupName, PageKey, EDomainType
+import web_experiment.exp_intervention.page_tutorial_intervention as pgi
 
 SESSION_TITLE = {
     PageKey.Interv_A0: 'A0',
@@ -46,6 +47,8 @@ class SocketType(Enum):
   Interv_rescue_normal = 9
   Interv_rescue_tutorial = 10
   Interv_rescue_intervention = 11
+  Interv_movers_tutorial_groub_b = 12
+  Interv_rescue_tutorial_groub_b = 13
 
 
 def get_socket_name(page_key, group_id):
@@ -64,9 +67,15 @@ def get_socket_name(page_key, group_id):
       socket_type = SocketType.Interv_rescue_normal
 
   elif page_key == PageKey.Interv_T1:
-    socket_type = SocketType.Interv_movers_tutorial
+    if group_id == GroupName.Group_B:
+      socket_type = SocketType.Interv_movers_tutorial_groub_b
+    else:
+      socket_type = SocketType.Interv_movers_tutorial
   elif page_key == PageKey.Interv_T3:
-    socket_type = SocketType.Interv_rescue_tutorial
+    if group_id == GroupName.Group_B:
+      socket_type = SocketType.Interv_rescue_tutorial_groub_b
+    else:
+      socket_type = SocketType.Interv_rescue_tutorial
 
   return socket_type.name if socket_type is not None else None
 
@@ -74,37 +83,37 @@ def get_socket_name(page_key, group_id):
 PAGE_LIST_MOVERS_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Movers),
     pgc.CanvasPageWarning(EDomainType.Movers),
-    BoxPushV2UserRandom(EDomainType.Movers, False, False),
+    BoxPushV2GamePage(EDomainType.Movers, False, False),
     pgc.CanvasPageEnd(EDomainType.Movers)
 ]
 PAGE_LIST_MOVERS = [
     pgc.CanvasPageStart(EDomainType.Movers),
     pgc.CanvasPageWarning(EDomainType.Movers),
-    BoxPushV2UserRandom(EDomainType.Movers, True, False),
+    BoxPushV2GamePage(EDomainType.Movers, True, False),
     pgc.CanvasPageEnd(EDomainType.Movers)
 ]
 PAGE_LIST_MOVERS_INTERV = [
     pgc.CanvasPageStart(EDomainType.Movers),
     pgc.CanvasPageWarning(EDomainType.Movers),
-    BoxPushV2Intervention(EDomainType.Movers, True),
+    BoxPushV2InterventionPage(EDomainType.Movers),
     pgc.CanvasPageEnd(EDomainType.Movers)
 ]
 PAGE_LIST_CLEANUP_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
     pgc.CanvasPageWarning(EDomainType.Cleanup),
-    BoxPushV2UserRandom(EDomainType.Cleanup, False, False),
+    BoxPushV2GamePage(EDomainType.Cleanup, False, False),
     pgc.CanvasPageEnd(EDomainType.Cleanup)
 ]
 PAGE_LIST_CLEANUP = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
     pgc.CanvasPageWarning(EDomainType.Cleanup),
-    BoxPushV2UserRandom(EDomainType.Cleanup, True, False),
+    BoxPushV2GamePage(EDomainType.Cleanup, True, False),
     pgc.CanvasPageEnd(EDomainType.Cleanup)
 ]
 PAGE_LIST_CLEANUP_INTERV = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
     pgc.CanvasPageWarning(EDomainType.Cleanup),
-    BoxPushV2Intervention(EDomainType.Cleanup, True),
+    BoxPushV2InterventionPage(EDomainType.Cleanup),
     pgc.CanvasPageEnd(EDomainType.Cleanup)
 ]
 
@@ -145,20 +154,20 @@ PAGELIST_CLEANUP_TUTORIAL = [
 PAGE_LIST_RESCUE_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Rescue),
     pgc.CanvasPageWarning(EDomainType.Rescue),
-    RescueGameUserRandom(False, False),
+    RescueGamePage(False, False),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 
 PAGE_LIST_RESCUE = [
     pgc.CanvasPageStart(EDomainType.Rescue),
     pgc.CanvasPageWarning(EDomainType.Rescue),
-    RescueGameUserRandom(True, False),
+    RescueGamePage(True, False),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 PAGE_LIST_RESCUE_INTERV = [
     pgc.CanvasPageStart(EDomainType.Rescue),
     pgc.CanvasPageWarning(EDomainType.Rescue),
-    RescueV2Intervention(True),
+    RescueV2InterventionPage(),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 PAGE_LIST_RESCUE_TUTORIAL = [
@@ -178,6 +187,45 @@ PAGE_LIST_RESCUE_TUTORIAL = [
     pgr.RescueTutorialMiniGame(False)
 ]
 
+PAGELIST_MOVERS_INTERV_TUTORIAL = [
+    pgc.CanvasPageTutorialStart(EDomainType.Movers),
+    pgc.CanvasPageInstruction(EDomainType.Movers),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Movers),
+    pgt.CanvasPageJoystick(EDomainType.Movers, False),
+    pgt.CanvsPageWaitBtn(EDomainType.Movers, False),
+    pgt.CanvasPageInvalidAction(EDomainType.Movers, False),
+    pgt.CanvasPageOnlyHuman(EDomainType.Movers, False),
+    pgt.CanvasPageGoToTarget(EDomainType.Movers, False),
+    pgt.CanvasPagePickUpTargetAttempt(EDomainType.Movers, False),
+    pgt.CanvasPagePickUpTarget(EDomainType.Movers, False),
+    pgt.CanvasPageGoToGoal(EDomainType.Movers, False),
+    pgt.CanvasPageRespawn(EDomainType.Movers, False),
+    pgt.CanvasPageScore(EDomainType.Movers, False),
+    pgt.CanvasPagePartialObs(EDomainType.Movers, False),
+    pgt.CanvasPageExpGoal(EDomainType.Movers, False),
+    pgi.BoxPushTutorialInterventionIntro(EDomainType.Movers, False),
+    pgi.BoxPushTutorialInterventionUI(EDomainType.Movers),
+    pgt.CanvasPageMiniGame(EDomainType.Movers, False)
+]
+
+PAGELIST_RESCUE_INTERV_TUTORIAL = [
+    pgc.CanvasPageTutorialStart(EDomainType.Rescue),
+    pgc.CanvasPageInstruction(EDomainType.Rescue),
+    pgc.CanvasPageTutorialGameStart(EDomainType.Rescue),
+    pgr.RescueTutorialActions(False),
+    pgr.RescueTutorialOverallGoal(False),
+    pgr.RescueTutorialOnlyHuman(False),
+    pgr.RescueTutorialSimpleTarget(False),
+    pgr.RescueTutorialResolvedAlone(False),
+    pgr.RescueTutorialScore(False),
+    pgr.RescueTutorialComplexTarget(False),
+    pgr.RescueTutorialComplexTargetTogether(False),
+    pgr.RescueTutorialResolvedTogether(False),
+    pgr.RescueTutorialPartialObs(False),
+    pgi.RescueTutorialInterventionIntro(False),
+    pgr.RescueTutorialMiniGame(False)
+]
+
 GAMEPAGES = {
     SocketType.Interv_movers_practice: PAGE_LIST_MOVERS,
     SocketType.Interv_movers_normal: PAGE_LIST_MOVERS,
@@ -191,4 +239,6 @@ GAMEPAGES = {
     SocketType.Interv_rescue_normal: PAGE_LIST_RESCUE,
     SocketType.Interv_rescue_tutorial: PAGE_LIST_RESCUE_TUTORIAL,
     SocketType.Interv_rescue_intervention: PAGE_LIST_RESCUE_INTERV,
+    SocketType.Interv_movers_tutorial_groub_b: PAGELIST_MOVERS_INTERV_TUTORIAL,
+    SocketType.Interv_rescue_tutorial_groub_b: PAGELIST_RESCUE_INTERV_TUTORIAL
 }  # type: Mapping[Any, Sequence[CanvasPageBase]]

@@ -14,7 +14,7 @@ MAX_STEP = str(30)
 
 class RescueTutorialActions(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
+    super().__init__(False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -86,7 +86,7 @@ class RescueTutorialActions(MixinTutorialBase, RescueGamePage):
 
 class RescueTutorialPlain(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
+    super().__init__(False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -125,7 +125,7 @@ class RescueTutorialOnlyHuman(RescueTutorialPlain):
 
 class RescueTutorialSimpleTarget(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
+    super().__init__(False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def _get_instruction(self, user_game_data: Exp1UserData):
@@ -181,7 +181,7 @@ class RescueTutorialResolvedAlone(RescueTutorialPlain):
 
 class RescueTutorialComplexTarget(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
+    super().__init__(False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -244,7 +244,7 @@ class RescueTutorialComplexTarget(MixinTutorialBase, RescueGamePage):
 
 class RescueTutorialComplexTargetTogether(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
+    super().__init__(False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -331,7 +331,7 @@ class RescueTutorialScore(RescueTutorialPlain):
 
 class RescueTutorialPartialObs(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
+    super().__init__(True, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -357,7 +357,7 @@ class RescueTutorialPartialObs(MixinTutorialBase, RescueGamePage):
 
 class RescueTutorialDestination(MixinTutorialBase, RescueGamePage):
   def __init__(self) -> None:
-    super().__init__(True)
+    super().__init__(True, True)
     self._MANUAL_SELECTION = False
     self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = True
 
@@ -393,7 +393,7 @@ class RescueTutorialDestination(MixinTutorialBase, RescueGamePage):
 
 class RescueTutorialLatent(MixinTutorialBase, RescueGamePage):
   def __init__(self) -> None:
-    super().__init__(True)
+    super().__init__(True, True)
     self._MANUAL_SELECTION = self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = True
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -469,7 +469,7 @@ class RescueTutorialSelResult(RescueTutorialPlain):
 
 class RescueTutorialMiniGame(MixinTutorialBase, RescueGamePage):
   def __init__(self, latent_collection: bool = True) -> None:
-    super().__init__(latent_collection)
+    super().__init__(True, latent_collection)
     self._MANUAL_SELECTION = latent_collection
     self._AUTO_PROMPT = latent_collection
     self._PROMPT_ON_CHANGE = latent_collection

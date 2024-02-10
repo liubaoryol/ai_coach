@@ -83,7 +83,7 @@ class MixinInterventionBase:
                               linewidth=3)
 
     x_ctrl_cen = int(self.GAME_RIGHT + (co.CANVAS_WIDTH - self.GAME_RIGHT) / 2)
-    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.4)
+    y_ctrl_cen = int(co.CANVAS_HEIGHT * 0.35)
     buttonsize = (int(self.GAME_WIDTH / 4), int(self.GAME_WIDTH / 15))
     font_size = 20
 
@@ -92,7 +92,8 @@ class MixinInterventionBase:
                                buttonsize,
                                font_size,
                                "Confirm",
-                               disable=False)
+                               disable=False,
+                               linewidth=3)
 
     return [obj_mark, obj_button]
 
@@ -147,7 +148,15 @@ class MixinInterventionBase:
 
     objs = {}
 
-    objs["advice"] = self._conv_latent_to_advice(intervention_latent)
+    text_latent = self._conv_latent_to_advice(intervention_latent)
+    if text_latent is None:
+      txt_advice = "Beep- . Keep up the good work. "
+    else:
+      txt_advice = (
+          "Beep beep -! A potential improvement in teamwork is identified: " +
+          text_latent)
+
+    objs["advice"] = txt_advice
     objs_json = json.dumps(objs)
     emit("intervention", objs_json)
 

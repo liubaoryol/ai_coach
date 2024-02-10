@@ -15,7 +15,7 @@ from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
 
 class CanvasPageJoystick(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -120,7 +120,7 @@ class CanvsPageWaitBtn(CanvasPageJoystick):
 
 class CanvasPageInvalidAction(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -138,7 +138,7 @@ class CanvasPageInvalidAction(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageJoystickShort(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -156,7 +156,7 @@ class CanvasPageJoystickShort(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageOnlyHuman(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -176,7 +176,7 @@ class CanvasPageOnlyHuman(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageGoToTarget(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def _get_instruction(self, user_game_data: Exp1UserData):
@@ -230,7 +230,7 @@ class CanvasPageGoToTarget(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPagePickUpTargetAttempt(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -335,7 +335,7 @@ class CanvasPagePickUpTargetAttempt(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPagePickUpTarget(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -400,7 +400,7 @@ class CanvasPagePickUpTarget(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageGoToGoal(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -477,7 +477,7 @@ class CanvasPageGoToGoal(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageRespawn(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -500,7 +500,7 @@ class CanvasPageRespawn(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageScore(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, False, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -541,7 +541,7 @@ class CanvasPageScore(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPagePartialObs(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, True, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -560,7 +560,7 @@ class CanvasPagePartialObs(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPagePORobot(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, True, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -592,7 +592,7 @@ class CanvasPagePORobot(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageTarget(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, True)
+    super().__init__(domain_type, True, True)
     self._MANUAL_SELECTION = False
     self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = True
 
@@ -632,7 +632,7 @@ class CanvasPageTarget(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageLatent(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, True)
+    super().__init__(domain_type, True, True)
     self._MANUAL_SELECTION = self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = True
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -683,7 +683,7 @@ class CanvasPageLatent(MixinTutorialBase, BoxPushV2GamePage):
 
 class CanvasPageTutorialPlain(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection: bool = True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, True, latent_collection)
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -745,7 +745,7 @@ class CanvasPageImportance(CanvasPageTutorialPlain):
 
 class CanvasPageSelPrompt(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, True)
+    super().__init__(domain_type, True, True)
     self._MANUAL_SELECTION = False
     self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = True
     self._PROMPT_FREQ = 3
@@ -793,7 +793,7 @@ class CanvasPageExpGoal(CanvasPageTutorialPlain):
 
 class CanvasPageMiniGame(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type, latent_collection=True) -> None:
-    super().__init__(domain_type, latent_collection)
+    super().__init__(domain_type, True, latent_collection)
     self._MANUAL_SELECTION = latent_collection
     self._AUTO_PROMPT = latent_collection
     self._PROMPT_ON_CHANGE = latent_collection

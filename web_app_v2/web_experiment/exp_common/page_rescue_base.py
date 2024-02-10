@@ -12,8 +12,6 @@ from web_experiment.exp_common.helper import (location_2_coord,
                                               rescue_game_scene_names,
                                               RESCUE_PLACE_DRAW_INFO)
 
-RESCUE_MAX_STEP = 30
-
 
 def human_clear_problem(
     dict_prev_game: Mapping[str, Any],
@@ -62,19 +60,6 @@ class RescueGamePageBase(ExperimentPageBase):
   def init_user_data(self, user_game_data: Exp1UserData):
     user_game_data.data[Exp1UserData.GAME_DONE] = False
     user_game_data.data[Exp1UserData.SELECT] = False
-
-    game = user_game_data.get_game_ref()
-    if game is None:
-      game = RescueSimulator()
-      game.max_steps = RESCUE_MAX_STEP
-
-      user_game_data.set_game(game)
-
-    game.init_game(**self._GAME_MAP)
-    game.set_autonomous_agent()
-
-    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
-    user_game_data.data[Exp1UserData.USER_LABELS] = []
 
   def get_updated_drawing_info(self,
                                user_data: Exp1UserData,

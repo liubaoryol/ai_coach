@@ -3,10 +3,10 @@ from typing import Mapping, Any, Sequence
 from web_experiment.define import PageKey, EDomainType
 from web_experiment.exp_common.page_base import CanvasPageBase
 import web_experiment.exp_common.page_exp1_common as pgc
-from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
+from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2GamePage
 import web_experiment.exp_common.page_tutorial as pgt
 import web_experiment.exp_common.page_tutorial_rescue as pgr
-from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
+from web_experiment.exp_common.page_rescue_game import RescueGamePage
 import web_experiment.exp_common.page_tutorial_rescue_v2 as pgrv2
 
 SESSION_TITLE = {
@@ -65,25 +65,25 @@ def get_socket_name(page_key):
 PAGE_LIST_MOVERS_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Movers),
     pgc.CanvasPageWarning(EDomainType.Movers),
-    BoxPushV2UserRandom(EDomainType.Movers, False),
+    BoxPushV2GamePage(EDomainType.Movers, False),
     pgc.CanvasPageEnd(EDomainType.Movers)
 ]
 PAGE_LIST_MOVERS = [
     pgc.CanvasPageStart(EDomainType.Movers),
     pgc.CanvasPageWarning(EDomainType.Movers),
-    BoxPushV2UserRandom(EDomainType.Movers, True),
+    BoxPushV2GamePage(EDomainType.Movers, True),
     pgc.CanvasPageEnd(EDomainType.Movers)
 ]
 PAGE_LIST_CLEANUP_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
     pgc.CanvasPageWarning(EDomainType.Cleanup),
-    BoxPushV2UserRandom(EDomainType.Cleanup, False),
+    BoxPushV2GamePage(EDomainType.Cleanup, False),
     pgc.CanvasPageEnd(EDomainType.Cleanup)
 ]
 PAGE_LIST_CLEANUP = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
     pgc.CanvasPageWarning(EDomainType.Cleanup),
-    BoxPushV2UserRandom(EDomainType.Cleanup, True),
+    BoxPushV2GamePage(EDomainType.Cleanup, True),
     pgc.CanvasPageEnd(EDomainType.Cleanup)
 ]
 
@@ -135,14 +135,14 @@ PAGE_LIST_CLEANUP_TUTORIAL = [
 PAGE_LIST_RESCUE_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Rescue),
     pgc.CanvasPageWarning(EDomainType.Rescue),
-    RescueGameUserRandom(False),
+    RescueGamePage(False),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 
 PAGE_LIST_RESCUE = [
     pgc.CanvasPageStart(EDomainType.Rescue),
     pgc.CanvasPageWarning(EDomainType.Rescue),
-    RescueGameUserRandom(True),
+    RescueGamePage(True),
     pgc.CanvasPageEnd(EDomainType.Rescue)
 ]
 

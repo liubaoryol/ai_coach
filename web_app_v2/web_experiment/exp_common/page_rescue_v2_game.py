@@ -10,6 +10,7 @@ from web_experiment.exp_common.helper import get_file_name
 from web_experiment.exp_common.page_rescue_v2_base import RescueV2GamePageBase
 
 TEMPERATURE = 0.3
+RESCUE_MAX_STEP = 15
 
 
 class RescueV2GamePage(RescueV2GamePageBase):
@@ -25,6 +26,21 @@ class RescueV2GamePage(RescueV2GamePageBase):
 
     self._TEAMMATE_POLICY_1 = RescueV2GamePage.RESCUE_TEAMMATE1_POLICY
     self._TEAMMATE_POLICY_2 = RescueV2GamePage.RESCUE_TEAMMATE2_POLICY
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+
+    game = user_game_data.get_game_ref()
+    if game is None:
+      game = RescueSimulatorV2()
+      game.max_steps = RESCUE_MAX_STEP
+
+      user_game_data.set_game(game)
+
+    game.init_game(**self._GAME_MAP)
+    game.set_autonomous_agent()
+
+    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
 
   def _on_game_finished(self, user_game_data: Exp1UserData):
     '''

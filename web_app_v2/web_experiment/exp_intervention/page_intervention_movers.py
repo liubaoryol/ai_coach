@@ -1,4 +1,4 @@
-from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2UserRandom
+from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2GamePage
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
 from aic_core.intervention.feedback_strategy import (InterventionValueBased,
                                                      E_CertaintyHandling)
@@ -6,9 +6,9 @@ from web_experiment.exp_intervention.page_intervention_base import (
     MixinInterventionBase)
 
 
-class BoxPushV2Intervention(MixinInterventionBase, BoxPushV2UserRandom):
-  def __init__(self, domain_type, partial_obs) -> None:
-    super().__init__(domain_type, partial_obs, latent_collection=False)
+class BoxPushV2InterventionPage(MixinInterventionBase, BoxPushV2GamePage):
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, True, latent_collection=False)
     self._V_VALUES = MixinInterventionBase.MOVERS_V_VALUES
     self._LIST_POLICIES = MixinInterventionBase.MOVERS_LIST_PI
     self._LIST_TXS = MixinInterventionBase.MOVERS_LIST_TX

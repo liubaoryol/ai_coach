@@ -15,6 +15,7 @@ class MixinTutorialBase:
   def _base_init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
 
+    # override the actual task settings with the tutorial settings
     game = user_game_data.get_game_ref()
     agent1 = InteractiveAgent()
     agent2 = InteractiveAgent()

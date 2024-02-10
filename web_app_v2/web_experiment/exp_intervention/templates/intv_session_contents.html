@@ -34,15 +34,15 @@
   // intervention
   socket.on("intervention", function (json_msg) {
     const env = JSON.parse(json_msg);
-    let msg = "Beep- . Keep up the good work. ";
+    // let msg = "Beep- . Keep up the good work. ";
     if (env.hasOwnProperty("advice") && env.advice != null) {
-      msg =
-        "Beep beep -! A potential improvement in teamwork has been identified: ";
-      msg += env.advice;
-    }
-    var text_box = document.getElementById("intervention_text");
-    if (text_box != null) {
-      text_box.innerText = msg;
+      let text_box = document.getElementById("intervention_text");
+      if (text_box != null) {
+        text_box.innerText = env.advice;
+      }
+      // msg =
+      //   "Beep beep -! A potential improvement in teamwork has been identified: ";
+      // msg += env.advice;
     }
     // alert(msg);
   });

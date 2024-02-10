@@ -1,4 +1,4 @@
-from web_experiment.exp_common.page_rescue_game import RescueGameUserRandom
+from web_experiment.exp_common.page_rescue_game import RescueGamePage
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
 from web_experiment.exp_intervention.helper import task_intervention
 from aic_core.intervention.feedback_strategy import (InterventionValueBased,
@@ -8,9 +8,9 @@ from web_experiment.exp_intervention.page_intervention_base import (
 from aic_domain.rescue import PlaceName
 
 
-class RescueV2Intervention(MixinInterventionBase, RescueGameUserRandom):
-  def __init__(self, partial_obs) -> None:
-    super().__init__(partial_obs, latent_collection=False)
+class RescueV2InterventionPage(MixinInterventionBase, RescueGamePage):
+  def __init__(self) -> None:
+    super().__init__(True, latent_collection=False)
     self._V_VALUES = MixinInterventionBase.RESCUE_V_VALUES
     self._LIST_POLICIES = MixinInterventionBase.RESCUE_LIST_PI
     self._LIST_TXS = MixinInterventionBase.RESCUE_LIST_TX
