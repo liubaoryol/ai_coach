@@ -8,8 +8,7 @@ from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
 from aic_domain.rescue_v2.policy import Policy_Rescue
 from aic_domain.rescue_v2.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 import pickle
-from aic_core.intervention.feedback_strategy import (
-    get_combos_sorted_by_simulated_values)
+from aic_core.intervention.feedback_strategy import (get_sorted_x_combos)
 
 GAME_MAP = MAP_RESCUE
 
@@ -19,7 +18,6 @@ V_VAL_FILE_NAME = "rescue_3_500_0,30_15_merged_v_values_learned.pickle"
 
 
 class RescueApp(AppInterface):
-
   def __init__(self) -> None:
     super().__init__()
 
@@ -233,8 +231,7 @@ class RescueApp(AppInterface):
       game = self.game
       tup_state = tuple(game.get_state_for_each_agent(0))
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
-      list_combos = get_combos_sorted_by_simulated_values(
-          self.np_v_values, oidx)
+      list_combos = get_sorted_x_combos(self.np_v_values, oidx)
       print("===========================================")
       print(list_combos)
 

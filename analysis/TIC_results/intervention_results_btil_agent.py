@@ -2,11 +2,17 @@ import os
 import numpy as np
 import pickle
 from tqdm import tqdm
-from aic_core.intervention.feedback_strategy import (InterventionValueBased,
-                                                     InterventionRuleBased,
-                                                     E_CertaintyHandling)
+from aic_core.intervention.feedback_strategy import (
+    InterventionValueBased, InterventionRuleBased,
+    PartialInterventionValueBased, E_CertaintyHandling)
 import aic_domain.intervention_simulator as intervention_simulator
 import pandas as pd
+
+VALUE = "Value"
+VALUE_FIXROBOT = "ValueFixedRobot"
+RULE = "Rule"
+AVERAGE = "Average"  # Average | Threshold
+THRESHOLD = "Threshold"
 
 
 def intervention_result(domain_name,
@@ -101,10 +107,6 @@ def intervention_result(domain_name,
       step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
       return (bstt, a1pos, a2pos), (a1act, a2act)
 
-    def valid_latent1(obs_idx):
-      num_latents = agent1.agent_model.policy_model.get_num_latent_states()
-      return list(range(num_latents))
-
     def valid_latent2(obs_idx):
       box_states, _, _ = MDP_Task.conv_mdp_sidx_to_sim_states(obs_idx)
       num_drops = len(MDP_Task.drops)
@@ -120,7 +122,12 @@ def intervention_result(domain_name,
           lat = agent1.agent_model.policy_model.conv_latent_to_idx(
               ("pickup", idx))
           list_valid_lat.append(lat)
-      return list_valid_lat
+
+      list_valid_combo_pairs = []
+      for lat in list_valid_lat:
+        list_valid_combo_pairs.append(tuple([lat] * 2))
+
+      return list_valid_combo_pairs
 
     fn_valid_latent = valid_latent2
   elif domain_name == "rescue_2":
@@ -170,14 +177,14 @@ def intervention_result(domain_name,
   if no_intervention:
     intervention_strategy = None
   else:
-    if selection_type == "Value":
+    if selection_type == VALUE:
       intervention_strategy = InterventionValueBased(
           np_v_values,
           e_certainty,
           inference_threshold=theta,
           intervention_threshold=delta,
           intervention_cost=cost)
-    elif selection_type == "Rule":
+    elif selection_type == RULE:
       intervention_strategy = InterventionRuleBased(
           fn_valid_latent,
           len(agents),
@@ -185,6 +192,13 @@ def intervention_result(domain_name,
           inference_threshold=theta,
           intervention_threshold=delta,
           intervention_cost=cost)
+    elif selection_type == VALUE_FIXROBOT:
+      intervention_strategy = PartialInterventionValueBased(
+          np_v_values,
+          inference_threshold=theta,
+          intervention_threshold=delta,
+          intervention_cost=cost,
+          fixed_agents=[game.AGENT2])
     else:
       raise NotImplementedError
 
@@ -207,10 +221,6 @@ if __name__ == "__main__":
 
   num_runs = 100
 
-  VALUE = "Value"
-  RULE = "Rule"
-  AVERAGE = "Average"  # Average | Threshold
-  THRESHOLD = "Threshold"
   NO_INTERVENTION = True
   INTERVENTION = False
 
@@ -224,9 +234,7 @@ if __name__ == "__main__":
 
     raise RuntimeError
 
-  rows = []
-
-  list_cost = [0, 1]
+  list_cost = [1]
   # cost = list_cost[0]
   domains = ["movers", "rescue_2"]
   LIST_INFER_THRES = [0, 0.2, 0.3, 0.5, 0.7, 0.9]
@@ -237,126 +245,68 @@ if __name__ == "__main__":
       "rescue_3": [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
   }
 
+  INTERV_THRES_INDICES_FOR_CONFIDENCE_METHOD = [0, 1, 2, 3]
+
+  list_config = []
   for cost in list_cost:
-    for domain_name in domains:
-      if cost == 1:
-        list_increase_step = [False]
-      else:
-        list_increase_step = [False]
-      for increase_step in list_increase_step:
-        prefix = ""
-        if increase_step:
-          prefix = "_budget"
+    for dname in domains:
+      if dname == "movers":
+        # Expectation-Rule
+        config = (dname, INTERVENTION, RULE, AVERAGE, 0, 0, cost, "Rule_avg")
+        list_config.append(config)
 
-        print(domain_name)
-        list_interv_thres = DICT_INTERV_THRES[domain_name]
-        # ====== rule-based intervention
-        if domain_name == "movers":
-          num_total_setup = 2 + 2 * len(list_interv_thres) + 2 * len(
-              LIST_INFER_THRES)
-          progress_bar = tqdm(total=num_total_setup)
-          for theta in LIST_INFER_THRES:
-            list_res = intervention_result(domain_name,
-                                           num_runs,
-                                           INTERVENTION,
-                                           RULE,
-                                           THRESHOLD,
-                                           theta,
-                                           None,
-                                           cost,
-                                           increase_step=increase_step)
+      # No intervention
+      config = (dname, NO_INTERVENTION, None, None, 0, 0, cost,
+                "No_intervention")
+      list_config.append(config)
 
-            rows = rows + [
-                (domain_name, "Rule_thres" + prefix, cost, 0, theta, *item)
-                for item in list_res
-            ]
-            progress_bar.update()
+      for theta in LIST_INFER_THRES:
+        if dname == "movers":
+          # Confidence-Rule
+          config = (dname, INTERVENTION, RULE, THRESHOLD, theta, 0, cost,
+                    "Rule_thres")
+          list_config.append(config)
 
-          list_res = intervention_result(domain_name,
-                                         num_runs,
-                                         INTERVENTION,
-                                         RULE,
-                                         AVERAGE,
-                                         None,
-                                         None,
-                                         cost,
-                                         increase_step=increase_step)
-          progress_bar.update()
+        for idx in INTERV_THRES_INDICES_FOR_CONFIDENCE_METHOD:
+          delta = DICT_INTERV_THRES[dname][idx]
+          # Confidence-Value
+          config = (dname, INTERVENTION, VALUE, THRESHOLD, theta, delta, cost,
+                    "Argmax_thres")
+          list_config.append(config)
 
-          rows = rows + [(domain_name, "Rule_avg" + prefix, cost, 0, 0, *item)
-                         for item in list_res]
-        else:
-          num_total_setup = 1 + 2 * len(list_interv_thres) + len(
-              LIST_INFER_THRES)
-          progress_bar = tqdm(total=num_total_setup)
-        # ===== Baseline: No intervention
-        list_res = intervention_result(domain_name,
-                                       num_runs,
-                                       NO_INTERVENTION,
-                                       None,
-                                       None,
-                                       None,
-                                       None,
-                                       cost,
-                                       increase_step=increase_step)
+          config = (dname, INTERVENTION, VALUE_FIXROBOT, THRESHOLD, theta,
+                    delta, cost, "Argmax_thres_robot_fix")
+          list_config.append(config)
 
-        rows = rows + [
-            (domain_name, "No_intervention" + prefix, cost, 0, 0, *item)
-            for item in list_res
-        ]
-        progress_bar.update()
+      for delta in DICT_INTERV_THRES[dname]:
+        # Expectation-Value
+        config = (dname, INTERVENTION, VALUE, AVERAGE, 0, delta, cost,
+                  "Average")
+        list_config.append(config)
+        # Deterministic-Value
+        config = (dname, INTERVENTION, VALUE, THRESHOLD, 0, delta, cost,
+                  "Argmax")
+        list_config.append(config)
 
-        # ===== Strategy 1: Stochastic
-        for delta in list_interv_thres:
-          list_res = intervention_result(domain_name,
-                                         num_runs,
-                                         INTERVENTION,
-                                         VALUE,
-                                         AVERAGE,
-                                         None,
-                                         delta,
-                                         cost,
-                                         increase_step=increase_step)
+        # Deterministic-Value
+        config = (dname, INTERVENTION, VALUE_FIXROBOT, THRESHOLD, 0, delta,
+                  cost, "Argmax_robot_fix")
+        list_config.append(config)
 
-          rows = rows + [
-              (domain_name, "Average" + prefix, cost, delta, 0, *item)
-              for item in list_res
-          ]
-          progress_bar.update()
-
-        # ===== Strategy 2: Deterministic
-        for delta in list_interv_thres:
-          list_res = intervention_result(domain_name,
-                                         num_runs,
-                                         INTERVENTION,
-                                         VALUE,
-                                         THRESHOLD,
-                                         0,
-                                         delta,
-                                         cost,
-                                         increase_step=increase_step)
-
-          rows = rows + [(domain_name, "Argmax" + prefix, cost, delta, 0, *item)
-                         for item in list_res]
-          progress_bar.update()
-
-        delta_s3 = list_interv_thres[3]
-        # ===== Strategy 3: Deterministic with threshold
-        for theta in LIST_INFER_THRES:
-          list_res = intervention_result(domain_name,
-                                         num_runs,
-                                         INTERVENTION,
-                                         VALUE,
-                                         THRESHOLD,
-                                         theta,
-                                         delta_s3,
-                                         cost,
-                                         increase_step=increase_step)
-
-          rows = rows + [(domain_name, "Argmax_thres" + prefix, cost, delta_s3,
-                          theta, *item) for item in list_res]
-          progress_bar.update()
-        progress_bar.close()
+  rows = []
+  for config in tqdm(list_config):
+    dname, no_int, sel_type, cer_type, theta, delta, cost, method_name = config
+    list_res = intervention_result(dname,
+                                   num_runs,
+                                   no_int,
+                                   sel_type,
+                                   cer_type,
+                                   theta,
+                                   delta,
+                                   cost,
+                                   increase_step=False)
+    rows = rows + [(dname, method_name, cost, delta, theta, *item)
+                   for item in list_res]
 
   df = pd.DataFrame(rows,
                     columns=[
@@ -365,4 +315,4 @@ if __name__ == "__main__":
                     ])
 
   data_dir = os.path.join(os.path.dirname(__file__), "human_data/")
-  df.to_csv(data_dir + "btil_intervention_result_20240205.csv", index=False)
+  df.to_csv(data_dir + "btil_intervention_result_20240213.csv", index=False)

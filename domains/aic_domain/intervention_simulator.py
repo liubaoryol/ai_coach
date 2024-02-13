@@ -9,7 +9,6 @@ from aic_domain.agent.partial_obs_agent import AIAgent_PartialObs
 
 
 class InterventionSimulator:
-
   def __init__(self,
                game: Union[BoxPushSimulatorV2, RescueSimulator,
                            RescueSimulatorV2],
@@ -116,7 +115,7 @@ class InterventionSimulator:
       self.game.current_step += 1
 
     for agent_idx in range(self.game.get_num_agents()):
-      if agent_idx in feedback:
+      if agent_idx in feedback and feedback[agent_idx] is not None:
         lat1 = feedback[agent_idx]
         self.game.agents[agent_idx].set_latent(
             self.game.agents[agent_idx].agent_model.policy_model.

@@ -57,26 +57,30 @@ def task_intervention(latest_history_tuple, game: BoxPushSimulator,
 
   feedback = intervention.get_intervention(list_np_x_dist, sidx_n)
 
-  if feedback is None:
-    return list_np_x_dist, None
-  else:
+  intervention_latent = None
+  if feedback is not None:
     # update robot latent
     I_ROBOT = 1
-    lat_robot = feedback[I_ROBOT]
-    game.agent_2.set_latent(policy_model.conv_idx_to_latent(lat_robot))
+    if I_ROBOT in feedback and feedback[I_ROBOT] is not None:
+      lat_robot = feedback[I_ROBOT]
+      game.agent_2.set_latent(policy_model.conv_idx_to_latent(lat_robot))
 
-    # update latent distribution according to intervention (robot)
-    np_ntv_x_dist = np.zeros(len(list_np_x_dist[I_ROBOT]))
-    np_ntv_x_dist[lat_robot] = 1.0
-    list_np_x_dist[I_ROBOT] = np_ntv_x_dist
+      # update latent distribution according to intervention (robot)
+      np_ntv_x_dist = np.zeros(len(list_np_x_dist[I_ROBOT]))
+      np_ntv_x_dist[lat_robot] = 1.0
+      list_np_x_dist[I_ROBOT] = np_ntv_x_dist
 
     # update latent distribution according to intervention (human)
     I_HUMAN = 0
-    lat_human = feedback[I_HUMAN]
-    np_inf_x_dist = list_np_x_dist[I_HUMAN]
-    np_ntv_x_dist = np.zeros(len(np_inf_x_dist))
-    np_ntv_x_dist[lat_human] = 1.0
-    p_a = 1.0
-    list_np_x_dist[I_HUMAN] = (np_ntv_x_dist * p_a + np_inf_x_dist * (1 - p_a))
+    if I_HUMAN in feedback and feedback[I_HUMAN] is not None:
+      lat_human = feedback[I_HUMAN]
+      np_inf_x_dist = list_np_x_dist[I_HUMAN]
+      np_ntv_x_dist = np.zeros(len(np_inf_x_dist))
+      np_ntv_x_dist[lat_human] = 1.0
+      p_a = 1.0
+      list_np_x_dist[I_HUMAN] = (np_ntv_x_dist * p_a + np_inf_x_dist *
+                                 (1 - p_a))
 
-    return list_np_x_dist, conv_human_xidx_to_latent(feedback[0])
+      intervention_latent = conv_human_xidx_to_latent(feedback[0])
+
+  return list_np_x_dist, intervention_latent

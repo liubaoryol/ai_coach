@@ -98,10 +98,6 @@ def intervention_result(domain_name,
       step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history
       return (bstt, a1pos, a2pos), (a1act, a2act)
 
-    def valid_latent1(obs_idx):
-      num_latents = agent1.agent_model.policy_model.get_num_latent_states()
-      return list(range(num_latents))
-
     def valid_latent2(obs_idx):
       box_states, _, _ = MDP_Task.conv_mdp_sidx_to_sim_states(obs_idx)
       num_drops = len(MDP_Task.drops)
@@ -117,7 +113,12 @@ def intervention_result(domain_name,
           lat = agent1.agent_model.policy_model.conv_latent_to_idx(
               ("pickup", idx))
           list_valid_lat.append(lat)
-      return list_valid_lat
+
+      list_valid_combo_pairs = []
+      for lat in list_valid_lat:
+        list_valid_combo_pairs.append(tuple([lat] * 2))
+
+      return list_valid_combo_pairs
 
     fn_valid_latent = valid_latent2
 
@@ -316,6 +317,8 @@ if __name__ == "__main__":
       "rescue_3": [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
   }
 
+  interv_thres_index_for_confidence_methods = 3
+
   for cost in list_cost:
     for domain_name in domains:
       if cost == 1:
@@ -419,7 +422,7 @@ if __name__ == "__main__":
                          for item in list_res]
           progress_bar.update()
 
-        delta_s3 = list_interv_thres[3]
+        delta_s3 = list_interv_thres[interv_thres_index_for_confidence_methods]
         # ===== Strategy 3: Deterministic with threshold
         for theta in LIST_INFER_THRES:
           list_res = intervention_result(domain_name,

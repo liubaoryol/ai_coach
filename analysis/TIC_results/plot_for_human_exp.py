@@ -56,10 +56,12 @@ def save_box_plots(df_input_name,
   for idx in range(len(list_domains)):
     df_domain = df[df["domain"] == list_domains[idx]]
     # ==== reward vs delta =====
-    reward_vs_delta = df_domain[((df_domain["strategy"] == "Average")
-                                 | (df_domain["strategy"] == "Argmax"))
+    reward_vs_delta = df_domain[(
+        (df_domain["strategy"] == "Average")
+        | (df_domain["strategy"] == "Argmax")
+        | (df_domain["strategy"] == "Argmax_robot_fix"))
                                 & (df_domain["cost"] == cost)]
-    assert len(reward_vs_delta) == 1800
+    assert len(reward_vs_delta) == 2700
 
     # all_interv_arg = df_domain[(df_domain["strategy"] == "Argmax")
     #                            & (df_domain["interv_thres"] == 0)]
@@ -101,6 +103,7 @@ def save_box_plots(df_input_name,
     h, labels = ax.get_legend_handles_labels()
     labels[labels.index("Average")] = "Expectation-Value"
     labels[labels.index("Argmax")] = "Deterministic-Value"
+    labels[labels.index("Argmax_robot_fix")] = "Determ-Value-FixRobot"
 
     fontsize = 16
     ax.set_ylabel("Task reward", fontsize=fontsize)
@@ -111,10 +114,11 @@ def save_box_plots(df_input_name,
     ax.legend([], [], frameon=False)
 
     # ==== score vs delta =====
-    score_vs_delta = df_domain[((df_domain["strategy"] == "Average")
-                                | (df_domain["strategy"] == "Argmax"))
-                               & (df_domain["cost"] == cost)]
-    assert len(score_vs_delta) == 1800
+    # score_vs_delta = df_domain[((df_domain["strategy"] == "Average")
+    #                             | (df_domain["strategy"] == "Argmax")
+    #                             | (df_domain["strategy"] == "Argmax_robot_fix"))
+    #                            & (df_domain["cost"] == cost)]
+    # assert len(score_vs_delta) == 2700
 
     # no_interv = df_domain[(df_domain["strategy"] == "No_intervention")
     #                       & (df_domain["cost"] == 1)]
@@ -122,7 +126,7 @@ def save_box_plots(df_input_name,
     # no_interv_score = no_interv["real_score"].mean()
 
     ax = sns.lineplot(ax=axes[1][idx],
-                      data=score_vs_delta,
+                      data=reward_vs_delta,
                       x='interv_thres',
                       y='real_score',
                       hue="strategy",
@@ -184,10 +188,12 @@ def save_rescue_plots(df_input_name,
   for idx in range(len(list_domains)):
     df_domain = df[df["domain"] == list_domains[idx]]
     # ==== reward vs delta =====
-    reward_vs_delta = df_domain[((df_domain["strategy"] == "Average")
-                                 | (df_domain["strategy"] == "Argmax"))
+    reward_vs_delta = df_domain[(
+        (df_domain["strategy"] == "Average")
+        | (df_domain["strategy"] == "Argmax")
+        | (df_domain["strategy"] == "Argmax_robot_fix"))
                                 & (df_domain["cost"] == cost)]
-    assert len(reward_vs_delta) == 1800
+    assert len(reward_vs_delta) == 2700
 
     # all_interv_arg = df_domain[(df_domain["strategy"] == "Argmax")
     #                            & (df_domain["interv_thres"] == 0)]
@@ -220,6 +226,7 @@ def save_rescue_plots(df_input_name,
     h, labels = ax.get_legend_handles_labels()
     labels[labels.index("Average")] = "Expectation-Value"
     labels[labels.index("Argmax")] = "Deterministic-Value"
+    labels[labels.index("Argmax_robot_fix")] = "Determ-Value-FixRobot"
     fontsize = 16
     ax.set_ylabel("Task reward", fontsize=fontsize)
     ax.set_xlabel(r"Benefit threshold ($\delta$)")
@@ -230,13 +237,13 @@ def save_rescue_plots(df_input_name,
     ax.legend([], [], frameon=False)
 
     # ==== num intervention vs delta =====
-    num_feedback_vs_delta = df_domain[((df_domain["strategy"] == "Average")
-                                       | (df_domain["strategy"] == "Argmax"))
-                                      & (df_domain["cost"] == cost)]
-    assert len(num_feedback_vs_delta) == 1800
+    # num_feedback_vs_delta = df_domain[((df_domain["strategy"] == "Average")
+    #                                    | (df_domain["strategy"] == "Argmax"))
+    #                                   & (df_domain["cost"] == cost)]
+    # assert len(num_feedback_vs_delta) == 1800
 
     ax = sns.lineplot(ax=axes[1][idx],
-                      data=num_feedback_vs_delta,
+                      data=reward_vs_delta,
                       x='interv_thres',
                       y='num_feedback',
                       hue="strategy",
@@ -260,171 +267,6 @@ def save_rescue_plots(df_input_name,
     fig.savefig(output_name)
 
 
-def save_reward_vs_delta_plots(df_input_name,
-                               output_name,
-                               list_domains,
-                               list_domain_names,
-                               perfect_scores,
-                               perfect_steps,
-                               list_cost,
-                               save_plot,
-                               show_legend=True):
-  df = pd.read_csv(df_input_name)
-
-  num_domain = len(list_domains)
-
-  if show_legend:
-    hie = 5
-  else:
-    hie = 4
-
-  handle = None
-  label = None
-  fig, axes = plt.subplots(1, num_domain, figsize=(5 * num_domain, hie))
-  for idx in range(len(list_domains)):
-    cost = list_cost[idx]
-    df_domain = df[df["domain"] == list_domains[idx]]
-    score_vs_delta = df_domain[((df_domain["strategy"] == "Average")
-                                | (df_domain["strategy"] == "Argmax"))
-                               & (df_domain["cost"] == cost)]
-    assert len(score_vs_delta) == 1800
-
-    # all_interv_arg = df_domain[(df_domain["strategy"] == "Argmax")
-    #                            & (df_domain["interv_thres"] == 0)]
-    no_interv = df_domain[(df_domain["strategy"] == "No_intervention")
-                          & (df_domain["cost"] == cost)]
-    assert len(no_interv) == 100
-    # all_interv_arg_score = all_interv_arg["score"].mean()
-    no_interv_score = no_interv["score"].mean()
-
-    labels = ["Value-Average", "Value-Threshold"]
-    ax = sns.lineplot(ax=axes[idx],
-                      data=score_vs_delta,
-                      x='interv_thres',
-                      y='score',
-                      hue="strategy")
-    if list_domains[idx] == "movers":
-      rule_based = df_domain[(df_domain["strategy"] == "Rule_thres")
-                             & (df_domain["infer_thres"] == 0) &
-                             (df_domain["cost"] == cost)]
-      assert len(rule_based) == 100
-      rule_based_score = rule_based["score"].mean()
-      ax.axhline(rule_based_score, label="Rule-based", color='c')
-      labels.append("Rule-based")
-
-    perfect_scr = perfect_scores[idx]
-    ax.axhline(perfect_scr, label="Perfect", color='green', ls='-.')
-    # ax.axhline(all_interv_arg_score, label="Everytime", color='g')
-    ax.axhline(no_interv_score, label="None", color='black', ls='--')
-    labels.append("Centralized policy")
-    labels.append("No intervention")
-
-    h, _ = ax.get_legend_handles_labels()
-    fontsize = 18
-    ax.set_ylabel("Task Reward", fontsize=fontsize)
-    ax.set_xlabel(r"Benefit threshold ($\delta$)", fontsize=fontsize)
-    ax.set_title(f"\n{list_domain_names[idx]}", fontsize=fontsize)
-    # ax.set_xlabel(r"Benefit threshold ($\delta$)" +
-    #               f"\n{list_domain_names[idx]}",
-    #               fontsize=fontsize)
-    # ax.legend(h, labels, title="Strategy", loc="upper right")
-    # ax.tick_params(axis='x', which='major', labelsize=15)
-    if list_domains[idx] == "movers":
-      handle = h
-      label = labels
-    if handle is None:
-      handle = h
-      label = labels
-    ax.legend([], [], frameon=False)
-  if show_legend:
-    fig.legend(handle,
-               label,
-               loc='lower center',
-               ncol=3,
-               bbox_to_anchor=(0.5, 0.0),
-               prop={'size': 15})
-  fig.tight_layout()
-  if show_legend:
-    fig.subplots_adjust(bottom=0.3)
-  if save_plot:
-    fig.savefig(output_name)
-
-
-def save_score_vs_delta_plots(df_input_name, output_name, list_domains,
-                              list_domain_names, perfect_scores, perfect_steps,
-                              list_cost, save_plot):
-  df = pd.read_csv(df_input_name)
-
-  df["real_score"] = df["score"] - df["num_feedback"] * df["cost"]
-
-  num_domain = len(list_domains)
-
-  handle = None
-  label = None
-  fig, axes = plt.subplots(1, num_domain, figsize=(5 * num_domain, 4.5))
-  for idx in range(len(list_domains)):
-    cost = list_cost[idx]
-    df_domain = df[df["domain"] == list_domains[idx]]
-    score_vs_delta = df_domain[((df_domain["strategy"] == "Average")
-                                | (df_domain["strategy"] == "Argmax"))
-                               & (df_domain["cost"] == cost)]
-    assert len(score_vs_delta) == 1800
-
-    # all_interv_arg = df_domain[(df_domain["strategy"] == "Argmax")
-    #                            & (df_domain["interv_thres"] == 0)]
-    no_interv = df_domain[(df_domain["strategy"] == "No_intervention")
-                          & (df_domain["cost"] == cost)]
-    assert len(no_interv) == 100
-    # all_interv_arg_score = all_interv_arg["score"].mean()
-    no_interv_score = no_interv["real_score"].mean()
-
-    labels = ["Value-Average", "Value-Threshold"]
-    ax = sns.lineplot(ax=axes[idx],
-                      data=score_vs_delta,
-                      x='interv_thres',
-                      y='real_score',
-                      hue="strategy")
-    if list_domains[idx] == "movers":
-      rule_based = df_domain[(df_domain["strategy"] == "Rule_avg")
-                             #  & (df_domain["infer_thres"] == 0)
-                             & (df_domain["cost"] == cost)]
-      assert len(rule_based) == 100
-      rule_based_score = rule_based["real_score"].mean()
-      ax.axhline(rule_based_score, label="Rule-Average", color='c')
-      labels.append("Rule-Average")
-
-    perfect_scr = perfect_scores[idx] - cost * perfect_steps[idx]
-    ax.axhline(perfect_scr, label="Perfect", color='green', ls='-.')
-    # ax.axhline(all_interv_arg_score, label="Everytime", color='g')
-    ax.axhline(no_interv_score, label="None", color='black', ls='--')
-    labels.append("Centralized policy")
-    labels.append("No intervention")
-
-    h, _ = ax.get_legend_handles_labels()
-    fontsize = 18
-    ax.set_ylabel("Objective(J)", fontsize=fontsize)
-    ax.set_xlabel(r"Benefit threshold ($\delta$)")
-    ax.set_xlabel(r"Benefit threshold ($\delta$)", fontsize=fontsize)
-    ax.set_title(f"\n{list_domain_names[idx]}", fontsize=fontsize)
-    if list_domains[idx] == "movers":
-      handle = h
-      label = labels
-    if handle is None:
-      handle = h
-      label = labels
-    ax.legend([], [], frameon=False)
-  fig.legend(handle,
-             label,
-             loc='lower center',
-             ncol=3,
-             bbox_to_anchor=(0.5, 0.0),
-             prop={'size': 15})
-  fig.tight_layout()
-  fig.subplots_adjust(bottom=0.3)
-  if save_plot:
-    fig.savefig(output_name)
-
-
 def save_reward_vs_theta_plots(df_input_name, output_name, list_domains,
                                list_domain_names, perfect_scores, perfect_steps,
                                save_plot, list_interv_thres, list_cost):
@@ -438,11 +280,14 @@ def save_reward_vs_theta_plots(df_input_name, output_name, list_domains,
     cost = list_cost[idx]
     interv_thres = list_interv_thres[idx]
     df_domain = df[df["domain"] == list_domains[idx]]
-    score_vs_theta = df_domain[(((df_domain["strategy"] == "Argmax_thres") &
-                                 (df_domain["interv_thres"] == interv_thres))
-                                | (df_domain["strategy"] == "Rule_thres"))
+    score_vs_theta = df_domain[(
+        ((df_domain["strategy"] == "Argmax_thres") &
+         (df_domain["interv_thres"] == interv_thres))
+        | ((df_domain["strategy"] == "Argmax_thres_robot_fix") &
+           (df_domain["interv_thres"] == interv_thres))
+        | (df_domain["strategy"] == "Rule_thres"))
                                & (df_domain["cost"] == cost)]
-    assert len(score_vs_theta) == 1200
+    assert len(score_vs_theta) == 1800
     no_interv = df_domain[(df_domain["strategy"] == "No_intervention")
                           & (df_domain["cost"] == cost)]
     assert len(no_interv) == 100
@@ -461,6 +306,8 @@ def save_reward_vs_theta_plots(df_input_name, output_name, list_domains,
     h, lables = ax.get_legend_handles_labels()
     lables[lables.index("Argmax_thres")] = f"Value-Threshold {interv_thres}"
     lables[lables.index("Rule_thres")] = "Rule-Threshold"
+    lables[lables.index("Argmax_robot_fix")] = (
+        f"Value-Thres-FixRobot {interv_thres}")
 
     ax.set_ylabel("Reward")
     ax.set_xlabel(r"Inference threshold ($\theta$)")
@@ -485,11 +332,14 @@ def save_score_vs_theta_plots(df_input_name, output_name, list_domains,
     cost = list_cost[idx]
     interv_thres = list_interv_thres[idx]
     df_domain = df[df["domain"] == list_domains[idx]]
-    score_vs_theta = df_domain[(((df_domain["strategy"] == "Argmax_thres") &
-                                 (df_domain["interv_thres"] == interv_thres))
-                                | (df_domain["strategy"] == "Rule_thres"))
+    score_vs_theta = df_domain[(
+        ((df_domain["strategy"] == "Argmax_thres") &
+         (df_domain["interv_thres"] == interv_thres))
+        | ((df_domain["strategy"] == "Argmax_thres_robot_fix") &
+           (df_domain["interv_thres"] == interv_thres))
+        | (df_domain["strategy"] == "Rule_thres"))
                                & (df_domain["cost"] == cost)]
-    assert len(score_vs_theta) == 1200
+    assert len(score_vs_theta) == 1800
 
     no_interv = df_domain[(df_domain["strategy"] == "No_intervention")
                           & (df_domain["cost"] == cost)]
@@ -539,6 +389,8 @@ def save_score_vs_theta_plots(df_input_name, output_name, list_domains,
     lables[lables.index("Argmax_thres")] = (r"Confidence-Value($\delta=$" +
                                             f"{interv_thres})")
     lables[lables.index("Rule_thres")] = "Confidence-Rule"
+    lables[lables.index("Argmax_thres_robot_fix")] = (
+        f"Conf-Value-FixRobot {interv_thres}")
 
     fontsize = 13
     ax.set_ylabel("Objective(J)", fontsize=fontsize)
@@ -717,7 +569,7 @@ if __name__ == "__main__":
   output_dir = os.path.join(os.path.dirname(__file__), "human_output/")
 
   eval_result_name = data_dir + "eval_result3.csv"
-  intv_result_name = data_dir + "btil_intervention_result_20240212.csv"
+  intv_result_name = data_dir + "btil_intervention_result_20240213.csv"
 
   list_domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
   list_domain_names = ["Movers", "Cleanup", "Flood", "Blackout"]
@@ -800,14 +652,14 @@ if __name__ == "__main__":
   #                                   output_dir + "num_feedback_vs_reward.png",
   #                                   list_domains[:1], list_domain_names[:1],
   #                                   0, SAVE_RESULT)
-  save_score_vs_intervention_plots(intv_result_name,
-                                   output_dir + "num_feedback_vs_score_1.png",
-                                   list_domains[:1], list_domain_names[:1],
-                                   perfect_scores[:1], perfect_steps[:1], 1,
-                                   SAVE_RESULT)
-  save_score_vs_intervention_plots(intv_result_name,
-                                   output_dir + "num_feedback_vs_score_2.png",
-                                   list_domains[2:3], list_domain_names[2:3],
-                                   perfect_scores[2:3], perfect_steps[2:3], 1,
-                                   SAVE_RESULT)
+  # save_score_vs_intervention_plots(intv_result_name,
+  #                                  output_dir + "num_feedback_vs_score_1.png",
+  #                                  list_domains[:1], list_domain_names[:1],
+  #                                  perfect_scores[:1], perfect_steps[:1], 1,
+  #                                  SAVE_RESULT)
+  # save_score_vs_intervention_plots(intv_result_name,
+  #                                  output_dir + "num_feedback_vs_score_2.png",
+  #                                  list_domains[2:3], list_domain_names[2:3],
+  #                                  perfect_scores[2:3], perfect_steps[2:3], 1,
+  #                                  SAVE_RESULT)
   plt.show()

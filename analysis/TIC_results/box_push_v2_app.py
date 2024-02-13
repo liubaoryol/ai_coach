@@ -12,8 +12,7 @@ from aic_domain.box_push_v2.agent import (
 from aic_domain.agent import BTILCachedPolicy
 from stand_alone.box_push_app import BoxPushApp
 import pickle
-from aic_core.intervention.feedback_strategy import (
-    get_combos_sorted_by_simulated_values)
+from aic_core.intervention.feedback_strategy import (get_sorted_x_combos)
 from aic_core.utils.mdp_utils import StateSpace
 
 TEST_BTIL_AGENT = False
@@ -48,7 +47,6 @@ else:
 
 
 class BoxPushV2App(BoxPushApp):
-
   def __init__(self) -> None:
     super().__init__()
 
@@ -119,8 +117,7 @@ class BoxPushV2App(BoxPushApp):
       game = self.game  # type: BoxPushSimulatorV2
       tup_state = tuple(game.get_state_for_each_agent(0))
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
-      list_combos = get_combos_sorted_by_simulated_values(
-          self.np_v_values, oidx)
+      list_combos = get_sorted_x_combos(self.np_v_values, oidx)
       print("=================================================")
       print(list_combos)
 
