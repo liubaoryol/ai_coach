@@ -64,6 +64,15 @@ class Simulator():
     pass
 
   @abc.abstractmethod
+  def get_current_state(self):
+    pass
+
+  @classmethod
+  def get_state_action_from_history_item(cls, history_item):
+    'return state and a tuple of joint action'
+    pass
+
+  @abc.abstractmethod
   def save_history(self, file_name, *args, **kwargs):
     raise NotImplementedError
 

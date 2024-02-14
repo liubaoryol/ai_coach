@@ -50,9 +50,14 @@ class BoxPushSimulator(Simulator):
 
     self.reset_game()
 
-  def get_state_for_each_agent(self, agent_idx):
-    'Redefine this method at subclasses as needed'
+  def get_current_state(self):
     return [self.box_states, self.a1_pos, self.a2_pos]
+
+  @classmethod
+  def get_state_action_from_history_item(cls, history_item):
+    'return state and a tuple of joint action'
+    step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history_item
+    return (bstt, a1pos, a2pos), (a1act, a2act)
 
   def set_autonomous_agent(self,
                            agent1: SimulatorAgent = InteractiveAgent(),
@@ -64,8 +69,8 @@ class BoxPushSimulator(Simulator):
 
     # order can be important as Agent2 state may include Agent1's mental state,
     # or vice versa. here we assume agent2 updates its mental state later
-    self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
-    self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
+    self.agent_1.init_latent(self.get_current_state())
+    self.agent_2.init_latent(self.get_current_state())
 
   def reset_game(self):
     self.current_step = 0
@@ -77,9 +82,9 @@ class BoxPushSimulator(Simulator):
     self.box_states = [0] * len(self.boxes)
 
     if self.agent_1 is not None:
-      self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
+      self.agent_1.init_latent(self.get_current_state())
     if self.agent_2 is not None:
-      self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
+      self.agent_2.init_latent(self.get_current_state())
     self.changed_state = set()
 
   def get_score(self):
@@ -117,8 +122,8 @@ class BoxPushSimulator(Simulator):
       a2_lat_1 = a2_lat[1] if a2_lat[1] is not None else 0
       a2_lat = (a2_lat_0, a2_lat_1)
 
-    a1_cur_state = tuple(self.get_state_for_each_agent(self.AGENT1))
-    a2_cur_state = tuple(self.get_state_for_each_agent(self.AGENT2))
+    a1_cur_state = tuple(self.get_current_state())
+    a2_cur_state = tuple(self.get_current_state())
 
     state = [
         self.current_step, self.box_states, self.a1_pos, self.a2_pos, a1_action,
@@ -133,9 +138,9 @@ class BoxPushSimulator(Simulator):
     # update mental model
     tuple_actions = (a1_action, a2_action)
     self.agent_1.update_mental_state(a1_cur_state, tuple_actions,
-                                     self.get_state_for_each_agent(self.AGENT1))
+                                     self.get_current_state())
     self.agent_2.update_mental_state(a2_cur_state, tuple_actions,
-                                     self.get_state_for_each_agent(self.AGENT2))
+                                     self.get_current_state())
     self.changed_state.add("a1_latent")
     self.changed_state.add("a2_latent")
 
@@ -193,9 +198,9 @@ class BoxPushSimulator(Simulator):
 
     map_a2a = {}
     map_a2a[BoxPushSimulator.AGENT1] = self.agent_1.get_action(
-        self.get_state_for_each_agent(self.AGENT1))
+        self.get_current_state())
     map_a2a[BoxPushSimulator.AGENT2] = self.agent_2.get_action(
-        self.get_state_for_each_agent(self.AGENT2))
+        self.get_current_state())
 
     return map_a2a
 
@@ -331,7 +336,6 @@ class BoxPushSimulator(Simulator):
 
 
 class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
-
   def __init__(
       self,
       id: Hashable,
@@ -347,7 +351,6 @@ class BoxPushSimulator_AloneOrTogether(BoxPushSimulator):
 
 
 class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
-
   def __init__(
       self,
       id: Hashable,
@@ -363,7 +366,6 @@ class BoxPushSimulator_AlwaysTogether(BoxPushSimulator):
 
 
 class BoxPushSimulator_AlwaysAlone(BoxPushSimulator):
-
   def __init__(
       self,
       id: Hashable,

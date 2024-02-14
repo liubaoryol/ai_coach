@@ -63,7 +63,7 @@ def main(domain, gen_data, num_data):
       while not sim.is_finished():
         map_agent_2_action = sim.get_joint_action()
         sim.take_a_step(map_agent_2_action)
-        if not is_compatible(domain, sim.get_state_for_each_agent(0),
+        if not is_compatible(domain, sim.get_current_state(),
                              (sim.agent_1.get_current_latent(),
                               sim.agent_2.get_current_latent())):
           completed = False

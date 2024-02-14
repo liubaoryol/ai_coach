@@ -13,7 +13,7 @@ from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
                                           BoxPushAIAgent_Team,
                                           BoxPushAIAgent_Indv, AIAgent_NoMind)
 from aic_domain.agent.cached_agent import (BTILCachedPolicy, NoMindCachedPolicy)
-from stand_alone.box_push_app import BoxPushApp
+from stand_alone.app_box_push import BoxPushApp
 
 TEST_LEARNED_AGENT = True
 IS_MOVERS = True
@@ -42,7 +42,6 @@ else:
 
 
 class BoxPushV2App(BoxPushApp):
-
   def __init__(self) -> None:
     super().__init__()
 

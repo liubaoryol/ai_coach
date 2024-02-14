@@ -33,9 +33,14 @@ class RescueSimulator(Simulator):
 
     self.reset_game()
 
-  def get_state_for_each_agent(self, agent_idx):
-    'Redefine this method at subclasses as needed'
+  def get_current_state(self):
     return [self.work_states, self.a1_pos, self.a2_pos]
+
+  @classmethod
+  def get_state_action_from_history_item(cls, history_item):
+    'return state and a tuple of joint action'
+    step, score, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = history_item
+    return (wstt, a1pos, a2pos), (a1act, a2act)
 
   def set_autonomous_agent(self,
                            agent1: SimulatorAgent = InteractiveAgent(),
@@ -47,8 +52,8 @@ class RescueSimulator(Simulator):
 
     # order can be important as Agent2 state may include Agent1's mental state,
     # or vice versa. here we assume agent2 updates its mental state later
-    self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
-    self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
+    self.agent_1.init_latent(self.get_current_state())
+    self.agent_2.init_latent(self.get_current_state())
 
   def reset_game(self):
     self.score = 0
@@ -59,9 +64,9 @@ class RescueSimulator(Simulator):
     self.work_states = [1] * len(self.work_locations)
 
     if self.agent_1 is not None:
-      self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
+      self.agent_1.init_latent(self.get_current_state())
     if self.agent_2 is not None:
-      self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
+      self.agent_2.init_latent(self.get_current_state())
     self.changed_state = set()
 
   def update_score(self):
@@ -106,8 +111,8 @@ class RescueSimulator(Simulator):
     if a2_lat is None:
       a2_lat = "None"
 
-    a1_cur_state = tuple(self.get_state_for_each_agent(self.AGENT1))
-    a2_cur_state = tuple(self.get_state_for_each_agent(self.AGENT2))
+    a1_cur_state = tuple(self.get_current_state())
+    a2_cur_state = tuple(self.get_current_state())
 
     state = [
         self.current_step, self.score, self.work_states, self.a1_pos,
@@ -128,9 +133,9 @@ class RescueSimulator(Simulator):
     # update mental model
     tuple_actions = (a1_action, a2_action)
     self.agent_1.update_mental_state(a1_cur_state, tuple_actions,
-                                     self.get_state_for_each_agent(self.AGENT1))
+                                     self.get_current_state())
     self.agent_2.update_mental_state(a2_cur_state, tuple_actions,
-                                     self.get_state_for_each_agent(self.AGENT2))
+                                     self.get_current_state())
     self.changed_state.add("a1_latent")
     self.changed_state.add("a2_latent")
 
@@ -179,10 +184,8 @@ class RescueSimulator(Simulator):
   def get_joint_action(self) -> Mapping[Hashable, Hashable]:
 
     map_a2a = {}
-    map_a2a[self.AGENT1] = self.agent_1.get_action(
-        self.get_state_for_each_agent(self.AGENT1))
-    map_a2a[self.AGENT2] = self.agent_2.get_action(
-        self.get_state_for_each_agent(self.AGENT2))
+    map_a2a[self.AGENT1] = self.agent_1.get_action(self.get_current_state())
+    map_a2a[self.AGENT2] = self.agent_2.get_action(self.get_current_state())
 
     return map_a2a
 

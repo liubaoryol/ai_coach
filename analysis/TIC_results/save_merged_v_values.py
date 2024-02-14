@@ -11,20 +11,14 @@ from aic_domain.box_push_v2 import EventType
 from aic_domain.box_push_v2.mdp import MDP_Movers_Task, MDP_Movers_Agent
 from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task, MDP_Cleanup_Agent
 from aic_domain.box_push_v2.maps import MAP_MOVERS, MAP_CLEANUP_V3
-from aic_domain.box_push_v2.agent import AM_BoxPushV2_Movers
-from aic_domain.box_push_v2.agent import AM_BoxPushV2_Cleanup
-from aic_domain.box_push_v2.policy import Policy_Movers, Policy_Cleanup
 
 from aic_domain.rescue.maps import MAP_RESCUE
-from aic_domain.rescue.policy import Policy_Rescue
 from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-from aic_domain.rescue.agent import RescueAM
 from aic_domain.rescue import E_EventType, is_work_done
 from aic_domain.rescue.transition import find_location_index
 
 
 class FullMDP_Rescue(FullMDP):
-
   def reward(self, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
@@ -66,131 +60,73 @@ class FullMDP_Rescue(FullMDP):
 
 # yapf: disable
 @click.command()
-@click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2")  # noqa: E501
+@click.option("--domain", type=str, default="rescue_2", help="movers|cleanup_v3|rescue_2")  # noqa: E501
 @click.option("--iteration", type=int, default=150,
               help="the maximum step of each domain (movers/cleanup: 150, rescue: 30)")  # noqa: E501
-@click.option("--num-train", type=int, default=500, help="")
-@click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
-@click.option("--humandata", type=bool, default=False, help="")
+@click.option("--policy1-file", type=str, default="", help="")
+@click.option("--policy2-file", type=str, default="", help="")
+@click.option("--tx1-file", type=str, default="", help="")
+@click.option("--tx2-file", type=str, default="", help="")
+@click.option("--output-suffix", type=str, default="", help="")
+@click.option("--save-dir", type=str, default="data", help="data|human_data")
 # yapf: enable
-def save_merged_v_values(domain,
-                         iteration,
-                         num_train=500,
-                         supervision=0.3,
-                         humandata=False):
-  TRUE_MODELS = False
-  # domain: movers | cleanup_v2 | rescue_2
-  data_source = "human" if humandata else "synth"
-
-  sup_txt = ("%.2f" % supervision).replace('.', ',')
-  policy1_file = (
-      domain +
-      f"_btil_dec_policy_{data_source}_woTx_FTTT_{num_train}_{sup_txt}_a1.npy")
-  policy2_file = (
-      domain +
-      f"_btil_dec_policy_{data_source}_woTx_FTTT_{num_train}_{sup_txt}_a2.npy")
-  tx1_file = (domain +
-              f"_btil_dec_tx_{data_source}_FTTT_{num_train}_{sup_txt}_a1.npy")
-  tx2_file = (domain +
-              f"_btil_dec_tx_{data_source}_FTTT_{num_train}_{sup_txt}_a2.npy")
-
+def save_merged_v_values(domain, iteration, policy1_file, policy2_file,
+                         tx1_file, tx2_file, output_suffix, save_dir):
   if domain == "movers":
     task_mdp = MDP_Movers_Task(**MAP_MOVERS)
     agent_mdp = MDP_Movers_Agent(**MAP_MOVERS)
     tup_lstate = (agent_mdp.latent_space, agent_mdp.latent_space)
-
-    TEMPERATURE = 0.3
-    # true models
-    policy_a1 = Policy_Movers(task_mdp, agent_mdp, TEMPERATURE, 0)
-    policy_a2 = Policy_Movers(task_mdp, agent_mdp, TEMPERATURE, 1)
-    agent_model_a1 = AM_BoxPushV2_Movers(0, policy_a1)
-    agent_model_a2 = AM_BoxPushV2_Movers(1, policy_a2)
-
     FullMDP_Base = FullMDP
     stay_actions = (EventType.STAY, EventType.STAY)
   elif domain == "cleanup_v3":
     task_mdp = MDP_Cleanup_Task(**MAP_CLEANUP_V3)
     agent_mdp = MDP_Cleanup_Agent(**MAP_CLEANUP_V3)
     tup_lstate = (agent_mdp.latent_space, agent_mdp.latent_space)
-
-    TEMPERATURE = 0.3
-    # true models
-    policy_a1 = Policy_Cleanup(task_mdp, agent_mdp, TEMPERATURE, 0)
-    policy_a2 = Policy_Cleanup(task_mdp, agent_mdp, TEMPERATURE, 1)
-    agent_model_a1 = AM_BoxPushV2_Cleanup(0, policy_a1)
-    agent_model_a2 = AM_BoxPushV2_Cleanup(1, policy_a2)
-
     FullMDP_Base = FullMDP
     stay_actions = (EventType.STAY, EventType.STAY)
   elif domain == "rescue_2":
     task_mdp = MDP_Rescue_Task(**MAP_RESCUE)
     agent_mdp = MDP_Rescue_Agent(**MAP_RESCUE)
     tup_lstate = (agent_mdp.latent_space, agent_mdp.latent_space)
-
-    TEMPERATURE = 0.3
-    # true models
-    policy_a1 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 0)
-    policy_a2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 1)
-    agent_model_a1 = RescueAM(0, policy_a1)
-    agent_model_a2 = RescueAM(1, policy_a2)
-
     FullMDP_Base = FullMDP_Rescue
     stay_actions = (E_EventType.Stay, E_EventType.Stay)
 
-  dir_name = "human_data/" if humandata else "data/"
-  DATA_DIR = os.path.join(os.path.dirname(__file__), dir_name)
+  DATA_DIR = os.path.join(os.path.dirname(__file__), save_dir)
   model_dir = os.path.join(DATA_DIR, "learned_models/")
 
   if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
-  if TRUE_MODELS:
-    tup_num_latent = (policy_a1.get_num_latent_states(),
-                      policy_a2.get_num_latent_states())
+  np_tx1 = np.load(model_dir + tx1_file)
+  np_tx2 = np.load(model_dir + tx2_file)
 
-    def all_Tx(agent_idx, latstate_idx, obstate_idx, tuple_action_idx,
-               obstate_next_idx):
-      if agent_idx == 0:
-        return agent_model_a1.transition_mental_state(latstate_idx, obstate_idx,
-                                                      tuple_action_idx,
-                                                      obstate_next_idx)
-      else:
-        return agent_model_a2.transition_mental_state(latstate_idx, obstate_idx,
-                                                      tuple_action_idx,
-                                                      obstate_next_idx)
-  else:
+  np_policy1 = np.load(model_dir + policy1_file)
+  np_policy2 = np.load(model_dir + policy2_file)
 
-    np_tx1 = np.load(model_dir + tx1_file)
-    np_tx2 = np.load(model_dir + tx2_file)
+  tup_num_latent = (np_policy1.shape[0], np_policy2.shape[0])
 
-    np_policy1 = np.load(model_dir + policy1_file)
-    np_policy2 = np.load(model_dir + policy2_file)
+  def all_Tx(agent_idx, latstate_idx, obstate_idx, tuple_action_idx,
+             obstate_next_idx):
+    np_dist = None
+    if agent_idx == 0:
+      np_dist = np_tx1[latstate_idx, tuple_action_idx[0], tuple_action_idx[1],
+                       obstate_next_idx]
+    else:
+      np_dist = np_tx2[latstate_idx, tuple_action_idx[0], tuple_action_idx[1],
+                       obstate_next_idx]
 
-    tup_num_latent = (np_policy1.shape[0], np_policy2.shape[0])
+    # for illegal states or states that haven't appeared during the training,
+    # we assume mental model was maintained.
+    if np.all(np_dist == np_dist[0]):
+      np_dist = np.zeros_like(np_dist)
+      np_dist[latstate_idx] = 1
 
-    def all_Tx(agent_idx, latstate_idx, obstate_idx, tuple_action_idx,
-               obstate_next_idx):
-      np_dist = None
-      if agent_idx == 0:
-        np_dist = np_tx1[latstate_idx, tuple_action_idx[0], tuple_action_idx[1],
-                         obstate_next_idx]
-      else:
-        np_dist = np_tx2[latstate_idx, tuple_action_idx[0], tuple_action_idx[1],
-                         obstate_next_idx]
-
-      # for illegal states or states that haven't appeared during the training,
-      # we assume mental model was maintained.
-      if np.all(np_dist == np_dist[0]):
-        np_dist = np.zeros_like(np_dist)
-        np_dist[latstate_idx] = 1
-
-      return np_dist
+    return np_dist
 
   full_mdp = FullMDP_Base(mmdp=task_mdp, cb_tx=all_Tx, tup_lstate=tup_lstate)
 
   # joint policy
-  policy_file_name = domain + f"_{num_train}_{sup_txt}" + "_joint_policy"
-  policy_file_name += "" if TRUE_MODELS else "_learned"
+  policy_file_name = (domain + f"_{output_suffix}" + "_joint_policy")
   pickle_joint_policy = os.path.join(DATA_DIR, policy_file_name + ".pickle")
 
   if os.path.exists(pickle_joint_policy):
@@ -198,50 +134,33 @@ def save_merged_v_values(domain,
       np_policy = pickle.load(handle)
   else:
     np_policy = np.zeros((full_mdp.num_states, full_mdp.num_actions))
-    if TRUE_MODELS:
-      for obs_idx in tqdm(range(task_mdp.num_states)):
-        obs_vec = task_mdp.conv_idx_to_state(obs_idx)
+    stay_aidx = full_mdp.conv_sim_actions_to_mdp_aidx(stay_actions)
+    for obs_idx in tqdm(range(task_mdp.num_states)):
+      obs_vec = task_mdp.conv_idx_to_state(obs_idx)
 
-        for xidx1 in range(tup_num_latent[0]):
-          np_action1 = policy_a1.policy(obs_idx, xidx1)
-          for xidx2 in range(tup_num_latent[1]):
-            np_action2 = policy_a2.policy(obs_idx, xidx2)
+      for xidx1 in range(tup_num_latent[0]):
+        np_action1 = np_policy1[xidx1, obs_idx]
+        for xidx2 in range(tup_num_latent[1]):
+          np_action2 = np_policy2[xidx2, obs_idx]
 
-            state_vec = tuple(obs_vec) + (xidx1, xidx2)
-            sidx = full_mdp.conv_state_to_idx(state_vec)
+          state_vec = tuple(obs_vec) + (xidx1, xidx2)
+          sidx = full_mdp.conv_state_to_idx(state_vec)
 
-            for aidx in range(full_mdp.num_actions):
+          legal_actions = full_mdp.legal_actions(sidx)
+          if len(legal_actions) == 0:
+            np_policy[sidx, stay_aidx] = 1
+          else:
+            for aidx in legal_actions:
               act1, act2 = full_mdp.conv_idx_to_action(aidx)
               np_policy[sidx, aidx] = np_action1[act1] * np_action2[act2]
-    else:
-      stay_aidx = full_mdp.conv_sim_actions_to_mdp_aidx(stay_actions)
-      for obs_idx in tqdm(range(task_mdp.num_states)):
-        obs_vec = task_mdp.conv_idx_to_state(obs_idx)
-
-        for xidx1 in range(tup_num_latent[0]):
-          np_action1 = np_policy1[xidx1, obs_idx]
-          for xidx2 in range(tup_num_latent[1]):
-            np_action2 = np_policy2[xidx2, obs_idx]
-
-            state_vec = tuple(obs_vec) + (xidx1, xidx2)
-            sidx = full_mdp.conv_state_to_idx(state_vec)
-
-            legal_actions = full_mdp.legal_actions(sidx)
-            if len(legal_actions) == 0:
-              np_policy[sidx, stay_aidx] = 1
-            else:
-              for aidx in legal_actions:
-                act1, act2 = full_mdp.conv_idx_to_action(aidx)
-                np_policy[sidx, aidx] = np_action1[act1] * np_action2[act2]
-      np_policy = np_policy / np.sum(np_policy, axis=1)[:, np.newaxis]
+    np_policy = np_policy / np.sum(np_policy, axis=1)[:, np.newaxis]
 
     with open(pickle_joint_policy, 'wb') as handle:
       pickle.dump(np_policy, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # full mdp transition
-  full_transition_file_name = (domain + f"_{num_train}_{sup_txt}" +
+  full_transition_file_name = (domain + f"_{output_suffix}" +
                                "_full_transition")
-  full_transition_file_name += "" if TRUE_MODELS else "_learned"
   pickle_full_trans = os.path.join(DATA_DIR,
                                    full_transition_file_name + ".pickle")
 
@@ -266,9 +185,7 @@ def save_merged_v_values(domain,
       pickle.dump(np_reward_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # v-value
-  file_name = (domain + f"_{num_train}_{sup_txt}_{iteration}" +
-               "_merged_v_values")
-  file_name += "" if TRUE_MODELS else "_learned"
+  file_name = (domain + f"_{output_suffix}_{iteration}" + "_merged_v_values")
   pickle_v_values = os.path.join(DATA_DIR, file_name + ".pickle")
   if os.path.exists(pickle_v_values):
     with open(pickle_v_values, 'rb') as handle:

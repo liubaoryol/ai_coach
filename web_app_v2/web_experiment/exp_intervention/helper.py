@@ -1,4 +1,6 @@
+from typing import Union
 from aic_domain.box_push.simulator import (BoxPushSimulator)
+from aic_domain.rescue.simulator import RescueSimulator
 from web_experiment.define import EDomainType
 import numpy as np
 from aic_core.utils.decoding import forward_inference
@@ -7,23 +9,13 @@ from aic_core.models.policy import PolicyInterface
 from aic_domain.rescue.mdp import MDP_Rescue_Task
 
 
-def task_intervention(latest_history_tuple, game: BoxPushSimulator,
+def task_intervention(latest_history_tuple, game: Union[BoxPushSimulator,
+                                                        RescueSimulator],
                       policy_model: PolicyInterface, domain_type: EDomainType,
                       intervention: InterventionAbstract, prev_inference,
                       cb_policy, cb_Tx):
 
   task_mdp = policy_model.mdp  # type: MDP_Rescue_Task
-  if domain_type == EDomainType.Movers:
-
-    def get_state_action(latest_tuple):
-      step, bstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = latest_tuple
-      return (bstt, a1pos, a2pos), (a1act, a2act)
-
-  elif domain_type == EDomainType.Rescue:
-
-    def get_state_action(latest_tuple):
-      step, score, wstt, a1pos, a2pos, a1act, a2act, a1lat, a2lat = latest_tuple
-      return (wstt, a1pos, a2pos), (a1act, a2act)
 
   def conv_human_xidx_to_latent(idx):
     # NOTE: For movers and rescue domains,
@@ -31,7 +23,8 @@ def task_intervention(latest_history_tuple, game: BoxPushSimulator,
     latent = policy_model.conv_idx_to_latent(idx)
     return latent
 
-  tup_state_prev, tup_action_prev = get_state_action(latest_history_tuple)
+  tup_state_prev, tup_action_prev = game.get_state_action_from_history_item(
+      latest_history_tuple)
 
   sidx = task_mdp.conv_sim_states_to_mdp_sidx(tup_state_prev)
   joint_action = []
@@ -40,8 +33,7 @@ def task_intervention(latest_history_tuple, game: BoxPushSimulator,
         tup_action_prev[agent_idx]]
     joint_action.append(aidx_i)
 
-  sidx_n = task_mdp.conv_sim_states_to_mdp_sidx(
-      tuple(game.get_state_for_each_agent(0)))
+  sidx_n = task_mdp.conv_sim_states_to_mdp_sidx(tuple(game.get_current_state()))
   list_state = [sidx, sidx_n]
   list_action = [tuple(joint_action)]
 

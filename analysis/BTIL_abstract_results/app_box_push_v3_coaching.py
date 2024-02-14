@@ -10,7 +10,7 @@ from aic_domain.box_push_v2.agent import (
     BoxPushAIAgent_PO_Team, BoxPushAIAgent_PO_Indv, BoxPushAIAgent_BTIL,
     BoxPushAIAgent_BTIL_ABS, BoxPushAIAgent_Team, BoxPushAIAgent_Indv)
 from aic_domain.agent import BTILCachedPolicy
-from stand_alone.box_push_app import BoxPushApp
+from stand_alone.app_box_push import BoxPushApp
 import pickle
 from aic_core.utils.mdp_utils import StateSpace
 
@@ -54,7 +54,6 @@ manual_latent2 = None
 
 
 class BoxPushV2App(BoxPushApp):
-
   def __init__(self) -> None:
     super().__init__()
 

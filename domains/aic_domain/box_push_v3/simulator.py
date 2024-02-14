@@ -5,7 +5,6 @@ import random
 
 
 class BoxPushSimulatorV3(BoxPushSimulator):
-
   def __init__(self, fix_init: bool = False) -> None:
     super().__init__(0)
     self.fix_init = fix_init
@@ -46,7 +45,7 @@ class BoxPushSimulatorV3(BoxPushSimulator):
     self.box_states = [0] * len(self.boxes)
 
     if self.agent_1 is not None:
-      self.agent_1.init_latent(self.get_state_for_each_agent(self.AGENT1))
+      self.agent_1.init_latent(self.get_current_state())
     if self.agent_2 is not None:
-      self.agent_2.init_latent(self.get_state_for_each_agent(self.AGENT2))
+      self.agent_2.init_latent(self.get_current_state())
     self.changed_state = set()

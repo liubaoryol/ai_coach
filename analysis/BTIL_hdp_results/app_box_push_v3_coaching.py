@@ -12,7 +12,7 @@ from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Team,
                                           BoxPushAIAgent_Team,
                                           BoxPushAIAgent_Indv)
 from aic_domain.agent import BTILCachedPolicy
-from stand_alone.box_push_app import BoxPushApp
+from stand_alone.app_box_push import BoxPushApp
 import pickle
 from aic_core.utils.mdp_utils import StateSpace
 
@@ -28,7 +28,7 @@ if IS_MOVERS:
   POLICY = Policy_MoversV3
   MDP_TASK = MDP_MoversV3_Task
   MDP_AGENT = MDP_MoversV3_Agent
-  AGENT = BoxPushAIAgent_Team
+  AGENT = BoxPushAIAgent_PO_Team
   TEST_AGENT = BoxPushAIAgent_Team
   NP_POLICY_A1 = file_name + "_pi_a1.npy"
   NP_POLICY_A2 = file_name + "_pi_a2.npy"
@@ -36,12 +36,14 @@ if IS_MOVERS:
   NP_TX_A2 = file_name + "_tx_a2.npy"
   NP_BX_A1 = file_name + "_bx_a1.npy"
   NP_BX_A2 = file_name + "_bx_a2.npy"
+  NP_COACH_POLICY = None
+  NP_COACH_POLICY = "movers_bc_hdp_100_pi_x.npy"
 else:
   GAME_MAP = MAP_CLEANUP
   POLICY = Policy_CleanupV3
   MDP_TASK = MDP_CleanupV3_Task
   MDP_AGENT = MDP_CleanupV3_Agent
-  AGENT = BoxPushAIAgent_Indv
+  AGENT = BoxPushAIAgent_PO_Indv
   TEST_AGENT = BoxPushAIAgent_Indv
   NP_POLICY_A1 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
   NP_POLICY_A2 = "cleanup_v3_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
@@ -53,7 +55,6 @@ manual_latent2 = None
 
 
 class BoxPushV2App(BoxPushApp):
-
   def __init__(self) -> None:
     super().__init__()
 
@@ -62,7 +63,7 @@ class BoxPushV2App(BoxPushApp):
     # game_map["a2_init"] = (1, 2)
     self.x_grid = GAME_MAP["x_grid"]
     self.y_grid = GAME_MAP["y_grid"]
-    self.game = BoxPushSimulatorV3(None)
+    self.game = BoxPushSimulatorV3(True)
     self.game.max_steps = 200
 
     self.game.init_game(**GAME_MAP)
@@ -95,17 +96,23 @@ class BoxPushV2App(BoxPushApp):
       np_bx_1 = np.load(model_dir + NP_BX_A1)
       np_bx_2 = np.load(model_dir + NP_BX_A2)
 
+      np_coach = None
+      if NP_COACH_POLICY is not None:
+        np_coach = np.load(model_dir + NP_COACH_POLICY)
+
       mask = (False, True, True, True)
       agent1 = BoxPushAIAgent_BTIL(np_tx_1,
                                    mask,
                                    test_policy_1,
                                    0,
-                                   np_bx=np_bx_1)
+                                   np_bx=np_bx_1,
+                                   np_coach=np_coach)
       agent2 = BoxPushAIAgent_BTIL(np_tx_2,
                                    mask,
                                    test_policy_2,
                                    1,
-                                   np_bx=np_bx_2)
+                                   np_bx=np_bx_2,
+                                   np_coach=np_coach)
 
     self.game.set_autonomous_agent(agent1, agent2)
     if manual_latent1 is not None:

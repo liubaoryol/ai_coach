@@ -15,7 +15,6 @@ policy_test_team_list = []
 
 
 class BoxPushPolicyTeamExp1(CachedPolicyInterface):
-
   def __init__(self, mdp: BoxPushTeamMDP_AlwaysTogether, temperature: float,
                agent_idx: int) -> None:
     cur_dir = os.path.dirname(__file__)
@@ -32,7 +31,6 @@ class PolicyFromIdenticalAgentMDP(PolicyInterface):
   representative policy of them but need to convert states from the agent
   perspective to the task perspective.
   '''
-
   def __init__(self, task_mdp: LatentMDP, agent_idx: int) -> None:
     super().__init__(task_mdp)
     self.agent_idx = agent_idx
@@ -62,6 +60,9 @@ class PolicyFromIdenticalAgentMDP(PolicyInterface):
   def conv_action_to_idx(self, tuple_actions: Sequence) -> Sequence[int]:
     return self.agent_policy.conv_action_to_idx(tuple_actions)
 
+  def get_num_actions(self):
+    return self.agent_policy.get_num_actions()
+
   def get_num_latent_states(self):
     return self.agent_policy.get_num_latent_states()
 
@@ -73,7 +74,6 @@ class PolicyFromIdenticalAgentMDP(PolicyInterface):
 
 
 class PolicyFromIdenticalAgentMDP_BoxPush(PolicyFromIdenticalAgentMDP):
-
   def _convert_task_state_2_agent_state(self, obstate_idx):
     box_states, a1_pos, a2_pos = self.mdp.conv_mdp_sidx_to_sim_states(
         obstate_idx)
@@ -91,7 +91,6 @@ class PolicyFromIdenticalAgentMDP_BoxPush(PolicyFromIdenticalAgentMDP):
 
 
 class BoxPushPolicyIndvExp1(PolicyFromIdenticalAgentMDP_BoxPush):
-
   def __init__(self, task_mdp: BoxPushTeamMDP, agent_mdp: BoxPushAgentMDP,
                temperature: float, agent_idx: int) -> None:
     super().__init__(task_mdp, agent_idx)
@@ -106,14 +105,12 @@ class BoxPushPolicyIndvExp1(PolicyFromIdenticalAgentMDP_BoxPush):
 
 
 class BoxPushPolicyTeamTest(CachedPolicyInterface):
-
   def __init__(self, mdp: BoxPushTeamMDP, temperature: float,
                agent_idx: int) -> None:
     super().__init__(mdp, "", policy_test_team_list, temperature, (agent_idx, ))
 
 
 class BoxPushPolicyIndvTest_New(PolicyFromIdenticalAgentMDP_BoxPush):
-
   def __init__(self, task_mdp: BoxPushTeamMDP, agent_mdp: BoxPushAgentMDP,
                temperature: float, agent_idx: int) -> None:
     super().__init__(task_mdp, agent_idx)

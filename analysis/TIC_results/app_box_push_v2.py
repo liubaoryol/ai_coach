@@ -10,15 +10,15 @@ from aic_domain.box_push_v2.agent import (
     BoxPushAIAgent_PO_Team, BoxPushAIAgent_PO_Indv, BoxPushAIAgent_BTIL,
     BoxPushAIAgent_BTIL_ABS, BoxPushAIAgent_Team, BoxPushAIAgent_Indv)
 from aic_domain.agent import BTILCachedPolicy
-from stand_alone.box_push_app import BoxPushApp
+from stand_alone.app_box_push import BoxPushApp
 import pickle
 from aic_core.intervention.feedback_strategy import (get_sorted_x_combos)
 from aic_core.utils.mdp_utils import StateSpace
 
-TEST_BTIL_AGENT = False
+TEST_BTIL_AGENT = True
 TEST_BTIL_USE_TRUE_TX = False
 IS_MOVERS = True
-DATA_DIR = os.path.dirname(__file__) + "/data/"
+DATA_DIR = os.path.dirname(__file__) + "/human_data/"
 V_VAL_FILE_NAME = None
 if IS_MOVERS:
   GAME_MAP = MAP_MOVERS
@@ -27,11 +27,22 @@ if IS_MOVERS:
   MDP_AGENT = MDP_Movers_Agent
   AGENT = BoxPushAIAgent_PO_Team
   TEST_AGENT = BoxPushAIAgent_Team
-  V_VAL_FILE_NAME = "movers_500_0,30_500_merged_v_values_learned.pickle"
-  NP_POLICY_A1 = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy"
-  NP_POLICY_A2 = "movers_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy"
-  NP_TX_A1 = "movers_btil2_tx_synth_FTTT_500_0,30_a1.npy"
-  NP_TX_A2 = "movers_btil2_tx_synth_FTTT_500_0,30_a2.npy"
+  # V_VAL_FILE_NAME = "movers_500_0,30_500_merged_v_values_learned.pickle"
+
+  if False:
+    NP_POLICY_A1 = "movers_btil_dec_policy_human_woTx_FTTT_160_0,30_a1.npy"
+    NP_POLICY_A2 = "movers_btil_dec_policy_human_woTx_FTTT_160_0,30_a2.npy"
+    NP_TX_A1 = "movers_btil_dec_tx_human_FTTT_160_0,30_a1.npy"
+    NP_TX_A2 = "movers_btil_dec_tx_human_FTTT_160_0,30_a2.npy"
+    NP_BX_A1 = None
+    NP_BX_A2 = None
+  else:
+    NP_POLICY_A1 = "movers_btil_svi_policy_human_woTx_FTTT_160_0,00_a1.npy"
+    NP_POLICY_A2 = "movers_btil_svi_policy_human_woTx_FTTT_160_0,00_a2.npy"
+    NP_TX_A1 = "movers_btil_svi_tx_human_FTTT_160_0,00_a1.npy"
+    NP_TX_A2 = "movers_btil_svi_tx_human_FTTT_160_0,00_a2.npy"
+    NP_BX_A1 = "movers_btil_svi_bx_human_FTTT_160_0,00_a1.npy"
+    NP_BX_A2 = "movers_btil_svi_bx_human_FTTT_160_0,00_a2.npy"
 else:
   GAME_MAP = MAP_CLEANUP
   POLICY = Policy_Cleanup
@@ -95,9 +106,24 @@ class BoxPushV2App(BoxPushApp):
         np_tx_1 = np.load(model_dir + NP_TX_A1)
         np_tx_2 = np.load(model_dir + NP_TX_A2)
 
+        if NP_BX_A1 is not None:
+          np_bx_1 = np.load(model_dir + NP_BX_A1)
+          np_bx_2 = np.load(model_dir + NP_BX_A2)
+        else:
+          np_bx_1 = None
+          np_bx_2 = None
+
         mask = (False, True, True, True)
-        agent1 = BoxPushAIAgent_BTIL(np_tx_1, mask, test_policy_1, 0)
-        agent2 = BoxPushAIAgent_BTIL(np_tx_2, mask, test_policy_2, 1)
+        agent1 = BoxPushAIAgent_BTIL(np_tx_1,
+                                     mask,
+                                     test_policy_1,
+                                     0,
+                                     np_bx=np_bx_1)
+        agent2 = BoxPushAIAgent_BTIL(np_tx_2,
+                                     mask,
+                                     test_policy_2,
+                                     1,
+                                     np_bx=np_bx_2)
 
     self.game.set_autonomous_agent(agent1, agent2)
 
@@ -115,7 +141,7 @@ class BoxPushV2App(BoxPushApp):
                      str(self.game.agent_2.get_current_latent()))
     if V_VAL_FILE_NAME is not None:
       game = self.game  # type: BoxPushSimulatorV2
-      tup_state = tuple(game.get_state_for_each_agent(0))
+      tup_state = tuple(game.get_current_state())
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
       list_combos = get_sorted_x_combos(self.np_v_values, oidx)
       print("=================================================")

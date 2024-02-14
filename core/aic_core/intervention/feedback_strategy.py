@@ -29,6 +29,18 @@ class E_CertaintyHandling(Enum):
   Average = 1
 
 
+def get_sorted_x_combos(np_v_values, obstate_idx):
+  'given a state(obstate_idx), get mental state combinations sorted by v-value'
+  np_obstate_values = np_v_values[obstate_idx]
+  list_combos = []
+  for combos, value in np.ndenumerate(np_obstate_values):
+    list_combos.append((value, combos))
+
+  list_combos.sort(reverse=True)
+
+  return list_combos
+
+
 class InterventionAbstract(ABC):
   def __init__(
       self,
@@ -253,14 +265,7 @@ class InterventionValueBased(InterventionAbstract):
 
   def _get_sorted_x_combos(self, np_v_values, obstate_idx, **kwargs):
     'given a state(obstate_idx), get mental state combinations sorted by v-value'
-    np_obstate_values = np_v_values[obstate_idx]
-    list_combos = []
-    for combos, value in np.ndenumerate(np_obstate_values):
-      list_combos.append((value, combos))
-
-    list_combos.sort(reverse=True)
-
-    return list_combos
+    return get_sorted_x_combos(np_v_values, obstate_idx)
 
   def get_intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
                        obstate_idx: int):

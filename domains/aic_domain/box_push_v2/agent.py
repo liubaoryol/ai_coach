@@ -13,7 +13,6 @@ from aic_domain.box_push_v2.agent_model import (
 
 
 class BoxPushAIAgent_PartialObs(AIAgent_PartialObs):
-
   def observed_states(self, tup_states):
     box_states, a1_pos, a2_pos = tup_states
 
@@ -122,7 +121,6 @@ class BoxPushAIAgent_PartialObs(AIAgent_PartialObs):
 
 
 class BoxPushAIAgent_PO_Team(BoxPushAIAgent_PartialObs):
-
   def __init__(self,
                init_tup_states,
                policy_model: CachedPolicyInterface,
@@ -137,7 +135,6 @@ class BoxPushAIAgent_PO_Team(BoxPushAIAgent_PartialObs):
 
 
 class BoxPushAIAgent_PO_Indv(BoxPushAIAgent_PartialObs):
-
   def __init__(self,
                init_tup_states,
                policy_model: CachedPolicyInterface,
@@ -151,7 +148,6 @@ class BoxPushAIAgent_PO_Indv(BoxPushAIAgent_PartialObs):
 
 
 class BoxPushAIAgent_Team(AIAgent_Abstract):
-
   def __init__(self,
                policy_model: CachedPolicyInterface,
                has_mind: bool = True,
@@ -165,7 +161,6 @@ class BoxPushAIAgent_Team(AIAgent_Abstract):
 
 
 class BoxPushAIAgent_Indv(AIAgent_Abstract):
-
   def __init__(self,
                policy_model: CachedPolicyInterface,
                has_mind: bool = True,
@@ -178,7 +173,6 @@ class BoxPushAIAgent_Indv(AIAgent_Abstract):
 
 
 class BoxPushAIAgent_BTIL(AIAgent_Abstract):
-
   def __init__(self,
                np_tx: np.ndarray,
                mask_sas: Sequence[bool],
@@ -193,7 +187,6 @@ class BoxPushAIAgent_BTIL(AIAgent_Abstract):
     super().__init__(policy_model, True, agent_idx)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
-
     def init_latents(obstate_idx):
       if self.np_bx is None:
         return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
@@ -219,27 +212,16 @@ class BoxPushAIAgent_BTIL(AIAgent_Abstract):
   def update_mental_state(self, tup_cur_state, tup_actions, tup_nxt_state):
     'tup_actions: tuple of actions'
 
-    mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
-    sidx_cur = mdp.conv_sim_states_to_mdp_sidx(tup_cur_state)
-    sidx_nxt = mdp.conv_sim_states_to_mdp_sidx(tup_nxt_state)
-
-    list_aidx = []
-    for idx, act in enumerate(tup_actions):
-      if act is None:
-        list_aidx.append(None)
-      else:
-        list_aidx.append(mdp.dict_factored_actionspace[idx].action_to_idx[act])
-
     if self.np_coach is not None:
+      mdp = self.agent_model.get_reference_mdp()  # type: LatentMDP
+      sidx_nxt = mdp.conv_sim_states_to_mdp_sidx(tup_nxt_state)
       xidx = self.get_coaching_x(sidx_nxt)
       self.agent_model.set_init_mental_state_idx(None, init_latent=xidx)
     else:
-      self.agent_model.update_mental_state_idx(sidx_cur, tuple(list_aidx),
-                                               sidx_nxt)
+      super().update_mental_state(tup_cur_state, tup_actions, tup_nxt_state)
 
 
 class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
-
   def __init__(self,
                np_tx: np.ndarray,
                mask_sas: Sequence[bool],
@@ -257,7 +239,6 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
     super().__init__(policy_model, True, agent_idx)
 
   def _create_agent_model(self, policy_model: CachedPolicyInterface):
-
     def init_latents(obstate_idx):
       if self.np_bx is None:
         return assumed_initial_mental_distribution(self.agent_idx, obstate_idx,
@@ -370,7 +351,6 @@ class BoxPushAIAgent_BTIL_ABS(AIAgent_Abstract):
 
 
 class AIAgent_NoMind(AIAgent_Abstract):
-
   def __init__(self,
                policy_model: NoMindCachedPolicy,
                agent_idx: int = 0) -> None:

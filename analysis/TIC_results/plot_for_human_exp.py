@@ -6,38 +6,7 @@ import matplotlib.pyplot as plt
 sns.set_theme(style="white")
 
 
-def save_evaluation_plot(df_input_name, output_name, list_domain_names,
-                         save_plot):
-  df = pd.read_csv(df_input_name)
-  fig, axes = plt.subplots(1, 1, figsize=(7, 5))
-  ax = sns.barplot(ax=axes, x='domain', y='value', hue='train_setup', data=df)
-
-  ax.set_xticklabels(list_domain_names)
-  h, _ = ax.get_legend_handles_labels()
-  ax.legend(h, ["150(100%)", "500(30%)", "500(100%)"],
-            title="# Data (Supervision)")
-
-  randomguess = [0.25, 0.20, 0.25, 0.33]
-  for i in range(4):
-    ax.hlines(y=randomguess[i],
-              xmin=i - 0.5,
-              xmax=i + 0.5,
-              color='black',
-              ls='--')
-
-  fontsize = 14
-  ax.set_xlabel(None)
-  ax.set_ylabel("Accuracy", fontsize=fontsize)
-  ax.set_ylim([0, 1])
-  ax.tick_params(axis='x', which='major', labelsize=fontsize)
-
-  fig = ax.get_figure()
-  fig.tight_layout()
-  if save_plot:
-    fig.savefig(output_name)
-
-
-def save_box_plots(df_input_name,
+def save_box_plots(df,
                    output_name,
                    list_domains,
                    list_domain_names,
@@ -45,7 +14,6 @@ def save_box_plots(df_input_name,
                    perfect_steps,
                    save_plot,
                    cost=1):
-  df = pd.read_csv(df_input_name)
 
   df["real_score"] = df["score"] - df["num_feedback"] * df["cost"]
 
@@ -171,7 +139,7 @@ def save_box_plots(df_input_name,
     fig.savefig(output_name)
 
 
-def save_rescue_plots(df_input_name,
+def save_rescue_plots(df,
                       output_name,
                       list_domains,
                       list_domain_names,
@@ -179,7 +147,6 @@ def save_rescue_plots(df_input_name,
                       perfect_steps,
                       save_plot,
                       cost=1):
-  df = pd.read_csv(df_input_name)
 
   df["real_score"] = df["score"] - df["num_feedback"] * df["cost"]
 
@@ -267,10 +234,9 @@ def save_rescue_plots(df_input_name,
     fig.savefig(output_name)
 
 
-def save_reward_vs_theta_plots(df_input_name, output_name, list_domains,
-                               list_domain_names, perfect_scores, perfect_steps,
-                               save_plot, list_interv_thres, list_cost):
-  df = pd.read_csv(df_input_name)
+def save_reward_vs_theta_plots(df, output_name, list_domains, list_domain_names,
+                               perfect_scores, perfect_steps, save_plot,
+                               list_interv_thres, list_cost):
 
   num_domain = len(list_domains)
 
@@ -318,10 +284,9 @@ def save_reward_vs_theta_plots(df_input_name, output_name, list_domains,
     fig.savefig(output_name)
 
 
-def save_score_vs_theta_plots(df_input_name, output_name, list_domains,
-                              list_domain_names, perfect_scores, perfect_steps,
-                              list_cost, list_interv_thres, save_plot):
-  df = pd.read_csv(df_input_name)
+def save_score_vs_theta_plots(df, output_name, list_domains, list_domain_names,
+                              perfect_scores, perfect_steps, list_cost,
+                              list_interv_thres, save_plot):
   df["real_score"] = df["score"] - df["num_feedback"] * df["cost"]
 
   num_domain = len(list_domains)
@@ -402,9 +367,8 @@ def save_score_vs_theta_plots(df_input_name, output_name, list_domains,
     fig.savefig(output_name)
 
 
-def save_num_feedback_vs_delta_plots(df_input_name, output_name, list_domains,
+def save_num_feedback_vs_delta_plots(df, output_name, list_domains,
                                      list_domain_names, list_cost, save_plot):
-  df = pd.read_csv(df_input_name)
 
   num_domain = len(list_domains)
 
@@ -435,9 +399,8 @@ def save_num_feedback_vs_delta_plots(df_input_name, output_name, list_domains,
     fig.savefig(output_name)
 
 
-def save_reward_vs_intervention_plots(df_input_name, output_name, list_domains,
+def save_reward_vs_intervention_plots(df, output_name, list_domains,
                                       list_domain_names, cost, save_plot):
-  df = pd.read_csv(df_input_name)
   # df["real_score"] = df["score"] - df["num_feedback"] * df["cost"]
 
   print(len(df))
@@ -497,10 +460,9 @@ def save_reward_vs_intervention_plots(df_input_name, output_name, list_domains,
     fig.savefig(output_name)
 
 
-def save_score_vs_intervention_plots(df_input_name, output_name, list_domains,
+def save_score_vs_intervention_plots(df, output_name, list_domains,
                                      list_domain_names, perfect_scores,
                                      perfect_steps, cost, save_plot):
-  df = pd.read_csv(df_input_name)
   df["real_score"] = df["score"] - df["num_feedback"] * df["cost"]
 
   print(len(df))
@@ -568,98 +530,74 @@ if __name__ == "__main__":
   data_dir = os.path.join(os.path.dirname(__file__), "human_data/")
   output_dir = os.path.join(os.path.dirname(__file__), "human_output/")
 
-  eval_result_name = data_dir + "eval_result3.csv"
-  intv_result_name = data_dir + "btil_intervention_result_20240213.csv"
+  MOVERS = "movers"
+  CLEANUP = "cleanup_v3"
+  FLOOD = "rescue_2"
+  BLACKOUT = "rescue_3"
 
-  list_domains = ["movers", "cleanup_v3", "rescue_2", "rescue_3"]
-  list_domain_names = ["Movers", "Cleanup", "Flood", "Blackout"]
+  list_domains = [MOVERS, FLOOD]
 
-  dict_interv_thres = {
-      "movers": [0, 1, 3, 5, 10, 15, 20, 30, 50],
-      "cleanup_v3": [0, 0.3, 0.5, 1, 2, 5, 10, 15, 20],
-      "rescue_2": [0, 0.1, 0.3, 0.5, 1, 1.5, 2, 3, 5],
-      "rescue_3": [0, 0.1, 0.2, 0.3, 0.5, 1, 1.5, 2, 3],
+  intv_result_name = "intervention_results_20240213"
+  list_intv_files = [
+      intv_result_name + f"-{dname}.csv" for dname in list_domains
+  ]
+
+  prefix = "unsup_robot_"
+
+  MAP_DOMAIN_NAME = {
+      MOVERS: "Movers",
+      CLEANUP: "Cleanup",
+      FLOOD: "Flood",
+      BLACKOUT: "Blackout"
   }
 
-  perfect_scores = [-43, -21, 7, 5]
-  perfect_steps = [43, 21, 19, 9]
+  MAP_SCORE = {MOVERS: -43, CLEANUP: -21, FLOOD: 7, BLACKOUT: 5}
 
-  budget_scores = [-86, -42, 3, 3]
-  budget_steps = [86, 42, 30, 15]
+  MAP_STEP = {MOVERS: 43, CLEANUP: 21, FLOOD: 19, BLACKOUT: 9}
+
+  DICT_INTERV_THRES = {
+      MOVERS: [0, 1, 3, 5, 10, 15, 20, 30, 50],
+      CLEANUP: [0, 0.3, 0.5, 1, 2, 5, 10, 15, 20],
+      FLOOD: [0, 0.1, 0.3, 0.5, 1, 1.5, 2, 3, 5],
+      BLACKOUT: [0, 0.1, 0.2, 0.3, 0.5, 1, 1.5, 2, 3],
+  }
+
   cost = 1
 
   SAVE_RESULT = True
   NO_SAVE = not SAVE_RESULT
 
-  # save_evaluation_plot(eval_result_name, output_dir + "inference_eval.png",
-  #                      list_domain_names, SAVE_RESULT)
+  df_intv_res = pd.concat(map(pd.read_csv, list_intv_files), ignore_index=True)
 
-  save_box_plots(intv_result_name,
-                 output_dir + "delta_box.png",
-                 list_domains[:1],
-                 list_domain_names[:1],
-                 perfect_scores[:1],
-                 perfect_steps[:1],
+  list_domains = [MOVERS]
+  save_box_plots(df_intv_res,
+                 output_dir + prefix + "delta_box.png",
+                 list_domains,
+                 [MAP_DOMAIN_NAME[dname] for dname in list_domains],
+                 [MAP_SCORE[dname] for dname in list_domains],
+                 [MAP_STEP[dname] for dname in list_domains],
                  SAVE_RESULT,
-                 cost=1)
-  save_rescue_plots(intv_result_name,
-                    output_dir + "delta_rescue.png",
-                    list_domains[2:3],
-                    list_domain_names[2:3],
-                    perfect_scores[2:3],
-                    perfect_steps[2:3],
+                 cost=cost)
+
+  list_domains = [FLOOD]
+  save_rescue_plots(df_intv_res,
+                    output_dir + prefix + "delta_rescue.png",
+                    list_domains,
+                    [MAP_DOMAIN_NAME[dname] for dname in list_domains],
+                    [MAP_SCORE[dname] for dname in list_domains],
+                    [MAP_STEP[dname] for dname in list_domains],
                     SAVE_RESULT,
-                    cost=1)
+                    cost=cost)
 
-  # save_reward_vs_delta_plots(intv_result_name,
-  #                            output_dir + "reward_vs_delta_box.png",
-  #                            list_domains[:2], list_domain_names[:2],
-  #                            perfect_scores[:2], perfect_steps[:2], 0,
-  #                            SAVE_RESULT, False)
-  # save_score_vs_delta_plots(intv_result_name,
-  #                           output_dir + "newscore_vs_delta_box.png",
-  #                           list_domains[:2], list_domain_names[:2],
-  #                           perfect_scores[:2], perfect_steps[:2], cost,
-  #                           SAVE_RESULT)
-  # save_reward_vs_delta_plots(intv_result_name,
-  #                            output_dir + "reward_vs_delta_rescue.png",
-  #                            list_domains[2:], list_domain_names[2:],
-  #                            perfect_scores[2:], perfect_steps[2:], 0,
-  #                            SAVE_RESULT, True)
-  # save_num_feedback_vs_delta_plots(
-  #     intv_result_name, output_dir + "num_feedback_vs_delta_rescue.png",
-  #     list_domains[2:], list_domain_names[2:], cost, SAVE_RESULT)
-  # save_reward_vs_theta_plots(intv_result_name,
-  #                            output_dir + "reward_vs_theta.png",
-  #                            list_domains[:1], list_domain_names[:1],
-  #                            perfect_scores[:1], perfect_steps[:1],
-  #                            SAVE_RESULT)
-  save_score_vs_theta_plots(intv_result_name,
-                            output_dir + "score_vs_theta.png",
-                            list_domains[:1],
-                            list_domain_names[:1],
-                            perfect_scores[:1],
-                            perfect_steps[:1],
-                            list_cost=[1],
-                            list_interv_thres=[5],
+  list_domains = [MOVERS]
+  save_score_vs_theta_plots(df_intv_res,
+                            output_dir + prefix + "score_vs_theta.png",
+                            list_domains,
+                            [MAP_DOMAIN_NAME[dname] for dname in list_domains],
+                            [MAP_SCORE[dname] for dname in list_domains],
+                            [MAP_STEP[dname] for dname in list_domains],
+                            list_cost=[cost],
+                            list_interv_thres=[0],
                             save_plot=SAVE_RESULT)
-  # save_num_feedback_vs_delta_plots(intv_result_name,
-  #                                  output_dir + "num_feedback_vs_delta.png",
-  #                                  list_domains, list_domain_names, cost,
-  #                                  SAVE_RESULT)
 
-  # save_reward_vs_intervention_plots(intv_result_name,
-  #                                   output_dir + "num_feedback_vs_reward.png",
-  #                                   list_domains[:1], list_domain_names[:1],
-  #                                   0, SAVE_RESULT)
-  # save_score_vs_intervention_plots(intv_result_name,
-  #                                  output_dir + "num_feedback_vs_score_1.png",
-  #                                  list_domains[:1], list_domain_names[:1],
-  #                                  perfect_scores[:1], perfect_steps[:1], 1,
-  #                                  SAVE_RESULT)
-  # save_score_vs_intervention_plots(intv_result_name,
-  #                                  output_dir + "num_feedback_vs_score_2.png",
-  #                                  list_domains[2:3], list_domain_names[2:3],
-  #                                  perfect_scores[2:3], perfect_steps[2:3], 1,
-  #                                  SAVE_RESULT)
   plt.show()

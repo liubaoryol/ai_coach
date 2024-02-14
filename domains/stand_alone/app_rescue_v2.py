@@ -229,7 +229,7 @@ class RescueApp(AppInterface):
 
     if V_VAL_FILE_NAME is not None:
       game = self.game
-      tup_state = tuple(game.get_state_for_each_agent(0))
+      tup_state = tuple(game.get_current_state())
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
       list_combos = get_sorted_x_combos(self.np_v_values, oidx)
       print("===========================================")
