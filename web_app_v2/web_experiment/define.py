@@ -294,9 +294,9 @@ def get_next_url(current_endpoint, task_session_key, group_id, exp_type):
 
     # In-experiment survay page
     elif current_endpoint == endpoint(BPName.Survey, PageKey.InExperiment):
-      if task_session_key == PageKey.Interv_A4:
+      if get_domain_type(task_session_key) == EDomainType.Movers:
         return url_for(endpoint(BPName.Instruction, PageKey.Rescue))
-      elif task_session_key == PageKey.Interv_C4:
+      elif get_domain_type(task_session_key) == EDomainType.Rescue:
         return url_for(endpoint(BPName.Survey, PageKey.Completion))
       else:
         raise ValueError

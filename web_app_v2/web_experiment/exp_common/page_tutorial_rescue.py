@@ -90,6 +90,7 @@ class RescueTutorialPlain(MixinTutorialBase, RescueGamePage):
     self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.GAME_DONE] = False
     user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
@@ -443,6 +444,7 @@ class RescueTutorialSelResult(RescueTutorialPlain):
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True

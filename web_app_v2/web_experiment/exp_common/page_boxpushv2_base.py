@@ -41,6 +41,7 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
     self._PARTIAL_OBS = partial_obs
 
   def init_user_data(self, user_game_data: Exp1UserData):
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.GAME_DONE] = False
 
     game = user_game_data.get_game_ref()
@@ -121,7 +122,6 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
 
     # move to next page
     user_game_data.go_to_next_page()
-    self.init_user_data(user_game_data)
 
   def _get_score_text(self, user_data: Exp1UserData):
     game = user_data.get_game_ref()

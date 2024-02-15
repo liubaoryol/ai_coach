@@ -55,11 +55,8 @@ class RescueV2TutorialBase(RescueV2GamePage):
     user_game_data: NOTE - values will be updated
     '''
 
-    game = user_game_data.get_game_ref()
     user_game_data.data[Exp1UserData.GAME_DONE] = True
-    game.reset_game()
-    user_game_data.data[Exp1UserData.SCORE] = game.current_step
-    self.init_user_data(user_game_data)
+    user_game_data.data[Exp1UserData.PAGE_DONE] = True
 
 
 class RescueV2TutorialMiniGame(RescueV2TutorialBase):

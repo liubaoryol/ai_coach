@@ -1,3 +1,5 @@
+import os
+import time
 from typing import Union
 from aic_domain.box_push.simulator import (BoxPushSimulator)
 from aic_domain.rescue.simulator import RescueSimulator
@@ -17,7 +19,7 @@ def task_intervention(latest_history_tuple, game: Union[BoxPushSimulator,
 
   task_mdp = policy_model.mdp  # type: MDP_Rescue_Task
 
-  def conv_human_xidx_to_latent(idx):
+  def conv_xidx_to_latent(idx, agent_id):
     # NOTE: For movers and rescue domains,
     #       human latent space is the same as the robot's
     latent = policy_model.conv_idx_to_latent(idx)
@@ -49,7 +51,8 @@ def task_intervention(latest_history_tuple, game: Union[BoxPushSimulator,
 
   feedback = intervention.get_intervention(list_np_x_dist, sidx_n)
 
-  intervention_latent = None
+  human_intervention_latent = None
+  robot_intervention_latent = None
   if feedback is not None:
     # update robot latent
     I_ROBOT = 1
@@ -61,6 +64,7 @@ def task_intervention(latest_history_tuple, game: Union[BoxPushSimulator,
       np_ntv_x_dist = np.zeros(len(list_np_x_dist[I_ROBOT]))
       np_ntv_x_dist[lat_robot] = 1.0
       list_np_x_dist[I_ROBOT] = np_ntv_x_dist
+      robot_intervention_latent = conv_xidx_to_latent(lat_robot, I_ROBOT)
 
     # update latent distribution according to intervention (human)
     I_HUMAN = 0
@@ -73,6 +77,37 @@ def task_intervention(latest_history_tuple, game: Union[BoxPushSimulator,
       list_np_x_dist[I_HUMAN] = (np_ntv_x_dist * p_a + np_inf_x_dist *
                                  (1 - p_a))
 
-      intervention_latent = conv_human_xidx_to_latent(feedback[0])
+      human_intervention_latent = conv_xidx_to_latent(lat_human, I_HUMAN)
 
-  return list_np_x_dist, intervention_latent
+  return list_np_x_dist, human_intervention_latent, robot_intervention_latent
+
+
+def store_intervention_history(path, intervention_history, user_id,
+                               session_name):
+  file_name = get_intervention_history_file_name(path, user_id, session_name)
+  dir_path = os.path.dirname(file_name)
+  if dir_path != '' and not os.path.exists(dir_path):
+    os.makedirs(dir_path)
+
+  with open(file_name, 'w', newline='') as txtfile:
+    # sequence
+    txtfile.write('# cur_step, human_intervention, robot_intervention\n')
+
+    for tup_label in intervention_history:
+      txtfile.write('%d; %s; %s' % tup_label)
+      txtfile.write('\n')
+
+
+def get_intervention_history_file_name(path, user_id, session_name):
+  traj_dir = os.path.join(path, user_id)
+
+  # save somewhere
+  if not os.path.exists(traj_dir):
+    os.makedirs(traj_dir)
+
+  sec, msec = divmod(time.time() * 1000, 1000)
+  time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
+                                          time.gmtime(sec)), msec)
+  file_name = ('interventions_' + session_name + '_' + str(user_id) + '_' +
+               time_stamp + '.txt')
+  return os.path.join(traj_dir, file_name)

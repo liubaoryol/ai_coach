@@ -109,9 +109,10 @@ def button_clicked(sid, name_space, button, user_game_data: UserData,
   page_lists[page_idx].button_clicked(user_game_data, button)
 
   new_page_idx = user_game_data.data[UserData.PAGE_IDX]  # type: int
+  page_done = user_game_data.data[UserData.PAGE_DONE]
 
   page_toshow = page_lists[new_page_idx]
-  if page_idx != new_page_idx:
+  if page_done:
     page_toshow.init_user_data(user_game_data)
     page_drawing_info = page_toshow.get_updated_drawing_info(user_game_data)
   else:

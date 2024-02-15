@@ -482,7 +482,7 @@ class CanvasPageRespawn(MixinTutorialBase, BoxPushV2GamePage):
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
-
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent()
     game.event_input(self._AGENT1, EventType.SET_LATENT, None)
@@ -506,6 +506,7 @@ class CanvasPageScore(MixinTutorialBase, BoxPushV2GamePage):
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
 
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
@@ -688,6 +689,7 @@ class CanvasPageTutorialPlain(MixinTutorialBase, BoxPushV2GamePage):
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True

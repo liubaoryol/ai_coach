@@ -72,7 +72,6 @@ class RescueV2GamePage(RescueV2GamePageBase):
 
     # move to next page
     user_game_data.go_to_next_page()
-    self.init_user_data(user_game_data)
 
   def _get_score_text(self, user_data):
     game = user_data.get_game_ref()

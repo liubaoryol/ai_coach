@@ -54,17 +54,24 @@ class SocketType(Enum):
 def get_socket_name(page_key, group_id):
   socket_type = None
 
-  if page_key == PageKey.Interv_A1 or page_key == PageKey.Interv_A2 or page_key == PageKey.Interv_A3 or page_key == PageKey.Interv_A4:
+  if (page_key == PageKey.Interv_A2 or page_key == PageKey.Interv_A3
+      or page_key == PageKey.Interv_A4):
     if group_id == GroupName.Group_B:
       socket_type = SocketType.Interv_movers_intervention
     else:
       socket_type = SocketType.Interv_movers_normal
 
-  if page_key == PageKey.Interv_C1 or page_key == PageKey.Interv_C2 or page_key == PageKey.Interv_C3 or page_key == PageKey.Interv_C4:
+  elif (page_key == PageKey.Interv_C2 or page_key == PageKey.Interv_C3
+        or page_key == PageKey.Interv_C4):
     if group_id == GroupName.Group_B:
       socket_type = SocketType.Interv_rescue_intervention
     else:
       socket_type = SocketType.Interv_rescue_normal
+
+  elif page_key == PageKey.Interv_A1:
+    socket_type = SocketType.Interv_movers_normal
+  elif page_key == PageKey.Interv_C1:
+    socket_type = SocketType.Interv_rescue_normal
 
   elif page_key == PageKey.Interv_T1:
     if group_id == GroupName.Group_B:

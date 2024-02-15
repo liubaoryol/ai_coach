@@ -36,6 +36,7 @@ class MixinCanvasPageReplay:
     self._PROMPT_FREQ = 0
 
   def init_user_data(self, user_data: UserDataReplay):
+    user_data.data[UserDataReplay.PAGE_DONE] = False
     user_data.data[UserDataReplay.SELECT] = False
     user_data.data[UserDataReplay.PARTIAL_OBS] = self._PARTIAL_OBS
 

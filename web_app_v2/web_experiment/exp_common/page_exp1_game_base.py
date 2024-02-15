@@ -99,6 +99,7 @@ class BoxPushGamePageBase(ExperimentPageBase):
     assert domain_type in [EDomainType.Movers, EDomainType.Cleanup]
 
   def init_user_data(self, user_game_data: Exp1UserData):
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.GAME_DONE] = False
     user_game_data.data[Exp1UserData.SELECT] = False
     # NOTE: game should be defined at the child class
@@ -134,10 +135,9 @@ class BoxPushGamePageBase(ExperimentPageBase):
       game = user_game_data.get_game_ref()
       dict_prev_game = copy.deepcopy(game.get_env_info())
       a1_act, a2_act, done = self.action_event(user_game_data, clicked_btn)
+      self._on_action_taken(user_game_data, dict_prev_game, (a1_act, a2_act))
       if done:
         self._on_game_finished(user_game_data)
-      else:
-        self._on_action_taken(user_game_data, dict_prev_game, (a1_act, a2_act))
       return
 
     elif clicked_btn == co.BTN_SELECT:
@@ -277,10 +277,6 @@ class BoxPushGamePageBase(ExperimentPageBase):
     '''
 
     user_game_data.data[Exp1UserData.GAME_DONE] = True
-    game = user_game_data.get_game_ref()
-
-    # update score
-    user_game_data.data[Exp1UserData.SCORE] = game.current_step
 
   def _get_updated_drawing_objects(
       self,

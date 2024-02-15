@@ -4,7 +4,8 @@ import pickle
 import numpy as np
 from web_experiment.exp_common.canvas_objects import DrawingObject
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
-from web_experiment.exp_intervention.helper import task_intervention
+from web_experiment.exp_intervention.helper import (task_intervention,
+                                                    store_intervention_history)
 import web_experiment.exp_common.canvas_objects as co
 from web_experiment.define import EDomainType
 import json
@@ -52,6 +53,10 @@ class MixinInterventionBase:
 
   CONFIRM_BUTTON = "Confirm Intervention"
   CONFIRM_MARK = "Confirm Mark"
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+    user_game_data.data[Exp1UserData.INTERVENTION_HISTORY] = []
 
   def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
 
@@ -121,6 +126,9 @@ class MixinInterventionBase:
                        dict_prev_game: Mapping[str, Any],
                        tuple_actions: Sequence[Any]):
     super()._on_action_taken(user_game_data, dict_prev_game, tuple_actions)
+    game = user_game_data.get_game_ref()
+    if game.is_finished():
+      return
 
     def policy_nxsa(nidx, xidx, sidx, tuple_aidx):
       return self._LIST_POLICIES[nidx][xidx, sidx, tuple_aidx[nidx]]
@@ -137,9 +145,8 @@ class MixinInterventionBase:
 
       return np_dist[xidx_n]
 
-    game = user_game_data.get_game_ref()
     prev_inference = user_game_data.data[Exp1UserData.PREV_INFERENCE]
-    inf_res, intervention_latent = task_intervention(
+    inf_res, intervention_latent, robot_latent = task_intervention(
         game.history[-1], game, self._TEAMMATE_POLICY, self._DOMAIN_TYPE,
         self.intervention_strategy, prev_inference, policy_nxsa, Tx_nxsasx)
 
@@ -152,6 +159,8 @@ class MixinInterventionBase:
     if text_latent is None:
       txt_advice = "Beep- . Keep up the good work. "
     else:
+      user_game_data.data[Exp1UserData.INTERVENTION_HISTORY].append(
+          (game.current_step, intervention_latent, robot_latent))
       txt_advice = (
           "Beep beep -! A potential improvement in teamwork is identified: " +
           text_latent)
@@ -169,3 +178,15 @@ class MixinInterventionBase:
               "and follow the suggestion.")
 
     return ("Please choose your next action.")
+
+  def _on_game_finished(self, user_game_data: Exp1UserData):
+    super()._on_game_finished(user_game_data)
+
+    user = user_game_data.data[Exp1UserData.USER]
+    user_id = user.userid
+    session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
+
+    user_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
+    interv_history = user_game_data.data[Exp1UserData.INTERVENTION_HISTORY]
+
+    store_intervention_history(user_path, interv_history, user_id, session_name)

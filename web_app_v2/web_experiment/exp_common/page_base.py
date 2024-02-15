@@ -17,6 +17,7 @@ class UserData:
   GROUP_ID = "group_id"
   SESSION_DONE = "session_done"
   DRAW_OBJ_NAMES = "draw_obj_names"
+  PAGE_DONE = "page_done"
 
   def __init__(self, user) -> None:
     self.data = {
@@ -27,16 +28,19 @@ class UserData:
         self.EXP_TYPE: "",
         self.SESSION_DONE: False,
         self.GROUP_ID: None,
-        self.DRAW_OBJ_NAMES: set()
+        self.DRAW_OBJ_NAMES: set(),
+        self.PAGE_DONE: False
     }
 
   def go_to_next_page(self):
+    self.data[self.PAGE_DONE] = True
     cur_page_idx = self.data[self.PAGE_IDX]
     num_pages = self.data[self.NUM_PAGES]
     if cur_page_idx + 1 < num_pages:
       self.data[self.PAGE_IDX] += 1
 
   def go_to_prev_page(self):
+    self.data[self.PAGE_DONE] = True
     cur_page_idx = self.data[self.PAGE_IDX]
     if cur_page_idx - 1 >= 0:
       self.data[self.PAGE_IDX] -= 1
@@ -64,6 +68,7 @@ class CanvasPageBase(abc.ABC):
     '''
     user_data: NOTE - values will be updated
     '''
+    user_data.data[UserData.PAGE_DONE] = False
     pass
 
   @abc.abstractmethod
@@ -146,6 +151,7 @@ class Exp1UserData(UserData):
   USER_LABEL_PATH = "user_label_path"
   PREV_INFERENCE = "prev_inference"
   INTERVENTION = "intervention"
+  INTERVENTION_HISTORY = "intervention_history"
 
   def __init__(self, user) -> None:
     super().__init__(user)
@@ -160,6 +166,7 @@ class Exp1UserData(UserData):
     self.data[Exp1UserData.USER_LABEL_PATH] = ""
     self.data[Exp1UserData.PREV_INFERENCE] = None
     self.data[Exp1UserData.INTERVENTION] = None  # either None or latent index
+    self.data[Exp1UserData.INTERVENTION_HISTORY] = []
 
   def get_game_ref(self) -> Simulator:
     return self.data[Exp1UserData.GAME]
@@ -212,6 +219,7 @@ class ExperimentPageBase(CanvasPageBase):
     '''
     user_game_data: NOTE - values will be updated
     '''
+    super().init_user_data(user_game_data)
     pass
 
   @abc.abstractmethod

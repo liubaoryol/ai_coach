@@ -24,6 +24,8 @@ for socket_type in SocketType:
 
       user_data.data[
           Exp1UserData.SAVE_PATH] = current_app.config["TRAJECTORY_PATH"]
+      user_data.data[Exp1UserData.USER_LABEL_PATH] = (
+          current_app.config["USER_LABEL_PATH"])
       user_data.data[Exp1UserData.EXP_TYPE] = ExpType.Intervention
 
       session_name = session["loaded_session_name"]

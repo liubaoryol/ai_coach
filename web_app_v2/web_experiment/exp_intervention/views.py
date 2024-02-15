@@ -5,17 +5,17 @@ from web_experiment.models import ExpIntervention, User
 from web_experiment.define import (PageKey, INTERV_SESSIONS, get_next_url,
                                    ExpType, url_name, GroupName)
 from web_experiment.exp_intervention.define import (SESSION_TITLE,
-                                                    get_socket_name)
+                                                    get_socket_name, SocketType)
 from . import exp_interv_bp
 
 EXP1_TEMPLATE = {
     # PageKey.Interv_A0: 'intv_session_a_practice.html',
-    PageKey.Interv_A1: 'intv_session_a_test.html',
+    PageKey.Interv_A1: 'intv_session_a_practice.html',
     PageKey.Interv_A2: 'intv_session_a_test.html',
     PageKey.Interv_A3: 'intv_session_a_test.html',
     PageKey.Interv_A4: 'intv_session_a_test.html',
     # PageKey.Interv_C0: 'intv_session_c_practice.html',
-    PageKey.Interv_C1: 'intv_session_c_test.html',
+    PageKey.Interv_C1: 'intv_session_c_practice.html',
     PageKey.Interv_C2: 'intv_session_c_test.html',
     PageKey.Interv_C3: 'intv_session_c_test.html',
     PageKey.Interv_C4: 'intv_session_c_test.html',
@@ -42,11 +42,8 @@ for session_name in INTERV_SESSIONS:
       user = User.query.filter_by(userid=cur_user).first()
       query_data = ExpIntervention.query.filter_by(subject_id=cur_user).first()
       disabled = ''
-      hidden = ''
       if not user.test and not getattr(query_data, session_name):
         disabled = 'disabled'
-      if group_id != GroupName.Group_B:
-        hidden = 'hidden'
 
       # session_name is needed when initializing UserData during 'connect' event
       # There could be a little time gap from here to UserData initialization
@@ -54,6 +51,13 @@ for session_name in INTERV_SESSIONS:
       session['loaded_session_name'] = session_name
 
       socket_name = get_socket_name(session_name, group_id)
+      hidden = ''
+      if SocketType[socket_name] in [
+          SocketType.Interv_rescue_normal, SocketType.Interv_movers_normal,
+          SocketType.Interv_movers_tutorial, SocketType.Interv_rescue_tutorial
+      ]:
+        hidden = 'hidden'
+
       return render_template(EXP1_TEMPLATE[session_name],
                              socket_name_space=socket_name,
                              cur_endpoint=cur_endpoint,

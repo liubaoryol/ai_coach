@@ -1,6 +1,5 @@
 from web_experiment.exp_common.page_rescue_game import RescueGamePage
 from web_experiment.exp_common.page_exp1_game_base import Exp1UserData
-from web_experiment.exp_intervention.helper import task_intervention
 from aic_core.intervention.feedback_strategy import (InterventionValueBased,
                                                      E_CertaintyHandling)
 from web_experiment.exp_intervention.page_intervention_base import (

@@ -108,6 +108,8 @@ class CanvasPageEnd(ExperimentPageBase):
     super().__init__(False, False, True, domain_type)
 
   def init_user_data(self, user_game_data: Exp1UserData):
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
+
     user = user_game_data.data[Exp1UserData.USER]
     user_id = user.userid
     session_name = user_game_data.data[Exp1UserData.SESSION_NAME]
