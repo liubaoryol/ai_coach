@@ -17,8 +17,8 @@ class RescueV2InterventionPage(MixinInterventionBase, RescueGamePage):
     self.intervention_strategy = InterventionValueBased(
         self._V_VALUES,
         E_CertaintyHandling.Threshold,
-        inference_threshold=0.3,
-        intervention_threshold=0,
+        inference_threshold=0,
+        intervention_threshold=0.1,
         intervention_cost=0)
 
   def _get_action_btn_disabled(self, user_data: Exp1UserData):

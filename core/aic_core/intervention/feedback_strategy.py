@@ -342,7 +342,7 @@ class InterventionValueBased(InterventionAbstract):
     if cur_vval is None:
       return True
     else:
-      return (opt_vval - cur_vval - self.intervention_cost >=
+      return (opt_vval - cur_vval - self.intervention_cost >
               self.intervention_threshold)
 
   def _value_based_combo(self, list_vval_combo_pairs,

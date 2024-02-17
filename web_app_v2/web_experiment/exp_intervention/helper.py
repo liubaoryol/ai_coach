@@ -73,7 +73,7 @@ def task_intervention(latest_history_tuple, game: Union[BoxPushSimulator,
       np_inf_x_dist = list_np_x_dist[I_HUMAN]
       np_ntv_x_dist = np.zeros(len(np_inf_x_dist))
       np_ntv_x_dist[lat_human] = 1.0
-      p_a = 1.0
+      p_a = 0.9
       list_np_x_dist[I_HUMAN] = (np_ntv_x_dist * p_a + np_inf_x_dist *
                                  (1 - p_a))
 

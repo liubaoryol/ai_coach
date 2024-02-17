@@ -421,94 +421,116 @@ if __name__ == "__main__":
       BLACKOUT: [0, 0.1, 0.2, 0.3, 0.5, 1, 1.5, 2, 3],
   }
 
-  cost = 1
+  movers_cost = 1
+  rescue_cost = 0
 
   SAVE_RESULT = True
   NO_SAVE = not SAVE_RESULT
 
   df_intv_res = pd.concat(map(pd.read_csv, list_intv_files), ignore_index=True)
 
-  save_box_plots(df_intv_res,
-                 output_dir + prefix + "delta_movers.png",
-                 MOVERS,
-                 MAP_DOMAIN_NAME[MOVERS],
-                 MAP_SCORE[MOVERS],
-                 MAP_STEP[MOVERS],
-                 SAVE_RESULT,
-                 cost=cost)
+  PLOT_MOVERS = False
+  PLOT_RESCUE = True
 
-  save_rescue_plots(df_intv_res,
-                    output_dir + prefix + "delta_rescue.png",
-                    FLOOD,
-                    MAP_DOMAIN_NAME[FLOOD],
-                    MAP_SCORE[FLOOD],
-                    MAP_STEP[FLOOD],
-                    SAVE_RESULT,
-                    cost=cost)
+  TEST_PLOT = False
+  if TEST_PLOT:
+    save_score_vs_intervention_plots(df_intv_res,
+                                     output_dir + prefix +
+                                     "Score_NumInt_rescue.png",
+                                     FLOOD,
+                                     MAP_DOMAIN_NAME[FLOOD],
+                                     MAP_SCORE[FLOOD],
+                                     MAP_STEP[FLOOD],
+                                     rescue_cost,
+                                     save_plot=SAVE_RESULT,
+                                     consider_cost=False,
+                                     plot_center_policy=True)
+    plt.show()
+    raise NotImplementedError("Test plot")
 
-  save_score_vs_theta_plots(df_intv_res,
-                            output_dir + prefix + "theta_movers.png",
-                            MOVERS,
-                            MAP_DOMAIN_NAME[MOVERS],
-                            MAP_SCORE[MOVERS],
-                            MAP_STEP[MOVERS],
-                            cost=cost,
-                            interv_thres=5,
-                            save_plot=SAVE_RESULT,
-                            consider_cost=True)
+  if PLOT_MOVERS:
+    save_box_plots(df_intv_res,
+                   output_dir + prefix + "delta_movers.png",
+                   MOVERS,
+                   MAP_DOMAIN_NAME[MOVERS],
+                   MAP_SCORE[MOVERS],
+                   MAP_STEP[MOVERS],
+                   SAVE_RESULT,
+                   cost=movers_cost)
 
-  save_score_vs_theta_plots(df_intv_res,
-                            output_dir + prefix + "theta_movers.png",
-                            MOVERS,
-                            MAP_DOMAIN_NAME[MOVERS],
-                            MAP_SCORE[MOVERS],
-                            MAP_STEP[MOVERS],
-                            cost=cost,
-                            interv_thres=3,
-                            save_plot=SAVE_RESULT,
-                            consider_cost=True)
+    save_score_vs_theta_plots(df_intv_res,
+                              output_dir + prefix + "theta_movers.png",
+                              MOVERS,
+                              MAP_DOMAIN_NAME[MOVERS],
+                              MAP_SCORE[MOVERS],
+                              MAP_STEP[MOVERS],
+                              cost=movers_cost,
+                              interv_thres=5,
+                              save_plot=SAVE_RESULT,
+                              consider_cost=True)
 
-  save_score_vs_theta_plots(df_intv_res,
-                            output_dir + prefix + "theta_rescue.png",
-                            FLOOD,
-                            MAP_DOMAIN_NAME[FLOOD],
-                            MAP_SCORE[FLOOD],
-                            MAP_STEP[FLOOD],
-                            cost=cost,
-                            interv_thres=0,
-                            save_plot=SAVE_RESULT,
-                            consider_cost=False)
+    save_score_vs_theta_plots(df_intv_res,
+                              output_dir + prefix + "theta_movers.png",
+                              MOVERS,
+                              MAP_DOMAIN_NAME[MOVERS],
+                              MAP_SCORE[MOVERS],
+                              MAP_STEP[MOVERS],
+                              cost=movers_cost,
+                              interv_thres=3,
+                              save_plot=SAVE_RESULT,
+                              consider_cost=True)
 
-  save_score_vs_theta_plots(df_intv_res,
-                            output_dir + prefix + "theta_rescue.png",
-                            FLOOD,
-                            MAP_DOMAIN_NAME[FLOOD],
-                            MAP_SCORE[FLOOD],
-                            MAP_STEP[FLOOD],
-                            cost=cost,
-                            interv_thres=0.5,
-                            save_plot=SAVE_RESULT,
-                            consider_cost=False)
+    save_score_vs_intervention_plots(df_intv_res,
+                                     output_dir + prefix +
+                                     "Score_NumInt_movers.png",
+                                     MOVERS,
+                                     MAP_DOMAIN_NAME[MOVERS],
+                                     MAP_SCORE[MOVERS],
+                                     MAP_STEP[MOVERS],
+                                     movers_cost,
+                                     save_plot=SAVE_RESULT,
+                                     consider_cost=True)
 
-  save_score_vs_intervention_plots(df_intv_res,
-                                   output_dir + prefix +
-                                   "Score_NumInt_movers.png",
-                                   MOVERS,
-                                   MAP_DOMAIN_NAME[MOVERS],
-                                   MAP_SCORE[MOVERS],
-                                   MAP_STEP[MOVERS],
-                                   cost,
-                                   save_plot=SAVE_RESULT,
-                                   consider_cost=True)
+  if PLOT_RESCUE:
+    save_rescue_plots(df_intv_res,
+                      output_dir + prefix + "delta_rescue.png",
+                      FLOOD,
+                      MAP_DOMAIN_NAME[FLOOD],
+                      MAP_SCORE[FLOOD],
+                      MAP_STEP[FLOOD],
+                      SAVE_RESULT,
+                      cost=rescue_cost)
 
-  save_score_vs_intervention_plots(df_intv_res,
-                                   output_dir + prefix +
-                                   "Score_NumInt_rescue.png",
-                                   FLOOD,
-                                   MAP_DOMAIN_NAME[FLOOD],
-                                   MAP_SCORE[FLOOD],
-                                   MAP_STEP[FLOOD],
-                                   cost,
-                                   save_plot=SAVE_RESULT,
-                                   consider_cost=False)
+    save_score_vs_theta_plots(df_intv_res,
+                              output_dir + prefix + "theta_rescue.png",
+                              FLOOD,
+                              MAP_DOMAIN_NAME[FLOOD],
+                              MAP_SCORE[FLOOD],
+                              MAP_STEP[FLOOD],
+                              cost=rescue_cost,
+                              interv_thres=0,
+                              save_plot=SAVE_RESULT,
+                              consider_cost=False)
+
+    save_score_vs_theta_plots(df_intv_res,
+                              output_dir + prefix + "theta_rescue.png",
+                              FLOOD,
+                              MAP_DOMAIN_NAME[FLOOD],
+                              MAP_SCORE[FLOOD],
+                              MAP_STEP[FLOOD],
+                              cost=rescue_cost,
+                              interv_thres=0.5,
+                              save_plot=SAVE_RESULT,
+                              consider_cost=False)
+
+    save_score_vs_intervention_plots(df_intv_res,
+                                     output_dir + prefix +
+                                     "Score_NumInt_rescue.png",
+                                     FLOOD,
+                                     MAP_DOMAIN_NAME[FLOOD],
+                                     MAP_SCORE[FLOOD],
+                                     MAP_STEP[FLOOD],
+                                     rescue_cost,
+                                     save_plot=SAVE_RESULT,
+                                     consider_cost=False)
   plt.show()

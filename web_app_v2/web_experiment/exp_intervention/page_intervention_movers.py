@@ -17,7 +17,7 @@ class BoxPushV2InterventionPage(MixinInterventionBase, BoxPushV2GamePage):
         self._V_VALUES,
         E_CertaintyHandling.Threshold,
         inference_threshold=0,
-        intervention_threshold=3,
+        intervention_threshold=5,
         intervention_cost=1)
 
   def _get_action_btn_disabled(self, user_data: Exp1UserData):

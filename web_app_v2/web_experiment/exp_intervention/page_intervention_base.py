@@ -172,10 +172,9 @@ class MixinInterventionBase:
   def _get_instruction(self, user_data: Exp1UserData):
     if user_data.data[Exp1UserData.INTERVENTION] is not None:
       return ("Tim suggested a better target for you " +
-              "considering the current task status. " +
+              "estimating the current situation. " +
               "The target is marked with a flashing red circle. " +
-              "Please click the \"Confirm\" button once confirmed, " +
-              "and follow the suggestion.")
+              "Please click the \"Confirm\" button once confirmed.")
 
     return ("Please choose your next action.")
 

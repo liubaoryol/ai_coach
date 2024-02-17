@@ -21,7 +21,8 @@ class BoxPushTutorialInterventionIntro(CanvasPageTutorialPlain):
   def _get_instruction(self, user_game_data: Exp1UserData):
     return ("Above this game screen is Tim, your AI team coach. " +
             "Tim will monitor your and your teammate's actions and " +
-            "give you timely advice if it could be beneficial for the team.")
+            "give you suggestions if he estimates they could be beneficial " +
+            "for the team.")
 
 
 class BoxPushTutorialInterventionUI(MixinTutorialBase,

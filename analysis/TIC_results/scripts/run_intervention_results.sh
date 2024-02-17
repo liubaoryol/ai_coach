@@ -14,7 +14,7 @@ python analysis/TIC_results/intervention_results.py \
 
 # - flood (rescue_2)
 python analysis/TIC_results/intervention_results.py \
-      --domain='rescue_2' --costs='1' --num-runs=100 \
+      --domain='rescue_2' --costs='0' --num-runs=100 \
       --dir-name=human_data --is-btil-agent=True \
       --output-name=intv_res_20240213.csv \
       --v-value-file='rescue_2_160_0,30_30_merged_v_values_learned.pickle' \
