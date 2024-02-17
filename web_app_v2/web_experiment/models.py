@@ -2,6 +2,7 @@ from web_experiment import db
 from web_experiment.define import (DATACOL_TUTORIALS, DATACOL_TASKS,
                                    INTERV_SESSIONS, PageKey,
                                    get_record_session_key)
+from web_experiment.survey_def import POST_TASK_QUESTIONS
 
 
 class User(db.Model):
@@ -74,11 +75,6 @@ class ExpIntervention(db.Model):
   for session_name in INTERV_SESSIONS:
     vars()[session_name] = db.Column(db.Boolean, default=False)
 
-  vars()[get_record_session_key(PageKey.Interv_A1)] = db.Column(db.Boolean,
-                                                                default=False)
-  vars()[get_record_session_key(PageKey.Interv_C1)] = db.Column(db.Boolean,
-                                                                default=False)
-
   def __repr__(self):
     return '<ExpIntervention %r>' % self.subject_id
 
@@ -100,16 +96,14 @@ class PreExperiment(db.Model):
 class InExperiment(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   session_name = db.Column(db.String(80), default='')
-  maintained = db.Column(db.Integer, nullable=False)
-  fluency = db.Column(db.Integer, nullable=False)
-  mycarry = db.Column(db.Integer, nullable=False)
-  robotcarry = db.Column(db.Integer, nullable=False)
-  robotperception = db.Column(db.Integer, nullable=False)
-  cooperative = db.Column(db.Integer, nullable=False)
-  comment = db.Column(db.String(500))
   subject_id = db.Column(db.String(80),
                          db.ForeignKey('user.userid', ondelete='CASCADE'),
                          nullable=False)
+
+  for e_question in POST_TASK_QUESTIONS:
+    vars()[e_question.name] = db.Column(db.Integer, nullable=True)
+
+  comment = db.Column(db.String(500))
 
   def __repr__(self):
     return '<InExperiment %r>' % self.subject_id
