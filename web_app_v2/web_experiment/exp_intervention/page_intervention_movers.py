@@ -15,7 +15,7 @@ class BoxPushV2InterventionPage(MixinInterventionBase, BoxPushV2GamePage):
 
     self.intervention_strategy = InterventionValueBased(
         self._V_VALUES,
-        E_CertaintyHandling.Average,
+        E_CertaintyHandling.Threshold,
         inference_threshold=0,
         intervention_threshold=3,
         intervention_cost=1)

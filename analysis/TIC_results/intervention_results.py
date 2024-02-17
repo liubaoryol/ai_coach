@@ -210,7 +210,7 @@ def main(domain: str, costs: str, num_runs, dir_name, output_name, policy1_file,
       "rescue_3": [0, 0.1, 0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
   }
 
-  INTERV_THRES_INDICES_FOR_CONFIDENCE_METHOD = [0, 1, 2, 3]
+  INTERV_THRES_INDICES_FOR_CONFIDENCE_METHOD = [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
   list_config = []
   for cost in list_cost:
