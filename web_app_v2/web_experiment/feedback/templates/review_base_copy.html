@@ -1,59 +1,83 @@
-{% extends 'base.html' %}
-
-{% block header %}
-<h1>{% block title %}
-  {% if domain_type == 'Movers' %}
-  Movers and Packers (part 3/6)
-  {% elif domain_type == 'Cleanup' %}
-  Cleanup (part 4/6)
-  {% elif domain_type == 'Rescue' %}
-  Rescue (part 5/6)
-  {% else %}
-  Unknown Domain
-  {% endif %}
-  {% endblock %}</h1>
+{% extends 'base.html' %} {% block header %}
+<h1>
+  {% block title %} {% if domain_type == 'Movers' %} Movers and Packers (part
+  3/6) {% elif domain_type == 'Cleanup' %} Cleanup (part 4/6) {% elif
+  domain_type == 'Rescue' %} Rescue (part 5/6) {% else %} Unknown Domain {%
+  endif %} {% endblock %}
+</h1>
 <h2>{% block subtitle %} Review Latent States{% endblock %}</h2>
 <div class="explanation">
-  <p>Review latent states - Session: {{session_title}} - Total Steps: <span id="max_index"></span></p>
+  <p>
+    Review latent states - Session: {{session_title}} - Total Steps:
+    <span id="max_index"></span>
+  </p>
 </div>
-{% endblock %}
-
-{% block content %}
-<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
-  crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+{% endblock %} {% block content %}
+<script
+  src="//code.jquery.com/jquery-1.12.4.min.js"
+  integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
-  crossorigin="anonymous"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
-<script type="text/javascript" charset="utf-8"
-  src="{{ url_for('review.static', filename='review_buttons.js') }}"></script>
+  crossorigin="anonymous"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='methods.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='socket_n_canvas.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('review.static', filename='review_buttons.js') }}"
+></script>
 <script type="text/javascript">
   initSocketIO("{{ socket_name_space }}");
 </script>
 
-<canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
+<canvas
+  id="myCanvas"
+  width="900"
+  height="600"
+  style="border: 5px solid #000000"
+  tabindex="1"
+>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 
 <div class="slidecontainer">
   <p></p>
-  <label for="playback">Please scroll to review if you correctly selected your destination at each step. If the red
-    circle is not aligned with what you have actually thought of as the destination, please click "Fix Destination"
-    button to update it.
+  <label for="playback"
+    >Please scroll to review if you correctly selected your destination at each
+    step. If the red circle is not aligned with what you have actually thought
+    of as the destination, please click "Fix Destination" button to update it.
   </label>
-  <input type="range" min="0" max="1" value="0" class="slider" id="playback">
+  <input type="range" min="0" max="1" value="0" class="slider" id="playback" />
   <div class="button-center">
-    <button type="submit" value="confirm" id="confirm" disabled=true>Confirm Selection</button>
+    <button type="submit" value="confirm" id="confirm" disabled="true">
+      Confirm Selection
+    </button>
   </div>
   <p>Time step: <span id="timestep"></span></p>
 </div>
 
 <div>
-  <form method="POST" action="{{ url_for(cur_endpoint, session_name=session_name) }}">
-    <input type="hidden" name="proceed" value="proceed">
+  <form
+    method="POST"
+    action="{{ url_for(cur_endpoint, session_name=session_name) }}"
+  >
+    <input type="hidden" name="proceed" value="proceed" />
     <div class="button-center">
-      <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to Next Stage</button>
+      <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>
+        Proceed to Next Stage
+      </button>
     </div>
   </form>
 </div>

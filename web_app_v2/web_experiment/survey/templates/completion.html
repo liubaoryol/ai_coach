@@ -1,36 +1,198 @@
-{% extends 'base.html' %}
-
-{% block header %}
+{% extends 'base.html' %} {% block header %}
 <h1>{% block title %}Post-Experiment Survey (part 5/5){% endblock %}</h1>
 <div class="explanation">
-  <p>Now, we are at the final screen of your study session. Thank you for volunteering to participate in this study. We
-    sincerely appreciate it. To complete the session, please complete the following questionnaire and press submit. All
-    questions are optional.</p>
+  <p>
+    Now, we are at the final screen of your study session. Thank you for
+    volunteering to participate in this study. We sincerely appreciate it. To
+    complete the session, please complete the following questionnaire and press
+    submit. All questions are optional.
+  </p>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="form-control">
   <form method="post" action="{{ url_for(cur_endpoint) }}">
     <div>
-      <label class="statement" for="comment">Please provide any comments that you might have regarding the
-        study.</label>
-      <textarea id="comment" name="comment" rows="4" cols="50" maxlength="500">{{ saved_comment }}</textarea>
+      <label class="statement" for="comment"
+        >Please provide any comments that you might have regarding the
+        study.</label
+      >
+      <textarea id="comment" name="comment" rows="4" cols="50" maxlength="500">
+{{ saved_comment }}</textarea
+      >
     </div>
     <div>
-      <label class="statement" for="question">Please share any questions that you might have regarding the
-        study.</label>
-      <textarea id="question" name="question" rows="4" cols="50" maxlength="500">{{ saved_question }}</textarea>
+      <label class="statement" for="question"
+        >Please share any questions that you might have regarding the
+        study.</label
+      >
+      <textarea
+        id="question"
+        name="question"
+        rows="4"
+        cols="50"
+        maxlength="500"
+      >
+{{ saved_question }}</textarea
+      >
     </div>
-    <div>
-      <label class="statement" for="email">Please submit the email at which you would like to receive the $5 gift
-        card.</label>
-      <input name="email" id="email" value="{{ saved_email }}">
+    <div hidden>
+      <label class="statement" for="email"
+        >Please submit the email at which you would like to receive the $5 gift
+        card.</label
+      >
+      <input name="email" id="email" value="{{ saved_email }}" />
     </div>
     <div class="button-center">
       <button type="submit" value="submit">Submit</button>
     </div>
   </form>
 </div>
-
+<div class="content">
+  <b>Image credits</b>
+  <ul>
+    <li>
+      Robot: <a href="https://www.svgrepo.com/svg/62629/robot">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Woman(front):
+      <a href="https://www.svgrepo.com/svg/284725/woman-stickman">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Woman(back):
+      <a href="https://www.svgrepo.com/svg/284726/woman-stickman">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Man(front):
+      <a href="https://www.svgrepo.com/svg/284716/man-stickman">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Man(back):
+      <a href="https://www.svgrepo.com/svg/284707/man-stickman">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Box: by Sergei Kokota,
+      <a href="https://icon-icons.com/icon/box/73953">Link</a>, License-<a
+        href="https://creativecommons.org/licenses/by/4.0/legalcode"
+        >CC BY 4.0</a
+      >
+    </li>
+    <li>
+      Trash bag: by KCVelaga,
+      <a
+        href="https://commons.wikimedia.org/wiki/File:Trash_bag_illustration.svg"
+        >Link</a
+      >, License-<a
+        href="https://creativecommons.org/licenses/by-sa/4.0/legalcode"
+        >CC BY-SA 4.0</a
+      >
+    </li>
+    <li>
+      Wall: <a href="https://www.svgrepo.com/svg/300218/brick">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Flag: <a href="https://www.svgrepo.com/svg/241737/flag">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/legalcode"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Bridge: <a href="https://freesvg.org/firebog-bridge">Link</a>, License-<a
+        href="https://creativecommons.org/licenses/publicdomain/"
+        >publicdomain</a
+      >
+    </li>
+    <li>
+      Campsite: <a href="https://www.svgrepo.com/svg/400037/camping">Link</a>,
+      License-<a href="https://www.apache.org/licenses/LICENSE-2.0"
+        >Apache License</a
+      >
+    </li>
+    <li>
+      City Hall: <a href="https://www.svgrepo.com/svg/9769/city-hall">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Mall:
+      <a href="https://www.svgrepo.com/svg/38287/shopping-center">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Fire Station:
+      <a href="https://www.svgrepo.com/svg/143743/fire-station">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Police Station:
+      <a href="https://www.svgrepo.com/svg/229563/police-station">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Fire Engine:
+      <a href="https://www.svgrepo.com/svg/228962/fire-truck">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Police Car:
+      <a href="https://www.svgrepo.com/svg/229597/police-car">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Warning Sign: <a href="https://www.svgrepo.com/svg/206435/alert">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+    <li>
+      Truck: <a href="https://www.svgrepo.com/svg/5164/truck">Link</a>,
+      License-<a
+        href="https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+        >CC0</a
+      >
+    </li>
+  </ul>
+</div>
 {% endblock %}

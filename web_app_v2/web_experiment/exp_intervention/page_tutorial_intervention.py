@@ -39,8 +39,8 @@ class BoxPushTutorialInterventionUI(MixinTutorialBase,
 
     text_latent = self._conv_latent_to_advice(intervention_latent)
     txt_advice = (
-        "Beep beep -! A potential improvement in teamwork is identified: " +
-        text_latent)
+        "Beep beep -! I\'ve spotted a potential opportunity to enhance our teamwork: "
+        + text_latent)
     objs = {}
     objs["advice"] = txt_advice
     objs_json = json.dumps(objs)

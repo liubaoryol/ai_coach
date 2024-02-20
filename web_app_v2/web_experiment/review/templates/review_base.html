@@ -1,62 +1,80 @@
-{% extends 'base.html' %}
-
-{% block header %}
-<h1>{% block title %}
-  {% if domain_type == 'Movers' %}
-  Movers and Packers (part 3/5)
-  {% elif domain_type == 'Cleanup' %}
-  Cleanup (part 4/5)
-  {% elif domain_type == 'Rescue' %}
-  Rescue (part 4/5)
-  {% else %}
-  Unknown Domain
-  {% endif %}
-  {% endblock %}</h1>
+{% extends 'base.html' %} {% block header %}
+<h1>
+  {% block title %} {% if domain_type == 'Movers' %} Movers and Packers (part
+  3/5) {% elif domain_type == 'Cleanup' %} Cleanup (part 4/5) {% elif
+  domain_type == 'Rescue' %} Rescue (part 4/5) {% else %} Unknown Domain {%
+  endif %} {% endblock %}
+</h1>
 <h2>{% block subtitle %} Review TASK {{ session_title}} {% endblock %}</h2>
 <div class="explanation">
   <p>
-    Please review the destinations labeled based on your choices.
-    If you selected incorrect destinations or forgot to update your destination at right time during the task,
-    please correct it via the "Fix Destination" button on the right bottom.
+    Please review the destinations labeled based on your choices. If you
+    selected incorrect destinations or forgot to update your destination at
+    right time during the task, please correct it via the "Fix Destination"
+    button on the right bottom.
   </p>
   <p>
-    If you think you already provided us with correct destinations, you can skip this review page and proceed
-    to the next stage. Once you move to the next stage, you cannot review this task anymore.
+    If you think you already provided us with correct destinations, you can skip
+    this review page and proceed to the next stage. Once you move to the next
+    stage, you cannot review this task anymore.
   </p>
 </div>
-{% endblock %}
-
-{% block content %}
-<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
-  crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+{% endblock %} {% block content %}
+<script
+  src="//code.jquery.com/jquery-1.12.4.min.js"
+  integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
-  crossorigin="anonymous"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
-<script type="text/javascript" charset="utf-8"
-  src="{{ url_for('review.static', filename='review_buttons.js') }}"></script>
+  crossorigin="anonymous"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='methods.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='socket_n_canvas.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('review.static', filename='review_buttons.js') }}"
+></script>
 <script type="text/javascript">
   initSocketIO("{{ socket_name_space }}");
 </script>
 
 <div class="slidecontainer">
-  <label for="playback">Please scroll to the right.
-  </label>
-  <input type="range" min="0" max="1" value="0" class="slider" id="playback">
+  <label for="playback">Please scroll to the right. </label>
+  <input type="range" min="0" max="1" value="0" class="slider" id="playback" />
   <!-- <p>Time step: <span id="timestep"></span></p> -->
 </div>
 
-<canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
+<canvas
+  id="myCanvas"
+  width="900"
+  height="600"
+  style="border: 5px solid #000000"
+  tabindex="1"
+>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 
-
 <div>
-  <form method="POST" action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}">
-    <input type="hidden" name="proceed" value="proceed">
+  <form
+    method="POST"
+    action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}"
+  >
+    <input type="hidden" name="proceed" value="proceed" />
     <div class="button-center">
-      <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to the Next Stage</button>
+      <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>
+        Proceed to the Next Stage
+      </button>
     </div>
   </form>
 </div>

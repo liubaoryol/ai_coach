@@ -144,18 +144,22 @@ INTERV_TUTORIALS = [PageKey.Interv_T1, PageKey.Interv_T3]
 
 INTERV_SESSIONS = INTERV_TASKS + INTERV_TUTORIALS
 
-USE_IDENTIFIABLE_URL = True
+
+# NOTE: container for flags that should be used globally across modules
+# instance should not be created. should only be accessed as class variables
+class GlobalVars:
+  use_identifiable_url = False
 
 
 def url_name(page_key):
-  if USE_IDENTIFIABLE_URL:
+  if GlobalVars.use_identifiable_url:
     return page_key
   else:
     return str(hash(page_key))
 
 
 def custom_hash(str_key):
-  if USE_IDENTIFIABLE_URL:
+  if GlobalVars.use_identifiable_url:
     return str_key
   else:
     return str(np.base_repr(2 * hash(str_key), base=36))

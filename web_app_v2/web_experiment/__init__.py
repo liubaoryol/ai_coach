@@ -7,6 +7,7 @@ import logging
 from flask import Flask
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
+from web_experiment.define import GlobalVars
 # import eventlet
 
 # eventlet.monkey_patch()
@@ -34,6 +35,8 @@ def create_app(debug=False, test_config=None):
   app.config['SQLALCHEMY_DATABASE_URI'] = (
       'sqlite:///' + os.path.abspath(app.config['DATABASE']))
   app.config.update(SESSION_COOKIE_SAMESITE="Lax")
+
+  GlobalVars.use_identifiable_url = app.config['USE_IDENTIFIABLE_URL']
 
   # ensure the instance folder and data folder exists
   try:

@@ -360,7 +360,8 @@ def completion():
       user.completed = True
       db.session.commit()
 
-      return redirect(url_for('survey.thankyou'))
+      # return redirect(url_for('survey.thankyou'))
+      return redirect(current_app.config['COMPLETION_REDIRECT'])
 
     flash(error)
 
@@ -386,7 +387,8 @@ def thankyou():
   cur_user = g.user
   session.clear()
   logging.info('User %s completed the experiment.' % (cur_user, ))
-  return render_template('thankyou.html')
+  return render_template('thankyou.html',
+                         completion_code=current_app.config['COMPLETION_CODE'])
 
 
 survey_bp.add_url_rule('/' + url_name(PageKey.PreExperiment),

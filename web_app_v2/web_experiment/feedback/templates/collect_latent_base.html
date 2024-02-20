@@ -1,42 +1,61 @@
-{% extends 'base.html' %}
-
-{% block header %}
-<h1>{% block title %}
-  {% if domain_type == 'Movers' %}
-  Movers and Packers (part 3/5)
-  {% elif domain_type == 'Cleanup' %}
-  Cleanup (part 4/5)
-  {% else %}
-  Unknown Domain
-  {% endif %}
-  {% endblock %}</h1>
+{% extends 'base.html' %} {% block header %}
+<h1>
+  {% block title %} {% if domain_type == 'Movers' %} Movers and Packers (part
+  3/5) {% elif domain_type == 'Cleanup' %} Cleanup (part 4/5) {% else %} Unknown
+  Domain {% endif %} {% endblock %}
+</h1>
 <h2>{% block subtitle %} Collect Latent States{% endblock %}</h2>
 <div class="explanation">
-  <p>Collect user's latent states - Session: {{session_title}} - Total Steps: <span id="max_index"></span></p>
+  <p>
+    Collect user's latent states - Session: {{session_title}} - Total Steps:
+    <span id="max_index"></span>
+  </p>
 </div>
-{% endblock %}
-
-{% block content %}
-<script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
-  crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+{% endblock %} {% block content %}
+<script
+  src="//code.jquery.com/jquery-1.12.4.min.js"
+  integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ="
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
   integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
-  crossorigin="anonymous"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='methods.js') }}"></script>
-<script type="text/javascript" charset="utf-8" src="{{ url_for('static', filename='socket_n_canvas.js') }}"></script>
-<script type="text/javascript" charset="utf-8"
-  src="{{ url_for('feedback.static', filename='collect_buttons.js') }}"></script>
+  crossorigin="anonymous"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='methods.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('static', filename='socket_n_canvas.js') }}"
+></script>
+<script
+  type="text/javascript"
+  charset="utf-8"
+  src="{{ url_for('feedback.static', filename='collect_buttons.js') }}"
+></script>
 <script type="text/javascript">
   initSocketIO("{{ socket_name_space }}");
 </script>
 
-<canvas id="myCanvas" width="900" height="600" style="border:5px solid #000000;" tabindex='1'>
+<canvas
+  id="myCanvas"
+  width="900"
+  height="600"
+  style="border: 5px solid #000000"
+  tabindex="1"
+>
   Your browser does not support the HTML5 canvas tag.
 </canvas>
 
 <div class="slidecontainer">
-  <label for="playback">Please scroll to review your annotations at each step.</label>
-  <input type="range" min="0" max="1" value="0" class="slider" id="playback">
+  <label for="playback"
+    >Please scroll to review your annotations at each step.</label
+  >
+  <input type="range" min="0" max="1" value="0" class="slider" id="playback" />
 </div>
 
 <div class="form-control">
@@ -47,23 +66,36 @@
     {% endfor %}
   </select>
   <div class="wrapper">
-    <button type="submit" value="latent_button" id="latent_button">Submit</button>
+    <button type="submit" value="latent_button" id="latent_button">
+      Submit
+    </button>
     <button type="submit" value="next" id="next">Next Step</button>
     <button type="submit" value="prev" id="prev">Previous Step</button>
   </div>
 </div>
 
 <div>
-  <div class='form-control'>
+  <div class="form-control">
     <label for="latent_state">Add Custom Latent State</label>
-    <input id="new_latent_state" type='text' placeholder="Custom Latent State">
+    <input
+      id="new_latent_state"
+      type="text"
+      placeholder="Custom Latent State"
+    />
   </div>
 
   <div>
-    <div class='form-control'>
+    <div class="form-control">
       <div>
         <label class="index" for="index"> Enter Index</label>
-        <input type="number" name="index" value="0" id="indexValue" min="0" max="1">
+        <input
+          type="number"
+          name="index"
+          value="0"
+          id="indexValue"
+          min="0"
+          max="1"
+        />
       </div>
       <div class="button-center">
         <button type="submit" value="index" id="index">Go to Index</button>
@@ -71,10 +103,15 @@
     </div>
   </div>
 
-  <form method="POST" action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}">
-    <input type="hidden" name="proceed" value="proceed">
+  <form
+    method="POST"
+    action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}"
+  >
+    <input type="hidden" name="proceed" value="proceed" />
     <div class="button-center">
-      <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>Proceed to Next Stage</button>
+      <button type="submit" value="proceed" id="proceed" {{ is_disabled }}>
+        Proceed to Next Stage
+      </button>
     </div>
   </form>
 </div>

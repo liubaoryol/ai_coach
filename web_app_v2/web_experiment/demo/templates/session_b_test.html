@@ -1,6 +1,4 @@
-{% extends 'session_contents.html' %}
-
-{% block header %}
+{% extends 'session_contents.html' %} {% block header %}
 <h1>{% block title %}Clean up{% endblock %}</h1>
 <h2>{% block subtitle %}{{ session_title }}{% endblock %}</h2>
 <div class="explanation">
@@ -14,12 +12,10 @@
   <p><b>Special instructions</b></p>
   <ul>
     <li>
-      Please update the red circle via the "Select Destination" button, as soon as you change the target you want to go
-      to during the game.
+      Please update the red circle via the "Select Destination" button, as soon
+      as you change the target you want to go to during the game.
     </li>
-    <li>
-      We will also periodically ask your current destination.
-    </li>
+    <li>We will also periodically ask your current destination.</li>
   </ul>
 </div>
 {% endblock %}

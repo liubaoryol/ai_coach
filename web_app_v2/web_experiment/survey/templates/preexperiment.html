@@ -1,56 +1,69 @@
-{% extends 'base.html' %}
-
-{% block header %}
+{% extends 'base.html' %} {% block header %}
 <h1>{% block title %}Demographic Survey (part 2/5){% endblock %}</h1>
 <div class="explanation">
-  <p>Before we move to the tasks, please fill out the following demographic survey.</p>
+  <p>
+    Before we move to the tasks, please fill out the following demographic
+    survey.
+  </p>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="form-control">
   <form method="post" action="{{ url_for(cur_endpoint) }}">
     <div>
       <label class="statement" for="age">Age</label>
-      <input name="age" id="age" value="{{ answers['age'] }}" required>
+      <input name="age" id="age" value="{{ answers['age'] }}" required />
     </div>
 
     <div>
       <label class="statement" for="gender">Gender</label>
-      <input name="gender" id="gender" value="{{ answers['gender'] }}" required>
+      <input
+        name="gender"
+        id="gender"
+        value="{{ answers['gender'] }}"
+        required
+      />
     </div>
 
     <div>
       <label class="statement" for="frequency">
         How often do you play video games?
       </label>
-      <ul class='likert'>
+      <ul class="likert">
         <li>
-          <input type="radio" name="frequency" value="0" {{ answers['frequency0'] }} required>
+          <input type="radio" name="frequency" value="0" {{
+          answers['frequency0'] }} required>
           <label>Never</label>
         </li>
         <li>
-          <input type="radio" name="frequency" value="1" {{ answers['frequency1'] }}>
+          <input type="radio" name="frequency" value="1" {{
+          answers['frequency1'] }}>
           <label>A few times a year</label>
         </li>
         <li>
-          <input type="radio" name="frequency" value="2" {{ answers['frequency2'] }}>
+          <input type="radio" name="frequency" value="2" {{
+          answers['frequency2'] }}>
           <label>A few times a month</label>
         </li>
         <li>
-          <input type="radio" name="frequency" value="3" {{ answers['frequency3'] }}>
+          <input type="radio" name="frequency" value="3" {{
+          answers['frequency3'] }}>
           <label>A few times every week</label>
         </li>
         <li>
-          <input type="radio" name="frequency" value="4" {{ answers['frequency4'] }}>
+          <input type="radio" name="frequency" value="4" {{
+          answers['frequency4'] }}>
           <label>On a daily basis</label>
         </li>
       </ul>
     </div>
 
     <div>
-      <label class="statement" for="comments">Open-ended comments (optional)</label>
-      <textarea id="opencomment" name="opencomment" rows="4" cols="50">{{ answers['precomment'] }}</textarea>
+      <label class="statement" for="comments"
+        >Open-ended comments (optional)</label
+      >
+      <textarea id="opencomment" name="opencomment" rows="4" cols="50">
+{{ answers['precomment'] }}</textarea
+      >
     </div>
     <div class="button-center">
       <button type="submit" value="submit">Next</button>

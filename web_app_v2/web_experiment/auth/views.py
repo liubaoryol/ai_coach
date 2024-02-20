@@ -114,6 +114,7 @@ def register():
         "userid": user.userid,
         "testuser": "Yes" if user.test else "No",
         "email": user.email,
+        "account_id": user.account_id,
         "groupid": user.groupid,
         "completed": "Yes" if user.completed else "No"
     }

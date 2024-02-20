@@ -162,8 +162,8 @@ class MixinInterventionBase:
       user_game_data.data[Exp1UserData.INTERVENTION_HISTORY].append(
           (game.current_step, intervention_latent, robot_latent))
       txt_advice = (
-          "Beep beep -! A potential improvement in teamwork is identified: " +
-          text_latent)
+          "Beep beep -! I\'ve spotted a potential opportunity to enhance our teamwork: "
+          + text_latent)
 
     objs["advice"] = txt_advice
     objs_json = json.dumps(objs)

@@ -11,6 +11,6 @@ auth_bp = Blueprint(BPName.Auth,
                     static_folder='static',
                     static_url_path='/auth/static')
 
-ADMIN_ID = 'register1234'
+ADMIN_ID = 'tic_web_admin'
 
 from . import views, functions  # noqa: E402, F401, E501

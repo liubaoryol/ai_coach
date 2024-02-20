@@ -8,6 +8,9 @@
       Your goal is to move all the boxes to the truck as soon as possible.
     </li>
     <li>You cannot pick up the box alone.</li>
+    {% if is_hidden != "hidden" %}
+    <li>The AI coach will offer advice expected to enhance teamwork.</li>
+    {% endif %}
   </ul>
 </div>
 {% endblock %}

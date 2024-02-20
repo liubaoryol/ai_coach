@@ -324,3 +324,31 @@ iframe {
 .thought-bubble img {
   border: 0px;
 }
+
+
+/* Styling form-consent Class */
+.form-consent {
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.form-consent label {
+  display: inline-block;
+  width: 180px;
+  font-size: 16px;
+  /* text-align: right; */
+  font-weight: bold;
+  padding-top: 10px;
+  margin-bottom:10px;
+}
+
+
+.form-consent input {
+  border: 1px solid #777;
+  border-radius: 2px;
+  font-family: inherit;
+  padding: 10px;
+  display: inline-block;
+  width: 50%;
+  margin-bottom: 10px;
+}

@@ -8,6 +8,9 @@
     <li>You can rescue people at city hall and campsite alone.</li>
     <li>To rescue people in the mall, one of bridges should be repaired.</li>
     <li>You cannot repair bridges alone.</li>
+    {% if is_hidden != "hidden" %}
+    <li>The AI coach will offer advice expected to enhance teamwork.</li>
+    {% endif %}
   </ul>
 </div>
 {% endblock %}

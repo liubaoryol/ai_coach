@@ -11,6 +11,7 @@ class User(db.Model):
                      nullable=False,
                      primary_key=True)
   groupid = db.Column(db.String(80), unique=False, default='')
+  account_id = db.Column(db.String(80), unique=False, default='')
   email = db.Column(db.String(120), default='')
   test = db.Column(db.Boolean, nullable=False, default=False)
   completed = db.Column(db.Boolean, default=False)
