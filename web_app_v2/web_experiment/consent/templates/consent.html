@@ -42,8 +42,20 @@
       </iframe>
     </div>
     <div class="form-consent">
-      <label for="account">Prolific ID</label>
-      <input name="account" id="account" value="{{ account_id }}" required />
+      <label for="account">Prolific PID:</label>
+      <input
+        name="for-display"
+        id="for-display"
+        value="{{ prolific_info }}"
+        disabled
+      />
+      <input
+        type="hidden"
+        name="account"
+        id="account"
+        value="{{ prolific_info }}"
+        readonly
+      />
     </div>
     <div class="form-consent">
       <label for="userid">Participation Code</label>

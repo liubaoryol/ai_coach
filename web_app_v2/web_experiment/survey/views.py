@@ -384,7 +384,10 @@ def completion():
 
 
 def thankyou():
+  if g.user is None:
+    return redirect(url_for('consent.consent'))
   cur_user = g.user
+
   session.clear()
   logging.info('User %s completed the experiment.' % (cur_user, ))
   return render_template('thankyou.html',
@@ -413,5 +416,4 @@ survey_bp.add_url_rule('/' + url_name(PageKey.Completion),
                        login_required(completion),
                        methods=('GET', 'POST'))
 
-survey_bp.add_url_rule('/' + PageKey.Thankyou, PageKey.Thankyou,
-                       login_required(thankyou))
+survey_bp.add_url_rule('/' + PageKey.Thankyou, PageKey.Thankyou, thankyou)
