@@ -300,11 +300,11 @@ class RescueSimulator(Simulator):
           a2_act = None
         else:
           a2_act = E_EventType[a2act]
-        if a1lat is None:
+        if a1lat is None or a1lat == "None":
           a1_lat = None
         else:
           a1_lat = int(a1lat)
-        if a2lat is None:
+        if a2lat is None or a2lat == "None":
           a2_lat = None
         else:
           a2_lat = int(a2lat)
