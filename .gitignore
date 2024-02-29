@@ -24,9 +24,11 @@ output/
 result*/
 experts/
 outputs/
-wandb/
-
 profile*
+wandb/
+venv/
+multirun/
+
 *.png
 *.log
 *.csv

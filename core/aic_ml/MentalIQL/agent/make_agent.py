@@ -1,10 +1,10 @@
 import gym
 from gym.spaces import Discrete, Box
-from aic_ml.baselines.option_gail.utils.config import Config
 from .mental_iql import MentalIQL
+from omegaconf import DictConfig
 
 
-def make_miql_agent(config: Config, env: gym.Env):
+def make_miql_agent(config: DictConfig, env: gym.Env):
 
   latent_dim = config.dim_c
   if isinstance(env.observation_space, Discrete):

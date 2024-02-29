@@ -108,6 +108,7 @@ def evaluate(actor, env, num_episodes=10, vis=True):
     """
   total_timesteps = []
   total_returns = []
+  successes = []
 
   while len(total_returns) < num_episodes:
     state = env.reset()
@@ -123,7 +124,10 @@ def evaluate(actor, env, num_episodes=10, vis=True):
           total_returns.append(info['episode']['r'])
           total_timesteps.append(info['episode']['l'])
 
-  return total_returns, total_timesteps
+    if 'task_success' in info.keys():
+      successes.append(info['task_success'])
+
+  return total_returns, total_timesteps, successes
 
 
 def weighted_softmax(x, weights):
@@ -167,33 +171,42 @@ def mlp(input_dim, output_dim, list_hidden_dims, output_mod=None):
   return trunk
 
 
-def get_concat_samples(policy_batch, expert_batch, is_sqil: bool):
-  (online_batch_state, online_batch_next_state, online_batch_action,
-   online_batch_reward, online_batch_done) = policy_batch
+def get_concat_samples(policy_batch, expert_batch, is_sqil: bool = False):
+  '''
+  policy_batch, expert_batch: the 2nd last item should be reward,
+                                and the last item should be done
+  return: concatenated batch with an additional item of is_expert
+  '''
+  concat_batch = []
 
-  (expert_batch_state, expert_batch_next_state, expert_batch_action,
-   expert_batch_reward, expert_batch_done) = expert_batch
+  reward_idx = len(policy_batch) - 2
+  for idx in range(reward_idx):
+    concat_batch.append(torch.cat([policy_batch[idx], expert_batch[idx]],
+                                  dim=0))
 
+  # ----- concat reward data
+  online_batch_reward = policy_batch[reward_idx]
+  expert_batch_reward = expert_batch[reward_idx]
   if is_sqil:
     # convert policy reward to 0
     online_batch_reward = torch.zeros_like(online_batch_reward)
     # convert expert reward to 1
     expert_batch_reward = torch.ones_like(expert_batch_reward)
+  concat_batch.append(
+      torch.cat([online_batch_reward, expert_batch_reward], dim=0))
 
-  batch_state = torch.cat([online_batch_state, expert_batch_state], dim=0)
-  batch_next_state = torch.cat(
-      [online_batch_next_state, expert_batch_next_state], dim=0)
-  batch_action = torch.cat([online_batch_action, expert_batch_action], dim=0)
-  batch_reward = torch.cat([online_batch_reward, expert_batch_reward], dim=0)
-  batch_done = torch.cat([online_batch_done, expert_batch_done], dim=0)
+  # ----- concat done data
+  concat_batch.append(torch.cat([policy_batch[-1], expert_batch[-1]], dim=0))
+
+  # ----- mark what is expert data and what is online data
   is_expert = torch.cat([
       torch.zeros_like(online_batch_reward, dtype=torch.bool),
       torch.ones_like(expert_batch_reward, dtype=torch.bool)
   ],
                         dim=0)
+  concat_batch.append(is_expert)
 
-  return (batch_state, batch_next_state, batch_action, batch_reward, batch_done,
-          is_expert)
+  return concat_batch
 
 
 def average_dicts(dict1, dict2):
@@ -201,3 +214,15 @@ def average_dicts(dict1, dict2):
       key: 1 / 2 * (dict1.get(key, 0) + dict2.get(key, 0))
       for key in set(dict1) | set(dict2)
   }
+
+
+def compute_expert_return_mean(trajectories):
+  expert_returns = []
+  n_expert_trj = len(trajectories["rewards"])
+  for i_e in range(n_expert_trj):
+    expert_returns.append(sum(trajectories["rewards"][i_e]))
+
+  expert_return_avg = np.mean(expert_returns)
+  expert_return_std = np.std(expert_returns)
+  print(f'Demo reward: {expert_return_avg} +- {expert_return_std}')
+  return expert_return_avg, expert_return_std

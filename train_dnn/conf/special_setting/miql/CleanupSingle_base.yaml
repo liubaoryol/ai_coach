@@ -1,7 +1,0 @@
-# @package _global_
-
-# tx
-miql_tx_hidden_critic: [64, 64]
-# pi
-miql_pi_hidden_critic: [64, 64]
-miql_pi_hidden_policy: [64, 64]

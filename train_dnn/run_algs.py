@@ -47,17 +47,17 @@ def run_alg(config):
 
   if alg_name == "obc":
     from aic_ml.baselines.option_gail.option_bc_learn import learn
-    learn(config, log_dir, output_dir, path_iq_data, pretrain_name, msg)
+    learn(config, log_dir, output_dir, path_iq_data, pretrain_name)
   elif alg_name == "ogail":
     from aic_ml.baselines.option_gail.option_gail_learn import learn
     learn(config, log_dir, output_dir, path_iq_data, pretrain_name,
-          eval_interval, msg)
+          eval_interval)
   elif alg_name == "oppo":
     from aic_ml.baselines.option_gail.option_ppo_learn import learn
-    learn(config, log_dir, output_dir, msg)
+    learn(config, log_dir, output_dir)
   elif alg_name == "oppov2":
     from aic_ml.baselines.option_gail.option_ppo_learn_v2 import learn
-    learn(config, log_dir, output_dir, msg)
+    learn(config, log_dir, output_dir)
   elif alg_name == "oiql" and config.stream_training:
     from aic_ml.OptionIQL.train_oiql_stream import (train_oiql_stream)
     train_oiql_stream(config, path_iq_data, num_traj, log_dir, output_dir,
@@ -66,13 +66,15 @@ def run_alg(config):
     from aic_ml.OptionIQL.train_oiql_pond import (train_oiql_pond)
     train_oiql_pond(config, path_iq_data, num_traj, log_dir, output_dir,
                     log_interval, eval_interval)
-  elif alg_name == "oiqlv2":
-    from aic_ml.OptionIQL_v2.train_oiql_v2 import (learn)
-    learn(config, log_dir, output_dir, path_iq_data, pretrain_name, msg)
   elif alg_name == "iql":
-    from aic_ml.baselines.IQLearn.iql import run_iql
-    run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
-            eval_interval)
+    if not config.offline:
+      from aic_ml.baselines.IQLearn.iql import run_iql
+      run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
+              eval_interval)
+    else:
+      from aic_ml.baselines.IQLearn.iql_offline import run_iql
+      run_iql(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
+              eval_interval)
   elif alg_name == "sac":
     from aic_ml.baselines.IQLearn.iql import run_sac
     run_sac(config, log_dir, output_dir, log_interval, eval_interval)
@@ -83,9 +85,13 @@ def run_alg(config):
     from aic_ml.OptionIQL.train_oiql_pond import (train_osac_pond)
     train_osac_pond(config, log_dir, output_dir, log_interval, eval_interval)
   elif alg_name[:3] == "sb3":
-    from sb3_algs import sb3_run
-    sb3_run(config, log_dir, output_dir, log_interval, eval_interval,
-            alg_name[4:])
+    if alg_name[3:] == "bc":
+      from sb3_algs import sb3_bc
+      sb3_bc(config, path_iq_data, num_traj, log_dir, output_dir, log_interval)
+    else:
+      from sb3_algs import sb3_rl
+      sb3_rl(config, log_dir, output_dir, log_interval, eval_interval,
+             alg_name[3:])
   elif alg_name == "miql" and config.stream_training:
     from aic_ml.MentalIQL.train_miql import train
     train(config, path_iq_data, num_traj, log_dir, output_dir, log_interval,
@@ -111,5 +117,7 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-
+  import time
+  start_time = time.time()
   main()
+  print("Excution time: ", time.time() - start_time)

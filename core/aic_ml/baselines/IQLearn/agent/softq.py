@@ -9,12 +9,12 @@ from torch.distributions import Categorical
 from ..utils.utils import one_hot
 from ..utils.atari_wrapper import LazyFrames
 from ..dataset.memory import Memory
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
 class SoftQ(object):
 
-  def __init__(self, config: Config, num_inputs, action_dim, discrete_obs,
+  def __init__(self, config: DictConfig, num_inputs, action_dim, discrete_obs,
                q_net_base: Type[nn.Module]):
     self.gamma = config.gamma
     self.batch_size = config.mini_batch_size

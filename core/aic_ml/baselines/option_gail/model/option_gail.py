@@ -1,14 +1,16 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 from .option_policy import OptionPolicy, Policy, MoEPolicy
 from .option_discriminator import (OptionDiscriminator, Discriminator,
                                    MoEDiscriminator)
-from ..utils.config import Config
+from ..utils.model_util import conv_nn_input
+from omegaconf import DictConfig
 
 
 class GAIL(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(GAIL, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s
@@ -116,7 +118,7 @@ class GAIL(torch.nn.Module):
 class OptionGAIL(torch.nn.Module):
 
   def __init__(self,
-               config: Config,
+               config: DictConfig,
                dim_s=2,
                dim_a=2,
                discrete_s=False,
@@ -143,7 +145,29 @@ class OptionGAIL(torch.nn.Module):
 
     self.optim = torch.optim.Adam(self.discriminator.parameters(),
                                   weight_decay=1.e-3)
+
     self.to(self.device)
+
+    # NOTE: for compatibility
+    self.PREV_LATENT = self.dim_c
+    self.PREV_ACTION = float("nan")
+
+  # NOTE: for compatibility
+  def choose_policy_action(self, state, option, sample=False):
+    dim_s = 1 if self.policy.discrete_s else self.dim_s
+    state = torch.tensor(state).to(self.device).reshape(-1, dim_s)
+    option = torch.tensor(option).to(self.device).reshape(-1, 1)
+    with torch.no_grad():
+      return self.policy.sample_action(state, option,
+                                       not sample)[0].cpu().numpy()
+
+  def choose_mental_state(self, state, prev_option, sample=False):
+    dim_s = 1 if self.policy.discrete_s else self.dim_s
+    state = torch.tensor(state).to(self.device).reshape(-1, dim_s)
+    prev_option = torch.tensor(prev_option).to(self.device).reshape(-1, 1)
+    with torch.no_grad():
+      return self.policy.sample_option(state, prev_option,
+                                       not sample)[0].cpu().numpy()
 
   def original_gail_reward(self, s, c_1, a, c):
     d = self.discriminator.get_unnormed_d(s, c_1, a, c)
@@ -223,22 +247,31 @@ class OptionGAIL(torch.nn.Module):
       r_sum_avg /= len(demo_sa)
     return out_sample, r_sum_avg
 
-  def convert_sample(self, sample_scar):
+  def convert_sample(self, sample_scadr):
     with torch.no_grad():
       out_sample = []
       r_sum_avg = 0.
-      for s_array, c_array, a_array, r_real_array in sample_scar:
+      for s_array, c_array, a_array, success, r_real_array in sample_scadr:
         r_fake_array = self.gail_reward(s_array, c_array[:-1], a_array,
                                         c_array[1:])
         out_sample.append((s_array, c_array, a_array, r_fake_array))
         r_sum_avg += r_real_array.sum().item()
-      r_sum_avg /= len(sample_scar)
+      r_sum_avg /= len(sample_scadr)
     return out_sample, r_sum_avg
+
+  def infer_mental_states(self, s_array, a_array):
+    # s_array = conv_nn_input(np.array(s_array), self.policy.discrete_s,
+    #                         self.dim_s, self.device)
+    # a_array = conv_nn_input(np.array(a_array), self.policy.discrete_a,
+    #                         self.dim_a, self.device)
+
+    c_array, log_prob_traj = self.policy.viterbi_path(s_array, a_array)
+    return c_array[1:].cpu().numpy(), log_prob_traj.cpu().numpy()
 
 
 class MoEGAIL(torch.nn.Module):
 
-  def __init__(self, config: Config, dim_s=2, dim_a=2):
+  def __init__(self, config: DictConfig, dim_s=2, dim_a=2):
     super(MoEGAIL, self).__init__()
     self.dim_a = dim_a
     self.dim_s = dim_s

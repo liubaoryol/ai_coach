@@ -5,15 +5,17 @@ import torch
 from itertools import count
 from torch.utils.tensorboard import SummaryWriter
 from collections import deque
-from aic_ml.baselines.IQLearn.utils.utils import make_env, eval_mode
+from aic_ml.baselines.IQLearn.utils.utils import (make_env, eval_mode,
+                                                  compute_expert_return_mean)
 from aic_ml.baselines.IQLearn.dataset.expert_dataset import (ExpertDataset)
 from aic_ml.baselines.IQLearn.utils.logger import Logger
 from aic_ml.OptionIQL.helper.option_memory import (OptionMemory)
 from aic_ml.OptionIQL.helper.utils import (get_expert_batch, evaluate, save,
                                            get_samples)
-from aic_ml.baselines.option_gail.utils.config import Config
 from .agent.make_agent import MentalIQL
 from .agent.make_agent import make_miql_agent
+import wandb
+import omegaconf
 
 
 def load_expert_data_w_labels(demo_path, num_trajs, n_labeled, seed):
@@ -34,7 +36,8 @@ def load_expert_data_w_labels(demo_path, num_trajs, n_labeled, seed):
     else:
       traj_labels.append(None)
 
-  print("num_labeled:", cnt_label)
+  print(f"num_labeled: {cnt_label} / {num_trajs}, num_samples: ",
+        len(expert_dataset))
   return expert_dataset, traj_labels, cnt_label
 
 
@@ -68,7 +71,7 @@ def infer_last_next_mental_state(agent: MentalIQL, expert_traj,
   return list_last_next_mental_state
 
 
-def train(config: Config,
+def train(config: omegaconf.DictConfig,
           demo_path,
           num_trajs,
           log_dir,
@@ -83,11 +86,21 @@ def train(config: Config,
   replay_mem = config.n_sample
   max_explore_step = config.max_explore_step
   eps_window = 10
-  is_sqil = False
   num_episodes = 8
 
-  fn_make_agent = make_miql_agent
-  alg_type = 'sqil' if is_sqil else 'iq'
+  dict_config = omegaconf.OmegaConf.to_container(config,
+                                                 resolve=True,
+                                                 throw_on_missing=True)
+
+  run_name = f"{config.alg_name}_{config.tag}"
+  wandb.init(project=env_name,
+             name=run_name,
+             entity='sangwon-seo',
+             sync_tensorboard=True,
+             reinit=True,
+             config=dict_config)
+
+  alg_type = 'iq'
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -110,23 +123,29 @@ def train(config: Config,
   env.seed(seed)
   eval_env.seed(seed + 10)
 
+  initial_mem = int(config.init_sample)
   replay_mem = int(replay_mem)
+  assert initial_mem <= replay_mem
   eps_window = int(eps_window)
   max_explore_step = int(max_explore_step)
 
-  agent = fn_make_agent(config, env)
+  agent = make_miql_agent(config, env)
 
   # Load expert data
   n_labeled = int(num_trajs * config.supervision)
   expert_dataset, traj_labels, cnt_label = load_expert_data_w_labels(
       demo_path, num_trajs, n_labeled, seed)
 
+  expert_avg, expert_std = compute_expert_return_mean(
+      expert_dataset.trajectories)
+
+  wandb.run.summary["expert_avg"] = expert_avg
+  wandb.run.summary["expert_std"] = expert_std
+
   output_suffix = f"_n{num_trajs}_l{cnt_label}"
   online_memory_replay = OptionMemory(replay_mem, seed + 1)
 
   batch_size = min(batch_size, len(expert_dataset))
-  initial_mem = min(batch_size * 5, replay_mem)
-  initial_mem = int(initial_mem)
 
   # Setup logging
   writer = SummaryWriter(log_dir=log_dir)
@@ -134,12 +153,15 @@ def train(config: Config,
   logger = Logger(log_dir,
                   log_frequency=log_interval,
                   writer=writer,
-                  save_tb=True)
+                  save_tb=True,
+                  run_name=f"{env_name}_{run_name}")
 
   # track mean reward and scores
   best_eval_returns = -np.inf
+  best_success_rate = -np.inf
   rewards_window = deque(maxlen=eps_window)  # last N rewards
   epi_step_window = deque(maxlen=eps_window)
+  success_window = deque(maxlen=eps_window)
   cnt_steps = 0
 
   begin_learn = False
@@ -165,17 +187,24 @@ def train(config: Config,
       episode_reward += reward
 
       if explore_steps % eval_interval == 0 and begin_learn:
-        eval_returns, eval_timesteps = evaluate(agent,
-                                                eval_env,
-                                                num_episodes=num_episodes)
+        eval_returns, eval_timesteps, successes = evaluate(
+            agent, eval_env, num_episodes=num_episodes)
         returns = np.mean(eval_returns)
         logger.log('eval/episode_reward', returns, explore_steps)
         logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
+        if len(successes) > 0:
+          success_rate = np.mean(successes)
+          logger.log('eval/success_rate', success_rate, explore_steps)
+          if success_rate > best_success_rate:
+            best_success_rate = success_rate
+            wandb.run.summary["best_success_rate"] = best_success_rate
+
         logger.dump(explore_steps, ty='eval')
 
         if returns >= best_eval_returns:
           # Store best eval returns
           best_eval_returns = returns
+          wandb.run.summary["best_returns"] = best_eval_returns
           save(agent,
                epoch,
                1,
@@ -183,6 +212,15 @@ def train(config: Config,
                alg_type,
                output_dir=output_dir,
                suffix=output_suffix + "_best")
+        # else:
+        #   # for temporary use
+        #   save(agent,
+        #        epoch,
+        #        1,
+        #        env_name,
+        #        alg_type,
+        #        output_dir=output_dir,
+        #        suffix=output_suffix + f"_{epoch}")
 
       # only store done true when episode finishes without hitting timelimit
       done_no_lim = done
@@ -200,6 +238,7 @@ def train(config: Config,
 
         if explore_steps == max_explore_step:
           print('Finished!')
+          wandb.finish()
           return
 
         # ##### sample batch
@@ -223,14 +262,16 @@ def train(config: Config,
                          exb["rewards"], exb["dones"])
 
         ######
-        # IQ-Learn Modification
-        policy_batch = online_memory_replay.get_samples(batch_size,
-                                                        agent.device)
-        expert_batch = get_samples(batch_size, expert_data)
+        # IQ-Learn
+        tx_losses = pi_losses = {}
+        if explore_steps % config.update_interval == 0:
+          policy_batch = online_memory_replay.get_samples(
+              batch_size, agent.device)
+          expert_batch = get_samples(batch_size, expert_data)
 
-        tx_losses, pi_losses = agent.miql_update(
-            policy_batch, expert_batch, config.demo_latent_infer_interval,
-            logger, explore_steps)
+          tx_losses, pi_losses = agent.miql_update(
+              policy_batch, expert_batch, config.demo_latent_infer_interval,
+              logger, explore_steps)
 
         if explore_steps % log_interval == 0:
           for key, loss in tx_losses.items():
@@ -247,10 +288,15 @@ def train(config: Config,
 
     rewards_window.append(episode_reward)
     epi_step_window.append(episode_step + 1)
+    if 'task_success' in info.keys():
+      success_window.append(info['task_success'])
     cnt_steps += episode_step + 1
     if cnt_steps >= log_interval:
       cnt_steps = 0
       logger.log('train/episode', epoch, explore_steps)
       logger.log('train/episode_reward', np.mean(rewards_window), explore_steps)
       logger.log('train/episode_step', np.mean(epi_step_window), explore_steps)
+      if len(success_window) > 0:
+        logger.log('train/success_rate', np.mean(success_window), explore_steps)
+
       logger.dump(explore_steps, save=begin_learn)

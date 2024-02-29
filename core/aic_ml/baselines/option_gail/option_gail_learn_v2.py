@@ -11,11 +11,11 @@ from .utils.utils import (env_class_and_demo_fn, validate, reward_validate,
                           set_seed)
 from .utils.agent import Sampler
 from .utils.logger import Logger
-from .utils.config import Config
 from .utils.pre_train import pretrain
+from omegaconf import DictConfig
 
 
-def make_gail(config: Config, dim_s, dim_a):
+def make_gail(config: DictConfig, dim_s, dim_a):
   use_option = config.use_option
 
   if use_option:
@@ -50,12 +50,7 @@ def sample_batch(gail: OptionGAILV2, agent, n_sample, demo_sa_array):
   return sample_sxar, demo_sxar, sample_rsum, demo_rsum, sample_avgstep
 
 
-def learn(config: Config,
-          log_dir,
-          save_dir,
-          sample_name,
-          pretrain_name,
-          msg="default"):
+def learn(config: DictConfig, log_dir, save_dir, sample_name, pretrain_name):
 
   env_type = config.env_type
   use_pretrain = config.use_pretrain
@@ -71,6 +66,7 @@ def learn(config: Config,
   use_state_filter = config.use_state_filter
   use_d_info_gail = config.use_d_info_gail
 
+  msg = f"{config.alg_name}_{config.tag}"
   set_seed(seed)
 
   with open(os.path.join(save_dir, "config.log"), 'w') as f:

@@ -6,10 +6,10 @@ from aic_ml.baselines.IQLearn.agent.sac_discrete import SAC_Discrete
 from aic_ml.baselines.IQLearn.agent.softq import SoftQ
 from .softq_models import SimpleQNetwork, SingleQCriticDiscrete
 from .sac_models import DoubleQCritic, SingleQCritic
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
-def make_softq_agent(config: Config, env: gym.Env):
+def make_softq_agent(config: DictConfig, env: gym.Env):
   q_net_base = SimpleQNetwork
 
   if isinstance(env.observation_space, Discrete):
@@ -32,7 +32,7 @@ def make_softq_agent(config: Config, env: gym.Env):
   return agent
 
 
-def make_sac_agent(config: Config, env: gym.Env):
+def make_sac_agent(config: DictConfig, env: gym.Env):
   'discrete observation may not work well'
 
   if config.iql_single_critic:
@@ -66,7 +66,7 @@ def make_sac_agent(config: Config, env: gym.Env):
   return agent
 
 
-def make_sacd_agent(config: Config, env: gym.Env):
+def make_sacd_agent(config: DictConfig, env: gym.Env):
   'discrete observation may not work well'
   critic_base = SingleQCriticDiscrete
 

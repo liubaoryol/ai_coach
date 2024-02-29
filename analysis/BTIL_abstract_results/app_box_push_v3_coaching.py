@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import os
 from aic_domain.box_push_v3.simulator import BoxPushSimulatorV3
 from aic_domain.box_push_v2.maps import MAP_MOVERS
 from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3 as MAP_CLEANUP

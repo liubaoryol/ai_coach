@@ -11,9 +11,9 @@ from aic_ml.baselines.IQLearn.utils.logger import Logger
 from aic_ml.OptionIQL.helper.option_memory import (OptionMemory)
 from aic_ml.OptionIQL.helper.utils import (get_expert_batch, evaluate, save,
                                            get_samples)
-from aic_ml.baselines.option_gail.utils.config import Config
 from .agent.make_agent import MentalIQL
 from .agent.make_agent import make_miql_agent
+from omegaconf import DictConfig
 
 
 def collect_data(online_memory_replay, env, agent, num_data):
@@ -91,7 +91,7 @@ def infer_last_next_mental_state(agent: MentalIQL, expert_traj,
   return list_last_next_mental_state
 
 
-def train(config: Config,
+def train(config: DictConfig,
           demo_path,
           num_trajs,
           log_dir,
@@ -109,11 +109,10 @@ def train(config: Config,
 
   max_explore_step = int(config.max_explore_step)
   output_suffix = ""
-  is_sqil = False
   num_episodes = 10
 
   fn_make_agent = make_miql_agent
-  alg_type = 'sqil' if is_sqil else 'iq'
+  alg_type = 'iq'
 
   # device
   device_name = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -245,9 +244,8 @@ def train(config: Config,
     cnt_evals += (explore_step_cur_1 + explore_step_cur_2)
     if cnt_evals >= eval_interval:
       cnt_evals = 0
-      eval_returns, eval_timesteps = evaluate(agent,
-                                              eval_env,
-                                              num_episodes=num_episodes)
+      eval_returns, eval_timesteps, successes = evaluate(
+          agent, eval_env, num_episodes=num_episodes)
       returns = np.mean(eval_returns)
       logger.log('eval/episode_step', np.mean(eval_timesteps), explore_steps)
       logger.log('eval/episode_reward', returns, explore_steps)

@@ -49,6 +49,8 @@ class Memory(object):
     for i in range(len(data)):
       self.add(data[i])
 
+    return data
+
   def get_samples(self, batch_size, device):
     batch = self.sample(batch_size, False)
 

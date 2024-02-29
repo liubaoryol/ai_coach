@@ -13,7 +13,8 @@ COMMON_TRAIN_FORMAT = [('episode', 'E', 'int'), ('step', 'S', 'int'),
                        ('episode_step', 'D', 'int')]
 
 COMMON_EVAL_FORMAT = [('episode', 'E', 'none'), ('step', 'S', 'int'),
-                      ('episode_reward', 'R', 'float')]
+                      ('episode_reward', 'R', 'float'),
+                      ('episode_step', 'D', 'int')]
 
 AGENT_TRAIN_FORMAT = {
     'sac': [
@@ -109,22 +110,24 @@ class MetersGroup(object):
     else:
       raise f'invalid format type: {ty}'
 
-  def _dump_to_console(self, data, prefix):
+  def _dump_to_console(self, data, prefix, postfix=None):
     prefix = colored(prefix, 'yellow' if prefix == 'train' else 'green')
     pieces = [f'| {prefix: <14}']
     for key, disp_key, ty in self._formating:
       value = data.get(key, 0)
       pieces.append(self._format(disp_key, value, ty))
+    if postfix is not None:
+      pieces.append(postfix)
     print(' | '.join(pieces))
 
-  def dump(self, step, prefix, save=True):
+  def dump(self, step, prefix, save=True, postfix=None):
     if len(self._meters) == 0:
       return
     if save:
       data = self._prime_meters()
       data['step'] = step
       self._dump_to_csv(data)
-      self._dump_to_console(data, prefix)
+      self._dump_to_console(data, prefix, postfix)
     self._meters.clear()
 
 
@@ -135,9 +138,11 @@ class Logger(object):
                save_tb=False,
                log_frequency=10000,
                agent='none',
-               writer=None):
+               writer=None,
+               run_name=None):
     self._log_dir = log_dir
     self._log_frequency = log_frequency
+    self.run_name = run_name
     if writer:
       self._sw = writer
     else:
@@ -213,11 +218,11 @@ class Logger(object):
 
   def dump(self, step, save=True, ty=None):
     if ty is None:
-      self._train_mg.dump(step, 'train', save)
-      self._eval_mg.dump(step, 'eval', save)
+      self._train_mg.dump(step, 'train', save, self.run_name)
+      self._eval_mg.dump(step, 'eval', save, self.run_name)
     elif ty == 'eval':
-      self._eval_mg.dump(step, 'eval', save)
+      self._eval_mg.dump(step, 'eval', save, self.run_name)
     elif ty == 'train':
-      self._train_mg.dump(step, 'train', save)
+      self._train_mg.dump(step, 'train', save, self.run_name)
     else:
       raise f'invalid log type: {ty}'

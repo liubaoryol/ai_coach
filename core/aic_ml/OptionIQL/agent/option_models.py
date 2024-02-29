@@ -4,12 +4,12 @@ import torch.nn as nn
 from torch.distributions import Normal
 from torch.autograd import Variable, grad
 from aic_ml.baselines.IQLearn.utils.utils import mlp, weight_init
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
 class OptionSACQCritic(nn.Module):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__()
     self.obs_dim = obs_dim
     self.action_dim = action_dim
@@ -29,15 +29,15 @@ class OptionSACQCritic(nn.Module):
 
 class OptionDoubleQCritic(OptionSACQCritic):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
 
     list_hidden_dims = config.hidden_critic
     input_dim = (obs_dim + lat_dim + lat_dim + action_dim +
-                 int(config.use_prev_option_dim))
+                 int(config.extra_option_dim))
 
     if self.use_prev_action:
-      input_dim += action_dim + int(config.use_prev_action_dim)
+      input_dim += action_dim + int(config.extra_action_dim)
 
     # Q1 architecture
     self.Q1 = mlp(input_dim, 1, list_hidden_dims)
@@ -108,15 +108,15 @@ class OptionDoubleQCritic(OptionSACQCritic):
 
 class OptionSingleQCritic(OptionSACQCritic):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
 
     list_hidden_dims = config.hidden_critic
     input_dim = (obs_dim + lat_dim + lat_dim + action_dim +
-                 int(config.use_prev_option_dim))
+                 int(config.extra_option_dim))
 
     if self.use_prev_action:
-      input_dim += action_dim + int(config.use_prev_action_dim)
+      input_dim += action_dim + int(config.extra_action_dim)
 
     # Q1 architecture
     self.Q1 = mlp(input_dim, 1, list_hidden_dims)
@@ -179,7 +179,7 @@ class OptionSingleQCritic(OptionSACQCritic):
 
 class AbstractOptionActor(nn.Module):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__()
 
     self.obs_dim = obs_dim
@@ -220,7 +220,7 @@ class AbstractOptionActor(nn.Module):
 
 class SoftDiscreteOptionActor(AbstractOptionActor):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.temperature = config.gumbel_temperature
 
@@ -264,7 +264,7 @@ class SoftDiscreteOptionActor(AbstractOptionActor):
 
 class DiagGaussianOptionActor(AbstractOptionActor):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.log_std_bounds = config.log_std_bounds
     self.bounded = config.bounded_actor
@@ -331,7 +331,7 @@ class DiagGaussianOptionActor(AbstractOptionActor):
 
 class AbstractOptionThinker(nn.Module):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__()
 
     self.obs_dim = obs_dim
@@ -339,9 +339,9 @@ class AbstractOptionThinker(nn.Module):
     self.lat_dim = lat_dim
     self.use_prev_action = config.use_prev_action
 
-    input_dim = self.obs_dim + self.lat_dim + int(config.use_prev_option_dim)
+    input_dim = self.obs_dim + self.lat_dim + int(config.extra_option_dim)
     if self.use_prev_action:
-      input_dim += self.action_dim + int(config.use_prev_action_dim)
+      input_dim += self.action_dim + int(config.extra_action_dim)
 
     output_dim = self.lat_dim
 
@@ -368,7 +368,7 @@ class AbstractOptionThinker(nn.Module):
 
 class SoftDiscreteOptionThinker(AbstractOptionThinker):
 
-  def __init__(self, config: Config, obs_dim, action_dim, lat_dim):
+  def __init__(self, config: DictConfig, obs_dim, action_dim, lat_dim):
     super().__init__(config, obs_dim, action_dim, lat_dim)
     self.temperature = config.gumbel_temperature
 

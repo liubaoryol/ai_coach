@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from aic_core.utils.decoding import (most_probable_sequence, forward_inference)
 from aic_domain.box_push.agent_model import (assumed_initial_mental_distribution
                                              )

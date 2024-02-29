@@ -1,13 +1,13 @@
 from typing import Type, Callable
 import torch
 import torch.nn as nn
-from aic_ml.baselines.option_gail.utils.config import Config
 from aic_ml.baselines.IQLearn.utils.utils import (average_dicts, soft_update,
-                                                  hard_update)
-from aic_ml.baselines.IQLearn.iq import iq_loss
-from aic_ml.OptionIQL.helper.utils import (get_concat_samples)
+                                                  hard_update,
+                                                  get_concat_samples)
+from aic_ml.baselines.IQLearn.iq import iq_loss, OFFLINE_METHOD_LOSS
 from .option_softq import OptionSoftQ
 from .option_sac import OptionSAC
+from omegaconf import DictConfig
 
 
 class IQMixin:
@@ -21,15 +21,26 @@ class IQMixin:
                        expert_batch,
                        logger,
                        update_count,
-                       is_sqil=False,
                        use_target=False,
                        method_loss="value",
-                       method_regularize=True):
-    batch = get_concat_samples(policy_batch, expert_batch, is_sqil)
+                       method_regularize=True,
+                       method_div=""):
+    if policy_batch is None:  # offline
+      vec_v_args, vec_next_v_args, vec_actions, done = self.get_iq_variables(
+          expert_batch)
+      is_expert = torch.ones_like(expert_batch[-2], dtype=torch.bool)
 
-    vec_v_args, vec_next_v_args, vec_actions, done = self.get_iq_variables(
-        batch[:-1])
-    is_expert = batch[-1]
+      # for offline setting these shouldn't be changed
+      method_loss = OFFLINE_METHOD_LOSS
+      if method_regularize or method_div == "chi":
+        # apply only one (same effect)
+        method_regularize = False
+        method_div = "chi"
+    else:
+      batch = get_concat_samples(policy_batch, expert_batch, False)
+      vec_v_args, vec_next_v_args, vec_actions, done = self.get_iq_variables(
+          batch[:-1])
+      is_expert = batch[-1]
 
     agent = self
 
@@ -38,11 +49,11 @@ class IQMixin:
       q1_loss, loss_dict1 = iq_loss(agent, current_Q[0], vec_v_args,
                                     vec_next_v_args, vec_actions, done,
                                     is_expert, use_target, method_loss,
-                                    method_regularize)
+                                    method_regularize, method_div)
       q2_loss, loss_dict2 = iq_loss(agent, current_Q[1], vec_v_args,
                                     vec_next_v_args, vec_actions, done,
                                     is_expert, use_target, method_loss,
-                                    method_regularize)
+                                    method_regularize, method_div)
       critic_loss = 1 / 2 * (q1_loss + q2_loss)
       # merge loss dicts
       loss_dict = average_dicts(loss_dict1, loss_dict2)
@@ -50,7 +61,7 @@ class IQMixin:
       critic_loss, loss_dict = iq_loss(agent, current_Q, vec_v_args,
                                        vec_next_v_args, vec_actions, done,
                                        is_expert, use_target, method_loss,
-                                       method_regularize)
+                                       method_regularize, method_div)
 
     # logger.log('train/critic_loss', critic_loss, step)
 
@@ -58,7 +69,7 @@ class IQMixin:
     self.critic_optimizer.zero_grad()
     critic_loss.backward()
     if hasattr(self, 'clip_grad_val') and self.clip_grad_val:
-      nn.utils.clip_grad_norm_(self._critic.parameters(), self.clip_grad_val)
+      nn.utils.clip_grad_norm_(self.critic_net.parameters(), self.clip_grad_val)
     # step critic
     self.critic_optimizer.step()
     return loss_dict
@@ -68,31 +79,30 @@ class IQMixin:
                 expert_batch,
                 logger,
                 update_count,
-                is_sqil=False,
                 use_target=False,
                 do_soft_update=False,
                 method_loss="value",
-                method_regularize=True):
+                method_regularize=True,
+                method_div=""):
 
     for _ in range(self.num_critic_update):
       losses = self.iq_update_critic(policy_batch, expert_batch, logger,
-                                     update_count, is_sqil, use_target,
-                                     method_loss, method_regularize)
+                                     update_count, use_target, method_loss,
+                                     method_regularize, method_div)
 
     # args
     vdice_actor = False
-    offline = False
 
     if self.actor:
       if not vdice_actor:
 
-        vec_v_args_policy, _, _, _ = self.get_iq_variables(policy_batch)
         vec_v_args_expert, _, _, _ = self.get_iq_variables(expert_batch)
 
-        if offline:
+        if policy_batch is None:
           vec_v_args = vec_v_args_expert
         else:
           # Use both policy and expert observations
+          vec_v_args_policy, _, _, _ = self.get_iq_variables(policy_batch)
           vec_v_args = []
           for idx in range(len(vec_v_args_expert)):
             item = torch.cat([vec_v_args_policy[idx], vec_v_args_expert[idx]],
@@ -110,12 +120,25 @@ class IQMixin:
         soft_update(self.critic_net, self.critic_target_net, self.critic_tau)
       else:
         hard_update(self.critic_net, self.critic_target_net)
+
     return losses
+
+  def iq_offline_update(self,
+                        expert_batch,
+                        logger,
+                        update_count,
+                        use_target=False,
+                        do_soft_update=False,
+                        method_regularize=True,
+                        method_div=""):
+    return self.iq_update(None, expert_batch, logger, update_count, use_target,
+                          do_soft_update, OFFLINE_METHOD_LOSS,
+                          method_regularize, method_div)
 
 
 class IQLOptionSoftQ(IQMixin, OptionSoftQ):
 
-  def __init__(self, config: Config, num_inputs, action_dim, option_dim,
+  def __init__(self, config: DictConfig, num_inputs, action_dim, option_dim,
                discrete_obs, q_net_base: Type[nn.Module],
                cb_get_iq_variables: Callable):
     super().__init__(config, num_inputs, action_dim, option_dim, discrete_obs,
@@ -123,6 +146,7 @@ class IQLOptionSoftQ(IQMixin, OptionSoftQ):
     self.cb_get_iq_variables = cb_get_iq_variables
     self.method_loss = config.method_loss
     self.method_regularize = config.method_regularize
+    self.method_div = config.method_div
 
   def get_iq_variables(self, batch):
     'return vec_v_args, vec_next_v_args, vec_actions, done'
@@ -131,7 +155,7 @@ class IQLOptionSoftQ(IQMixin, OptionSoftQ):
 
 class IQLOptionSAC(IQMixin, OptionSAC):
 
-  def __init__(self, config: Config, obs_dim, action_dim, option_dim,
+  def __init__(self, config: DictConfig, obs_dim, action_dim, option_dim,
                discrete_obs, critic_base: Type[nn.Module], actor,
                cb_get_iq_variables: Callable):
     super().__init__(config, obs_dim, action_dim, option_dim, discrete_obs,
@@ -139,6 +163,7 @@ class IQLOptionSAC(IQMixin, OptionSAC):
     self.cb_get_iq_variables = cb_get_iq_variables
     self.method_loss = config.method_loss
     self.method_regularize = config.method_regularize
+    self.method_div = config.method_div
 
   def get_iq_variables(self, batch):
     'return vec_v_args, vec_next_v_args, vec_actions, done'

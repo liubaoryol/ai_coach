@@ -54,7 +54,7 @@ if __name__ == "__main__":
   # generate data
   ############################################################################
   if False:
-    num_data = 100
+    num_data = 50
     cur_dir = os.path.dirname(__file__)
     expert_trajs = defaultdict(list)
     for idx in range(num_data):
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         xidx = agent.conv_latent_to_idx(a_lat)
         s_array.append(sidx)
         a_array.append(aidx)
-        r_array.append(scr)
+        r_array.append(-1)
         x_array.append(xidx)
 
       sidx = mdp_task.conv_sim_states_to_mdp_sidx(

@@ -4,9 +4,9 @@ import torch
 
 import gym
 from ..model.option_policy import Policy
-from .config import Config
 from .state_filter import StateFilter
 from gym.spaces import Discrete, Box
+from omegaconf import DictConfig
 
 
 class MujocoEnv(object):
@@ -32,7 +32,7 @@ class MujocoEnv(object):
     s, reward, terminate, info = self.env.step(a)
     if self.display:
       self.env.render()
-    return s, reward, terminate
+    return s, reward, terminate, info
 
   def state_action_size(self):
     if self.env is not None:
@@ -99,12 +99,14 @@ def load_demo(load_path: str, n_traj: int = 10):
       break
     sample.append(traj)
     n_current_demo += traj[2].size(0)
-  print(f"Loaded {n_traj} episodes with a total of {n_current_demo} samples.")
+  print(
+      f"Loaded {len(sample)} episodes with a total of {n_current_demo} samples."
+  )
 
   return sample, filter_state
 
 
-def generate_demo(mujoco_config: Config,
+def generate_demo(mujoco_config: DictConfig,
                   save_path: str,
                   expert_path: Optional[str],
                   config_path: Optional[str] = None,
@@ -141,7 +143,7 @@ def generate_demo(mujoco_config: Config,
         s_array.append(st.clone())
         at = policy.sample_action(rs(st, fixed=True), fixed=True)
         a_array.append(at.clone())
-        s, r, done = env.step(at.squeeze(dim=0).numpy())
+        s, r, done, info = env.step(at.squeeze(dim=0).numpy())
         r_array.append(r)
       a_array = torch.cat(a_array, dim=0)
       s_array = torch.cat(s_array, dim=0)
@@ -159,7 +161,7 @@ def generate_demo(mujoco_config: Config,
   return sample, filter_state
 
 
-def get_demo(mujoco_config: Config,
+def get_demo(mujoco_config: DictConfig,
              path: str,
              expert_path: Optional[str] = None,
              config_path: Optional[str] = None,

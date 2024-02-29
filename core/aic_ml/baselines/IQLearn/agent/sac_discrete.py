@@ -7,12 +7,12 @@ import torch.nn as nn
 from torch.optim import Adam
 from .sac_models import DiscreteActor
 from ..utils.utils import soft_update, one_hot
-from aic_ml.baselines.option_gail.utils.config import Config
+from omegaconf import DictConfig
 
 
 class SAC_Discrete(object):
 
-  def __init__(self, config: Config, obs_dim, action_dim, discrete_obs,
+  def __init__(self, config: DictConfig, obs_dim, action_dim, discrete_obs,
                critic_base: Type[nn.Module], actor: DiscreteActor):
     self.gamma = config.gamma
     self.batch_size = config.mini_batch_size

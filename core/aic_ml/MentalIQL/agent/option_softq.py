@@ -7,15 +7,15 @@ import torch.nn as nn
 from torch.optim import Adam
 from torch.distributions import Categorical
 from aic_ml.baselines.IQLearn.utils.utils import one_hot
-from aic_ml.baselines.option_gail.utils.config import Config
 from .option_abstract import AbstractPolicyLeaner
+from omegaconf import DictConfig
 
 USE_TARGET = False
 
 
 class OptionSoftQ(AbstractPolicyLeaner):
 
-  def __init__(self, config: Config, num_inputs, action_dim, option_dim,
+  def __init__(self, config: DictConfig, num_inputs, action_dim, option_dim,
                discrete_obs, q_net_base: Type[nn.Module]):
     super().__init__(config)
     self.critic_tau = 0.1

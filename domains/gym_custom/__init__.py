@@ -33,26 +33,18 @@ register(id='AntPush-v0',
          entry_point='gym_custom.envs.ant_maze_env_ex:AntPushEnv_v0',
          max_episode_steps=1000)
 
-register(id='AntPush-v1',
-         entry_point='gym_custom.envs.ant_maze_env_ex:AntPushEnv_v1',
-         max_episode_steps=1000)
-
-# register(id='AntMaze-v0',
-#          entry_point='gym_custom.envs.ant_maze_env_ex:AntMazeEnv_v0',
-#          max_episode_steps=1000)
-
-# register(id='AntMaze-v0',
-#          entry_point='gym_custom.envs.ant_maze_env_ex:AntMazeEnv_v1',
-#          max_episode_steps=1000)
-
 register(id='CleanupSingle-v0',
-         entry_point='gym_custom.envs.mdp_env:CleanupSingleEnv_v0',
+         entry_point='gym_custom.envs.cleanup_single:CleanupSingleEnv_v0',
          max_episode_steps=200)
 
 register(id='EnvMovers-v0',
-         entry_point='gym_custom.envs.mdp_env:EnvMovers_v0',
+         entry_point='gym_custom.envs.box_push_for_two:EnvMovers_v0',
          max_episode_steps=200)
 
 register(id='EnvCleanup-v0',
-         entry_point='gym_custom.envs.mdp_env:EnvCleanup_v0',
+         entry_point='gym_custom.envs.box_push_for_two:EnvCleanup_v0',
          max_episode_steps=200)
+
+register(id='RMPickPlaceCan-v0',
+         entry_point='gym_custom.envs.robomimic_env:RMPickPlaceCan',
+         max_episode_steps=400)
