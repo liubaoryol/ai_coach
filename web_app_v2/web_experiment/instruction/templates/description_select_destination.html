@@ -1,20 +1,19 @@
-{% extends 'base.html' %}
-
-{% block header %}
+{% extends 'base.html' %} {% block header %}
 <h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
 <h2>{% block subtitle %} Important Requests {% endblock %}</h2>
 <div class="explanation">
   <p>
-    Before moving to the TASK sessions, please watch the video below.
-    Then, press "Proceed" button to move to the next page.
+    Before moving to the TASK sessions, please watch the video below. Then,
+    press "Proceed" button to move to the next page.
   </p>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="video-center">
   <video width="80%" height="auto" controls>
-    <source src="{{url_for('inst.static', filename='after_tutorial.mp4')}}" type="video/mp4">
+    <source
+      src="{{url_for('inst.static', filename='after_tutorial.mp4')}}"
+      type="video/mp4"
+    />
     Your browser does not support HTML video.
   </video>
 </div>

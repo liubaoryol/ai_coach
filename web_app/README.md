@@ -1,6 +1,7 @@
 ## Web Interface for Human Experiment
 
-To run web experiment, `ai_coach_core` and `ai_coach_domain` packages should be installed first.
+To run web experiment, `aic_core` and `aic_domain` packages should be installed first.
+
 ```
 cd web_app/
 pip install -e ../core
@@ -8,6 +9,7 @@ pip install -e ../domains
 ```
 
 Then, run the following command:
+
 ```
 python -m run
 ```

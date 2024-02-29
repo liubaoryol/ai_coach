@@ -141,8 +141,8 @@ def read_file(file_name, domain_type: EDomainType):
 
 def no_trajectory_page(sid, name_space, text):
   page = CanvasPageError(text)
-  (commands, drawing_objs, drawing_order,
-   animations) = page.get_updated_drawing_info(None)
+  commands, drawing_objs, animations = page.get_updated_drawing_info(None)
+  drawing_order = page.get_drawing_order(None)
   event_impl.update_gamedata(commands=commands,
                              drawing_objects=drawing_objs,
                              drawing_order=drawing_order,
@@ -169,7 +169,8 @@ def update_canvas(sid,
 
   commands, drawing_objs, drawing_order, animations = None, None, None, None
   if drawing_info is not None:
-    commands, drawing_objs, drawing_order, animations = drawing_info
+    commands, drawing_objs, animations = drawing_info
+    drawing_order = page.get_drawing_order(user_data)
   event_impl.update_gamedata(commands=commands,
                              imgs=imgs,
                              drawing_objects=drawing_objs,
@@ -187,7 +188,9 @@ def canvas_button_clicked(sid, name_space, button, page: CanvasPageBase,
   drawing_info = page.get_updated_drawing_info(user_data, button)
   commands, drawing_objs, drawing_order, animations = None, None, None, None
   if drawing_info is not None:
-    commands, drawing_objs, drawing_order, animations = drawing_info
+    commands, drawing_objs, animations = drawing_info
+    drawing_order = page.get_drawing_order(user_data)
+
   event_impl.update_gamedata(commands=commands,
                              drawing_objects=drawing_objs,
                              drawing_order=drawing_order,
@@ -244,7 +247,6 @@ def get_latent_states(domain_type: EDomainType, mode: EMode,
 
 
 class BoxPushTrajectoryConverter(Trajectories):
-
   def __init__(self, task_mdp: MDP_BoxPushV2, agent_mdp: MDP_BoxPushV2) -> None:
     super().__init__(1, 2, 2, 5)
     self.task_mdp = task_mdp

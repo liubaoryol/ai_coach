@@ -1,21 +1,16 @@
-{% extends 'intv_session_contents.html' %}
-
-{% block header %}
+{% extends 'intv_session_contents.html' %} {% block header %}
 <h1>{% block title %}Rescue (part 4/5){% endblock %}</h1>
 <h2>{% block subtitle %}TEST Session {{ session_title }}{% endblock %}</h2>
 <div class="explanation">
   <p>In this task,</p>
-
-
-  <p><b>Special instructions for the test session,</b></p>
   <ul>
-    <li>
-      You will be periodically prompted to select your destination (red circle).
-    </li>
-    <li>
-      Since you will be selecting the destination, you can use this added
-      flexibility to complete the task faster.
-    </li>
+    <li>Your goal is to rescue people in 30 time steps.</li>
+    <li>You can rescue people at city hall and campsite alone.</li>
+    <li>To rescue people in the mall, one of bridges should be repaired.</li>
+    <li>You cannot repair bridges alone.</li>
+    {% if is_hidden != "hidden" %}
+    <li>The AI coach will offer advice expected to enhance teamwork.</li>
+    {% endif %}
   </ul>
 </div>
 {% endblock %}

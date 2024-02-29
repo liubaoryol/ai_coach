@@ -1,34 +1,65 @@
-{% extends 'base.html' %}
-
-{% block header %}
+{% extends 'base.html' %} {% block header %}
 <h1>{% block title %}Online Study on Teamwork{% endblock %}</h1>
 <div class="explanation">
-  <p>This online study is designed to better understand teamwork and develop computational approaches to model and
-    assess teamwork.
-    It is being conducted by Sangwon Seo and Prof. Vaibhav Unhelkar at Rice University.</p>
-  <p>During this study, you will complete a set of tasks with a robot teammate in a virtual environment (much like a
-    video game) and answer a few questions.
-    Your study session will take up to 25 minutes. You will receive a $5 gift card for successful completion of the
-    study.</p>
-  <p>For more details, please review the consent form for participation in this study.
-    If you agree to participate, please enter your User ID and click the "I agree" button.</p>
-  <p><b>This study is designed to be completed on a computer or a laptop. Please do not participate in the study via a
-      cell phone or tablet.</b></p>
-  <p><b>Please use Chrome, Firefox, or Edge. Safari may not work depending on the version. Internet Explorer is not
-      supported.</b></p>
+  <p>
+    This online study is designed to better understand teamwork and develop
+    computational approaches to model and assess teamwork. It is being conducted
+    by Sangwon Seo and Prof. Vaibhav Unhelkar at Rice University.
+  </p>
+  <p>
+    During this study, you will complete a set of tasks with a robot teammate in
+    a virtual environment (much like a video game) and answer a few questions.
+    Your study session will take up to 25 minutes. You will receive $6 for
+    successful completion of the study.
+  </p>
+  <p>
+    For more details, please review the consent form for participation in this
+    study. If you agree to participate, please enter your User ID and click the
+    "I agree" button.
+  </p>
+  <p>
+    <b
+      >This study is designed to be completed on a computer or a laptop. Please
+      do not participate in the study via a cell phone or tablet.</b
+    >
+  </p>
+  <p>
+    <b
+      >Please use Chrome, Firefox, or Edge. Safari may not work depending on the
+      version. Internet Explorer is not supported.</b
+    >
+  </p>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="form-control">
   <form method="post" action="{{ url_for(cur_endpoint) }}">
     <div>
-      <iframe src="{{url_for('consent.static', filename='Rice_IRB_Consent_Form.pdf')}}" width="100%" height="500px">
+      <iframe
+        src="{{url_for('consent.static', filename='Rice_IRB_Consent_Form.pdf')}}"
+        width="100%"
+        height="500px"
+      >
       </iframe>
     </div>
-    <div>
-      <label class="statement" for="userid">User ID</label>
-      <input name="userid" id="userid" required>
+    <div class="form-consent">
+      <label for="account">Prolific PID:</label>
+      <input
+        name="for-display"
+        id="for-display"
+        value="{{ prolific_info }}"
+        disabled
+      />
+      <input
+        type="hidden"
+        name="account"
+        id="account"
+        value="{{ prolific_info }}"
+        readonly
+      />
+    </div>
+    <div class="form-consent">
+      <label for="userid">Participation Code</label>
+      <input name="userid" id="userid" required />
     </div>
     <div class="button-center">
       <button type="submit" value="submit">I agree</button>

@@ -9,21 +9,18 @@ from aic_domain.agent.partial_obs_agent import AIAgent_PartialObs
 
 
 class InterventionSimulator:
-
   def __init__(self,
                game: Union[BoxPushSimulatorV2, RescueSimulator,
                            RescueSimulatorV2],
                list_np_policy: List[np.ndarray],
                list_np_tx: List[np.ndarray],
                intervention: InterventionAbstract,
-               cb_get_prev_state_action: Callable,
                fix_illegal: bool = False,
                increase_step: bool = False) -> None:
     self.game = game
     self.list_np_policy = list_np_policy
     self.list_np_tx = list_np_tx
     self.intervention = intervention
-    self.cb_get_prev_state_action = cb_get_prev_state_action
     self.fix_illegal = fix_illegal
     self.increase_step = increase_step
 
@@ -80,8 +77,8 @@ class InterventionSimulator:
 
     task_mdp = self.game.agent_1.agent_model.get_reference_mdp()
 
-    tup_state_prev, tup_action_prev = self.cb_get_prev_state_action(
-        self.game.history[-1])
+    tup_state_prev, tup_action_prev = (
+        self.game.get_state_action_from_history_item(self.game.history[-1]))
 
     sidx = task_mdp.conv_sim_states_to_mdp_sidx(tup_state_prev)
     joint_action = []
@@ -92,7 +89,7 @@ class InterventionSimulator:
       joint_action.append(aidx_i)
 
     sidx_n = task_mdp.conv_sim_states_to_mdp_sidx(
-        tuple(self.game.get_state_for_each_agent(0)))
+        tuple(self.game.get_current_state()))
     list_state = [sidx, sidx_n]
     list_action = [tuple(joint_action)]
 
@@ -116,7 +113,7 @@ class InterventionSimulator:
       self.game.current_step += 1
 
     for agent_idx in range(self.game.get_num_agents()):
-      if agent_idx in feedback:
+      if agent_idx in feedback and feedback[agent_idx] is not None:
         lat1 = feedback[agent_idx]
         self.game.agents[agent_idx].set_latent(
             self.game.agents[agent_idx].agent_model.policy_model.

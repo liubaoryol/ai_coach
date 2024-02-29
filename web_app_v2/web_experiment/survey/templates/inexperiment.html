@@ -1,49 +1,53 @@
+<!-- prettier-ignore -->
 {% extends 'base.html' %}
-
 {% block header %}
-<h1>{% block title %}
-  {% if domain_type == 'Movers' %}
-  Movers and Packers (part 3/6)
-  {% elif domain_type == 'Cleanup' %}
-  Cleanup (part 4/6)
-  {% elif domain_type == 'Rescue' %}
-  Rescue (part 5/6)
-  {% else %}
-  Unknown Domain
-  {% endif %}
-  {% endblock %}</h1>
-<h2>{% block subtitle %}In-Experiment Survey: {{ session_title }}{% endblock %}</h2>
+<h1>
+  {% block title %} {% if domain_type == 'Movers' %} Movers and Packers (part
+  3/5) {% elif domain_type == 'Cleanup' %} Cleanup (part /6) {% elif domain_type
+  == 'Rescue' %} Rescue (part 4/5) {% else %} Unknown Domain {% endif %} {%
+  endblock %}
+</h1>
+<h2>{% block subtitle %}In-Experiment Survey{% endblock %}</h2>
 <div class="explanation">
-  <p>Please complete the following survey based on your experience in the previous task.</p>
+  <p>
+    Please complete the following survey based on your experience in the
+    previous task.
+  </p>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="form-control">
-  <form method="post" action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}">
+  <form
+    method="post"
+    action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}"
+  >
     <div>
       <label class="statement" for="maintained">
         During the task, I moved towards the locations circled in red.
       </label>
-      <ul class='likert'>
+      <ul class="likert">
         <li>
-          <input type="radio" name="maintained" value="0" {{ answers['maintained0'] }} required>
+          <input type="radio" name="maintained" value="0" {{
+          answers['maintained0'] }} required>
           <label>Always</label>
         </li>
         <li>
-          <input type="radio" name="maintained" value="1" {{ answers['maintained1'] }}>
+          <input type="radio" name="maintained" value="1" {{
+          answers['maintained1'] }}>
           <label>Often</label>
         </li>
         <li>
-          <input type="radio" name="maintained" value="2" {{ answers['maintained2'] }}>
+          <input type="radio" name="maintained" value="2" {{
+          answers['maintained2'] }}>
           <label>Sometimes</label>
         </li>
         <li>
-          <input type="radio" name="maintained" value="3" {{ answers['maintained3'] }}>
+          <input type="radio" name="maintained" value="3" {{
+          answers['maintained3'] }}>
           <label>Rarely</label>
         </li>
         <li>
-          <input type="radio" name="maintained" value="4" {{ answers['maintained4'] }}>
+          <input type="radio" name="maintained" value="4" {{
+          answers['maintained4'] }}>
           <label>Never</label>
         </li>
       </ul>
@@ -52,25 +56,30 @@
       <label class="statement" for="fluency">
         The human-robot team worked fluently together.
       </label>
-      <ul class='likert'>
+      <ul class="likert">
         <li>
-          <input type="radio" name="fluency" value="0" {{ answers['fluency0'] }} required>
+          <input type="radio" name="fluency" value="0" {{ answers['fluency0'] }}
+          required>
           <label>Strongly Agree</label>
         </li>
         <li>
-          <input type="radio" name="fluency" value="1" {{ answers['fluency1'] }}>
+          <input type="radio" name="fluency" value="1" {{ answers['fluency1']
+          }}>
           <label>Agree</label>
         </li>
         <li>
-          <input type="radio" name="fluency" value="2" {{ answers['fluency2'] }}>
+          <input type="radio" name="fluency" value="2" {{ answers['fluency2']
+          }}>
           <label>Neutral</label>
         </li>
         <li>
-          <input type="radio" name="fluency" value="3" {{ answers['fluency3'] }}>
+          <input type="radio" name="fluency" value="3" {{ answers['fluency3']
+          }}>
           <label>Disagree</label>
         </li>
         <li>
-          <input type="radio" name="fluency" value="4" {{ answers['fluency4'] }}>
+          <input type="radio" name="fluency" value="4" {{ answers['fluency4']
+          }}>
           <label>Strongly Disagree</label>
         </li>
       </ul>
@@ -79,25 +88,30 @@
       <label class="statement" for="mycarry">
         I was the most important team member on the team.
       </label>
-      <ul class='likert'>
+      <ul class="likert">
         <li>
-          <input type="radio" name="mycarry" value="0" {{ answers['mycarry0'] }} required>
+          <input type="radio" name="mycarry" value="0" {{ answers['mycarry0'] }}
+          required>
           <label>Strongly Agree</label>
         </li>
         <li>
-          <input type="radio" name="mycarry" value="1" {{ answers['mycarry1'] }}>
+          <input type="radio" name="mycarry" value="1" {{ answers['mycarry1']
+          }}>
           <label>Agree</label>
         </li>
         <li>
-          <input type="radio" name="mycarry" value="2" {{ answers['mycarry2'] }}>
+          <input type="radio" name="mycarry" value="2" {{ answers['mycarry2']
+          }}>
           <label>Neutral</label>
         </li>
         <li>
-          <input type="radio" name="mycarry" value="3" {{ answers['mycarry3'] }}>
+          <input type="radio" name="mycarry" value="3" {{ answers['mycarry3']
+          }}>
           <label>Disagree</label>
         </li>
         <li>
-          <input type="radio" name="mycarry" value="4" {{ answers['mycarry4'] }}>
+          <input type="radio" name="mycarry" value="4" {{ answers['mycarry4']
+          }}>
           <label>Strongly Disagree</label>
         </li>
       </ul>
@@ -106,25 +120,30 @@
       <label class="statement" for="robotcarry">
         The robot contributed equally to the team performance.
       </label>
-      <ul class='likert'>
+      <ul class="likert">
         <li>
-          <input type="radio" name="robotcarry" value="0" {{ answers['robotcarry0'] }} required>
+          <input type="radio" name="robotcarry" value="0" {{
+          answers['robotcarry0'] }} required>
           <label>Strongly Agree</label>
         </li>
         <li>
-          <input type="radio" name="robotcarry" value="1" {{ answers['robotcarry1'] }}>
+          <input type="radio" name="robotcarry" value="1" {{
+          answers['robotcarry1'] }}>
           <label>Agree</label>
         </li>
         <li>
-          <input type="radio" name="robotcarry" value="2" {{ answers['robotcarry2'] }}>
+          <input type="radio" name="robotcarry" value="2" {{
+          answers['robotcarry2'] }}>
           <label>Neutral</label>
         </li>
         <li>
-          <input type="radio" name="robotcarry" value="3" {{ answers['robotcarry3'] }}>
+          <input type="radio" name="robotcarry" value="3" {{
+          answers['robotcarry3'] }}>
           <label>Disagree</label>
         </li>
         <li>
-          <input type="radio" name="robotcarry" value="4" {{ answers['robotcarry4'] }}>
+          <input type="radio" name="robotcarry" value="4" {{
+          answers['robotcarry4'] }}>
           <label>Strongly Disagree</label>
         </li>
       </ul>
@@ -133,25 +152,30 @@
       <label class="statement" for="robotperception">
         The robot perceives accurately what my goals are.
       </label>
-      <ul class='likert'>
+      <ul class="likert">
         <li>
-          <input type="radio" name="robotperception" value="0" {{ answers['robotperception0'] }} required>
+          <input type="radio" name="robotperception" value="0" {{
+          answers['robotperception0'] }} required>
           <label>Strongly Agree</label>
         </li>
         <li>
-          <input type="radio" name="robotperception" value="1" {{ answers['robotperception1'] }}>
+          <input type="radio" name="robotperception" value="1" {{
+          answers['robotperception1'] }}>
           <label>Agree</label>
         </li>
         <li>
-          <input type="radio" name="robotperception" value="2" {{ answers['robotperception2'] }}>
+          <input type="radio" name="robotperception" value="2" {{
+          answers['robotperception2'] }}>
           <label>Neutral</label>
         </li>
         <li>
-          <input type="radio" name="robotperception" value="3" {{ answers['robotperception3'] }}>
+          <input type="radio" name="robotperception" value="3" {{
+          answers['robotperception3'] }}>
           <label>Disagree</label>
         </li>
         <li>
-          <input type="radio" name="robotperception" value="4" {{ answers['robotperception4'] }}>
+          <input type="radio" name="robotperception" value="4" {{
+          answers['robotperception4'] }}>
           <label>Strongly Disagree</label>
         </li>
       </ul>
@@ -160,32 +184,41 @@
       <label class="statement" for="cooperative">
         The robot was cooperative.
       </label>
-      <ul class='likert'>
+      <ul class="likert">
         <li>
-          <input type="radio" name="cooperative" value="0" {{ answers['cooperative0'] }} required>
+          <input type="radio" name="cooperative" value="0" {{
+          answers['cooperative0'] }} required>
           <label>Strongly Agree</label>
         </li>
         <li>
-          <input type="radio" name="cooperative" value="1" {{ answers['cooperative1'] }}>
+          <input type="radio" name="cooperative" value="1" {{
+          answers['cooperative1'] }}>
           <label>Agree</label>
         </li>
         <li>
-          <input type="radio" name="cooperative" value="2" {{ answers['cooperative2'] }}>
+          <input type="radio" name="cooperative" value="2" {{
+          answers['cooperative2'] }}>
           <label>Neutral</label>
         </li>
         <li>
-          <input type="radio" name="cooperative" value="3" {{ answers['cooperative3'] }}>
+          <input type="radio" name="cooperative" value="3" {{
+          answers['cooperative3'] }}>
           <label>Disagree</label>
         </li>
         <li>
-          <input type="radio" name="cooperative" value="4" {{ answers['cooperative4'] }}>
+          <input type="radio" name="cooperative" value="4" {{
+          answers['cooperative4'] }}>
           <label>Strongly Disagree</label>
         </li>
       </ul>
     </div>
     <div>
-      <label class="statement" for="opencomment">Open-ended comments (optional)</label>
-      <textarea id="opencomment" name="opencomment" rows="4" cols="50">{{ answers['incomment'] }}</textarea>
+      <label class="statement" for="opencomment"
+        >Open-ended comments (optional)</label
+      >
+      <textarea id="opencomment" name="opencomment" rows="4" cols="50">
+{{ answers['incomment'] }}</textarea
+      >
     </div>
     <div class="button-center">
       <button type="submit" value="submit">Proceed to next session</button>

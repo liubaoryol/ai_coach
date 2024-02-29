@@ -16,6 +16,8 @@ class UserData:
   EXP_TYPE = "exp_type"
   GROUP_ID = "group_id"
   SESSION_DONE = "session_done"
+  DRAW_OBJ_NAMES = "draw_obj_names"
+  PAGE_DONE = "page_done"
 
   def __init__(self, user) -> None:
     self.data = {
@@ -25,16 +27,20 @@ class UserData:
         self.USER: user,
         self.EXP_TYPE: "",
         self.SESSION_DONE: False,
-        self.GROUP_ID: None
+        self.GROUP_ID: None,
+        self.DRAW_OBJ_NAMES: set(),
+        self.PAGE_DONE: False
     }
 
   def go_to_next_page(self):
+    self.data[self.PAGE_DONE] = True
     cur_page_idx = self.data[self.PAGE_IDX]
     num_pages = self.data[self.NUM_PAGES]
     if cur_page_idx + 1 < num_pages:
       self.data[self.PAGE_IDX] += 1
 
   def go_to_prev_page(self):
+    self.data[self.PAGE_DONE] = True
     cur_page_idx = self.data[self.PAGE_IDX]
     if cur_page_idx - 1 >= 0:
       self.data[self.PAGE_IDX] -= 1
@@ -53,7 +59,6 @@ def get_objs_as_dictionary(drawing_objs: Mapping[str, co.DrawingObject]):
 
 
 class CanvasPageBase(abc.ABC):
-
   @abc.abstractmethod
   def __init__(self) -> None:
     pass
@@ -63,6 +68,7 @@ class CanvasPageBase(abc.ABC):
     '''
     user_data: NOTE - values will be updated
     '''
+    user_data.data[UserData.PAGE_DONE] = False
     pass
 
   @abc.abstractmethod
@@ -74,7 +80,11 @@ class CanvasPageBase(abc.ABC):
     user_data: should NOT be changed here
     return: commands, drawing_objs, drawing_order, animations
     '''
-    return None, None, None, None
+    return None, None, None
+
+  @abc.abstractmethod
+  def get_drawing_order(self, user_data: UserData = None):
+    return None
 
   @abc.abstractmethod
   def button_clicked(self, user_data: UserData, clicked_btn: str):
@@ -103,14 +113,13 @@ class CanvasPageError(CanvasPageBase):
     return: commands, drawing_objs, drawing_order, animations
     '''
     drawing_obj = self._get_init_drawing_objects(user_data)
-    drawing_order = self._get_drawing_order(user_data)
     commands = {"clear": None}
-    return commands, drawing_obj, drawing_order, None
+    return commands, drawing_obj, None
 
   def button_clicked(self, user_data: UserData, clicked_btn: str):
     return super().button_clicked(user_data, clicked_btn)
 
-  def _get_drawing_order(self, user_game_data=None):
+  def get_drawing_order(self, user_game_data=None):
     return [self.TEXT_ERROR]
 
   def _get_init_drawing_objects(self,
@@ -131,17 +140,18 @@ class Exp1UserData(UserData):
   '''
   user data that should be valid only during flask-socketio session
   '''
-  GAME = "game"
-  SELECT = "select"
+  GAME = "game"  # key to game object
+  SELECT = "select"  # latent state selection mode (overlay on)
   GAME_DONE = "game_done"
   ACTION_COUNT = "action_count"
-  PARTIAL_OBS = "partial_obs"
+  PARTIAL_OBS = "partial_obs"  # use partial observability or not
   SCORE = "score"
   SAVE_PATH = "save_path"
-  SHOW_LATENT = "show_latent"
-  COLLECT_LATENT = "collect_latent"
   USER_LABELS = "user_labels"
   USER_LABEL_PATH = "user_label_path"
+  PREV_INFERENCE = "prev_inference"
+  INTERVENTION = "intervention"
+  INTERVENTION_HISTORY = "intervention_history"
 
   def __init__(self, user) -> None:
     super().__init__(user)
@@ -152,10 +162,11 @@ class Exp1UserData(UserData):
     self.data[Exp1UserData.PARTIAL_OBS] = True
     self.data[Exp1UserData.SCORE] = 0
     self.data[Exp1UserData.SAVE_PATH] = ""
-    self.data[Exp1UserData.SHOW_LATENT] = False
-    self.data[Exp1UserData.COLLECT_LATENT] = True
     self.data[Exp1UserData.USER_LABELS] = []
     self.data[Exp1UserData.USER_LABEL_PATH] = ""
+    self.data[Exp1UserData.PREV_INFERENCE] = None
+    self.data[Exp1UserData.INTERVENTION] = None  # either None or latent index
+    self.data[Exp1UserData.INTERVENTION_HISTORY] = []
 
   def get_game_ref(self) -> Simulator:
     return self.data[Exp1UserData.GAME]
@@ -197,18 +208,18 @@ class ExperimentPageBase(CanvasPageBase):
                                dict_prev_scene_data: Mapping[str, Any] = None):
 
     drawing_objs = self._get_init_drawing_objects(user_data)
-    drawing_order = self._get_drawing_order(user_data)
     commands = self._get_init_commands(user_data)
 
     animations = None
 
-    return commands, drawing_objs, drawing_order, animations
+    return commands, drawing_objs, animations
 
   @abc.abstractmethod
   def init_user_data(self, user_game_data: UserData):
     '''
     user_game_data: NOTE - values will be updated
     '''
+    super().init_user_data(user_game_data)
     pass
 
   @abc.abstractmethod
@@ -229,6 +240,9 @@ class ExperimentPageBase(CanvasPageBase):
 
   def _get_instruction(self, user_game_data: UserData):
     return ""
+
+  def get_drawing_order(self, user_data: UserData = None):
+    return self._get_drawing_order(user_data)
 
   @abc.abstractmethod
   def _get_drawing_order(self, user_game_data: UserData = None):

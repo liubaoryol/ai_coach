@@ -10,27 +10,37 @@ from web_experiment.exp_common.helper import get_file_name
 from web_experiment.exp_common.page_rescue_v2_base import RescueV2GamePageBase
 
 TEMPERATURE = 0.3
-RESCUE_TEAMMATE1_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
-                                        MDP_Rescue_Agent(**MAP_RESCUE),
-                                        TEMPERATURE, RescueSimulatorV2.AGENT2)
-RESCUE_TEAMMATE2_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
-                                        MDP_Rescue_Agent(**MAP_RESCUE),
-                                        TEMPERATURE, RescueSimulatorV2.AGENT3)
+RESCUE_MAX_STEP = 15
 
 
 class RescueV2GamePage(RescueV2GamePageBase):
+  RESCUE_TEAMMATE1_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
+                                          MDP_Rescue_Agent(**MAP_RESCUE),
+                                          TEMPERATURE, RescueSimulatorV2.AGENT2)
+  RESCUE_TEAMMATE2_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
+                                          MDP_Rescue_Agent(**MAP_RESCUE),
+                                          TEMPERATURE, RescueSimulatorV2.AGENT3)
 
-  def __init__(self,
-               manual_latent_selection,
-               auto_prompt: bool = True,
-               prompt_on_change: bool = True,
-               prompt_freq: int = 5) -> None:
-    super().__init__(manual_latent_selection, MAP_RESCUE, auto_prompt,
-                     prompt_on_change, prompt_freq)
-    global RESCUE_TEAMMATE1_POLICY, RESCUE_TEAMMATE2_POLICY
+  def __init__(self, latent_collection: bool = True) -> None:
+    super().__init__(MAP_RESCUE, latent_collection)
 
-    self._TEAMMATE_POLICY_1 = RESCUE_TEAMMATE1_POLICY
-    self._TEAMMATE_POLICY_2 = RESCUE_TEAMMATE2_POLICY
+    self._TEAMMATE_POLICY_1 = RescueV2GamePage.RESCUE_TEAMMATE1_POLICY
+    self._TEAMMATE_POLICY_2 = RescueV2GamePage.RESCUE_TEAMMATE2_POLICY
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+
+    game = user_game_data.get_game_ref()
+    if game is None:
+      game = RescueSimulatorV2()
+      game.max_steps = RESCUE_MAX_STEP
+
+      user_game_data.set_game(game)
+
+    game.init_game(**self._GAME_MAP)
+    game.set_autonomous_agent()
+
+    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
 
   def _on_game_finished(self, user_game_data: Exp1UserData):
     '''
@@ -62,7 +72,6 @@ class RescueV2GamePage(RescueV2GamePageBase):
 
     # move to next page
     user_game_data.go_to_next_page()
-    self.init_user_data(user_game_data)
 
   def _get_score_text(self, user_data):
     game = user_data.get_game_ref()
@@ -83,14 +92,9 @@ class RescueV2GamePage(RescueV2GamePageBase):
 
 
 class RescueV2GameUserRandom(RescueV2GamePage):
-
   def __init__(self, partial_obs, latent_collection=True) -> None:
-    super().__init__(True, True, True, 5)
+    super().__init__(latent_collection)
     self._PARTIAL_OBS = partial_obs
-    self._LATENT_COLLECTION = latent_collection
-    if not self._LATENT_COLLECTION:
-      self._AUTO_PROMPT = False
-      self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     super().init_user_data(user_game_data)
@@ -106,9 +110,6 @@ class RescueV2GameUserRandom(RescueV2GamePage):
 
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent(agent1, agent2, agent3)
-    if not self._LATENT_COLLECTION:
-      user_game_data.data[Exp1UserData.SELECT] = False
-      user_game_data.data[Exp1UserData.SHOW_LATENT] = False
-      user_game_data.data[Exp1UserData.COLLECT_LATENT] = False
+    user_game_data.data[Exp1UserData.SELECT] = self._LATENT_COLLECTION
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS

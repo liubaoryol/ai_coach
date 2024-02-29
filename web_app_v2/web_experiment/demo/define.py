@@ -3,7 +3,7 @@ from typing import Mapping, Sequence
 from web_experiment.define import EDomainType
 from web_experiment.exp_common.page_base import ExperimentPageBase
 import web_experiment.exp_common.page_exp1_common as pgc
-from web_experiment.demo.pages import BoxPushV2Demo, RescueDemo
+from web_experiment.demo.pages import (BoxPushV2Demo, RescueDemo)
 
 
 class E_SessionName(Enum):
@@ -13,11 +13,13 @@ class E_SessionName(Enum):
   Cleanup_partial_dcol = 3
   Rescue_full_dcol = 4
   Rescue_partial_dcol = 5
+  Movers_partial_normal = 6
 
 
 SESSION_TITLE = {
     E_SessionName.Movers_full_dcol: 'Movers - Fully Observable',
     E_SessionName.Movers_partial_dcol: 'Movers - Partially Observable',
+    E_SessionName.Movers_partial_normal: 'Movers - Normal',
     E_SessionName.Cleanup_full_dcol: 'Cleanup - Fully Observable',
     E_SessionName.Cleanup_partial_dcol: 'Cleanup - Partially Observable',
     E_SessionName.Rescue_full_dcol: 'Rescue - Fully Observable',
@@ -31,6 +33,10 @@ PAGE_LIST_MOVERS_FULL_OBS = [
 PAGE_LIST_MOVERS = [
     pgc.CanvasPageStart(EDomainType.Movers),
     BoxPushV2Demo(EDomainType.Movers, True),
+]
+PAGE_LIST_MOVERS_NORMAL = [
+    pgc.CanvasPageStart(EDomainType.Movers),
+    BoxPushV2Demo(EDomainType.Movers, True, False)
 ]
 PAGE_LIST_CLEANUP_FULL_OBS = [
     pgc.CanvasPageStart(EDomainType.Cleanup),
@@ -57,5 +63,6 @@ GAMEPAGES = {
     E_SessionName.Cleanup_full_dcol: PAGE_LIST_CLEANUP_FULL_OBS,
     E_SessionName.Cleanup_partial_dcol: PAGE_LIST_CLEANUP,
     E_SessionName.Rescue_full_dcol: PAGE_LIST_RESCUE_FULL_OBS,
-    E_SessionName.Rescue_partial_dcol: PAGE_LIST_RESCUE
+    E_SessionName.Rescue_partial_dcol: PAGE_LIST_RESCUE,
+    E_SessionName.Movers_partial_normal: PAGE_LIST_MOVERS_NORMAL
 }  # type: Mapping[E_SessionName, Sequence[ExperimentPageBase]]

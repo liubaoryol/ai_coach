@@ -15,7 +15,6 @@ from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
 
 
 class MMDP_BoxPush(MDP):
-
   def __init__(self, x_grid, y_grid, boxes, goals, walls, drops, box_types,
                a1_init, a2_init, **kwargs):
 
@@ -231,7 +230,6 @@ class MMDP_BoxPush(MDP):
 
 
 class MMDP_Movers(MMDP_BoxPush):
-
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithBoth, None)]
     num_drops = len(self.drops)
@@ -245,7 +243,6 @@ class MMDP_Movers(MMDP_BoxPush):
 
 
 class MMDP_Cleanup(MMDP_BoxPush):
-
   def get_possible_box_states(self):
     box_states = [(BoxState.Original, None), (BoxState.WithAgent1, None),
                   (BoxState.WithAgent2, None)]
@@ -321,7 +318,7 @@ if __name__ == "__main__":
     for _ in range(num_runs):
       game.reset_game()
       while not game.is_finished():
-        tup_state = game.get_state_for_each_agent(0)
+        tup_state = game.get_current_state()
         sidx = mmdp.conv_sim_states_to_mdp_sidx(tup_state)
         aidx = policy[sidx]
         act1, act2 = mmdp.conv_mdp_aidx_to_sim_actions(aidx)

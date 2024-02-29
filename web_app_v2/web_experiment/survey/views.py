@@ -9,9 +9,12 @@ from web_experiment.models import (db, User, InExperiment, PreExperiment,
 import csv
 from web_experiment.define import (PageKey, get_next_url, ExpType,
                                    get_domain_type, HASH_2_SESSION_KEY,
-                                   url_name)
+                                   url_name, GroupName)
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
+from web_experiment.survey_def import (COMMON_QUESTIONS, COACH_QUESTIONS,
+                                       POST_TASK_QUESTIONS, LIKERT_FOMRS,
+                                       TXT_OPTIONS)
 from . import survey_bp
 
 
@@ -92,7 +95,7 @@ def preexperiment():
                          cur_endpoint=cur_endpoint)
 
 
-def inexp_survey_view(session_name_hash):
+def session_survey(session_name_hash):
   cur_user = g.user
   cur_endpoint = survey_bp.name + "." + PageKey.InExperiment
   group_id = session["groupid"]
@@ -196,6 +199,118 @@ def inexp_survey_view(session_name_hash):
                          session_name_hash=session_name_hash)
 
 
+def task_survey(session_name_hash):
+  cur_user = g.user
+  cur_endpoint = survey_bp.name + "." + PageKey.InExperiment
+  group_id = session["groupid"]
+  exp_type = session["exp_type"]
+  session_name = HASH_2_SESSION_KEY[session_name_hash]
+
+  if request.method == 'POST':
+    likert_data = {}
+    have_unanswered = False
+    for e_question in POST_TASK_QUESTIONS:
+      q_id = e_question.name
+      if q_id in request.form:
+        answer = request.form[q_id]
+        likert_data[q_id] = answer
+        have_unanswered = have_unanswered or (answer is None)
+
+    comments = request.form['opencomment']
+    # get rid of \n for later entry into csv file
+    comments = comments.replace('\n', ' ')
+    error = None
+
+    if have_unanswered:
+      error = 'Please answer all required questions'
+
+    if error is None:
+      # save somewhere
+      survey_dir = os.path.join(current_app.config["SURVEY_PATH"], cur_user)
+      if not os.path.exists(survey_dir):
+        os.makedirs(survey_dir)
+
+      sec, msec = divmod(time.time() * 1000, 1000)
+      time_stamp = '%s.%03d' % (time.strftime('%Y-%m-%d_%H_%M_%S',
+                                              time.gmtime(sec)), msec)
+
+      qdata = InExperiment.query.filter_by(subject_id=cur_user,
+                                           session_name=session_name).first()
+      if qdata is not None:
+        db.session.delete(qdata)
+        db.session.commit()
+
+      file_name = f'insurvey_{cur_user}.csv'
+      file_path = os.path.join(survey_dir, file_name)
+      file_exist = (os.path.exists(file_path))
+
+      with open(file_path, 'a') as file:
+        writer = csv.writer(file)
+        # write header if file is just created
+        if not file_exist:
+          header = ['id', 'session', 'group', 'timestamp', 'comments']
+          for e_question in POST_TASK_QUESTIONS:
+            header.append(e_question.name)
+          writer.writerow(header)
+        row = [cur_user, session_name, group_id, time_stamp, comments]
+        for e_question in POST_TASK_QUESTIONS:
+          row.append(likert_data.get(e_question.name, "N/A"))
+        writer.writerow(row)
+
+      new_in_exp = InExperiment(session_name=session_name,
+                                subject_id=cur_user,
+                                comment=comments,
+                                **likert_data)
+      db.session.add(new_in_exp)
+      db.session.commit()
+
+      return redirect(
+          get_next_url(cur_endpoint, session_name, group_id, exp_type))
+
+    flash(error)
+
+  query_data = InExperiment.query.filter_by(subject_id=cur_user,
+                                            session_name=session_name).first()
+  common_likert_forms = []
+  for e_question in COMMON_QUESTIONS:
+    q_id = e_question.name
+    form = dict(LIKERT_FOMRS[q_id])
+    form["name"] = q_id
+    form["checked"] = [""] * len(form[TXT_OPTIONS])
+    common_likert_forms.append(form)
+
+  group_likert_forms = []
+  if group_id == GroupName.Group_B:
+    for e_question in COACH_QUESTIONS:
+      q_id = e_question.name
+      form = dict(LIKERT_FOMRS[q_id])
+      form["name"] = q_id
+      form["checked"] = [""] * len(form[TXT_OPTIONS])
+      group_likert_forms.append(form)
+
+  comments = ''
+  if query_data is not None:
+    comments = query_data.comment
+    for form in (common_likert_forms + group_likert_forms):
+      form["checked"][getattr(query_data, form["name"])] = "checked"
+
+  if exp_type == ExpType.Data_collection:
+    session_title = dcol.SESSION_TITLE[session_name]
+  elif exp_type == ExpType.Intervention:
+    session_title = intv.SESSION_TITLE[session_name]
+
+  logging.info('User %s access the survey for %s.' % (cur_user, session_name))
+  domain_type = get_domain_type(session_name)
+  return render_template("posttask.html",
+                         domain_type=domain_type.name,
+                         common_likert_forms=common_likert_forms,
+                         group_likert_forms=group_likert_forms,
+                         comments=comments,
+                         session_title=session_title,
+                         cur_endpoint=cur_endpoint,
+                         session_name_hash=session_name_hash)
+
+
 def completion():
   cur_user = g.user
   cur_endpoint = survey_bp.name + "." + PageKey.Completion
@@ -245,7 +360,8 @@ def completion():
       user.completed = True
       db.session.commit()
 
-      return redirect(url_for('survey.thankyou'))
+      # return redirect(url_for('survey.thankyou'))
+      return redirect(current_app.config['COMPLETION_REDIRECT'])
 
     flash(error)
 
@@ -268,10 +384,14 @@ def completion():
 
 
 def thankyou():
+  if g.user is None:
+    return redirect(url_for('consent.consent'))
   cur_user = g.user
+
   session.clear()
   logging.info('User %s completed the experiment.' % (cur_user, ))
-  return render_template('thankyou.html')
+  return render_template('thankyou.html',
+                         completion_code=current_app.config['COMPLETION_CODE'])
 
 
 survey_bp.add_url_rule('/' + url_name(PageKey.PreExperiment),
@@ -279,10 +399,16 @@ survey_bp.add_url_rule('/' + url_name(PageKey.PreExperiment),
                        login_required(preexperiment),
                        methods=('GET', 'POST'))
 
+# survey_bp.add_url_rule('/' + url_name(PageKey.InExperiment) +
+#                        "/<session_name_hash>",
+#                        PageKey.InExperiment,
+#                        login_required(session_survey),
+#                        methods=('GET', 'POST'))
+
 survey_bp.add_url_rule('/' + url_name(PageKey.InExperiment) +
                        "/<session_name_hash>",
                        PageKey.InExperiment,
-                       login_required(inexp_survey_view),
+                       login_required(task_survey),
                        methods=('GET', 'POST'))
 
 survey_bp.add_url_rule('/' + url_name(PageKey.Completion),
@@ -290,5 +416,4 @@ survey_bp.add_url_rule('/' + url_name(PageKey.Completion),
                        login_required(completion),
                        methods=('GET', 'POST'))
 
-survey_bp.add_url_rule('/' + PageKey.Thankyou, PageKey.Thankyou,
-                       login_required(thankyou))
+survey_bp.add_url_rule('/' + PageKey.Thankyou, PageKey.Thankyou, thankyou)

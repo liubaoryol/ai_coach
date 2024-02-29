@@ -269,3 +269,86 @@ iframe {
   background: #04AA6D; /* Green background */
   cursor: pointer; /* Cursor on hover */
 } 
+
+
+.thought-bubble {
+	display:flex;
+	justify-content:center;
+	align-items:center;
+  gap: 30px;
+}
+
+.thought-bubble p {
+  position: relative;
+  width: 70%;
+  height: 3em;
+  
+  background-color: #fff;
+  padding: 1.125em 1.5em;
+  font-size: 1.25em;
+  border-radius: 1rem;
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, .3), 0 0.0625rem 0.125rem rgba(0, 0, 0, .2);
+}
+
+.thought-bubble p::after {
+  /* content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  bottom: 100%;
+  left: 1.5em;
+  border: .75rem solid transparent;
+  border-top: none;
+
+  border-bottom-color: #fff;
+  filter: drop-shadow(0 -0.0625rem 0.0625rem rgba(0, 0, 0, .1)); */
+
+  
+  content: ''; 
+  bottom: 100%;
+  border-top: none;
+  filter: drop-shadow(-0.0625rem 0.0625rem 0.0625rem rgba(0, 0, 0, .3));
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border: 1.133em solid transparent;
+  border-right-color: #fff;
+  border-left: 0;
+  border-bottom: 0;
+  margin-top: -0.567em;
+  margin-left: -1.133em;
+}
+
+.thought-bubble img {
+  border: 0px;
+}
+
+
+/* Styling form-consent Class */
+.form-consent {
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.form-consent label {
+  display: inline-block;
+  width: 220px;
+  font-size: 16px;
+  /* text-align: right; */
+  font-weight: bold;
+  padding-top: 10px;
+  margin-bottom:10px;
+}
+
+
+.form-consent input {
+  border: 1px solid #777;
+  border-radius: 2px;
+  font-family: inherit;
+  padding: 10px;
+  display: inline-block;
+  width: 50%;
+  margin-bottom: 10px;
+}

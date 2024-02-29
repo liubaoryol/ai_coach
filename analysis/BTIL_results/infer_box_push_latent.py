@@ -6,6 +6,7 @@ from aic_domain.box_push.agent_model import (assumed_initial_mental_distribution
 
 if __name__ == "__main__":
   import glob
+  import os
   from aic_domain.box_push.utils import BoxPushTrajectories
 
   import aic_domain.box_push.maps as bp_maps

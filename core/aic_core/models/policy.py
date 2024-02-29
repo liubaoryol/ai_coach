@@ -42,6 +42,10 @@ class PolicyInterface:
     raise NotImplementedError
 
   @abc.abstractmethod
+  def get_num_actions(self):
+    raise NotImplementedError
+
+  @abc.abstractmethod
   def get_num_latent_states(self):
     raise NotImplementedError
 
@@ -55,7 +59,6 @@ class PolicyInterface:
 
 
 class CachedPolicyInterface(PolicyInterface):
-
   def __init__(
       self,
       mdp: mdp_lib.LatentMDP,
@@ -163,6 +166,16 @@ class CachedPolicyInterface(PolicyInterface):
           tuple_actions[idx]])
 
     return list_aidx
+
+  def get_num_actions(self):
+    if len(self.queried_agent_indices) == 1:
+      return self.mdp.list_num_actions[self.queried_agent_indices[0]]
+    else:
+      list_num_actions = []
+      for fidx in self.queried_agent_indices:
+        list_num_actions.append(self.mdp.list_num_actions[fidx])
+
+      return tuple(list_num_actions)
 
   def get_num_latent_states(self):
     return self.mdp.num_latents

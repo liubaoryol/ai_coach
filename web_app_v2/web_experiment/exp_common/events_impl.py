@@ -51,6 +51,20 @@ def get_imgs(domain_type: EDomainType):
   return imgs
 
 
+def update_created_obj_names(user_data: UserData, commands, drawing_objs):
+  'to keep track of the objects created on javascript side'
+  if commands is not None:
+    if "clear" in commands:
+      user_data.data[UserData.DRAW_OBJ_NAMES].clear()
+    elif "delete" in commands:
+      for obj_name in commands["delete"]:
+        user_data.data[UserData.DRAW_OBJ_NAMES].discard(obj_name)
+
+  if drawing_objs is not None:
+    for key in drawing_objs:
+      user_data.data[UserData.DRAW_OBJ_NAMES].add(key)
+
+
 def initial_canvas(sid, name_space, session_name: str, user_game_data: UserData,
                    page_lists: Sequence[ExperimentPageBase],
                    domain_type: EDomainType):
@@ -69,7 +83,11 @@ def initial_canvas(sid, name_space, session_name: str, user_game_data: UserData,
 
   cur_page.init_user_data(user_game_data)
   page_drawing_info = cur_page.get_updated_drawing_info(user_game_data)
-  commands, drawing_objs, drawing_order, animations = page_drawing_info
+  commands, drawing_objs, animations = page_drawing_info
+
+  update_created_obj_names(user_game_data, commands, drawing_objs)
+
+  drawing_order = cur_page.get_drawing_order(user_game_data)
 
   imgs = get_imgs(domain_type)
 
@@ -89,18 +107,25 @@ def button_clicked(sid, name_space, button, user_game_data: UserData,
   dict_prev_game_data = user_game_data.get_data_to_compare()
 
   page_lists[page_idx].button_clicked(user_game_data, button)
-  page_drawing_info = page_lists[page_idx].get_updated_drawing_info(
-      user_game_data, button, dict_prev_game_data)
 
-  new_page_idx = user_game_data.data[UserData.PAGE_IDX]
-  if page_idx != new_page_idx:
-    updated_page = page_lists[new_page_idx]
-    updated_page.init_user_data(user_game_data)
-    page_drawing_info = updated_page.get_updated_drawing_info(user_game_data)
+  new_page_idx = user_game_data.data[UserData.PAGE_IDX]  # type: int
+  page_done = user_game_data.data[UserData.PAGE_DONE]
+
+  page_toshow = page_lists[new_page_idx]
+  if page_done:
+    page_toshow.init_user_data(user_game_data)
+    page_drawing_info = page_toshow.get_updated_drawing_info(user_game_data)
+  else:
+    page_drawing_info = page_toshow.get_updated_drawing_info(
+        user_game_data, button, dict_prev_game_data)
 
   updated_task_done = user_game_data.data[UserData.SESSION_DONE]
 
-  commands, drawing_objs, drawing_order, animations = page_drawing_info
+  commands, drawing_objs, animations = page_drawing_info
+  update_created_obj_names(user_game_data, commands, drawing_objs)
+
+  drawing_order = page_toshow.get_drawing_order(user_game_data)
+
   update_gamedata(commands=commands,
                   drawing_objects=drawing_objs,
                   drawing_order=drawing_order,

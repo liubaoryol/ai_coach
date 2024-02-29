@@ -1,30 +1,31 @@
-from typing import Hashable, Tuple, Mapping, Sequence
+from typing import Hashable, Tuple, Sequence
 from stand_alone.app import AppInterface
-from aic_domain.rescue_v2 import (E_EventType, Location, Place, Route, E_Type,
-                                  T_Connections)
-from aic_domain.rescue_v2.maps import MAP_RESCUE
-from aic_domain.rescue_v2.simulator import RescueSimulatorV2
-from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-from aic_domain.rescue_v2.policy import Policy_Rescue
-from aic_domain.rescue_v2.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
+import numpy as np
+from aic_domain.rescue import E_EventType, Location, Place, Route, E_Type
+from aic_domain.rescue.maps import MAP_RESCUE
+from aic_domain.rescue.simulator import RescueSimulator
+from aic_domain.agent.cached_agent import BTILCachedPolicy
+from aic_domain.rescue.agent import (AIAgent_Rescue_PartialObs,
+                                     AIAgent_Rescue_BTIL)
+from aic_domain.rescue.policy import Policy_Rescue
+from aic_domain.rescue.mdp import MDP_Rescue_Task, MDP_Rescue_Agent
 import pickle
-from aic_core.intervention.feedback_strategy import (
-    get_combos_sorted_by_simulated_values)
+from aic_core.intervention.feedback_strategy import (get_sorted_x_combos)
 
 GAME_MAP = MAP_RESCUE
 
-TEST_BTIL_AGENT = False
+TEST_BTIL_AGENT = True
 DATA_DIR = "analysis/TIC_results/data/"
-V_VAL_FILE_NAME = "rescue_3_500_0,30_15_merged_v_values_learned.pickle"
+V_VAL_FILE_NAME = "rescue_2_500_0,30_30_merged_v_values_learned.pickle"
+# V_VAL_FILE_NAME = None
 
 
 class RescueApp(AppInterface):
-
   def __init__(self) -> None:
     super().__init__()
 
   def _init_game(self):
-    self.game = RescueSimulatorV2()
+    self.game = RescueSimulator()
     self.game.max_steps = 100
 
     self.game.init_game(**GAME_MAP)
@@ -37,22 +38,37 @@ class RescueApp(AppInterface):
     agent_mdp = MDP_Rescue_Agent(**GAME_MAP)
     self.mdp = task_mdp
 
-    TEMPERATURE = 0.3
-    init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
-                   GAME_MAP["a2_init"], GAME_MAP["a3_init"])
+    if not TEST_BTIL_AGENT:
+      TEMPERATURE = 0.3
+      init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
+                     GAME_MAP["a2_init"])
 
-    policy1 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 0)
-    agent1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
-    # agent1 = InteractiveAgent()
+      policy1 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 0)
+      agent1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
 
-    policy2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 1)
-    agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
-    # agent2 = InteractiveAgent()
+      # agent2 = AIAgent_Rescue(AGENT_2, policy2)
+      policy2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 1)
+      agent2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
+    else:
+      data_dir = "analysis/TIC_results/data/learned_models/"  # noqa: E501
+      np_policy_1 = np.load(
+          data_dir + "rescue_2_btil2_policy_synth_woTx_FTTT_500_0,30_a1.npy")
+      test_policy_1 = BTILCachedPolicy(np_policy_1, task_mdp, 0,
+                                       agent_mdp.latent_space)
+      np_policy_2 = np.load(
+          data_dir + "rescue_2_btil2_policy_synth_woTx_FTTT_500_0,30_a2.npy")
+      test_policy_2 = BTILCachedPolicy(np_policy_2, task_mdp, 1,
+                                       agent_mdp.latent_space)
 
-    policy3 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 2)
-    agent3 = AIAgent_Rescue_PartialObs(init_states, 2, policy3)
+      np_tx_1 = np.load(data_dir +
+                        "rescue_2_btil2_tx_synth_FTTT_500_0,30_a1.npy")
+      np_tx_2 = np.load(data_dir +
+                        "rescue_2_btil2_tx_synth_FTTT_500_0,30_a2.npy")
+      mask = (False, True, True, True)
+      agent1 = AIAgent_Rescue_BTIL(np_tx_1, mask, test_policy_1, 0)
+      agent2 = AIAgent_Rescue_BTIL(np_tx_2, mask, test_policy_2, 1)
 
-    self.game.set_autonomous_agent(agent1, agent2, agent3)
+    self.game.set_autonomous_agent(agent1, agent2)
 
   def _init_gui(self):
     self.main_window.title("Rescue")
@@ -68,60 +84,41 @@ class RescueApp(AppInterface):
 
     # agent 1 move
     if key_sym == "u":
-      agent_id = RescueSimulatorV2.AGENT1
+      agent_id = RescueSimulator.AGENT1
       action = E_EventType.Option0
     elif key_sym == "i":
-      agent_id = RescueSimulatorV2.AGENT1
+      agent_id = RescueSimulator.AGENT1
       action = E_EventType.Option1
     elif key_sym == "o":
-      agent_id = RescueSimulatorV2.AGENT1
+      agent_id = RescueSimulator.AGENT1
       action = E_EventType.Option2
     elif key_sym == "p":
-      agent_id = RescueSimulatorV2.AGENT1
+      agent_id = RescueSimulator.AGENT1
       action = E_EventType.Option3
     elif key_sym == "bracketleft":
-      agent_id = RescueSimulatorV2.AGENT1
+      agent_id = RescueSimulator.AGENT1
       action = E_EventType.Stay
     elif key_sym == "bracketright":
-      agent_id = RescueSimulatorV2.AGENT1
+      agent_id = RescueSimulator.AGENT1
       action = E_EventType.Rescue
     # agent 2 move
     if key_sym == "q":
-      agent_id = RescueSimulatorV2.AGENT2
+      agent_id = RescueSimulator.AGENT2
       action = E_EventType.Option0
     elif key_sym == "w":
-      agent_id = RescueSimulatorV2.AGENT2
+      agent_id = RescueSimulator.AGENT2
       action = E_EventType.Option1
     elif key_sym == "e":
-      agent_id = RescueSimulatorV2.AGENT2
+      agent_id = RescueSimulator.AGENT2
       action = E_EventType.Option2
     elif key_sym == "r":
-      agent_id = RescueSimulatorV2.AGENT2
+      agent_id = RescueSimulator.AGENT2
       action = E_EventType.Option3
     elif key_sym == "t":
-      agent_id = RescueSimulatorV2.AGENT2
+      agent_id = RescueSimulator.AGENT2
       action = E_EventType.Stay
     elif key_sym == "y":
-      agent_id = RescueSimulatorV2.AGENT2
-      action = E_EventType.Rescue
-    # agent 3 move
-    if key_sym == "a":
-      agent_id = RescueSimulatorV2.AGENT3
-      action = E_EventType.Option0
-    elif key_sym == "s":
-      agent_id = RescueSimulatorV2.AGENT3
-      action = E_EventType.Option1
-    elif key_sym == "d":
-      agent_id = RescueSimulatorV2.AGENT3
-      action = E_EventType.Option2
-    elif key_sym == "f":
-      agent_id = RescueSimulatorV2.AGENT3
-      action = E_EventType.Option3
-    elif key_sym == "g":
-      agent_id = RescueSimulatorV2.AGENT3
-      action = E_EventType.Stay
-    elif key_sym == "h":
-      agent_id = RescueSimulatorV2.AGENT3
+      agent_id = RescueSimulator.AGENT2
       action = E_EventType.Rescue
 
     return (agent_id, action, value)
@@ -136,11 +133,9 @@ class RescueApp(AppInterface):
     work_state = data["work_states"]  # type: Sequence[int]
     work_locations = data["work_locations"]  # type: Sequence[Location]
     places = data["places"]  # type: Sequence[Place]
-    connections = data["connections"]  # type: Mapping[int, T_Connections]
     routes = data["routes"]  # type: Sequence[Route]
     a1_pos = data["a1_pos"]  # type: Location
     a2_pos = data["a2_pos"]  # type: Location
-    a3_pos = data["a3_pos"]  # type: Location
 
     self.clear_canvas()
 
@@ -160,17 +155,7 @@ class RescueApp(AppInterface):
       y_e = y_e * self.canvas_height
       self.create_line(x_s, y_s, x_e, y_e, "green", 10)
 
-    for idx, place in enumerate(places):
-      for connect in connections[idx]:
-        if connect[0] == E_Type.Place and connect[1] > idx:
-          x_s, y_s = place.coord
-          x_e, y_e = places[connect[1]].coord
-          x_s *= self.canvas_width
-          y_s *= self.canvas_height
-          x_e *= self.canvas_width
-          y_e *= self.canvas_height
-          self.create_line(x_s, y_s, x_e, y_e, "green", 10)
-
+    for place in places:
       x_s = (place.coord[0] - 0.05) * self.canvas_width
       y_s = (place.coord[1] - 0.05) * self.canvas_height
       x_e = (place.coord[0] + 0.05) * self.canvas_width
@@ -217,25 +202,15 @@ class RescueApp(AppInterface):
     y_c2 = a2_coord[1] * self.canvas_height
     self.create_circle(x_c2, y_c2, rad, "red")
 
-    a3_coord = get_coord(a3_pos)
-    x_c3 = (a3_coord[0]) * self.canvas_width
-    y_c3 = (a3_coord[1] + 0.03) * self.canvas_height
-    self.create_circle(x_c3, y_c3, rad, "yellow")
-
     self.create_text(x_c1, y_c1 + 10,
                      str(self.game.agent_1.get_current_latent()))
     self.create_text(x_c2, y_c2 + 10,
                      str(self.game.agent_2.get_current_latent()))
-    self.create_text(x_c3, y_c3 + 10,
-                     str(self.game.agent_3.get_current_latent()))
-
     if V_VAL_FILE_NAME is not None:
-      game = self.game
-      tup_state = tuple(game.get_state_for_each_agent(0))
+      game = self.game  # type: RescueSimulator
+      tup_state = tuple(game.get_current_state())
       oidx = self.mdp.conv_sim_states_to_mdp_sidx(tup_state)
-      list_combos = get_combos_sorted_by_simulated_values(
-          self.np_v_values, oidx)
-      print("===========================================")
+      list_combos = get_sorted_x_combos(self.np_v_values, oidx)
       print(list_combos)
 
   def _update_canvas_overlay(self):

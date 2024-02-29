@@ -11,23 +11,46 @@ from web_experiment.exp_common.helper import (get_file_name,
 from web_experiment.exp_common.page_rescue_base import RescueGamePageBase
 
 TEMPERATURE = 0.3
-RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
-                                       MDP_Rescue_Agent(**MAP_RESCUE),
-                                       TEMPERATURE, RescueSimulator.AGENT2)
+RESCUE_MAX_STEP = 30
 
 
 class RescueGamePage(RescueGamePageBase):
+  RESCUE_TEAMMATE_POLICY = Policy_Rescue(MDP_Rescue_Task(**MAP_RESCUE),
+                                         MDP_Rescue_Agent(**MAP_RESCUE),
+                                         TEMPERATURE, RescueSimulator.AGENT2)
 
-  def __init__(self,
-               manual_latent_selection,
-               auto_prompt: bool = True,
-               prompt_on_change: bool = True,
-               prompt_freq: int = 5) -> None:
-    super().__init__(manual_latent_selection, MAP_RESCUE, auto_prompt,
-                     prompt_on_change, prompt_freq)
-    global RESCUE_TEAMMATE_POLICY
+  def __init__(self, partial_obs, latent_collection: bool = True) -> None:
+    super().__init__(MAP_RESCUE, latent_collection)
 
-    self._TEAMMATE_POLICY = RESCUE_TEAMMATE_POLICY
+    self._TEAMMATE_POLICY = RescueGamePage.RESCUE_TEAMMATE_POLICY
+    self._PARTIAL_OBS = partial_obs
+
+  def init_user_data(self, user_game_data: Exp1UserData):
+    super().init_user_data(user_game_data)
+
+    game = user_game_data.get_game_ref()
+    if game is None:
+      game = RescueSimulator()
+      game.max_steps = RESCUE_MAX_STEP
+
+      user_game_data.set_game(game)
+
+    game.init_game(**self._GAME_MAP)
+
+    user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
+    user_game_data.data[Exp1UserData.USER_LABELS] = []
+
+    agent1 = InteractiveAgent()
+    init_states = ([1] * len(self._GAME_MAP["work_locations"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
+    agent2 = AIAgent_Rescue_PartialObs(init_states, self._AGENT2,
+                                       self._TEAMMATE_POLICY)
+
+    game = user_game_data.get_game_ref()
+    game.set_autonomous_agent(agent1, agent2)
+    user_game_data.data[Exp1UserData.SELECT] = self._LATENT_COLLECTION
+
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS
 
   def _on_game_finished(self, user_game_data: Exp1UserData):
     '''
@@ -48,10 +71,11 @@ class RescueGamePage(RescueGamePageBase):
     header += str(self._GAME_MAP)
     game.save_history(file_name, header)
 
-    user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
-    user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
-    store_user_label_locally(user_label_path, user_id, session_name,
-                             user_labels)
+    if self._LATENT_COLLECTION:
+      user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
+      user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
+      store_user_label_locally(user_label_path, user_id, session_name,
+                               user_labels)
 
     # update score
     best_score = user.best_c
@@ -64,7 +88,6 @@ class RescueGamePage(RescueGamePageBase):
 
     # move to next page
     user_game_data.go_to_next_page()
-    self.init_user_data(user_game_data)
 
   def _get_score_text(self, user_data):
     game = user_data.get_game_ref()
@@ -82,25 +105,3 @@ class RescueGamePage(RescueGamePageBase):
     text_score += "(Your Best: " + str(best_score) + ")"
 
     return text_score
-
-
-class RescueGameUserRandom(RescueGamePage):
-
-  def __init__(self, partial_obs) -> None:
-    super().__init__(True, True, True, 5)
-    self._PARTIAL_OBS = partial_obs
-
-  def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
-
-    agent1 = InteractiveAgent()
-    init_states = ([1] * len(self._GAME_MAP["work_locations"]),
-                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
-    agent2 = AIAgent_Rescue_PartialObs(init_states, self._AGENT2,
-                                       self._TEAMMATE_POLICY)
-
-    game = user_game_data.get_game_ref()
-    game.set_autonomous_agent(agent1, agent2)
-    user_game_data.data[Exp1UserData.SELECT] = True
-    user_game_data.data[Exp1UserData.SHOW_LATENT] = True
-    user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS

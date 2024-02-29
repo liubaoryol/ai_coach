@@ -11,14 +11,11 @@ from aic_domain.rescue_v2 import E_EventType
 from aic_domain.rescue_v2 import is_work_done
 from aic_domain.rescue_v2.transition import find_location_index
 from aic_domain.rescue_v2.maps import MAP_RESCUE
-from aic_domain.rescue_v2.policy import Policy_Rescue
 from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent
 from aic_domain.rescue_v2.mdp import MDP_Rescue_Task
-from aic_domain.rescue_v2.agent import RescueAM
 
 
 class FullMDP_Rescue2(FullMDP):
-
   def reward(self, state_idx: int, action_idx: int) -> float:
     if self.is_terminal(state_idx):
       return 0
@@ -65,97 +62,69 @@ class FullMDP_Rescue2(FullMDP):
 # yapf: disable
 @click.command()
 @click.option("--domain", type=str, default="rescue_3", help="rescue_3")
-@click.option("--iteration", type=int, default=15, help="")
-@click.option("--num-train", type=int, default=500, help="")
-@click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
+@click.option("--iteration", type=int, default=15,
+              help="the maximum step of each domain (3-agent rescue: 15)")
+@click.option("--policy1-file", type=str, default="", help="")
+@click.option("--policy2-file", type=str, default="", help="")
+@click.option("--policy3-file", type=str, default="", help="")
+@click.option("--tx1-file", type=str, default="", help="")
+@click.option("--tx2-file", type=str, default="", help="")
+@click.option("--tx3-file", type=str, default="", help="")
+@click.option("--output-suffix", type=str, default="", help="")
+@click.option("--save-dir", type=str, default="data", help="data / human_data")
 # yapf: enable
-def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
-  TRUE_MODELS = False
-  # domain: movers | cleanup_v2 | rescue_2
-
-  sup_txt = ("%.2f" % supervision).replace('.', ',')
-  policy1_file = (
-      domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a1.npy")
-  policy2_file = (
-      domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a2.npy")
-  policy3_file = (
-      domain + f"_btil2_policy_synth_woTx_FTTTT_{num_train}_{sup_txt}_a3.npy")
-  tx1_file = domain + f"_btil2_tx_synth_FTTTT_{num_train}_{sup_txt}_a1.npy"
-  tx2_file = domain + f"_btil2_tx_synth_FTTTT_{num_train}_{sup_txt}_a2.npy"
-  tx3_file = domain + f"_btil2_tx_synth_FTTTT_{num_train}_{sup_txt}_a3.npy"
-
+def save_merged_v_values(domain, iteration, policy1_file, policy2_file,
+                         policy3_file, tx1_file, tx2_file, tx3_file,
+                         output_suffix, save_dir):
   if domain == "rescue_3":
     task_mdp = MDP_Rescue_Task(**MAP_RESCUE)
     agent_mdp = MDP_Rescue_Agent(**MAP_RESCUE)
     tup_lstate = (agent_mdp.latent_space, agent_mdp.latent_space,
                   agent_mdp.latent_space)
-
-    TEMPERATURE = 0.3
-    # true models
-    policy_a1 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 0)
-    policy_a2 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 1)
-    policy_a3 = Policy_Rescue(task_mdp, agent_mdp, TEMPERATURE, 2)
-    agent_model_a1 = RescueAM(0, policy_a1)
-    agent_model_a2 = RescueAM(1, policy_a2)
-    agent_model_a3 = RescueAM(2, policy_a3)
-    agent_models = [agent_model_a1, agent_model_a2, agent_model_a3]
-
     FullMDP_Base = FullMDP_Rescue2
 
-  DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
+  DATA_DIR = os.path.join(os.path.dirname(__file__), save_dir)
   model_dir = os.path.join(DATA_DIR, "learned_models/")
 
   if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
-  if TRUE_MODELS:
-    tup_num_latent = (policy_a1.get_num_latent_states(),
-                      policy_a2.get_num_latent_states(),
-                      policy_a3.get_num_latent_states())
+  np_tx1 = np.load(model_dir + tx1_file)
+  np_tx2 = np.load(model_dir + tx2_file)
+  np_tx3 = np.load(model_dir + tx3_file)
 
-    def all_Tx(agent_idx, latstate_idx, obstate_idx, tuple_action_idx,
-               obstate_next_idx):
-      agent_models[agent_idx].transition_mental_state(latstate_idx, obstate_idx,
-                                                      tuple_action_idx,
-                                                      obstate_next_idx)
-  else:
-    np_tx1 = np.load(model_dir + tx1_file)
-    np_tx2 = np.load(model_dir + tx2_file)
-    np_tx3 = np.load(model_dir + tx3_file)
+  np_policy1 = np.load(model_dir + policy1_file)
+  np_policy2 = np.load(model_dir + policy2_file)
+  np_policy3 = np.load(model_dir + policy3_file)
 
-    np_policy1 = np.load(model_dir + policy1_file)
-    np_policy2 = np.load(model_dir + policy2_file)
-    np_policy3 = np.load(model_dir + policy3_file)
+  tup_num_latent = (np_policy1.shape[0], np_policy2.shape[0],
+                    np_policy3.shape[0])
 
-    tup_num_latent = (np_policy1.shape[0], np_policy2.shape[0],
-                      np_policy3.shape[0])
+  def all_Tx(agent_idx, latstate_idx, obstate_idx, tuple_action_idx,
+             obstate_next_idx):
+    np_dist = None
+    np_idx = tuple([latstate_idx, *tuple_action_idx, obstate_next_idx])
+    if agent_idx == 0:
+      np_dist = np_tx1[np_idx]
+    elif agent_idx == 1:
+      np_dist = np_tx2[np_idx]
+    elif agent_idx == 2:
+      np_dist = np_tx3[np_idx]
+    else:
+      raise NotImplementedError
 
-    def all_Tx(agent_idx, latstate_idx, obstate_idx, tuple_action_idx,
-               obstate_next_idx):
-      np_dist = None
-      np_idx = tuple([latstate_idx, *tuple_action_idx, obstate_next_idx])
-      if agent_idx == 0:
-        np_dist = np_tx1[np_idx]
-      elif agent_idx == 1:
-        np_dist = np_tx2[np_idx]
-      elif agent_idx == 2:
-        np_dist = np_tx3[np_idx]
-      else:
-        raise NotImplementedError
+    # for illegal states or states that haven't appeared during the training,
+    # we assume mental model was maintained.
+    if np.all(np_dist == np_dist[0]):
+      np_dist = np.zeros_like(np_dist)
+      np_dist[latstate_idx] = 1
 
-      # for illegal states or states that haven't appeared during the training,
-      # we assume mental model was maintained.
-      if np.all(np_dist == np_dist[0]):
-        np_dist = np.zeros_like(np_dist)
-        np_dist[latstate_idx] = 1
-
-      return np_dist
+    return np_dist
 
   full_mdp = FullMDP_Base(mmdp=task_mdp, cb_tx=all_Tx, tup_lstate=tup_lstate)
   # full mdp transition
-  full_transition_file_name = (domain + f"_{num_train}_{sup_txt}" +
+  full_transition_file_name = (domain + f"_{output_suffix}" +
                                "_full_transition")
-  full_transition_file_name += "" if TRUE_MODELS else "_learned"
   pickle_full_trans = os.path.join(DATA_DIR,
                                    full_transition_file_name + ".pickle")
 
@@ -180,8 +149,7 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
       pickle.dump(np_reward_model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # joint policy
-  policy_file_name = domain + f"_{num_train}_{sup_txt}" + "_joint_policy"
-  policy_file_name += "" if TRUE_MODELS else "_learned"
+  policy_file_name = domain + f"_{output_suffix}" + "_joint_policy"
   pickle_joint_policy = os.path.join(DATA_DIR, policy_file_name + ".pickle")
 
   if os.path.exists(pickle_joint_policy):
@@ -189,41 +157,36 @@ def save_merged_v_values(domain, iteration, num_train=500, supervision=0.3):
       np_policy = pickle.load(handle)
   else:
     np_policy = np.zeros((full_mdp.num_states, full_mdp.num_actions))
-    if TRUE_MODELS:
-      raise NotImplementedError
-    else:
-      stay_aidx = full_mdp.conv_sim_actions_to_mdp_aidx(
-          (E_EventType.Stay, E_EventType.Stay, E_EventType.Stay))
-      for obs_idx in tqdm(range(task_mdp.num_states)):
-        obs_vec = task_mdp.conv_idx_to_state(obs_idx)
+    stay_aidx = full_mdp.conv_sim_actions_to_mdp_aidx(
+        (E_EventType.Stay, E_EventType.Stay, E_EventType.Stay))
+    for obs_idx in tqdm(range(task_mdp.num_states)):
+      obs_vec = task_mdp.conv_idx_to_state(obs_idx)
 
-        for xidx1 in range(tup_num_latent[0]):
-          np_action1 = np_policy1[xidx1, obs_idx]
-          for xidx2 in range(tup_num_latent[1]):
-            np_action2 = np_policy2[xidx2, obs_idx]
-            for xidx3 in range(tup_num_latent[2]):
-              np_action3 = np_policy3[xidx3, obs_idx]
+      for xidx1 in range(tup_num_latent[0]):
+        np_action1 = np_policy1[xidx1, obs_idx]
+        for xidx2 in range(tup_num_latent[1]):
+          np_action2 = np_policy2[xidx2, obs_idx]
+          for xidx3 in range(tup_num_latent[2]):
+            np_action3 = np_policy3[xidx3, obs_idx]
 
-              state_vec = tuple(obs_vec) + (xidx1, xidx2, xidx3)
-              sidx = full_mdp.conv_state_to_idx(state_vec)
+            state_vec = tuple(obs_vec) + (xidx1, xidx2, xidx3)
+            sidx = full_mdp.conv_state_to_idx(state_vec)
 
-              legal_actions = full_mdp.legal_actions(sidx)
-              if len(legal_actions) == 0:
-                np_policy[sidx, stay_aidx] = 1
-              else:
-                for aidx in legal_actions:
-                  act1, act2, act3 = full_mdp.conv_idx_to_action(aidx)
-                  np_policy[sidx, aidx] = (np_action1[act1] * np_action2[act2] *
-                                           np_action3[act3])
-      np_policy = np_policy / np.sum(np_policy, axis=1)[:, np.newaxis]
+            legal_actions = full_mdp.legal_actions(sidx)
+            if len(legal_actions) == 0:
+              np_policy[sidx, stay_aidx] = 1
+            else:
+              for aidx in legal_actions:
+                act1, act2, act3 = full_mdp.conv_idx_to_action(aidx)
+                np_policy[sidx, aidx] = (np_action1[act1] * np_action2[act2] *
+                                         np_action3[act3])
+    np_policy = np_policy / np.sum(np_policy, axis=1)[:, np.newaxis]
 
     with open(pickle_joint_policy, 'wb') as handle:
       pickle.dump(np_policy, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
   # v-value
-  file_name = (domain + f"_{num_train}_{sup_txt}_{iteration}" +
-               "_merged_v_values")
-  file_name += "" if TRUE_MODELS else "_learned"
+  file_name = (domain + f"_{output_suffix}_{iteration}" + "_merged_v_values")
   pickle_v_values = os.path.join(DATA_DIR, file_name + ".pickle")
   if os.path.exists(pickle_v_values):
     with open(pickle_v_values, 'rb') as handle:

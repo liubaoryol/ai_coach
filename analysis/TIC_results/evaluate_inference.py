@@ -4,6 +4,7 @@ import numpy as np
 import random
 import pandas as pd
 from aic_core.utils.decoding import forward_inference
+import load_domain
 
 
 def prediction_result(domain_name: str,
@@ -37,152 +38,19 @@ def prediction_result(domain_name: str,
 
   # =========== LOAD ENV ============
   if domain_name == "movers":
-    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
-    from aic_domain.box_push_v2.maps import MAP_MOVERS
-    from aic_domain.box_push_v2.policy import Policy_Movers
-    from aic_domain.box_push_v2.mdp import MDP_Movers_Agent
-    from aic_domain.box_push_v2.mdp import MDP_Movers_Task
-    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from aic_domain.box_push.utils import BoxPushTrajectories
-    game_map = MAP_MOVERS
-    temperature = 0.3
-
-    MDP_Task = MDP_Movers_Task(**game_map)
-    MDP_Agent = MDP_Movers_Agent(**game_map)
-
-    init_state = ([0] * len(game_map["boxes"]), game_map["a1_init"],
-                  game_map["a2_init"])
-
-    policy1 = Policy_Movers(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Movers(MDP_Task, MDP_Agent, temperature, 1)
-    agent_1 = BoxPushAIAgent_PO_Team(init_state, policy1, agent_idx=0)
-    agent_2 = BoxPushAIAgent_PO_Team(init_state, policy2, agent_idx=1)
-    agents = [agent_1, agent_2]
-
-    game = BoxPushSimulatorV2(0)
-    test_data_handler = BoxPushTrajectories(MDP_Task, MDP_Agent)
-
+    vec_domain_data = load_domain.load_movers()
   elif domain_name == "cleanup_v2":
-    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V2
-    from aic_domain.box_push_v2.policy import Policy_Cleanup
-    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from aic_domain.box_push.utils import BoxPushTrajectories
-    game_map = MAP_CLEANUP_V2
-    temperature = 0.3
-
-    MDP_Task = MDP_Cleanup_Task(**game_map)
-    MDP_Agent = MDP_Cleanup_Agent(**game_map)
-
-    init_state = ([0] * len(game_map["boxes"]), game_map["a1_init"],
-                  game_map["a2_init"])
-
-    policy1 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 1)
-    agent_1 = BoxPushAIAgent_PO_Indv(init_state, policy1, agent_idx=0)
-    agent_2 = BoxPushAIAgent_PO_Indv(init_state, policy2, agent_idx=1)
-
-    agents = [agent_1, agent_2]
-    game = BoxPushSimulatorV2(0)
-    test_data_handler = BoxPushTrajectories(MDP_Task, MDP_Agent)
-
+    vec_domain_data = load_domain.load_cleanup_v2()
   elif domain_name == "cleanup_v3":
-    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from aic_domain.box_push_v2.policy import Policy_Cleanup
-    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Agent
-    from aic_domain.box_push_v2.mdp import MDP_Cleanup_Task
-    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from aic_domain.box_push.utils import BoxPushTrajectories
-    game_map = MAP_CLEANUP_V3
-    temperature = 0.3
-
-    MDP_Task = MDP_Cleanup_Task(**game_map)
-    MDP_Agent = MDP_Cleanup_Agent(**game_map)
-
-    init_state = ([0] * len(game_map["boxes"]), game_map["a1_init"],
-                  game_map["a2_init"])
-
-    policy1 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Cleanup(MDP_Task, MDP_Agent, temperature, 1)
-    agent_1 = BoxPushAIAgent_PO_Indv(init_state, policy1, agent_idx=0)
-    agent_2 = BoxPushAIAgent_PO_Indv(init_state, policy2, agent_idx=1)
-
-    agents = [agent_1, agent_2]
-    game = BoxPushSimulatorV2(0)
-    test_data_handler = BoxPushTrajectories(MDP_Task, MDP_Agent)
-
+    vec_domain_data = load_domain.load_cleanup_v3()
   elif domain_name == "rescue_2":
-    from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
-    from aic_domain.rescue.maps import MAP_RESCUE
-    from aic_domain.rescue.policy import Policy_Rescue
-    from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from aic_domain.rescue.simulator import RescueSimulator
-    from aic_domain.rescue.utils import RescueTrajectories
-    game_map = MAP_RESCUE
-    temperature = 0.3
-
-    MDP_Task = MDP_Rescue_Task(**game_map)
-    MDP_Agent = MDP_Rescue_Agent(**game_map)
-
-    init_states = ([1] * len(game_map["work_locations"]), game_map["a1_init"],
-                   game_map["a2_init"])
-    policy1 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 1)
-    agent_1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
-    agent_2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
-
-    agents = [agent_1, agent_2]
-
-    game = RescueSimulator()
-    game.max_steps = 30
-
-    def conv_latent_to_idx(agent_idx, latent):
-      if agent_idx == 0:
-        return agent_1.conv_latent_to_idx(latent)
-      else:
-        return agent_2.conv_latent_to_idx(latent)
-
-    test_data_handler = RescueTrajectories(
-        MDP_Task, (MDP_Agent.num_latents, MDP_Agent.num_latents),
-        conv_latent_to_idx)
-
+    vec_domain_data = load_domain.load_rescue_2()
   elif domain_name == "rescue_3":
-    from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-    from aic_domain.rescue_v2.maps import MAP_RESCUE
-    from aic_domain.rescue_v2.policy import Policy_Rescue
-    from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from aic_domain.rescue_v2.simulator import RescueSimulatorV2
-    from aic_domain.rescue_v2.utils import RescueV2Trajectories
-    game_map = MAP_RESCUE
-    temperature = 0.3
+    vec_domain_data = load_domain.load_rescue_3()
+  else:
+    raise NotImplementedError
 
-    MDP_Task = MDP_Rescue_Task(**game_map)
-    MDP_Agent = MDP_Rescue_Agent(**game_map)
-
-    init_states = ([1] * len(game_map["work_locations"]), game_map["a1_init"],
-                   game_map["a2_init"], game_map["a3_init"])
-    policy1 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 0)
-    policy2 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 1)
-    policy3 = Policy_Rescue(MDP_Task, MDP_Agent, temperature, 2)
-    agent_1 = AIAgent_Rescue_PartialObs(init_states, 0, policy1)
-    agent_2 = AIAgent_Rescue_PartialObs(init_states, 1, policy2)
-    agent_3 = AIAgent_Rescue_PartialObs(init_states, 2, policy3)
-
-    agents = [agent_1, agent_2, agent_3]
-
-    game = RescueSimulatorV2()
-    game.max_steps = 15
-
-    def conv_latent_to_idx(agent_idx, latent):
-      return agents[agent_idx].conv_latent_to_idx(latent)
-
-    test_data_handler = RescueV2Trajectories(
-        MDP_Task,
-        (MDP_Agent.num_latents, MDP_Agent.num_latents, MDP_Agent.num_latents),
-        conv_latent_to_idx)
+  game, agents, _, test_data_handler, game_map = vec_domain_data
 
   game.init_game(**game_map)
   game.set_autonomous_agent(*agents)
@@ -252,11 +120,12 @@ def prediction_result(domain_name: str,
 
     episode_result = []
     for t in range(len(list_actions) - 1):
+      num_latents = agents[0].agent_model.policy_model.get_num_latent_states()
       _, list_np_x_dist = forward_inference(list_states[:t + 2],
                                             list_actions[:t + 1],
-                                            game.get_num_agents(),
-                                            MDP_Agent.num_latents, policy_nxsa,
-                                            Tx_nxsasx, init_latent_nxs,
+                                            game.get_num_agents(), num_latents,
+                                            policy_nxsa, Tx_nxsasx,
+                                            init_latent_nxs,
                                             list_prev_np_x_dist)
       list_prev_np_x_dist = list_np_x_dist
       list_result = []

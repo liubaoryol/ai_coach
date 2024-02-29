@@ -6,203 +6,63 @@ import random
 import numpy as np
 # from aic_ml.BTIL import BTIL
 from aic_ml.BTIL.btil_decentral import BTIL_Decen
-from aic_domain.helper import TrueModelConverter
-
-import helper
+from aic_ml.BTIL.btil_svi import BTIL_SVI
+import load_domain
 
 
 # yapf: disable
 @click.command()
 @click.option("--domain", type=str, default="rescue_2", help="movers / cleanup_v3 / rescue_2 /rescue_3")  # noqa: E501
 @click.option("--synthetic", type=bool, default=True, help="")
-@click.option("--num-training-data", type=int, default=500, help="")
+@click.option("--num-training-data", type=int, default=160, help="")
 @click.option("--supervision", type=float, default=0.3, help="value should be between 0.0 and 1.0")  # noqa: E501
-@click.option("--use-true-tx", type=bool, default=False, help="")
 @click.option("--gen-trainset", type=bool, default=False, help="")
-@click.option("--beta-pi", type=float, default=1.01, help="")
-@click.option("--beta-tx", type=float, default=1.01, help="")
+@click.option("--beta-pi", type=float, default=0.01, help="")
+@click.option("--beta-tx", type=float, default=0.01, help="")
 @click.option("--tx-dependency", type=str, default="FTTT",
               help="sequence of T or F indicating dependency on cur_state, actions, and next_state")  # noqa: E501
+@click.option("--batch-size", type=int, default=-1, help="If minus, use Decen. Otherwise, use SVI")  # noqa: E501
 # yapf: enable
-def main(domain, synthetic, num_training_data, supervision, use_true_tx,
-         gen_trainset, beta_pi, beta_tx, tx_dependency):
+def main(domain, synthetic, num_training_data, supervision, gen_trainset,
+         beta_pi, beta_tx, tx_dependency, batch_size):
   logging.info("domain: %s" % (domain, ))
   logging.info("synthetic: %s" % (synthetic, ))
   logging.info("num training data: %s" % (num_training_data, ))
   logging.info("supervision: %s" % (supervision, ))
-  logging.info("use true Tx: %s" % (use_true_tx, ))
   logging.info("Gen trainset: %s" % (gen_trainset, ))
   logging.info("beta pi: %s" % (beta_pi, ))
   logging.info("beta Tx: %s" % (beta_tx, ))
   logging.info("Tx dependency: %s" % (tx_dependency, ))
-
-  assert synthetic or not use_true_tx
+  logging.info("batch size: %s" % (batch_size, ))
 
   # define the domain where trajectories were generated
   ##################################################
   if domain == "movers":
-    from aic_domain.box_push.agent_model import (
-        assumed_initial_mental_distribution)
-    from aic_domain.box_push.utils import BoxPushTrajectories
-    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Team
-    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from aic_domain.box_push_v2.maps import MAP_MOVERS
-    from aic_domain.box_push_v2.policy import Policy_Movers
-    from aic_domain.box_push_v2.mdp import (MDP_Movers_Agent, MDP_Movers_Task)
-    sim = BoxPushSimulatorV2(0)
-    TEMPERATURE = 0.3
-    GAME_MAP = MAP_MOVERS
-    SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Movers_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Movers_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Movers(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-    init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
-                   GAME_MAP["a2_init"])
-    AGENT_1 = BoxPushAIAgent_PO_Team(init_states,
-                                     POLICY_1,
-                                     agent_idx=sim.AGENT1)
-    AGENT_2 = BoxPushAIAgent_PO_Team(init_states,
-                                     POLICY_2,
-                                     agent_idx=sim.AGENT2)
-    AGENTS = [AGENT_1, AGENT_2]
-    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
-    assumed_init_mental_dist = assumed_initial_mental_distribution
+    vec_domain_data = load_domain.load_movers()
   elif domain == "cleanup_v2":
-    from aic_domain.box_push.agent_model import (
-        assumed_initial_mental_distribution)
-    from aic_domain.box_push.utils import BoxPushTrajectories
-    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V2
-    from aic_domain.box_push_v2.policy import Policy_Cleanup
-    from aic_domain.box_push_v2.mdp import (MDP_Cleanup_Agent, MDP_Cleanup_Task)
-    sim = BoxPushSimulatorV2(0)
-    TEMPERATURE = 0.3
-    GAME_MAP = MAP_CLEANUP_V2
-    SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Cleanup_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Cleanup_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-    init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
-                   GAME_MAP["a2_init"])
-    AGENT_1 = BoxPushAIAgent_PO_Indv(init_states,
-                                     POLICY_1,
-                                     agent_idx=sim.AGENT1)
-    AGENT_2 = BoxPushAIAgent_PO_Indv(init_states,
-                                     POLICY_2,
-                                     agent_idx=sim.AGENT2)
-    AGENTS = [AGENT_1, AGENT_2]
-    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
-    assumed_init_mental_dist = assumed_initial_mental_distribution
+    vec_domain_data = load_domain.load_cleanup_v2()
   elif domain == "cleanup_v3":
-    from aic_domain.box_push.agent_model import (
-        assumed_initial_mental_distribution)
-    from aic_domain.box_push.utils import BoxPushTrajectories
-    from aic_domain.box_push_v2.agent import BoxPushAIAgent_PO_Indv
-    from aic_domain.box_push_v2.simulator import BoxPushSimulatorV2
-    from aic_domain.box_push_v2.maps import MAP_CLEANUP_V3
-    from aic_domain.box_push_v2.policy import Policy_Cleanup
-    from aic_domain.box_push_v2.mdp import (MDP_Cleanup_Agent, MDP_Cleanup_Task)
-    sim = BoxPushSimulatorV2(0)
-    TEMPERATURE = 0.3
-    GAME_MAP = MAP_CLEANUP_V3
-    SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Cleanup_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Cleanup_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Cleanup(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-    init_states = ([0] * len(GAME_MAP["boxes"]), GAME_MAP["a1_init"],
-                   GAME_MAP["a2_init"])
-    AGENT_1 = BoxPushAIAgent_PO_Indv(init_states,
-                                     POLICY_1,
-                                     agent_idx=sim.AGENT1)
-    AGENT_2 = BoxPushAIAgent_PO_Indv(init_states,
-                                     POLICY_2,
-                                     agent_idx=sim.AGENT2)
-    AGENTS = [AGENT_1, AGENT_2]
-    train_data = BoxPushTrajectories(MDP_TASK, MDP_AGENT)
-    assumed_init_mental_dist = assumed_initial_mental_distribution
+    vec_domain_data = load_domain.load_cleanup_v3()
   elif domain == "rescue_2":
-    from aic_domain.rescue.agent import (assumed_initial_mental_distribution)
-    from aic_domain.rescue.agent import AIAgent_Rescue_PartialObs
-    from aic_domain.rescue.simulator import RescueSimulator
-    from aic_domain.rescue.maps import MAP_RESCUE
-    from aic_domain.rescue.policy import Policy_Rescue
-    from aic_domain.rescue.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from aic_domain.rescue.utils import RescueTrajectories
-    sim = RescueSimulator()
-    sim.max_steps = 30
-    TEMPERATURE = 0.3
-
-    GAME_MAP = MAP_RESCUE
-    SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Rescue_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Rescue_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Rescue(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Rescue(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-
-    init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
-                   GAME_MAP["a2_init"])
-    AGENT_1 = AIAgent_Rescue_PartialObs(init_states, 0, POLICY_1)
-    AGENT_2 = AIAgent_Rescue_PartialObs(init_states, 1, POLICY_2)
-
-    AGENTS = [AGENT_1, AGENT_2]
-
-    def conv_latent_to_idx(agent_idx, latent):
-      if agent_idx == 0:
-        return AGENT_1.conv_latent_to_idx(latent)
-      else:
-        return AGENT_2.conv_latent_to_idx(latent)
-
-    train_data = RescueTrajectories(
-        MDP_TASK, (MDP_AGENT.num_latents, MDP_AGENT.num_latents),
-        conv_latent_to_idx)
-    assumed_init_mental_dist = assumed_initial_mental_distribution
+    vec_domain_data = load_domain.load_rescue_2()
   elif domain == "rescue_3":
-    from aic_domain.rescue_v2.agent import (assumed_initial_mental_distribution)
-    from aic_domain.rescue_v2.agent import AIAgent_Rescue_PartialObs
-    from aic_domain.rescue_v2.simulator import RescueSimulatorV2
-    from aic_domain.rescue_v2.maps import MAP_RESCUE
-    from aic_domain.rescue_v2.policy import Policy_Rescue
-    from aic_domain.rescue_v2.mdp import MDP_Rescue_Agent, MDP_Rescue_Task
-    from aic_domain.rescue_v2.utils import RescueV2Trajectories
-    sim = RescueSimulatorV2()
-    sim.max_steps = 15
-
-    TEMPERATURE = 0.3
-    GAME_MAP = MAP_RESCUE
-    SAVE_PREFIX = GAME_MAP["name"]
-    MDP_TASK = MDP_Rescue_Task(**GAME_MAP)
-    MDP_AGENT = MDP_Rescue_Agent(**GAME_MAP)
-    POLICY_1 = Policy_Rescue(MDP_TASK, MDP_AGENT, TEMPERATURE, 0)
-    POLICY_2 = Policy_Rescue(MDP_TASK, MDP_AGENT, TEMPERATURE, 1)
-    POLICY_3 = Policy_Rescue(MDP_TASK, MDP_AGENT, TEMPERATURE, 2)
-
-    init_states = ([1] * len(GAME_MAP["work_locations"]), GAME_MAP["a1_init"],
-                   GAME_MAP["a2_init"], GAME_MAP["a3_init"])
-    AGENT_1 = AIAgent_Rescue_PartialObs(init_states, 0, POLICY_1)
-    AGENT_2 = AIAgent_Rescue_PartialObs(init_states, 1, POLICY_2)
-    AGENT_3 = AIAgent_Rescue_PartialObs(init_states, 2, POLICY_3)
-
-    AGENTS = [AGENT_1, AGENT_2, AGENT_3]
-
-    def conv_latent_to_idx(agent_idx, latent):
-      return AGENTS[agent_idx].conv_latent_to_idx(latent)
-
-    train_data = RescueV2Trajectories(
-        MDP_TASK,
-        (MDP_AGENT.num_latents, MDP_AGENT.num_latents, MDP_AGENT.num_latents),
-        conv_latent_to_idx)
-    assumed_init_mental_dist = assumed_initial_mental_distribution
+    vec_domain_data = load_domain.load_rescue_3()
   else:
     raise NotImplementedError
 
+  sim, AGENTS, SAVE_PREFIX, train_data, GAME_MAP = vec_domain_data
   sim.init_game(**GAME_MAP)
   sim.set_autonomous_agent(*AGENTS)
 
-  true_methods = TrueModelConverter(AGENTS, MDP_AGENT.num_latents)
+  num_states = AGENTS[0].agent_model.get_reference_mdp().num_states
+  tuple_num_actions = []
+  tuple_num_latents = []
+  for agent in AGENTS:
+    tuple_num_actions.append(agent.agent_model.policy_model.get_num_actions())
+    tuple_num_latents.append(
+        agent.agent_model.policy_model.get_num_latent_states())
+  tuple_num_actions = tuple(tuple_num_actions)
+  tuple_num_latents = tuple(tuple_num_latents)
 
   tuple_tx_dependency = []
   for cha in tx_dependency:
@@ -215,7 +75,12 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
 
   # generate data
   ############################################################################
-  DATA_DIR = os.path.join(os.path.dirname(__file__), "data/")
+  if synthetic:
+    dir_name = "data/"
+  else:
+    dir_name = "human_data/"
+
+  DATA_DIR = os.path.join(os.path.dirname(__file__), dir_name)
   TRAIN_DIR = os.path.join(DATA_DIR, SAVE_PREFIX + '_train')
 
   train_prefix = "train_"
@@ -227,21 +92,12 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
                        "header")
 
   fn_get_bx = None
-  fn_get_Tx = None
   if synthetic:
-    # fn_get_bx = true_methods.get_init_latent_dist
     fn_get_bx = (
-        lambda a, s: np.ones(MDP_AGENT.num_latents) / MDP_AGENT.num_latents)
-    fn_get_Tx = true_methods.true_Tx_for_var_infer
+        lambda a, s: np.ones(tuple_num_latents[a]) / tuple_num_latents[a])
   else:
-
-    def assumed_init_latent_dist(agent_idx, state_idx):
-      if agent_idx == 0:
-        return assumed_init_mental_dist(0, state_idx, MDP_TASK)
-      else:
-        return AGENTS[agent_idx].get_initial_latent_distribution(state_idx)
-
-    fn_get_bx = assumed_init_latent_dist
+    fn_get_bx = (
+        lambda a, s: np.ones(tuple_num_latents[a]) / tuple_num_latents[a])
 
   # load train set
   ##################################################
@@ -265,7 +121,6 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
   ##################################################
   logging.info("beta: %f, %f" % (beta_pi, beta_tx))
 
-  joint_action_num = tuple([MDP_AGENT.num_actions] * len(AGENTS))
   labeled_data_idx = int(num_train * supervision)
 
   logging.info("#########")
@@ -273,51 +128,68 @@ def main(domain, synthetic, num_training_data, supervision, use_true_tx,
                (labeled_data_idx, num_train - labeled_data_idx))
   logging.info("#########")
 
-  def transition_s(sidx, tup_aidx, sidx_n=None):
-    return helper.cached_transition(DATA_DIR, SAVE_PREFIX, MDP_TASK, sidx,
-                                    tup_aidx, sidx_n)
-
-  # learning models
-  btil_models = BTIL_Decen(traj_labeled_ver[0:labeled_data_idx] +
-                           traj_unlabel_ver[labeled_data_idx:],
-                           MDP_TASK.num_states,
-                           tuple([MDP_AGENT.num_latents] * len(AGENTS)),
-                           joint_action_num,
-                           trans_x_dependency=tuple_tx_dependency,
-                           epsilon=0.01,
-                           max_iteration=100)
-  btil_models.set_dirichlet_prior(beta_pi, beta_tx)
-
-  if use_true_tx:
-    logging.info("Train with true Tx")
-    btil_models.set_bx_and_Tx(cb_bx=fn_get_bx, cb_Tx=fn_get_Tx)
-  else:
-    logging.info("Train without true Tx")
-    btil_models.set_bx_and_Tx(cb_bx=fn_get_bx)
-  btil_models.do_inference()
-
   # save models
   save_dir = DATA_DIR + "learned_models/"
   if not os.path.exists(save_dir):
     os.mkdir(save_dir)
 
-  policy_file_name = SAVE_PREFIX + "_btil_dec_policy_"
+  # learning models
+  if batch_size < 0:
+    alg_name = "btil_dec"
+    btil_models = BTIL_Decen(traj_labeled_ver[0:labeled_data_idx] +
+                             traj_unlabel_ver[labeled_data_idx:],
+                             num_states,
+                             tuple_num_latents,
+                             tuple_num_actions,
+                             trans_x_dependency=tuple_tx_dependency,
+                             epsilon=0.01,
+                             max_iteration=100)
+    btil_models.set_dirichlet_prior(beta_pi, beta_tx)
+
+    btil_models.set_bx_and_Tx(cb_bx=fn_get_bx)
+    btil_models.do_inference()
+  else:
+    alg_name = "btil_svi"
+    btil_models = BTIL_SVI(traj_labeled_ver[0:labeled_data_idx] +
+                           traj_unlabel_ver[labeled_data_idx:],
+                           num_states,
+                           tuple_num_latents,
+                           tuple_num_actions,
+                           trans_x_dependency=tuple_tx_dependency,
+                           epsilon=0.01,
+                           max_iteration=300,
+                           lr=0.1,
+                           decay=0,
+                           no_gem=True)
+    btil_models.set_prior(None, beta_pi, beta_tx)
+
+    btil_models.initialize_param()
+    btil_models.do_inference(batch_size)
+
+    # save initial latent distribution
+    bx_file_name = SAVE_PREFIX + f"_{alg_name}_bx_"
+    bx_file_name += "synth_" if synthetic else "human_"
+    bx_file_name += tx_dependency + "_"
+    bx_file_name += ("%d_%.2f" % (num_train, supervision)).replace('.', ',')
+    bx_file_name = os.path.join(save_dir, bx_file_name)
+    for idx in range(len(btil_models.list_bx)):
+      np.save(bx_file_name + f"_a{idx + 1}", btil_models.list_bx[idx])
+
+  policy_file_name = SAVE_PREFIX + f"_{alg_name}_policy_"
   policy_file_name += "synth_" if synthetic else "human_"
-  policy_file_name += "withTx_" if use_true_tx else "woTx_"
-  policy_file_name += tx_dependency + "_" if not use_true_tx else ""
+  policy_file_name += tx_dependency + "_"
   policy_file_name += ("%d_%.2f" % (num_train, supervision)).replace('.', ',')
   policy_file_name = os.path.join(save_dir, policy_file_name)
   for idx in range(len(btil_models.list_np_policy)):
     np.save(policy_file_name + f"_a{idx + 1}", btil_models.list_np_policy[idx])
 
-  if not use_true_tx:
-    tx_file_name = SAVE_PREFIX + "_btil_dec_tx_"
-    tx_file_name += "synth_" if synthetic else "human_"
-    tx_file_name += tx_dependency + "_"
-    tx_file_name += ("%d_%.2f" % (num_train, supervision)).replace('.', ',')
-    tx_file_name = os.path.join(save_dir, tx_file_name)
-    for idx in range(len(btil_models.list_Tx)):
-      np.save(tx_file_name + f"_a{idx + 1}", btil_models.list_Tx[idx].np_Tx)
+  tx_file_name = SAVE_PREFIX + f"_{alg_name}_tx_"
+  tx_file_name += "synth_" if synthetic else "human_"
+  tx_file_name += tx_dependency + "_"
+  tx_file_name += ("%d_%.2f" % (num_train, supervision)).replace('.', ',')
+  tx_file_name = os.path.join(save_dir, tx_file_name)
+  for idx in range(len(btil_models.list_Tx)):
+    np.save(tx_file_name + f"_a{idx + 1}", btil_models.list_Tx[idx].np_Tx)
 
 
 if __name__ == "__main__":

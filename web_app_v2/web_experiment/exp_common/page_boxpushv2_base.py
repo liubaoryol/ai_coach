@@ -15,35 +15,34 @@ from web_experiment.exp_common.helper import (get_file_name,
                                               store_user_label_locally)
 
 TEMPERATURE = 0.3
-MOVERS_TEAMMATE_POLICY = Policy_Movers(MDP_Movers_Task(**MAP_MOVERS),
-                                       MDP_Movers_Agent(**MAP_MOVERS),
-                                       TEMPERATURE, BoxPushSimulatorV2.AGENT2)
-CLEANUP_TEAMMATE_POLICY = Policy_Cleanup(MDP_Cleanup_Task(**MAP_CLEANUP),
-                                         MDP_Cleanup_Agent(**MAP_CLEANUP),
-                                         TEMPERATURE, BoxPushSimulatorV2.AGENT2)
 
 
 class BoxPushV2GamePage(BoxPushGamePageBase):
+  MOVERS_TEAMMATE_POLICY = Policy_Movers(MDP_Movers_Task(**MAP_MOVERS),
+                                         MDP_Movers_Agent(**MAP_MOVERS),
+                                         TEMPERATURE, BoxPushSimulatorV2.AGENT2)
+  CLEANUP_TEAMMATE_POLICY = Policy_Cleanup(MDP_Cleanup_Task(**MAP_CLEANUP),
+                                           MDP_Cleanup_Agent(**MAP_CLEANUP),
+                                           TEMPERATURE,
+                                           BoxPushSimulatorV2.AGENT2)
 
   def __init__(self,
                domain_type,
-               manual_latent_selection,
-               auto_prompt: bool = True,
-               prompt_on_change: bool = True,
-               prompt_freq: int = 5) -> None:
+               partial_obs,
+               latent_collection: bool = True) -> None:
     game_map = MAP_MOVERS if domain_type == EDomainType.Movers else MAP_CLEANUP
-    super().__init__(domain_type, manual_latent_selection, game_map,
-                     auto_prompt, prompt_on_change, prompt_freq)
-    global MOVERS_TEAMMATE_POLICY, CLEANUP_TEAMMATE_POLICY
+    super().__init__(domain_type, game_map, latent_collection)
 
     if self._DOMAIN_TYPE == EDomainType.Movers:
-      self._TEAMMATE_POLICY = MOVERS_TEAMMATE_POLICY
+      self._TEAMMATE_POLICY = BoxPushV2GamePage.MOVERS_TEAMMATE_POLICY
     else:
-      self._TEAMMATE_POLICY = CLEANUP_TEAMMATE_POLICY
+      self._TEAMMATE_POLICY = BoxPushV2GamePage.CLEANUP_TEAMMATE_POLICY
+
+    self._PARTIAL_OBS = partial_obs
 
   def init_user_data(self, user_game_data: Exp1UserData):
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.GAME_DONE] = False
-    user_game_data.data[Exp1UserData.SELECT] = False
 
     game = user_game_data.get_game_ref()
     if game is None:
@@ -54,8 +53,25 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
     game.init_game(**self._GAME_MAP)
 
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
-    user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.USER_LABELS] = []
+
+    agent1 = InteractiveAgent()
+    init_states = ([0] * len(self._GAME_MAP["boxes"]),
+                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
+    if self._DOMAIN_TYPE == EDomainType.Movers:
+      agent2 = BoxPushAIAgent_PO_Team(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
+    else:
+      agent2 = BoxPushAIAgent_PO_Indv(init_states,
+                                      self._TEAMMATE_POLICY,
+                                      agent_idx=self._AGENT2)
+
+    game = user_game_data.get_game_ref()
+    game.set_autonomous_agent(agent1, agent2)
+
+    user_game_data.data[Exp1UserData.SELECT] = self._LATENT_COLLECTION
+    user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS
 
   def _on_game_finished(self, user_game_data: Exp1UserData):
     '''
@@ -76,10 +92,11 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
     header += str(self._GAME_MAP)
     game.save_history(file_name, header)
 
-    user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
-    user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
-    store_user_label_locally(user_label_path, user_id, session_name,
-                             user_labels)
+    if self._LATENT_COLLECTION:
+      user_label_path = user_game_data.data[Exp1UserData.USER_LABEL_PATH]
+      user_labels = user_game_data.data[Exp1UserData.USER_LABELS]
+      store_user_label_locally(user_label_path, user_id, session_name,
+                               user_labels)
 
     # update score
     if self._DOMAIN_TYPE == EDomainType.Movers:
@@ -105,7 +122,6 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
 
     # move to next page
     user_game_data.go_to_next_page()
-    self.init_user_data(user_game_data)
 
   def _get_score_text(self, user_data: Exp1UserData):
     game = user_data.get_game_ref()
@@ -126,33 +142,3 @@ class BoxPushV2GamePage(BoxPushGamePageBase):
       text_score += "(Your Best: " + str(best_score) + ")"
 
     return text_score
-
-
-class BoxPushV2UserRandom(BoxPushV2GamePage):
-
-  def __init__(self, domain_type, partial_obs) -> None:
-    super().__init__(domain_type, True, True, True, 5)
-
-    self._PARTIAL_OBS = partial_obs
-
-  def init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
-
-    agent1 = InteractiveAgent()
-    init_states = ([0] * len(self._GAME_MAP["boxes"]),
-                   self._GAME_MAP["a1_init"], self._GAME_MAP["a2_init"])
-    if self._DOMAIN_TYPE == EDomainType.Movers:
-      agent2 = BoxPushAIAgent_PO_Team(init_states,
-                                      self._TEAMMATE_POLICY,
-                                      agent_idx=self._AGENT2)
-    else:
-      agent2 = BoxPushAIAgent_PO_Indv(init_states,
-                                      self._TEAMMATE_POLICY,
-                                      agent_idx=self._AGENT2)
-
-    game = user_game_data.get_game_ref()
-    game.set_autonomous_agent(agent1, agent2)
-    user_game_data.data[Exp1UserData.SELECT] = True
-    user_game_data.data[Exp1UserData.SHOW_LATENT] = True
-
-    user_game_data.data[Exp1UserData.PARTIAL_OBS] = self._PARTIAL_OBS

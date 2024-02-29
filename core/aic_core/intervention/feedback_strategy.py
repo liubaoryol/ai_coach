@@ -7,9 +7,20 @@ from aic_core.utils.result_utils import compute_js
 
 
 class E_ComboSelection(Enum):
-  Value = 0  # need to specify whether the full change is allowed or not
-  Acceptibility = 1  # pick one that is likely to be accepted by the team
-  LeastChange = 2  # pick one that changes the least number of members
+  '''
+    methods to select one latent state combination 
+      if there are multiple compatible combinations that satisfy the criteria
+  '''
+  # Value: pick one that has the highest v-value
+  Value = 0
+  # Acceptibility: pick one that is likely to be accepted
+  #               by the team (not implemented)
+  Acceptibility = 1
+  # LeastChange: pick one that changes the least number of members
+  #             (not implemented)
+  LeastChange = 2
+  # Confidence: pick one containing a latent about which the intervention system
+  #            is most confident in its inference.
   Confidence = 3
 
 
@@ -18,7 +29,8 @@ class E_CertaintyHandling(Enum):
   Average = 1
 
 
-def get_combos_sorted_by_simulated_values(np_v_values, obstate_idx):
+def get_sorted_x_combos(np_v_values, obstate_idx):
+  'given a state(obstate_idx), get mental state combinations sorted by v-value'
   np_obstate_values = np_v_values[obstate_idx]
   list_combos = []
   for combos, value in np.ndenumerate(np_obstate_values):
@@ -30,7 +42,6 @@ def get_combos_sorted_by_simulated_values(np_v_values, obstate_idx):
 
 
 class InterventionAbstract(ABC):
-
   def __init__(
       self,
       e_combo_selection: E_ComboSelection,
@@ -45,20 +56,34 @@ class InterventionAbstract(ABC):
     self.intervention_cost = intervention_cost
     self.inference_threshold = inference_threshold
 
+  def get_point_estimate_of_latent_state(self, list_np_latent_distribution):
+    '''
+    return point estimate of latent state and its probability.
+    if more than 1 latent state has the same probability, return all of them.
+    '''
+    list_p = []
+    list_argmax = []
+    for np_dist in list_np_latent_distribution:
+      max_p = np_dist.max()
+      max_indices = np.where(np_dist == max_p)[0]
+      list_p.append(max_p)
+      list_argmax.append(max_indices)
+
+    return list_argmax, list_p
+
   @abstractmethod
   def get_intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
                        obstate_idx: int):
     '''
-    return: a map from an agent index to the tuple of
-          (inference_probability, inferred_mental_models, desired_mental_model)
+    return: a map from an agent index to desired_mental_model
+            if None, no intervention is needed.
     '''
     pass
 
 
 class InterventionRuleBased(InterventionAbstract):
-
   def __init__(self,
-               cb_get_valid_latent: Callable,
+               cb_get_compatible_latent_combos: Callable,
                num_agent: int,
                e_inference_certainty: E_CertaintyHandling,
                inference_threshold: float,
@@ -69,17 +94,8 @@ class InterventionRuleBased(InterventionAbstract):
                      inference_threshold=inference_threshold,
                      intervention_threshold=intervention_threshold,
                      intervention_cost=intervention_cost)
-    self.cb_get_valid_latent = cb_get_valid_latent
+    self.cb_get_compatible_latent_combos = cb_get_compatible_latent_combos
     self.num_agent = num_agent
-
-  def get_compatible_latent_combos(self, obstate_idx):
-    'no valid'
-    valid_latent = self.cb_get_valid_latent(obstate_idx)
-    list_valid_combo_pairs = []
-    for lat in valid_latent:
-      list_valid_combo_pairs.append(tuple([lat] * self.num_agent))
-
-    return list_valid_combo_pairs
 
   def _confidence_based_combo(self, list_valid_combos,
                               list_np_latent_distribution):
@@ -97,35 +113,33 @@ class InterventionRuleBased(InterventionAbstract):
 
     return list_valid_combos[max_idx]
 
-  def deterministic_decision(self, list_valid_combos, est_combo):
+  def deterministic_rule_based_decision(self, list_valid_combos, est_combo):
     if len(list_valid_combos) == 0:
       return False
 
     return not (est_combo in list_valid_combos)
 
-  def get_argmax(self, list_np_latent_distribution):
-    # get argmax
-    list_p = []
-    list_argmax = []
-    for np_dist in list_np_latent_distribution:
-      max_p = np_dist.max()
-      max_indices = np.where(np_dist == max_p)[0]
-      list_p.append(max_p)
-      list_argmax.append(max_indices)
-
-    return list_argmax, list_p
-
   def get_intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
                        obstate_idx: int):
     '''
-    return: a map from an agent index to the tuple of
-          (inference_probability, inferred_mental_models, desired_mental_model)
+    return: a map from an agent index to desired_mental_model
+            if None, no intervention is needed.
     '''
-    list_valid_combos = self.get_compatible_latent_combos(obstate_idx)
+    list_valid_combos = self.cb_get_compatible_latent_combos(obstate_idx)
 
     picked_combo = None
     # find the optimal combination that satisfies the method and criteria
     if self.e_combo_selection == E_ComboSelection.Confidence:
+      # = Example =
+      # Latent spaces:
+      #   - Agent 1: {A, B}    /   - Agent 2: {W, Y, Z}
+      # Compatible combinations: (A, W), (B, Y), (B, Z)
+      # Latent state inferences:
+      #   - Agent 1: (A: 0.8, B: 0.2)   /  - Agent 2: (W: 0.4, Y: 0.1, Z: 0.5)
+      #
+      # This strategy will choose (a, w) because the intervention system can be
+      # almost certain about its inference at least for one agent.
+      # Hope to avoid unwanted interventions due to wrong estimate of latent
       picked_combo = self._confidence_based_combo(list_valid_combos,
                                                   list_np_latent_distribution)
 
@@ -135,7 +149,7 @@ class InterventionRuleBased(InterventionAbstract):
     if picked_combo is None:
       return None
 
-    # whether to intervene or not, based on value threshold
+    # whether to intervene or not, based on threshold
     # deterministic approach assumes the inferred combination is argmax of
     # each distribution
     do_intervention = False
@@ -151,12 +165,13 @@ class InterventionRuleBased(InterventionAbstract):
           prob *= list_np_latent_distribution[idx][lat]
 
         decision_average += prob * int(
-            self.deterministic_decision(list_valid_combos, combo))
+            self.deterministic_rule_based_decision(list_valid_combos, combo))
 
       if decision_average > 0.5:
         do_intervention = True
     elif self.e_inference_certainty == E_CertaintyHandling.Threshold:
-      list_argmax, list_p = self.get_argmax(list_np_latent_distribution)
+      list_argmax, list_p = self.get_point_estimate_of_latent_state(
+          list_np_latent_distribution)
 
       p_all = 1.0
       for prob in list_p:
@@ -167,7 +182,8 @@ class InterventionRuleBased(InterventionAbstract):
         count = 0
         for combo_cur in itertools.product(*list_argmax):
           decision_average += int(
-              self.deterministic_decision(list_valid_combos, combo_cur))
+              self.deterministic_rule_based_decision(list_valid_combos,
+                                                     combo_cur))
           count += 1
 
         decision_average = decision_average / count
@@ -190,42 +206,23 @@ class InterventionRuleBased(InterventionAbstract):
 
 
 class InterventionValueBased(InterventionAbstract):
-
   def __init__(
       self,
       np_v_values: np.ndarray,
       e_inference_certainty: E_CertaintyHandling,
       inference_threshold: float,  # theta
       intervention_threshold: float,  # delta
-      intervention_cost: float = 0.0,
-      compatibility_tolerance: float = 0.0,
-      argmax_cur_val_by_average=False) -> None:
+      intervention_cost: float = 0.0) -> None:
+    '''
+    fixed_agents: if not None, the agents in the list will not be intervened.
+                  if None, all agents will receive intervention.
+    '''
     super().__init__(e_combo_selection=E_ComboSelection.Value,
                      e_inference_certainty=e_inference_certainty,
                      inference_threshold=inference_threshold,
                      intervention_threshold=intervention_threshold,
                      intervention_cost=intervention_cost)
     self.np_v_values = np_v_values
-    self.argmax_cur_val_by_average = argmax_cur_val_by_average
-
-    # NOTE: there could be multiple ways to define compatible combinations
-    #       with v-values
-    # e.g. top K ranks, percentile of ranks,
-    #      tolerance from the optimal, thresholding after normalizing the range
-    self.compatibility_tolerance = compatibility_tolerance
-
-  def get_compatible_latent_combos(self, obstate_idx):
-    list_vval_combo_pairs = get_combos_sorted_by_simulated_values(
-        self.np_v_values, obstate_idx)
-
-    optimal_val = list_vval_combo_pairs[0][0]
-    criteria_val = optimal_val - optimal_val * self.compatibility_tolerance
-    num_combos = 0
-    for idx in range(len(list_vval_combo_pairs)):
-      if list_vval_combo_pairs[idx][0] > criteria_val:
-        num_combos = idx
-        break
-    return list_vval_combo_pairs[:num_combos]
 
   def get_vval_of_combo(self, input_combo, list_compatible_vval_combos):
     vval = None
@@ -236,23 +233,13 @@ class InterventionValueBased(InterventionAbstract):
 
     return vval
 
-  def get_argmax(self, list_np_latent_distribution):
-    # get argmax
-    list_p = []
-    list_argmax = []
-    for np_dist in list_np_latent_distribution:
-      max_p = np_dist.max()
-      max_indices = np.where(np_dist == max_p)[0]
-      list_p.append(max_p)
-      list_argmax.append(max_indices)
-
-    return list_argmax, list_p
-
-  def get_vval_current(self,
-                       list_compatible_vval_combos,
-                       list_argmax,
-                       average=False):
-    if not average:
+  def get_vval_current(self, list_compatible_vval_combos, list_argmax):
+    # NOTE: USE_AVERGE is for the case where there are multiple combinations
+    #           with the same confidence
+    # if True, use the average of their v-values as the representative v-value.
+    # if False, use the highest v-value among them.
+    USE_AVERAGE = False
+    if not USE_AVERAGE:
       max_vval = float("-inf")
       best_argmax = None
       for combo_cur in itertools.product(*list_argmax):
@@ -276,24 +263,23 @@ class InterventionValueBased(InterventionAbstract):
       avg_val = avg_val / count
       return avg_val, None
 
+  def _get_sorted_x_combos(self, np_v_values, obstate_idx, **kwargs):
+    'given a state(obstate_idx), get mental state combinations sorted by v-value'
+    return get_sorted_x_combos(np_v_values, obstate_idx)
+
   def get_intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
                        obstate_idx: int):
     '''
-    return: a map from an agent index to the tuple of
-          (inference_probability, inferred_mental_models, desired_mental_model)
+    return: a map from an agent index to desired_mental_model
+            if None, no intervention is needed.
     '''
     list_vval_combo_pairs = None
 
     # find the optimal combination that satisfies the method and criteria
     vval_combo = None
-    if self.e_combo_selection == E_ComboSelection.LeastChange:
-      list_vval_combo_pairs = self.get_compatible_latent_combos(obstate_idx)
-      vval_combo = self._hamming_dist_based_combo(list_vval_combo_pairs,
-                                                  list_np_latent_distribution)
-
-    elif self.e_combo_selection == E_ComboSelection.Value:
-      list_vval_combo_pairs = get_combos_sorted_by_simulated_values(
-          self.np_v_values, obstate_idx)
+    if self.e_combo_selection == E_ComboSelection.Value:
+      list_vval_combo_pairs = self._get_sorted_x_combos(self.np_v_values,
+                                                        obstate_idx)
       vval_combo = self._value_based_combo(list_vval_combo_pairs,
                                            list_np_latent_distribution)
     else:
@@ -320,22 +306,22 @@ class InterventionValueBased(InterventionAbstract):
 
         vval = self.get_vval_of_combo(combo, list_vval_combo_pairs)
         decision_average += prob * int(
-            self.deterministic_decision(opt_vval, vval))
+            self.deterministic_value_based_decision(opt_vval, vval))
 
       if decision_average > 0.5:
         do_intervention = True
     elif self.e_inference_certainty == E_CertaintyHandling.Threshold:
-      list_argmax, list_p = self.get_argmax(list_np_latent_distribution)
+      list_argmax, list_p = self.get_point_estimate_of_latent_state(
+          list_np_latent_distribution)
       cur_vval, best_one = self.get_vval_current(list_vval_combo_pairs,
-                                                 list_argmax,
-                                                 self.argmax_cur_val_by_average)
+                                                 list_argmax)
 
       p_all = 1.0
       for prob in list_p:
         p_all *= prob
 
       if p_all >= self.inference_threshold:
-        if self.deterministic_decision(opt_vval, cur_vval):
+        if self.deterministic_value_based_decision(opt_vval, cur_vval):
           do_intervention = True
     else:
       raise NotImplementedError
@@ -352,78 +338,100 @@ class InterventionValueBased(InterventionAbstract):
 
     return None
 
-  def deterministic_decision(self, opt_vval, cur_vval) -> bool:
+  def deterministic_value_based_decision(self, opt_vval, cur_vval) -> bool:
     if cur_vval is None:
       return True
     else:
-      return (opt_vval - cur_vval - self.intervention_cost
-              >= self.intervention_threshold)
+      return (opt_vval - cur_vval - self.intervention_cost >
+              self.intervention_threshold)
 
   def _value_based_combo(self, list_vval_combo_pairs,
                          list_np_latent_distribution):
     return list_vval_combo_pairs[0]
 
-  def _hamming_dist_based_combo(self, list_vval_combo_pairs,
-                                list_np_latent_distribution):
-    # get argmax
-    list_argmax, _ = self.get_argmax(list_np_latent_distribution)
 
-    count_matched = []
-    for _, combo in list_vval_combo_pairs:
-      cnt = 0
-      for idx, lat in enumerate(combo):
-        if lat in list_argmax[idx]:
-          cnt += 1
+class PartialInterventionValueBased(InterventionValueBased):
+  def __init__(self,
+               np_v_values: np.ndarray,
+               inference_threshold: float,
+               intervention_threshold: float,
+               intervention_cost: float = 0,
+               fixed_agents: Sequence[int] = None) -> None:
+    super().__init__(np_v_values, E_CertaintyHandling.Threshold,
+                     inference_threshold, intervention_threshold,
+                     intervention_cost)
 
-      count_matched.append(cnt)
+    self.fixed_agents = fixed_agents
 
-    max_cnt = max(count_matched)
-    if max_cnt == len(list_argmax):
+  def _get_sorted_x_combos(self, np_v_values, obstate_idx, dict_fixed_latents):
+    'given a state(obstate_idx), get mental state combinations sorted by v-value'
+
+    indices = []
+    num_agents = len(np_v_values.shape) - 1
+    for idx in range(num_agents):
+      if idx in dict_fixed_latents:
+        indices.append(dict_fixed_latents[idx])
+      else:
+        indices.append(np.arange(np_v_values.shape[idx + 1]))
+
+    list_combos = []
+    for combo in itertools.product(*indices):
+      list_combos.append((np_v_values[obstate_idx][combo], combo))
+
+    list_combos.sort(reverse=True)
+
+    return list_combos
+
+  def get_intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
+                       obstate_idx: int):
+    '''
+    return: a map from an agent index to desired_mental_model
+            if None, no intervention is needed.
+    '''
+
+    # point estimate of fixed agents
+    dict_fixed_latents = {}
+    prop_fixed = 1.0
+    for idx in self.fixed_agents:
+      np_dist = list_np_latent_distribution[idx]
+      max_p = np_dist.max()
+      max_indices = np.where(np_dist == max_p)[0]
+      dict_fixed_latents[idx] = max_indices
+      prop_fixed *= max_p
+
+    list_vval_combo_pairs = self._get_sorted_x_combos(self.np_v_values,
+                                                      obstate_idx,
+                                                      dict_fixed_latents)
+    vval_combo = self._value_based_combo(list_vval_combo_pairs,
+                                         list_np_latent_distribution)
+
+    if vval_combo is None:
       return None
 
-    idx_combo = count_matched.index(max_cnt)
-    return list_vval_combo_pairs[idx_combo]
+    do_intervention = False
+    opt_vval = vval_combo[0]
 
+    # the same as confidence-based (threshold-based) intervention
+    list_argmax, list_p = self.get_point_estimate_of_latent_state(
+        list_np_latent_distribution)
+    cur_vval, best_one = self.get_vval_current(list_vval_combo_pairs,
+                                               list_argmax)
 
-class InterventionHighKLDiv(InterventionAbstract):
-  '''
-  this intervention strategy will only work for the case where mental models
-  only consist of shared goals of the task.
-  '''
+    p_all = 1.0
+    for prob in list_p:
+      p_all *= prob
 
-  def __init__(self, e_combo_selection: E_ComboSelection,
-               threshold: float) -> None:
-    self.e_combo_selection = e_combo_selection
-    self.threshold = threshold
+    if p_all >= self.inference_threshold:
+      if self.deterministic_value_based_decision(opt_vval, cur_vval):
+        do_intervention = True
 
-  def intervention(self, list_np_latent_distribution: Sequence[np.ndarray],
-                   obstate_idx: int):
+    if do_intervention:
+      # NOTE: for fixed agents, set intervention as None
+      dict_intervention = {idx: None for idx in self.fixed_agents}
+      for idx, lat in enumerate(vval_combo[1]):
+        if idx not in dict_intervention:
+          dict_intervention[idx] = lat
 
-    num_agents = len(list_np_latent_distribution)
-    js_mat = np.zeros((num_agents, num_agents))
-    for a_i in range(num_agents):
-      for a_j in range(num_agents):
-        if a_i == a_j:
-          continue
+      return dict_intervention
 
-        np_latent_dist_i = list_np_latent_distribution[a_i]
-        np_latent_dist_j = list_np_latent_distribution[a_j]
-        js_mat[a_i, a_j] = compute_js(np_latent_dist_i, np_latent_dist_j)
-
-    mean_js = js_mat.mean(axis=1)
-
-    ref_agent_idx = np.argmin(mean_js)
-    ref_np_dist = list_np_latent_distribution[ref_agent_idx]
-    ref_max_p = ref_np_dist.max()
-    ref_max_latent_idx = np.where(ref_np_dist == ref_max_p)[0]
-
-    # desired mental model is uncertain
-    if len(ref_max_latent_idx) > 1:
-      return None
-
-    agent_idx = np.argmax(mean_js)
-    np_dist = list_np_latent_distribution[agent_idx]
-    max_p = np_dist.max()
-    max_latent_idxs = np.where(np_dist == max_p)[0]
-
-    return {agent_idx: (max_p, max_latent_idxs, ref_max_latent_idx[0])}
+    return None

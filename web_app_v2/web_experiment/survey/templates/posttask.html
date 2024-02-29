@@ -1,0 +1,68 @@
+<!-- prettier-ignore -->
+{% extends 'base.html' %}
+{% block header %}
+<h1>
+  {% block title %} {% if domain_type == 'Movers' %} Movers and Packers (part
+  3/5) {% elif domain_type == 'Cleanup' %} Cleanup (part /6) {% elif domain_type
+  == 'Rescue' %} Rescue (part 4/5) {% else %} Unknown Domain {% endif %} {%
+  endblock %}
+</h1>
+<h2>{% block subtitle %}Post-Task Survey{% endblock %}</h2>
+<div class="explanation">
+  <p>
+    Please complete the following survey based on your experience in the
+    previous task.
+  </p>
+</div>
+{% endblock %} {% block content %}
+<div class="form-control">
+  <form
+    method="post"
+    action="{{ url_for(cur_endpoint, session_name_hash=session_name_hash) }}"
+  >
+    {% for form in common_likert_forms %}
+    <div>
+      <label class="statement" for="{{ form['name'] }}">
+        {{ form['question'] }}
+      </label>
+      <ul class="likert">
+        {% for i in range(5) %}
+        <li>
+          <input type="radio" name="{{ form['name'] }}" value="{{ i }}" {{
+          form['checked'][i] }} {% if i==0 %} required {% endif %}>
+          <label>{{ form['option_labels'][i] }}</label>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %} {% if group_likert_forms %} {% for form in group_likert_forms
+    %}
+    <div>
+      <label class="statement" for="{{ form['name'] }}">
+        {{ form['question'] }}
+      </label>
+      <ul class="likert">
+        {% for i in range(5) %}
+        <li>
+          <input type="radio" name="{{ form['name'] }}" value="{{ i }}" {{
+          form['checked'][i] }} {% if i==0 %} required {% endif %}>
+          <label>{{ form['option_labels'][i] }}</label>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %} {% endif %}
+    <div>
+      <label class="statement" for="opencomment"
+        >Open-ended comments (optional)</label
+      >
+      <textarea id="opencomment" name="opencomment" rows="4" cols="50">
+{{ comments }} </textarea
+      >
+    </div>
+    <div class="button-center">
+      <button type="submit" value="submit">Proceed to next session</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

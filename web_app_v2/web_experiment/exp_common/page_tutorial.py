@@ -1,9 +1,9 @@
 from typing import Mapping, Sequence, Any
-from web_experiment.exp_common.page_base import Exp1UserData, ExperimentPageBase
+from web_experiment.exp_common.page_base import Exp1UserData
 from web_experiment.exp_common.page_exp1_game_base import get_holding_box_idx
-from web_experiment.exp_common.page_exp1_common import CanvasPageStart
 from web_experiment.exp_common.page_boxpushv2_base import BoxPushV2GamePage
 import web_experiment.exp_common.canvas_objects as co
+from web_experiment.exp_common.page_tutorial_base import MixinTutorialBase
 from web_experiment.models import db, ExpDataCollection, ExpIntervention
 from web_experiment.define import ExpType, EDomainType
 from aic_domain.agent import InteractiveAgent
@@ -13,213 +13,10 @@ from aic_domain.box_push_v2.agent import (BoxPushAIAgent_PO_Indv,
                                           BoxPushAIAgent_PO_Team)
 
 
-class CanvasPageTutorialStart(ExperimentPageBase):
-  BTN_TUTORIAL_START = "btn_tutorial_start"
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(False, False, False, domain_type)
-
-  def init_user_data(self, user_game_data: Exp1UserData):
-    return super().init_user_data(user_game_data)
-
-  def _get_init_drawing_objects(
-      self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_data)
-
-    pos = (int(co.CANVAS_WIDTH / 2), int(co.CANVAS_HEIGHT / 2))
-    size = (int(self.GAME_WIDTH / 2), int(self.GAME_HEIGHT / 5))
-    obj = co.ButtonRect(self.BTN_TUTORIAL_START, pos, size, 30,
-                        "Interactive Tutorial\n(Click to Start)")
-    dict_objs[obj.name] = obj
-
-    return dict_objs
-
-  def _get_drawing_order(self, user_game_data: Exp1UserData = None):
-    return [self.BTN_TUTORIAL_START]
-
-  def button_clicked(self, user_game_data: Exp1UserData, clicked_btn: str):
-    if clicked_btn == self.BTN_TUTORIAL_START:
-      user_game_data.go_to_next_page()
-      return
-
-    return super().button_clicked(user_game_data, clicked_btn)
-
-
-class CanvasPageInstruction(CanvasPageStart):
-
-  def _get_init_drawing_objects(
-      self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_data)
-
-    obj = dict_objs[co.BTN_START]  # type: co.ButtonRect
-    obj.disable = True  # disable start btn
-
-    obj_inst = dict_objs[self.TEXT_INSTRUCTION]  # type: co.TextObject
-    x_cen = int(obj_inst.pos[0] + obj_inst.width * 0.5)
-    y_cen = int(self.GAME_HEIGHT / 5)
-    radius = y_cen * 0.1
-
-    obj = self._get_spotlight(x_cen, y_cen, radius)
-    dict_objs[obj.name] = obj
-
-    objs = self._get_btn_prev_next(False, False)
-    for obj in objs:
-      dict_objs[obj.name] = obj
-
-    return dict_objs
-
-  def _get_drawing_order(self, user_game_data: Exp1UserData = None):
-    drawing_order = [self.GAME_BORDER]
-    drawing_order.append(co.BTN_START)
-    drawing_order = drawing_order + co.ACTION_BUTTONS
-    drawing_order.append(co.BTN_SELECT)
-    drawing_order.append(self.TEXT_SCORE)
-
-    drawing_order.append(self.SPOTLIGHT)
-
-    drawing_order.append(self.TEXT_INSTRUCTION)
-    drawing_order.append(co.BTN_PREV)
-    drawing_order.append(co.BTN_NEXT)
-
-    return drawing_order
-
-  def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("Prompts will be shown here. Please read each prompt carefully. " +
-            "Click the “Next” button to proceed and “Back” button to " +
-            "go to the previous prompt.")
-
-
-class CanvasPageTutorialGameStart(CanvasPageStart):
-
-  def _get_init_drawing_objects(
-      self, user_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_data)
-    obj = dict_objs[co.BTN_START]  # type: co.ButtonRect
-    obj.disable = False  # enable start btn
-
-    objs = self._get_btn_prev_next(False, True)
-    for obj in objs:
-      dict_objs[obj.name] = obj
-
-    return dict_objs
-
-  def _get_drawing_order(self, user_game_data: Exp1UserData = None):
-    drawing_order = [self.GAME_BORDER]
-    drawing_order.append(co.BTN_START)
-    drawing_order = drawing_order + co.ACTION_BUTTONS
-    drawing_order.append(co.BTN_SELECT)
-    drawing_order.append(self.TEXT_SCORE)
-
-    drawing_order.append(self.TEXT_INSTRUCTION)
-    drawing_order.append(co.BTN_PREV)
-    drawing_order.append(co.BTN_NEXT)
-
-    return drawing_order
-
-  def _get_instruction(self, user_game_data: Exp1UserData):
-    return ("At the start of each task, " +
-            "you will see the screen shown on the left. " +
-            "Click the “Start” button to begin the task.")
-
-
-class CanvasPageTutorialBase(BoxPushV2GamePage):
-  CLICKED_BTNS = "clicked_btn"
-
-  def __init__(self,
-               domain_type,
-               manual_latent_selection,
-               auto_prompt: bool = True,
-               prompt_on_change: bool = True) -> None:
-    super().__init__(domain_type, manual_latent_selection, auto_prompt,
-                     prompt_on_change, 5)
-
-  # _base methods: to avoid using super() method at downstream classes
-  def _base_init_user_data(self, user_game_data: Exp1UserData):
-    super().init_user_data(user_game_data)
-
-    game = user_game_data.get_game_ref()
-    agent1 = InteractiveAgent()
-    agent2 = InteractiveAgent()
-    game.set_autonomous_agent(agent1, agent2)
-
-    PICKUP_BOX = 1 if self._DOMAIN_TYPE == EDomainType.Movers else 0
-    game.event_input(self._AGENT1, EventType.SET_LATENT, ("pickup", PICKUP_BOX))
-    user_game_data.data[Exp1UserData.SELECT] = False
-    user_game_data.data[Exp1UserData.SHOW_LATENT] = True
-    user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
-
-  def _base_get_init_drawing_objects(
-      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    dict_objs = super()._get_init_drawing_objects(user_game_data)
-
-    btn_prev, btn_next = self._get_btn_prev_next(False, False)
-    dict_objs[btn_prev.name] = btn_prev
-    dict_objs[btn_next.name] = btn_next
-
-    return dict_objs
-
-  def _base_button_clicked(self, user_game_data: Exp1UserData,
-                           clicked_btn: str):
-    return super().button_clicked(user_game_data, clicked_btn)
-
-  def _base_get_updated_drawing_objects(
-      self,
-      user_data: Exp1UserData,
-      dict_prev_game: Mapping[str,
-                              Any] = None) -> Mapping[str, co.DrawingObject]:
-    return super()._get_updated_drawing_objects(user_data, dict_prev_game)
-
-  def _base_on_action_taken(self, user_game_data: Exp1UserData,
-                            dict_prev_game: Mapping[str, Any],
-                            tuple_actions: Sequence[Any]):
-    return super()._on_action_taken(user_game_data, dict_prev_game,
-                                    tuple_actions)
-
-  def init_user_data(self, user_game_data: Exp1UserData):
-    self._base_init_user_data(user_game_data)
-
-  def _get_init_drawing_objects(
-      self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
-    return self._base_get_init_drawing_objects(user_game_data)
-
-  def _get_drawing_order(self, user_game_data: Exp1UserData):
-    drawing_order = []
-    drawing_order.append(self.GAME_BORDER)
-
-    dict_game = user_game_data.get_game_ref().get_env_info()
-
-    drawing_order = (drawing_order +
-                     self._game_scene_names(dict_game, user_game_data))
-    drawing_order = (drawing_order +
-                     self._game_overlay_names(dict_game, user_game_data))
-    drawing_order = drawing_order + co.ACTION_BUTTONS
-    drawing_order.append(co.BTN_SELECT)
-
-    drawing_order.append(self.TEXT_SCORE)
-
-    drawing_order.append(self.SPOTLIGHT)
-    drawing_order.append(self.TEXT_INSTRUCTION)
-    drawing_order.append(co.BTN_PREV)
-    drawing_order.append(co.BTN_NEXT)
-
-    return drawing_order
-
-  def _on_game_finished(self, user_game_data: Exp1UserData):
-    '''
-    user_game_data: NOTE - values will be updated
-    '''
-
-    game = user_game_data.get_game_ref()
-    user_game_data.data[Exp1UserData.GAME_DONE] = True
-    game.reset_game()
-    user_game_data.data[Exp1UserData.SCORE] = game.current_step
-    self.init_user_data(user_game_data)
-
-
-class CanvasPageJoystick(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageJoystick(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -237,7 +34,9 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
     dict_objs[co.BTN_NEXT].disable = True
 
     obj = dict_objs[co.BTN_STAY]  # type: co.JoystickStay
-    obj = self._get_spotlight(*obj.pos, int(obj.width * 1.7))
+    center = obj.pos
+    radius = int(obj.width * 1.7)
+    obj = self._get_spotlight(*center, radius)
     dict_objs[obj.name] = obj
 
     return dict_objs
@@ -257,7 +56,7 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn in co.JOYSTICK_BUTTONS and clicked_btn != co.BTN_STAY:
-      return {"delete": [self.SPOTLIGHT]}
+      return {"delete": [self.SPOTLIGHT, self.RED_CIRCLE]}
 
     return None
 
@@ -274,11 +73,7 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
     dict_objs[btn_next.name] = btn_next
 
     clicked_btns = user_data.data[self.CLICKED_BTNS]  # type: set
-    if len(clicked_btns) == 0:
-      for obj_name in clicked_btns:
-        obj = dict_objs[obj_name]  # type: co.JoystickObject
-        obj.fill_color = "LightGreen"
-    else:
+    if len(clicked_btns) != 0:
       obj = dict_objs[btn_next.name]  # type: co.ButtonRect
       obj.disable = False
 
@@ -286,7 +81,6 @@ class CanvasPageJoystick(CanvasPageTutorialBase):
 
 
 class CanvsPageWaitBtn(CanvasPageJoystick):
-
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = self._base_get_init_drawing_objects(user_game_data)
@@ -294,8 +88,15 @@ class CanvsPageWaitBtn(CanvasPageJoystick):
     dict_objs[co.BTN_NEXT].disable = True
 
     obj = dict_objs[co.BTN_STAY]  # type: co.JoystickStay
-    obj = self._get_spotlight(*obj.pos, int(obj.width * 0.8))
+
+    center = obj.pos
+    radius = int(obj.width * 0.8)
+    obj = self._get_spotlight(*center, radius)
     dict_objs[obj.name] = obj
+
+    if not self._LATENT_COLLECTION:
+      obj = self._get_red_circle(*center, radius)
+      dict_objs[obj.name] = obj
 
     return dict_objs
 
@@ -312,15 +113,15 @@ class CanvsPageWaitBtn(CanvasPageJoystick):
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn == co.BTN_STAY:
-      return {"delete": [self.SPOTLIGHT]}
+      return {"delete": [self.SPOTLIGHT, self.RED_CIRCLE]}
 
     return None
 
 
-class CanvasPageInvalidAction(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageInvalidAction(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -335,10 +136,10 @@ class CanvasPageInvalidAction(CanvasPageTutorialBase):
             "the human player will just vibrate on the spot.")
 
 
-class CanvasPageJoystickShort(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageJoystickShort(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -353,10 +154,10 @@ class CanvasPageJoystickShort(CanvasPageTutorialBase):
             "the human player will just vibrate on the spot.")
 
 
-class CanvasPageOnlyHuman(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageOnlyHuman(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -373,24 +174,40 @@ class CanvasPageOnlyHuman(CanvasPageTutorialBase):
         + "The robot moves autonomously.")
 
 
-class CanvasPageGoToTarget(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageGoToTarget(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     object_type = ("box"
                    if self._DOMAIN_TYPE == EDomainType.Movers else "trash bag")
-    return (
-        "The red circle indicates your current destination. " +
-        "Please move to the " + object_type +
-        " (using the motion buttons) and try to pick it. The pick button will" +
-        " be available only when you are at the correct destination.")
+
+    if self._LATENT_COLLECTION:
+      inst = (
+          "The red circle indicates your current destination. " +
+          f"Please move to the {object_type}" +
+          " (using the motion buttons) and try to pick it. The pick button will"
+          + " be available only when you are at the correct destination.")
+    else:
+      inst = ("Let's figure out how to play this task step by step. " +
+              f"First, please move to the bottom {object_type} " +
+              "(circled in red).")
+
+    return inst
 
   def _get_init_drawing_objects(
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
+
+    if not self._LATENT_COLLECTION:
+      game_env = user_game_data.get_game_ref().get_env_info()
+      center_pos, radius = self._get_latent_pos_size(game_env,
+                                                     game_env["a1_latent"])
+      if center_pos is not None:
+        obj = self._get_red_circle(*center_pos, radius)
+        dict_objs[obj.name] = obj
 
     return dict_objs
 
@@ -411,10 +228,10 @@ class CanvasPageGoToTarget(CanvasPageTutorialBase):
         user_game_data.go_to_next_page()
 
 
-class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPagePickUpTargetAttempt(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -433,14 +250,20 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
     dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
     obj = dict_objs[co.BTN_PICK_UP]  # type: co.ButtonRect
-    obj = self._get_spotlight(*obj.pos, int(obj.size[0] * 0.6))
+    pos = obj.pos
+    radi = int(obj.size[0] * 0.6)
+    obj = self._get_spotlight(*pos, radi)
     dict_objs[obj.name] = obj
 
     dict_objs[co.BTN_NEXT].disable = True
 
-    objs = self._get_btn_actions(True, True, True, True, True, False, True,
-                                 True)
+    objs = self._get_btn_actions(user_game_data.get_game_ref().get_env_info(),
+                                 True, True, True, True, True, False, True)
     for obj in objs:
+      dict_objs[obj.name] = obj
+
+    if self._LATENT_COLLECTION:
+      obj = self._get_btn_select(True)
       dict_objs[obj.name] = obj
 
     return dict_objs
@@ -482,7 +305,7 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn == co.BTN_PICK_UP:
-      return {"delete": [self.SPOTLIGHT]}
+      return {"delete": [self.SPOTLIGHT, self.RED_CIRCLE]}
 
     return None
 
@@ -495,9 +318,13 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
                                                        dict_prev_game)
 
     if co.BTN_PICK_UP not in user_data.data[self.CLICKED_BTNS]:
-      objs = self._get_btn_actions(True, True, True, True, True, False, True,
-                                   True)
+      objs = self._get_btn_actions(user_data.get_game_ref().get_env_info(),
+                                   True, True, True, True, True, False, True)
       for obj in objs:
+        dict_objs[obj.name] = obj
+
+      if self._LATENT_COLLECTION:
+        obj = self._get_btn_select(True)
         dict_objs[obj.name] = obj
     else:
       _, btn_next = self._get_btn_prev_next(False, False)
@@ -506,10 +333,10 @@ class CanvasPagePickUpTargetAttempt(CanvasPageTutorialBase):
     return dict_objs
 
 
-class CanvasPagePickUpTarget(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPagePickUpTarget(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -539,6 +366,14 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
     dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
+    if not self._LATENT_COLLECTION:
+      game_env = user_game_data.get_game_ref().get_env_info()
+      center_pos, radius = self._get_latent_pos_size(game_env,
+                                                     game_env["a1_latent"])
+      if center_pos is not None:
+        obj = self._get_red_circle(*center_pos, radius)
+        dict_objs[obj.name] = obj
+
     return dict_objs
 
   def _get_instruction(self, user_game_data: Exp1UserData):
@@ -563,10 +398,10 @@ class CanvasPagePickUpTarget(CanvasPageTutorialBase):
       user_game_data.go_to_next_page()
 
 
-class CanvasPageGoToGoal(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageGoToGoal(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -629,17 +464,25 @@ class CanvasPageGoToGoal(CanvasPageTutorialBase):
     dict_objs = self._base_get_init_drawing_objects(user_game_data)
     dict_objs[co.BTN_NEXT].disable = True
 
+    if not self._LATENT_COLLECTION:
+      game_env = user_game_data.get_game_ref().get_env_info()
+      center_pos, radius = self._get_latent_pos_size(game_env,
+                                                     game_env["a1_latent"])
+      if center_pos is not None:
+        obj = self._get_red_circle(*center_pos, radius)
+        dict_objs[obj.name] = obj
+
     return dict_objs
 
 
-class CanvasPageRespawn(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageRespawn(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
-
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     game = user_game_data.get_game_ref()
     game.set_autonomous_agent()
     game.event_input(self._AGENT1, EventType.SET_LATENT, None)
@@ -655,14 +498,15 @@ class CanvasPageRespawn(CanvasPageTutorialBase):
             "You cannot step on the truck without a " + object_type + ".")
 
 
-class CanvasPageScore(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPageScore(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, False, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
 
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = False
@@ -671,8 +515,13 @@ class CanvasPageScore(CanvasPageTutorialBase):
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
-    objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
+    objs = self._get_btn_actions(user_game_data.get_game_ref().get_env_info(),
+                                 True, True, True, True, True, True, True)
     for obj in objs:
+      dict_objs[obj.name] = obj
+
+    if self._LATENT_COLLECTION:
+      obj = self._get_btn_select(True)
       dict_objs[obj.name] = obj
 
     obj = dict_objs[self.TEXT_SCORE]  # type: co.TextObject
@@ -691,10 +540,10 @@ class CanvasPageScore(CanvasPageTutorialBase):
             "(i.e., with the least amount of time taken).")
 
 
-class CanvasPagePartialObs(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPagePartialObs(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, True, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -710,10 +559,10 @@ class CanvasPagePartialObs(CanvasPageTutorialBase):
         "unless you are in close proximity.")
 
 
-class CanvasPagePORobot(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+class CanvasPagePORobot(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, True, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -742,10 +591,11 @@ class CanvasPagePORobot(CanvasPageTutorialBase):
         "independently of you.")
 
 
-class CanvasPageTarget(CanvasPageTutorialBase):
-
+class CanvasPageTarget(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, False, False)
+    super().__init__(domain_type, True, True)
+    self._MANUAL_SELECTION = False
+    self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = True
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -762,8 +612,13 @@ class CanvasPageTarget(CanvasPageTutorialBase):
     # radius = int(y_cen * 0.1)
     # dict_objs[self.SPOTLIGHT] = self._get_spotlight(x_cen, y_cen, radius)
 
-    objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
+    objs = self._get_btn_actions(user_game_data.get_game_ref().get_env_info(),
+                                 True, True, True, True, True, True, True)
     for obj in objs:
+      dict_objs[obj.name] = obj
+
+    if self._LATENT_COLLECTION:
+      obj = self._get_btn_select(True)
       dict_objs[obj.name] = obj
 
     return dict_objs
@@ -776,10 +631,10 @@ class CanvasPageTarget(CanvasPageTutorialBase):
         "the \"Next\" button to continue.")
 
 
-class CanvasPageLatent(CanvasPageTutorialBase):
-
+class CanvasPageLatent(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, True, True, True)
+    super().__init__(domain_type, True, True)
+    self._MANUAL_SELECTION = self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = True
 
   def init_user_data(self, user_game_data: Exp1UserData):
     self._base_init_user_data(user_game_data)
@@ -795,10 +650,13 @@ class CanvasPageLatent(CanvasPageTutorialBase):
 
     dict_objs[co.BTN_NEXT].disable = True
 
-    objs = self._get_btn_actions(True, True, True, True, True, True, True,
-                                 False)
+    objs = self._get_btn_actions(user_game_data.get_game_ref().get_env_info(),
+                                 True, True, True, True, True, True, True)
     for obj in objs:
       dict_objs[obj.name] = obj
+
+    obj = self._get_btn_select(False)
+    dict_objs[obj.name] = obj
 
     return dict_objs
 
@@ -813,7 +671,7 @@ class CanvasPageLatent(CanvasPageTutorialBase):
 
   def _get_button_commands(self, clicked_btn, user_data: Exp1UserData):
     if clicked_btn == co.BTN_SELECT:
-      return {"delete": [self.SPOTLIGHT]}
+      return {"delete": [self.SPOTLIGHT, self.RED_CIRCLE]}
 
     return None
 
@@ -824,13 +682,14 @@ class CanvasPageLatent(CanvasPageTutorialBase):
     return self._base_button_clicked(user_game_data, clicked_btn)
 
 
-class CanvasPageTutorialPlain(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, True, True)
+class CanvasPageTutorialPlain(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection: bool = True) -> None:
+    super().__init__(domain_type, True, latent_collection)
+    self._MANUAL_SELECTION = self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = False
 
   def init_user_data(self, user_game_data: Exp1UserData):
     # game no need to be initialized
+    user_game_data.data[Exp1UserData.PAGE_DONE] = False
     user_game_data.data[Exp1UserData.ACTION_COUNT] = 0
     user_game_data.data[Exp1UserData.SELECT] = False
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
@@ -842,18 +701,24 @@ class CanvasPageTutorialPlain(CanvasPageTutorialBase):
       self, user_game_data: Exp1UserData) -> Mapping[str, co.DrawingObject]:
     dict_objs = self._base_get_init_drawing_objects(user_game_data)
 
-    objs = self._get_btn_actions(True, True, True, True, True, True, True, True)
+    objs = self._get_btn_actions(user_game_data.get_game_ref().get_env_info(),
+                                 True, True, True, True, True, True, True)
     for obj in objs:
+      dict_objs[obj.name] = obj
+
+    if self._LATENT_COLLECTION:
+      obj = self._get_btn_select(True)
       dict_objs[obj.name] = obj
 
     return dict_objs
 
 
 class CanvasPageSelResult(CanvasPageTutorialPlain):
-
   def __init__(self, domain_type, is_2nd) -> None:
-    super().__init__(domain_type)
+    super().__init__(domain_type, True)
     self._IS_2ND = is_2nd
+    self._MANUAL_SELECTION = False
+    self._PROMPT_ON_CHANGE = self._AUTO_PROMPT = True
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     if self._IS_2ND:
@@ -869,6 +734,8 @@ class CanvasPageSelResult(CanvasPageTutorialPlain):
 
 
 class CanvasPageImportance(CanvasPageTutorialPlain):
+  def __init__(self, domain_type) -> None:
+    super().__init__(domain_type, True)
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
@@ -878,10 +745,11 @@ class CanvasPageImportance(CanvasPageTutorialPlain):
         "to indicate your updated destination.")
 
 
-class CanvasPageSelPrompt(CanvasPageTutorialBase):
-
+class CanvasPageSelPrompt(MixinTutorialBase, BoxPushV2GamePage):
   def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, False, True, True)
+    super().__init__(domain_type, True, True)
+    self._MANUAL_SELECTION = False
+    self._AUTO_PROMPT = self._PROMPT_ON_CHANGE = True
     self._PROMPT_FREQ = 3
 
   def init_user_data(self, user_game_data: Exp1UserData):
@@ -914,20 +782,23 @@ class CanvasPageSelPrompt(CanvasPageTutorialBase):
 
 
 class CanvasPageExpGoal(CanvasPageTutorialPlain):
-
   def _get_instruction(self, user_game_data: Exp1UserData):
-    return (
-        "We are almost at the end of the TUTORIAL. " +
+    inst = (
         "Remember that in the TASK session, " +
         "your goal is to move all the boxes to the truck as soon as possible." +
-        " You cannot pick up a box alone. Also, you can only pick up or " +
-        "drop a box at the place circled in red.")
+        " You cannot pick up a box alone. ")
+    if self._LATENT_COLLECTION:
+      inst += ("Also, you can only pick up or " +
+               "drop a box at the place circled in red.")
+    return inst
 
 
-class CanvasPageMiniGame(CanvasPageTutorialBase):
-
-  def __init__(self, domain_type) -> None:
-    super().__init__(domain_type, True, True, True)
+class CanvasPageMiniGame(MixinTutorialBase, BoxPushV2GamePage):
+  def __init__(self, domain_type, latent_collection=True) -> None:
+    super().__init__(domain_type, True, latent_collection)
+    self._MANUAL_SELECTION = latent_collection
+    self._AUTO_PROMPT = latent_collection
+    self._PROMPT_ON_CHANGE = latent_collection
 
   def _get_instruction(self, user_game_data: Exp1UserData):
     return (
@@ -957,7 +828,7 @@ class CanvasPageMiniGame(CanvasPageTutorialBase):
     game.event_input(self._AGENT1, EventType.SET_LATENT, ("pickup", 0))
 
     user_game_data.data[Exp1UserData.PARTIAL_OBS] = True
-    user_game_data.data[Exp1UserData.SELECT] = True
+    user_game_data.data[Exp1UserData.SELECT] = self._LATENT_COLLECTION
 
     # set task done
     user = user_game_data.data[Exp1UserData.USER]

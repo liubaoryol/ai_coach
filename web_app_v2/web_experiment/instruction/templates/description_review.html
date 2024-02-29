@@ -1,22 +1,25 @@
-{% extends 'base.html' %}
-
-{% block header %}
+{% extends 'base.html' %} {% block header %}
 <h1>{% block title %}Movers and Packers (part 3/5){% endblock %}</h1>
 <h2>{% block subtitle %} Description on Review Page {% endblock %}</h2>
 <div class="explanation">
   <p>Well done! You will conduct three more tasks identical to this one.</p>
-  <p>In these experiments, the robot is not learning. In each task, the robot will choose its destination randomly.</p>
   <p>
-    Before moving to the next task, you can review the destinations annotated at each time step of the previous task.
-    Please watch the video below to learn the purpose of the review page and how you should utilize it.
+    In these experiments, the robot is not learning. In each task, the robot
+    will choose its destination randomly.
+  </p>
+  <p>
+    Before moving to the next task, you can review the destinations annotated at
+    each time step of the previous task. Please watch the video below to learn
+    the purpose of the review page and how you should utilize it.
   </p>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="video-center">
   <video width="80%" height="auto" controls>
-    <source src="{{url_for('inst.static', filename='before_review.mp4')}}" type="video/mp4">
+    <source
+      src="{{url_for('inst.static', filename='before_review.mp4')}}"
+      type="video/mp4"
+    />
     Your browser does not support HTML video.
   </video>
 </div>
