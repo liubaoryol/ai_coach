@@ -165,6 +165,13 @@ def custom_hash(str_key):
     return str(np.base_repr(2 * hash(str_key), base=36))
 
 
+def get_session_key(hash_key):
+  if GlobalVars.use_identifiable_url:
+    return hash_key
+  else:
+    return HASH_2_SESSION_KEY[hash_key]
+
+
 # make sure that no session key has the same hash value
 HASH_2_SESSION_KEY = {
     custom_hash(key): key

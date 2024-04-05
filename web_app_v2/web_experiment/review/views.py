@@ -3,7 +3,7 @@ from flask import render_template, session, g, request, redirect
 from web_experiment.models import db, ExpIntervention, ExpDataCollection, User
 from web_experiment.define import (ExpType, PageKey, get_domain_type,
                                    get_next_url, get_record_session_key,
-                                   HASH_2_SESSION_KEY, url_name)
+                                   get_session_key, url_name)
 from web_experiment.auth.functions import admin_required, login_required
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
@@ -49,7 +49,7 @@ def record(session_name, user_id):
 
 
 def review(session_name_hash):
-  session_name = HASH_2_SESSION_KEY[session_name_hash]
+  session_name = get_session_key(session_name_hash)
   cur_user = g.user
   cur_endpoint = review_bp.name + "." + PageKey.Review
   groupid = session["groupid"]

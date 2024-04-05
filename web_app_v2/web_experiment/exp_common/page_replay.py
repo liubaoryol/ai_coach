@@ -71,7 +71,8 @@ class MixinCanvasPageReplay:
 
     return dict_objs
 
-  def get_drawing_order(self, dict_game, user_data):
+  def get_drawing_order(self, user_data):
+    dict_game = self._get_game_env(user_data)
     drawing_order = []
     drawing_order.append(self.GAME_BORDER)
 
@@ -148,7 +149,8 @@ class MixinCanvasPageReview(MixinCanvasPageReplay):
 
     return dict_objs
 
-  def get_drawing_order(self, dict_game, user_data):
+  def get_drawing_order(self, user_data):
+    dict_game = self._get_game_env(user_data)
     drawing_order = []
     drawing_order.append(self.GAME_BORDER)
 

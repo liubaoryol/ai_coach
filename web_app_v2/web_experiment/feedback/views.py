@@ -2,7 +2,7 @@ from flask import redirect, render_template, request, session, g
 from web_experiment.models import db, ExpIntervention, ExpDataCollection
 from web_experiment.define import (ExpType, get_next_url, PageKey,
                                    get_record_session_key, get_domain_type,
-                                   HASH_2_SESSION_KEY, url_name)
+                                   get_session_key, url_name)
 from web_experiment.auth.functions import login_required
 from web_experiment.review.util import possible_latent_states
 import web_experiment.exp_intervention.define as intv
@@ -12,7 +12,7 @@ from . import feedback_bp
 
 
 def collect(session_name_hash):
-  session_name = HASH_2_SESSION_KEY[session_name_hash]
+  session_name = get_session_key(session_name_hash)
   cur_user = g.user
   cur_endpoint = feedback_bp.name + "." + PageKey.Collect
   groupid = session["groupid"]
@@ -52,7 +52,7 @@ def collect(session_name_hash):
 
 
 def feedback(session_name_hash):
-  session_name = HASH_2_SESSION_KEY[session_name_hash]
+  session_name = get_session_key(session_name_hash)
   cur_endpoint = feedback_bp.name + "." + PageKey.Feedback
   groupid = session["groupid"]
   exp_type = session["exp_type"]

@@ -8,8 +8,8 @@ from web_experiment.models import (db, User, InExperiment, PreExperiment,
                                    PostExperiment)
 import csv
 from web_experiment.define import (PageKey, get_next_url, ExpType,
-                                   get_domain_type, HASH_2_SESSION_KEY,
-                                   url_name, GroupName)
+                                   get_domain_type, get_session_key, url_name,
+                                   GroupName)
 import web_experiment.exp_intervention.define as intv
 import web_experiment.exp_datacollection.define as dcol
 from web_experiment.survey_def import (COMMON_QUESTIONS, COACH_QUESTIONS,
@@ -100,7 +100,7 @@ def session_survey(session_name_hash):
   cur_endpoint = survey_bp.name + "." + PageKey.InExperiment
   group_id = session["groupid"]
   exp_type = session["exp_type"]
-  session_name = HASH_2_SESSION_KEY[session_name_hash]
+  session_name = get_session_key(session_name_hash)
 
   if request.method == 'POST':
     maintained = request.form['maintained']
@@ -204,7 +204,7 @@ def task_survey(session_name_hash):
   cur_endpoint = survey_bp.name + "." + PageKey.InExperiment
   group_id = session["groupid"]
   exp_type = session["exp_type"]
-  session_name = HASH_2_SESSION_KEY[session_name_hash]
+  session_name = get_session_key(session_name_hash)
 
   if request.method == 'POST':
     likert_data = {}

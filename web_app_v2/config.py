@@ -11,8 +11,8 @@ LATENT_PATH = DATA_DIR + "/tw2020_latent"
 USER_LABEL_PATH = DATA_DIR + "/tw2020_user_label"
 EXP_TYPE = "intervention"  # data_collection | intervention
 
-USE_IDENTIFIABLE_URL = False
-REMOVE_HISTORY = True
+USE_IDENTIFIABLE_URL = True
+REMOVE_HISTORY = False
 COMPLETION_CODE = 'C1CY2NS8'
 COMPLETION_REDIRECT = ("https://app.prolific.com/submissions/complete?cc=" +
                        COMPLETION_CODE)

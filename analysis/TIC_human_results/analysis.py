@@ -166,6 +166,8 @@ def print_results(survey_dir, traj_dir, intv_dir):
   # get test-session trajectories by group and domain
   a_movers_trajs, a_rescue_trajs = get_test_trajs_by_group(traj_dir, "a")
   b_movers_trajs, b_rescue_trajs = get_test_trajs_by_group(traj_dir, "b")
+  print("# Group A", len(a_movers_trajs) / 3)
+  print("# Group B", len(b_movers_trajs) / 3)
 
   # get rewards of each group
   a_movers_scores = [150 - len(trj) for trj in a_movers_trajs]

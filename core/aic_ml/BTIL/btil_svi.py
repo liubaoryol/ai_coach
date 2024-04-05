@@ -3,13 +3,12 @@ import numpy as np
 import copy
 from tqdm import tqdm
 from scipy.special import digamma, logsumexp, softmax
-from aic_ml.BTIL.transition_x import TransitionX
+from .transition_x import TransitionX
 
 T_SAXSeqence = Sequence[Tuple[int, Tuple[int, int], Tuple[int, int]]]
 
 
 class BTIL_SVI:
-
   def __init__(
       self,
       trajectories: Sequence[T_SAXSeqence],
