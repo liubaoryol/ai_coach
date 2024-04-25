@@ -11,7 +11,7 @@ from aic_domain.box_push.mdp import (BoxPushTeamMDP_AlwaysTogether,
                                      BoxPushAgentMDP_AlwaysAlone)
 from aic_domain.box_push.agent import (BoxPushAIAgent_Indv2,
                                        BoxPushAIAgent_Team2)
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 
 TEMPERATURE = 0.3
@@ -46,20 +46,20 @@ class EnvBoxPush(EnvFromMDP):
     human_action = mdp.a1_a_space.idx_to_action[int(human_aidx)]
 
     action = mdp.conv_action_to_idx((human_aidx, robot_aidx))
-    next_sidx, reward, done, info = super().step(action)
+    next_sidx, reward, done, _, info = super().step(action)
 
     next_sim_state = self.mdp.conv_mdp_sidx_to_sim_states(next_sidx)
     self.robot_agent.update_mental_state(sim_state,
                                          (human_action, robot_action),
                                          next_sim_state)
 
-    return next_sidx, reward, done, info
+    return next_sidx, reward, done, done, info
 
-  def reset(self):
-    self.cur_state = super().reset()
+  def reset(self, seed=None, options=None):
+    self.cur_state, _ = super().reset()
     sim_state = self.mdp.conv_mdp_sidx_to_sim_states(self.cur_state)
     self.robot_agent.init_latent(sim_state)
-    return self.cur_state
+    return self.cur_state, {}
 
 
 class EnvMovers_v0(EnvBoxPush):

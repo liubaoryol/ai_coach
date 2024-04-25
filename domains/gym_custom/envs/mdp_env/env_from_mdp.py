@@ -1,6 +1,6 @@
 from typing import Sequence, Optional
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 from aic_core.models.mdp import MDP
 import numpy as np
 
@@ -62,12 +62,12 @@ class EnvFromMDP(gym.Env):
     reward = -1  # we don't need reward for imitation learning
     done = self.mdp.is_terminal(self.cur_state)
 
-    return self.cur_state, reward, done, info
+    return self.cur_state, reward, done, done, info
 
-  def reset(self):
+  def reset(self, seed=None, options=None):
     self.cur_state = self.sample()
 
-    return self.cur_state  # reward, done, info can't be included
+    return self.cur_state, {}  # reward, done, info can't be included
 
   # implement render function if need to be
   # def render(self, mode='human'):

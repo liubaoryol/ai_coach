@@ -1,7 +1,7 @@
 from typing import Union, Sequence
 import collections.abc
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 
 
 class EnvFromCallbacks(gym.Env):

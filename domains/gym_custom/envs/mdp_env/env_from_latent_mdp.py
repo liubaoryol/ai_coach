@@ -1,6 +1,6 @@
 from typing import Sequence, Optional
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 from aic_core.models.mdp import LatentMDP
 from aic_core.models.agent_model import AgentModel
 import numpy as np

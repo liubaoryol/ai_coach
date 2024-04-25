@@ -8,7 +8,7 @@ import aic_domain.box_push.policy as bp_policy
 import aic_domain.box_push.agent as bp_agent
 
 IS_TESTMAP = False
-IS_TEAM = False
+IS_TEAM = True
 
 if IS_TESTMAP:
   GAME_MAP = bp_maps.TEST_MAP
